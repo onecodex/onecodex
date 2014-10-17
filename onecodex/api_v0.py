@@ -28,11 +28,6 @@ def pprint(j, args):
         print j
 
 
-def print_upload_progress(monitor):
-    # Your callback function
-    print "\n..."
-
-
 def upload(args):
     """
     Note that this doesn't actually use the default API route -- it instead
