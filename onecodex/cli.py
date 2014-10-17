@@ -92,3 +92,7 @@ def main(argv=sys.argv[1:]):
         args.run(args)
     except AttributeError:
         pass  # For sub-commands w/o run
+
+
+if __name__ == "__main__":
+    main()
