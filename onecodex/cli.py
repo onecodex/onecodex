@@ -27,10 +27,14 @@ class OneCodexArgParser(argparse.ArgumentParser):
         'api_key': 'Manually provide a One Codex Beta API key',
         'threads': 'Use multiple background threads to upload files',
         'max_threads': 'Specify a different max # of upload threads (defaults to 4)',
+    }
+
+    HELP_SUB = {
         'file': 'One or more FASTA or FASTQ files to upload. Optionally gzip-compressed.',
-        'samples': 'One or more Samples to lookup. If absent returns all Samples.',
-        'analyses': 'One or more Analyses to lookup. If absent returns all Analyses.',
-        'references': 'One or more References to lookup. If absent returns all current References.',
+        'samples': 'One or more Sample IDs to lookup. If absent returns all Samples.',
+        'analyses': 'One or more Analysis IDs to lookup. If absent returns all Analyses.',
+        'references': ('One or more Reference IDs to lookup. '
+                       'If absent returns all current References.'),
     }
 
     def __init__(self, *args, **kwargs):
@@ -53,22 +57,24 @@ class OneCodexArgParser(argparse.ArgumentParser):
         """
         self.subparsers = self.add_subparsers()
         self.upload_parser = self.subparsers.add_parser("upload", help=self.HELP['upload'])
-        self.upload_parser.add_argument("file", help=self.HELP['file'], nargs="+")
+        self.upload_parser.add_argument("file", help=self.HELP_SUB['file'], nargs="+")
         self.upload_parser.set_defaults(which="upload")
         self.upload_parser.set_defaults(run=api.upload)
 
         self.samples_parser = self.subparsers.add_parser("samples", help=self.HELP['samples'])
-        self.samples_parser.add_argument("samples", help=self.HELP['samples'], nargs="*")
+        self.samples_parser.add_argument("samples", help=self.HELP_SUB['samples'], nargs="*")
         self.samples_parser.set_defaults(which="samples")
         self.samples_parser.set_defaults(run=api.samples)
 
         self.analyses_parser = self.subparsers.add_parser("analyses", help=self.HELP['analyses'])
-        self.analyses_parser.add_argument("analyses", help=self.HELP['analyses'], nargs="*")
+        self.analyses_parser.add_argument("analyses", help=self.HELP_SUB['analyses'], nargs="*")
         self.analyses_parser.set_defaults(which="analyses")
         self.analyses_parser.set_defaults(run=api.analyses)
 
         self.references_parser = self.subparsers.add_parser("references",
                                                             help=self.HELP['references'])
+        self.references_parser.add_argument("references",
+                                            help=self.HELP_SUB['references'], nargs="*")
         self.references_parser.set_defaults(which="references")
         self.references_parser.set_defaults(run=api.references)
 
