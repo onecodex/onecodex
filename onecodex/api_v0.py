@@ -5,6 +5,7 @@ import json
 import os
 import requests
 import sys
+import threading
 import urlparse
 
 
@@ -49,32 +50,48 @@ def upload(args):
     signing_url = BASE_URL.rstrip("/") + j0['signing_url']
     callback_url = BASE_URL.rstrip("/") + j0['callback_url']
 
+    upload_threads = []
     for f in args.file:
-        # First get the signing form data
-        r1 = requests.post(signing_url, data={"filename": f},
-                           auth=creds)
-        if r1.status_code != 200:
-            print "Failed to get upload signing credentials"
-            sys.exit(1)
+        if args.threads:  # parallel uploads
+            # Multi-threaded uploads
+            t = threading.Thread(target=upload_helper,
+                                 args=(f, s3_url, signing_url, callback_url, creds))
+            upload_threads.append(t)
+            t.start()
+        else:  # serial uploads
+            upload_helper(f, s3_url, signing_url, callback_url, creds)
 
-        # Then do a multi-part post directly to S3
-        fields = {"file": open(f, mode='rb')}
-        fields = dict(r1.json().items())
-        r2 = requests.post(s3_url, data=fields, files={'file': open(f, mode='rb')})
-        if r2.status_code != 201:
-            print "Upload failed. Please contact help@onecodex.com for assistance."
-            sys.exit(1)
+    if args.threads:
+        for ut in upload_threads:
+            ut.join()
 
-        # Finally, issue a callback
-        r3 = requests.post(callback_url, auth=creds, data={
-            "location": r2.headers['location'],
-            "size": os.path.getsize(f)
-        })
-        if r3.status_code == 200:
-            print "Successfully uploaded: %s" % f
-        else:
-            print "Failed to upload: %s" % f
-            sys.exit(1)
+
+def upload_helper(f, s3_url, signing_url, callback_url, creds):
+    # First get the signing form data
+    r1 = requests.post(signing_url, data={"filename": f},
+                       auth=creds)
+    if r1.status_code != 200:
+        print "Failed to get upload signing credentials"
+        sys.exit(1)
+
+    # Then do a multi-part post directly to S3
+    fields = {"file": open(f, mode='rb')}
+    fields = dict(r1.json().items())
+    r2 = requests.post(s3_url, data=fields, files={'file': open(f, mode='rb')})
+    if r2.status_code != 201:
+        print "Upload failed. Please contact help@onecodex.com for assistance."
+        sys.exit(1)
+
+    # Finally, issue a callback
+    r3 = requests.post(callback_url, auth=creds, data={
+        "location": r2.headers['location'],
+        "size": os.path.getsize(f)
+    })
+    if r3.status_code == 200:
+        print "Successfully uploaded: %s" % f
+    else:
+        print "Failed to upload: %s" % f
+        sys.exit(1)
 
 
 # Helper for /route/UUID pattern

@@ -24,6 +24,7 @@ class OneCodexArgParser(argparse.ArgumentParser):
             version.API_VERSION,
             version.API_LINK),
         'api_key': 'Manually provide a One Codex Beta API key',
+        'threads': 'Use multiple background threads to upload files',
         'file': 'One or more FASTA or FASTQ files to upload. Optionally gzip-compressed.',
         'samples': 'One or more Samples to lookup. If absent returns all Samples.',
         'analyses': 'One or more Analyses to lookup. If absent returns all Analyses.',
@@ -36,6 +37,7 @@ class OneCodexArgParser(argparse.ArgumentParser):
         self._optionals.title = 'One Codex Options'
         self.add_argument('--no-pretty-print', dest='pprint',
                           action="store_false", help=self.HELP['api_key'])
+        self.add_argument('--threads', action='store_true', help=self.HELP['threads'])
         self.add_argument('--api-key', help=self.HELP['api_key'])
         self.add_argument('--version', action='version',
                           version=self.HELP['version'])
