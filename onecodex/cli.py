@@ -31,6 +31,10 @@ class OneCodexArgParser(argparse.ArgumentParser):
         'analyses': 'One or more Analysis IDs to lookup. If absent returns all Analyses.',
         'references': ('One or more Reference IDs to lookup. '
                        'If absent returns all current References.'),
+        'table': 'Get a JSON array of the Analysis results table.',
+        'raw': ('Output path or directory for a .tsv file with '
+                'the raw read-level results. Defaults to original filename '
+                'in the current working directory.')
     }
 
     def __init__(self, *args, **kwargs):
@@ -64,6 +68,10 @@ class OneCodexArgParser(argparse.ArgumentParser):
 
         self.analyses_parser = self.subparsers.add_parser("analyses", help=self.HELP['analyses'])
         self.analyses_parser.add_argument("analyses", help=self.HELP_SUB['analyses'], nargs="*")
+        self.analyses_parser.add_argument("--table", help=self.HELP_SUB['table'],
+                                          action="store_true")
+        self.analyses_parser.add_argument("--raw", help=self.HELP_SUB['raw'],
+                                          default=None, const=".", type=str, nargs="?")
         self.analyses_parser.set_defaults(which="analyses")
         self.analyses_parser.set_defaults(run=api.analyses)
 
@@ -88,7 +96,6 @@ class OneCodexArgParser(argparse.ArgumentParser):
 def main(argv=sys.argv[1:]):
     parser = OneCodexArgParser()
     args = parser.parse_args(argv)
-
     OneCodexAuth(args)  # Check and add credentials
     try:
         args.run(args)

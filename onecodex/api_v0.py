@@ -31,6 +31,21 @@ def pprint(j, args):
         print j
 
 
+def download_file_helper(url, input_path, auth=None):
+    r = requests.get(url, stream=True, auth=auth)
+    original_filename = urlparse.urlparse(r.url).path.split("/")[-1]
+    if os.path.isdir(input_path):
+        local_full_path = os.path.join(input_path, original_filename)
+    else:
+        local_full_path = input_path
+    with open(local_full_path, 'wb') as f:
+        for chunk in r.iter_content(chunk_size=1024):
+            if chunk:  # filter out keep-alive new chunks
+                f.write(chunk)
+                f.flush()
+    print "Successfully downloaded %s to %s" % (original_filename, local_full_path)
+
+
 # Version checking function
 def get_update_message():
     r = requests.post(BASE_API + "check_for_cli_update",
@@ -118,16 +133,16 @@ def upload_helper(f, s3_url, signing_url, callback_url, creds,
 
 
 # Helper for /route/UUID pattern
-def api_helper(args, route):
+def api_helper(args, route, supplement=""):
     creds = (args.credentials['api_key'], '')
     if not getattr(args, route):
-        r = requests.get(BASE_API + route,
+        r = requests.get(BASE_API + route + supplement,
                          auth=creds)
         j = r.json()
         pprint(j, args)
     else:
         for uuid in getattr(args, route):
-            r = requests.get(BASE_API + route + "/" + uuid,
+            r = requests.get(BASE_API + route + "/" + uuid + supplement,
                              auth=creds)
             j = r.json()
             pprint(j, args)
@@ -138,7 +153,20 @@ def samples(args):
 
 
 def analyses(args):
-    api_helper(args, route="analyses")
+    if not args.raw and not args.table:
+        api_helper(args, route="analyses")
+    elif args.raw:
+        if len(args.analyses) != 1:
+            print "Can only request raw data on one Analysis at a time."
+            sys.exit(1)
+        download_file_helper(BASE_API + "analyses/" + args.analyses[0] + "/raw",
+                             input_path=args.raw,
+                             auth=(args.credentials['api_key'], ''))
+    elif args.table:
+        if len(args.analyses) != 1:
+            print "Can only request table data on one Analysis at a time."
+            sys.exit(1)
+        api_helper(args, route="analyses", supplement="/table")
 
 
 def references(args):
