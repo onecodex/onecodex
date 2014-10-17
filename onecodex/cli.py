@@ -3,6 +3,7 @@ import argparse
 import sys
 from onecodex.auth import OneCodexAuth
 from onecodex import api_v0 as api
+from onecodex.api_v0 import DEFAULT_THREADS
 from onecodex import version
 
 
@@ -25,6 +26,7 @@ class OneCodexArgParser(argparse.ArgumentParser):
             version.API_LINK),
         'api_key': 'Manually provide a One Codex Beta API key',
         'threads': 'Use multiple background threads to upload files',
+        'max_threads': 'Specify a different max # of upload threads (defaults to 4)',
         'file': 'One or more FASTA or FASTQ files to upload. Optionally gzip-compressed.',
         'samples': 'One or more Samples to lookup. If absent returns all Samples.',
         'analyses': 'One or more Analyses to lookup. If absent returns all Analyses.',
@@ -37,7 +39,10 @@ class OneCodexArgParser(argparse.ArgumentParser):
         self._optionals.title = 'One Codex Options'
         self.add_argument('--no-pretty-print', dest='pprint',
                           action="store_false", help=self.HELP['api_key'])
-        self.add_argument('--threads', action='store_true', help=self.HELP['threads'])
+        self.add_argument('--no-threads', dest='threads',
+                          action='store_false', help=self.HELP['threads'])
+        self.add_argument('--max-threads', default=DEFAULT_THREADS,
+                          type=int, help=self.HELP['max_threads'])
         self.add_argument('--api-key', help=self.HELP['api_key'])
         self.add_argument('--version', action='version',
                           version=self.HELP['version'])

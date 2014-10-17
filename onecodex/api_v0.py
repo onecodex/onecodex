@@ -5,7 +5,7 @@ import json
 import os
 import requests
 import sys
-import threading
+from threading import BoundedSemaphore, Thread
 import urlparse
 
 
@@ -17,6 +17,7 @@ else:
 
 BASE_URL = urlparse.urlparse(BASE_API)
 BASE_URL = BASE_URL._replace(path='/').geturl()
+DEFAULT_THREADS = 4
 
 
 def pprint(j, args):
@@ -39,6 +40,11 @@ def upload(args):
     """
     creds = (args.credentials['api_key'], '')
 
+    if args.threads:
+        semaphore = BoundedSemaphore(args.max_threads)
+        if args.max_threads != DEFAULT_THREADS:
+            print "Uploading with up to %d threads." % args.max_threads
+
     # Get the initially needed routes
     r0 = requests.get(BASE_API + 'presign_upload', auth=creds)
     if r0.status_code != 200:
@@ -54,8 +60,8 @@ def upload(args):
     for f in args.file:
         if args.threads:  # parallel uploads
             # Multi-threaded uploads
-            t = threading.Thread(target=upload_helper,
-                                 args=(f, s3_url, signing_url, callback_url, creds))
+            t = Thread(target=upload_helper,
+                       args=(f, s3_url, signing_url, callback_url, creds, semaphore))
             upload_threads.append(t)
             t.start()
         else:  # serial uploads
@@ -66,8 +72,12 @@ def upload(args):
             ut.join()
 
 
-def upload_helper(f, s3_url, signing_url, callback_url, creds):
+def upload_helper(f, s3_url, signing_url, callback_url, creds,
+                  semaphore=None):
     # First get the signing form data
+    if semaphore is not None:
+        semaphore.acquire()
+
     r1 = requests.post(signing_url, data={"filename": f},
                        auth=creds)
     if r1.status_code != 200:
@@ -92,6 +102,9 @@ def upload_helper(f, s3_url, signing_url, callback_url, creds):
     else:
         print "Failed to upload: %s" % f
         sys.exit(1)
+
+    if semaphore is not None:
+        semaphore.release()
 
 
 # Helper for /route/UUID pattern
