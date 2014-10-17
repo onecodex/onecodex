@@ -88,14 +88,14 @@ def upload_helper(f, s3_url, signing_url, callback_url, creds,
     if semaphore is not None:
         semaphore.acquire()
 
-    r1 = requests.post(signing_url, data={"filename": f},
+    stripped_filename = os.path.basename(f)
+    r1 = requests.post(signing_url, data={"filename": stripped_filename},
                        auth=creds)
     if r1.status_code != 200:
         print "Failed to get upload signing credentials"
         sys.exit(1)
 
     # Then do a multi-part post directly to S3
-    fields = {"file": open(f, mode='rb')}
     fields = dict(r1.json().items())
     r2 = requests.post(s3_url, data=fields, files={'file': open(f, mode='rb')})
     if r2.status_code != 201:

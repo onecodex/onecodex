@@ -7,10 +7,6 @@ from onecodex.api_v0 import DEFAULT_THREADS
 from onecodex import version
 
 
-def hello_world(*args):
-    print "Hello world."
-
-
 class OneCodexArgParser(argparse.ArgumentParser):
     """Parser for the One Codex CLI"""
     HELP = {

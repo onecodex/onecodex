@@ -39,7 +39,6 @@ class OneCodexAuth(object):
             args.credentials["api_key"] = args.api_key
             args.credentials["saved_at"] = None
             args.credentials["updated_at"] = None
-            print "HERE"
             self._check_for_update(args, fp)
             return  # temp login; don't save credentials
 
