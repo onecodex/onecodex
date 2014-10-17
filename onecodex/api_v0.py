@@ -7,8 +7,10 @@ import requests
 import sys
 from threading import BoundedSemaphore, Thread
 import urlparse
+from onecodex import version
 
 
+# Config
 if os.environ.get("ONE_CODEX_API_BASE") is not None:
     BASE_API = os.environ.get("ONE_CODEX_API_BASE")
     print "ALL REQUESTS GOING THROUGH: %s" % BASE_API
@@ -20,6 +22,7 @@ BASE_URL = BASE_URL._replace(path='/').geturl()
 DEFAULT_THREADS = 4
 
 
+# Helpers
 def pprint(j, args):
     if args.pprint:
         print json.dumps(j, sort_keys=True,
@@ -28,6 +31,18 @@ def pprint(j, args):
         print j
 
 
+# Version checking function
+def get_update_message():
+    r = requests.post(BASE_API + "check_for_cli_update",
+                      data={"version": version.VERSION,
+                            "api_version": version.API_VERSION})
+    if r.status_code == 200:
+        j = r.json()
+        if j.get("message"):
+            print j["message"]
+
+
+# Upload functions
 def upload(args):
     """
     Note that this doesn't actually use the default API route -- it instead

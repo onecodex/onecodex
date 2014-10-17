@@ -3,6 +3,10 @@ import getpass
 import json
 import os
 import sys
+from onecodex.api_v0 import get_update_message
+
+
+DATE_FORMAT = "%Y-%m-%d %H:%M"
 
 
 def get_api_key():
@@ -34,6 +38,9 @@ class OneCodexAuth(object):
 
             args.credentials["api_key"] = args.api_key
             args.credentials["saved_at"] = None
+            args.credentials["updated_at"] = None
+            print "HERE"
+            self._check_for_update(args, fp)
             return  # temp login; don't save credentials
 
         if args.which == 'login':
@@ -59,5 +66,25 @@ class OneCodexAuth(object):
                 sys.exit(1)
         else:
             args.credentials["api_key"] = get_api_key()
-            args.credentials["saved_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+            args.credentials["saved_at"] = datetime.datetime.now().strftime(DATE_FORMAT)
+            args.credentials["updated_at"] = None
             json.dump(args.credentials, open(fp, mode='w'))
+
+        # Finally perform a version check as needed
+        self._check_for_update(args, fp)
+
+    def _check_for_update(self, args, fp):
+        time_diff = None
+        if args.credentials["updated_at"] is not None:
+            last_update = datetime.datetime.strptime(args.credentials["updated_at"],
+                                                     DATE_FORMAT)
+            time_diff = datetime.datetime.now() - last_update
+
+        if time_diff is None or time_diff.days >= 1:
+            msg = get_update_message()
+            if msg:
+                print msg
+
+            if args.api_key is None:
+                args.credentials["updated_at"] = datetime.datetime.now().strftime(DATE_FORMAT)
+                json.dump(args.credentials, open(fp, mode='w'))
