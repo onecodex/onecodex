@@ -22,6 +22,14 @@ BASE_URL = BASE_URL._replace(path='/').geturl()
 DEFAULT_THREADS = 4
 
 
+BAD_AUTH_MSG = ("\nYour login credentials appear be bad. Try logging out:"
+                "\n    onecodex logout"
+                "\n"
+                "\nAnd then logging back in:"
+                "\n    onecodex login"
+                "\n")
+
+
 # Helpers
 def pprint(j, args):
     if args.pprint:
@@ -72,7 +80,10 @@ def upload(args):
 
     # Get the initially needed routes
     r0 = requests.get(BASE_API + 'presign_upload', auth=creds)
-    if r0.status_code != 200:
+    if r0.status_code == 401:
+        print BAD_AUTH_MSG
+        sys.exit(1)
+    elif r0.status_code != 200:
         print "Failed to get upload signing credentials"
         sys.exit(1)
 
@@ -146,6 +157,10 @@ def api_helper(args, route, supplement=""):
                              auth=creds)
             j = r.json()
             pprint(j, args)
+
+    if r.status_code == 401:
+        print BAD_AUTH_MSG
+        sys.exit(1)
 
 
 def samples(args):
