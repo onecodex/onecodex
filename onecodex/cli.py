@@ -21,6 +21,7 @@ class OneCodexArgParser(argparse.ArgumentParser):
             version.API_VERSION,
             version.API_LINK),
         'api_key': 'Manually provide a One Codex Beta API key',
+        'pprint': 'Do not pretty-print JSON responses',
         'threads': 'Use multiple background threads to upload files',
         'max_threads': 'Specify a different max # of upload threads (defaults to 4)',
     }
@@ -43,7 +44,7 @@ class OneCodexArgParser(argparse.ArgumentParser):
         self._positionals.title = 'One Codex Commands'
         self._optionals.title = 'One Codex Options'
         self.add_argument('--no-pretty-print', dest='pprint',
-                          action="store_false", help=self.HELP['api_key'])
+                          action="store_false", help=self.HELP['pprint'])
         self.add_argument('--no-threads', dest='threads',
                           action='store_false', help=self.HELP['threads'])
         self.add_argument('--max-threads', default=DEFAULT_THREADS,
