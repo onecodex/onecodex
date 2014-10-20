@@ -155,14 +155,17 @@ def samples(args):
 def analyses(args):
     if not args.raw and not args.table:
         api_helper(args, route="analyses")
-    elif args.raw:
+    elif args.raw and args.table:
+        print "Can only request raw or table data at the same time."
+        sys.exit(1)
+    elif args.raw and not args.table:
         if len(args.analyses) != 1:
             print "Can only request raw data on one Analysis at a time."
             sys.exit(1)
         download_file_helper(BASE_API + "analyses/" + args.analyses[0] + "/raw",
                              input_path=args.raw,
                              auth=(args.credentials['api_key'], ''))
-    elif args.table:
+    elif args.table and not args.raw:
         if len(args.analyses) != 1:
             print "Can only request table data on one Analysis at a time."
             sys.exit(1)

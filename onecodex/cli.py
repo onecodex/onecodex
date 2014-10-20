@@ -38,6 +38,7 @@ class OneCodexArgParser(argparse.ArgumentParser):
     }
 
     def __init__(self, *args, **kwargs):
+        kwargs['prog'] = 'onecodex'
         super(OneCodexArgParser, self).__init__(*args, **kwargs)
         self._positionals.title = 'One Codex Commands'
         self._optionals.title = 'One Codex Options'

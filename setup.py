@@ -20,7 +20,7 @@ setup(
     name='onecodex',
     version='0.0.1',
     url='http://github.com/refgenomics/onecodex/',
-    license='All rights reserved',
+    license='MIT',
     author='Nick Boyd Greenfield',
     author_email='nick@onecodex.com',
     description='One Codex Command Line Client',
