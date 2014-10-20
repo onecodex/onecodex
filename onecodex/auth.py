@@ -28,9 +28,12 @@ class OneCodexAuth(object):
     Note this adds a 'credentials' field
     to the parsed arguments.
     """
-    def __init__(self, args):
+    def __init__(self, args, check_for_update=True, creds_file=None):
         args.credentials = {}
-        fp = os.path.expanduser('~/.onecodex')
+        if creds_file is None:
+            fp = os.path.expanduser('~/.onecodex')
+        else:
+            fp = creds_file
         if args.api_key is not None:
             if len(args.api_key) != 32:
                 print "Invalid API key length (should be 32 characters)"
@@ -70,7 +73,8 @@ class OneCodexAuth(object):
             json.dump(args.credentials, open(fp, mode='w'))
 
         # Finally perform a version check as needed
-        self._check_for_update(args, fp)
+        if check_for_update:
+            self._check_for_update(args, fp)
 
     def _check_for_update(self, args, fp):
         time_diff = None
