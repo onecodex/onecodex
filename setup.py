@@ -1,6 +1,6 @@
 """
 ``onecodex``
----------
+------------
 
 ``onecodex`` provides a command line client for interaction with the
 One Codex API.
@@ -19,7 +19,7 @@ from setuptools import setup
 setup(
     name='onecodex',
     version='0.0.1',
-    url='http://github.com/refgenomics/onecodex/',
+    url='https://www.onecodex.com/',
     license='MIT',
     author='Nick Boyd Greenfield',
     author_email='nick@onecodex.com',
