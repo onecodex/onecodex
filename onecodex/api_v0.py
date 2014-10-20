@@ -104,7 +104,7 @@ def upload_helper(f, s3_url, signing_url, callback_url, creds,
         semaphore.acquire()
 
     stripped_filename = os.path.basename(f)
-    r1 = requests.post(signing_url, data={"filename": stripped_filename},
+    r1 = requests.post(signing_url, data={"filename": stripped_filename, "via_api": "true"},
                        auth=creds)
     if r1.status_code != 200:
         print "Failed to get upload signing credentials"
