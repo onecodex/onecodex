@@ -173,7 +173,7 @@ def upload_helper(f, s3_url, signing_url, callback_url, creds,
     for k, v in r1.json().items():
         fields.append((str(k), str(v)))
 
-    fields.append(("file", open(f, mode='rb')))
+    fields.append(("file", (stripped_filename, open(f, mode='rb'), "text/plain")))
     e = MultipartEncoder(fields)
     m = MultipartEncoderMonitor(e, lambda x: upload_callback.update(x, f))
     r2 = requests.post(s3_url, data=m, headers={"Content-Type": m.content_type})
