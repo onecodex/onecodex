@@ -4,7 +4,7 @@ Functions to implement the v0 One Codex API calls.
 import json
 import os
 import requests
-from requests_toolbelt import MultipartEncoder
+from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 import sys
 from threading import BoundedSemaphore, Thread
 import urlparse
@@ -55,6 +55,49 @@ def download_file_helper(url, input_path, auth=None):
     print "Successfully downloaded %s to %s" % (original_filename, local_full_path)
 
 
+class UploadCallback(object):
+    def __init__(self, files):
+        self.files = files
+        self.filesizes = {f: float(os.path.getsize(f)) for f in files}
+        self.filenames = {f: os.path.basename(f)[0:20] for f in files}
+        self.progress = {f: 0.0 for f in files}
+        self.last_bytes = {f: 0 for f in files}
+        self.file_ns = {f: x for x, f in enumerate(files)}
+        self.n = len(files)
+        print "initializing upload callback", self.files
+
+    def update(self, monitor, f):
+        if self.last_bytes[f] != monitor.bytes_read:
+            self.progress[f] = monitor.bytes_read / self.filesizes[f]
+            self.last_bytes[f] = monitor.bytes_read
+            self.update_progress()
+
+    def _get_current_file(self):
+        for ix, f in enumerate(self.files):
+            if self.progress[f] >= 1:
+                continue
+            else:
+                return ix + 1, f
+
+    def update_progress(self):
+        file_n, f = self._get_current_file()
+        barLength = 20  # Modify this to change the length of the progress bar
+        if self.progress[f] < 0:
+            self.progress[f] = 0
+            status = "Halt...\r\n"
+        elif self.progress[f] >= 1:
+            self.progress[f] = 1
+            status = "Done.\r\n"
+        else:
+            status = ""
+        block = int(round(barLength * self.progress[f]))
+        text = "\r{0}: [{1}] {2:.2f}% {3} {4}".format(self.filenames[f],
+                                                      "#" * block + "-" * (barLength - block),
+                                                      self.progress[f] * 100, status, "%d/%d files" % (file_n, self.n))
+        sys.stdout.write(text)
+        sys.stdout.flush()
+
+
 # Version checking function
 def get_update_message():
     r = requests.post(BASE_API + "check_for_cli_update",
@@ -94,16 +137,17 @@ def upload(args):
     callback_url = BASE_URL.rstrip("/") + j0['callback_url']
 
     upload_threads = []
+    upload_callback = UploadCallback(args.file)
     for f in args.file:
         if args.threads:  # parallel uploads
             # Multi-threaded uploads
             t = Thread(target=upload_helper,
                        args=(f, s3_url, signing_url, callback_url,
-                             creds, semaphore))
+                             creds, upload_callback, semaphore))
             upload_threads.append(t)
             t.start()
         else:  # serial uploads
-            upload_helper(f, s3_url, signing_url, callback_url, creds)
+            upload_helper(f, s3_url, signing_url, callback_url, creds, upload_callback)
 
     if args.threads:
         for ut in upload_threads:
@@ -111,7 +155,7 @@ def upload(args):
 
 
 def upload_helper(f, s3_url, signing_url, callback_url, creds,
-                  semaphore=None):
+                  upload_callback, semaphore=None):
     # First get the signing form data
     if semaphore is not None:
         semaphore.acquire()
@@ -130,7 +174,8 @@ def upload_helper(f, s3_url, signing_url, callback_url, creds,
         fields.append((str(k), str(v)))
 
     fields.append(("file", open(f, mode='rb')))
-    m = MultipartEncoder(fields)
+    e = MultipartEncoder(fields)
+    m = MultipartEncoderMonitor(e, lambda x: upload_callback.update(x, f))
     r2 = requests.post(s3_url, data=m, headers={"Content-Type": m.content_type})
     if r2.status_code != 201:
         print "Upload failed. Please contact help@onecodex.com for assistance."
@@ -142,7 +187,7 @@ def upload_helper(f, s3_url, signing_url, callback_url, creds,
         "size": os.path.getsize(f)
     })
     if r3.status_code == 200:
-        print "Successfully uploaded: %s" % f
+        # print "Successfully uploaded: %s" % f
         pass
     else:
         print "Failed to upload: %s" % f
