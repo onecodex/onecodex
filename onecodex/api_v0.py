@@ -4,6 +4,7 @@ Functions to implement the v0 One Codex API calls.
 import json
 import os
 import requests
+from requests_toolbelt import MultipartEncoder
 import sys
 from threading import BoundedSemaphore, Thread
 import urlparse
@@ -97,7 +98,8 @@ def upload(args):
         if args.threads:  # parallel uploads
             # Multi-threaded uploads
             t = Thread(target=upload_helper,
-                       args=(f, s3_url, signing_url, callback_url, creds, semaphore))
+                       args=(f, s3_url, signing_url, callback_url,
+                             creds, semaphore))
             upload_threads.append(t)
             t.start()
         else:  # serial uploads
@@ -121,9 +123,15 @@ def upload_helper(f, s3_url, signing_url, callback_url, creds,
         print "Failed to get upload signing credentials"
         sys.exit(1)
 
-    # Then do a multi-part post directly to S3
-    fields = dict(r1.json().items())
-    r2 = requests.post(s3_url, data=fields, files={'file': open(f, mode='rb')})
+    # Coerce to str or MultipartEncoder fails
+    # Need a list to preserve order for S3
+    fields = []
+    for k, v in r1.json().items():
+        fields.append((str(k), str(v)))
+
+    fields.append(("file", open(f, mode='rb')))
+    m = MultipartEncoder(fields)
+    r2 = requests.post(s3_url, data=m, headers={"Content-Type": m.content_type})
     if r2.status_code != 201:
         print "Upload failed. Please contact help@onecodex.com for assistance."
         sys.exit(1)
@@ -135,6 +143,7 @@ def upload_helper(f, s3_url, signing_url, callback_url, creds,
     })
     if r3.status_code == 200:
         print "Successfully uploaded: %s" % f
+        pass
     else:
         print "Failed to upload: %s" % f
         sys.exit(1)
