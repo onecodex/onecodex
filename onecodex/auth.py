@@ -1,9 +1,11 @@
+from __future__ import print_function
 import datetime
 import getpass
 import json
 import os
 import sys
 from onecodex.api_v0 import get_update_message
+from onecodex.helpers import stderr
 
 
 DATE_FORMAT = "%Y-%m-%d %H:%M"
@@ -15,7 +17,7 @@ def get_api_key():
         if not api_key:
             continue
         if len(api_key.strip()) != 32:
-            print "Your API appears to be too short (it should be 32 characters). Try again."
+            print("Your API appears to be too short (it should be 32 characters). Try again.")
             continue
         return api_key.strip()
 
@@ -36,7 +38,7 @@ class OneCodexAuth(object):
             fp = creds_file
         if args.api_key is not None:
             if len(args.api_key) != 32:
-                print "Invalid API key length (should be 32 characters)"
+                stderr("Invalid API key length (should be 32 characters)")
                 sys.exit(1)
 
             args.credentials["api_key"] = args.api_key
@@ -47,23 +49,23 @@ class OneCodexAuth(object):
 
         if args.which == 'login':
             if os.path.exists(fp):
-                print "Credentials file already exists (~/.onecodex)"
+                stderr("Credentials file already exists (~/.onecodex)")
                 sys.exit(1)
 
         if args.which == 'logout':
             if os.path.exists(fp):
                 os.remove(fp)
-                print "Successfully removed One Codex credentials."
+                print("Successfully removed One Codex credentials.")
                 sys.exit(0)
             else:
-                print "No One Codex API keys found."
+                stderr("No One Codex API keys found.")
                 sys.exit(1)
 
         if os.path.exists(fp):
             try:
                 args.credentials = json.load(open(fp, mode='r'))
             except ValueError:
-                print ("Your ~/.onecodex credentials file appears to be corrupted. "
+                stderr("Your ~/.onecodex credentials file appears to be corrupted. "
                        "Please delete it and re-authorize.")
                 sys.exit(1)
         else:
@@ -86,7 +88,7 @@ class OneCodexAuth(object):
         if time_diff is None or time_diff.days >= 1:
             msg = get_update_message()
             if msg:
-                print msg
+                stderr(msg)
 
             if args.api_key is None:
                 args.credentials["updated_at"] = datetime.datetime.now().strftime(DATE_FORMAT)

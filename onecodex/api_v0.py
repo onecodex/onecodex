@@ -1,6 +1,7 @@
 """
 Functions to implement the v0 One Codex API calls.
 """
+from __future__ import print_function
 import json
 import os
 import requests
@@ -10,12 +11,13 @@ from multiprocessing import Lock, Value
 from threading import BoundedSemaphore, Thread
 import urlparse
 from onecodex import version
+from onecodex.helpers import stderr
 
 
 # Config
 if os.environ.get("ONE_CODEX_API_BASE") is not None:
     BASE_API = os.environ.get("ONE_CODEX_API_BASE")
-    print "ALL REQUESTS GOING THROUGH: %s" % BASE_API
+    print("ALL REQUESTS GOING THROUGH: %s" % BASE_API)
 else:
     BASE_API = "https://beta.onecodex.com/api/v0/"
 
@@ -38,10 +40,10 @@ BAD_API_KEY_MSG = ("\nThe --api-key you entered appears to be "
 # Helpers
 def pprint(j, args):
     if args.pprint:
-        print json.dumps(j, sort_keys=True,
-                         indent=4, separators=(',', ': '))
+        print(json.dumps(j, sort_keys=True,
+                         indent=4, separators=(',', ': ')))
     else:
-        print j
+        print(j)
 
 
 def download_file_helper(url, input_path, auth=None):
@@ -56,7 +58,7 @@ def download_file_helper(url, input_path, auth=None):
             if chunk:  # filter out keep-alive new chunks
                 f.write(chunk)
                 f.flush()
-    print "Successfully downloaded %s to %s" % (original_filename, local_full_path)
+    print("Successfully downloaded %s to %s" % (original_filename, local_full_path))
 
 
 # Version checking function
@@ -67,7 +69,7 @@ def get_update_message():
     if r.status_code == 200:
         j = r.json()
         if j.get("message"):
-            print j["message"]
+            stderr(j["message"])
 
 
 def upload_callback(monitor, upload_progress_bytes, lock, total_bytes, n_files):
@@ -96,8 +98,8 @@ def upload_callback(monitor, upload_progress_bytes, lock, total_bytes, n_files):
     block = int(round(barLength * progress))
     text = "\rUploading: [{0}] {1:.2f}% {2}".format("#" * block + "-" * (barLength - block),
                                                     progress * 100, status)
-    sys.stdout.write(text)
-    sys.stdout.flush()
+    sys.stderr.write(text)
+    sys.stderr.flush()
 
 
 # Upload functions
@@ -111,18 +113,18 @@ def upload(args):
     if args.threads:
         semaphore = BoundedSemaphore(args.max_threads)
         if args.max_threads != DEFAULT_THREADS:
-            print "Uploading with up to %d threads." % args.max_threads
+            print("Uploading with up to %d threads." % args.max_threads)
 
     # Get the initially needed routes
     r0 = requests.get(BASE_API + 'presign_upload', auth=creds)
     if r0.status_code == 401:
         if not args.api_key:
-            print BAD_AUTH_MSG
+            stderr(BAD_AUTH_MSG)
         else:
-            print BAD_API_KEY_MSG
+            stderr(BAD_API_KEY_MSG)
         sys.exit(1)
     elif r0.status_code != 200:
-        print "Failed to get upload signing credentials"
+        stderr("Failed to get upload signing credentials")
         sys.exit(1)
 
     j0 = r0.json()
@@ -167,9 +169,9 @@ def upload_helper(f, s3_url, signing_url, callback_url, creds,
                        auth=creds)
     if r1.status_code != 200:
         try:
-            print "Failed upload: %s" % r1.json()["msg"]
+            stderr("Failed upload: %s" % r1.json()["msg"])
         except:
-            print ("Upload failed. Please contact help@onecodex.com for "
+            stderr("Upload failed. Please contact help@onecodex.com for "
                    "assistance if you continue to experience problems.")
         sys.exit(1)
 
@@ -187,7 +189,7 @@ def upload_helper(f, s3_url, signing_url, callback_url, creds,
                                                              n_files=total_files))
     r2 = requests.post(s3_url, data=m, headers={"Content-Type": m.content_type})
     if r2.status_code != 201:
-        print "Upload failed. Please contact help@onecodex.com for assistance."
+        stderr("Upload failed. Please contact help@onecodex.com for assistance.")
         sys.exit(1)
 
     # Finally, issue a callback
@@ -197,12 +199,12 @@ def upload_helper(f, s3_url, signing_url, callback_url, creds,
     })
     if r3.status_code == 200:
         if upload_progress_bytes.value > 0:  # == -1 upon completion
-            print "\r"
-        print "Successfully uploaded: %s" % f
+            stderr("\r")
+        print("Successfully uploaded: %s" % f)
         with upload_progress_lock:
             total_files.value -= 1
     else:
-        print "Failed to upload: %s" % f
+        print("Failed to upload: %s" % f)
         sys.exit(1)
 
     if semaphore is not None:
@@ -230,9 +232,9 @@ def api_helper(args, route, supplement=""):
 def abort_helper(r, args):
     if r.status_code == 401:
         if not args.api_key:
-            print BAD_AUTH_MSG
+            stderr(BAD_AUTH_MSG)
         else:
-            print BAD_API_KEY_MSG
+            stderr(BAD_API_KEY_MSG)
         sys.exit(1)
 
 
@@ -244,18 +246,18 @@ def analyses(args):
     if not args.raw and not args.table:
         api_helper(args, route="analyses")
     elif args.raw and args.table:
-        print "Can only request raw or table data at the same time."
+        stderr("Can only request raw or table data at the same time.")
         sys.exit(1)
     elif args.raw and not args.table:
         if len(args.analyses) != 1:
-            print "Can only request raw data on one Analysis at a time."
+            stderr("Can only request raw data on one Analysis at a time.")
             sys.exit(1)
         download_file_helper(BASE_API + "analyses/" + args.analyses[0] + "/raw",
                              input_path=args.raw,
                              auth=(args.credentials['api_key'], ''))
     elif args.table and not args.raw:
         if len(args.analyses) != 1:
-            print "Can only request table data on one Analysis at a time."
+            stderr("Can only request table data on one Analysis at a time.")
             sys.exit(1)
         api_helper(args, route="analyses", supplement="/table")
 
