@@ -31,6 +31,9 @@ BAD_AUTH_MSG = ("\nYour login credentials appear be bad. Try logging out:"
                 "\n    onecodex login"
                 "\n")
 
+BAD_API_KEY_MSG = ("\nThe --api-key you entered appears to be "
+                   "invalid. Please double check the key and try again.\n")
+
 
 # Helpers
 def pprint(j, args):
@@ -113,7 +116,10 @@ def upload(args):
     # Get the initially needed routes
     r0 = requests.get(BASE_API + 'presign_upload', auth=creds)
     if r0.status_code == 401:
-        print BAD_AUTH_MSG
+        if not args.api_key:
+            print BAD_AUTH_MSG
+        else:
+            print BAD_API_KEY_MSG
         sys.exit(1)
     elif r0.status_code != 200:
         print "Failed to get upload signing credentials"
@@ -160,7 +166,11 @@ def upload_helper(f, s3_url, signing_url, callback_url, creds,
     r1 = requests.post(signing_url, data={"filename": stripped_filename, "via_api": "true"},
                        auth=creds)
     if r1.status_code != 200:
-        print "Failed to get upload signing credentials"
+        try:
+            print "Failed upload: %s" % r1.json()["msg"]
+        except:
+            print ("Upload failed. Please contact help@onecodex.com for "
+                   "assistance if you continue to experience problems.")
         sys.exit(1)
 
     # Coerce to str or MultipartEncoder fails
@@ -205,17 +215,24 @@ def api_helper(args, route, supplement=""):
     if not getattr(args, route):
         r = requests.get(BASE_API + route + supplement,
                          auth=creds)
+        abort_helper(r, args)
         j = r.json()
         pprint(j, args)
     else:
         for uuid in getattr(args, route):
             r = requests.get(BASE_API + route + "/" + uuid + supplement,
                              auth=creds)
+            abort_helper(r, args)
             j = r.json()
             pprint(j, args)
 
+
+def abort_helper(r, args):
     if r.status_code == 401:
-        print BAD_AUTH_MSG
+        if not args.api_key:
+            print BAD_AUTH_MSG
+        else:
+            print BAD_API_KEY_MSG
         sys.exit(1)
 
 
