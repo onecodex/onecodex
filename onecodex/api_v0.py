@@ -48,6 +48,8 @@ def pprint(j, args):
 
 def download_file_helper(url, input_path, auth=None):
     r = requests.get(url, stream=True, auth=auth)
+    if r.status_code != 200:
+        stderr("Failed to download file: %s" % r.json()["message"])
     original_filename = urlparse.urlparse(r.url).path.split("/")[-1]
     if os.path.isdir(input_path):
         local_full_path = os.path.join(input_path, original_filename)

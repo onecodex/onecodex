@@ -23,7 +23,7 @@ class OneCodexArgParser(argparse.ArgumentParser):
         'api_key': 'Manually provide a One Codex Beta API key',
         'pprint': 'Do not pretty-print JSON responses',
         'threads': 'Do not use multiple background threads to upload files',
-        'max_threads': 'Specify a different max # of upload threads (defaults to 4)',
+        'max_threads': 'Specify a different max # of N upload threads (defaults to 4)',
     }
 
     HELP_SUB = {
@@ -35,7 +35,9 @@ class OneCodexArgParser(argparse.ArgumentParser):
         'table': 'Get a JSON array of the Analysis results table.',
         'raw': ('Output path or directory for a .tsv file with '
                 'the raw read-level results. Defaults to original filename '
-                'in the current working directory.')
+                'in the current working directory. Note if not specifying a '
+                'download path this argument must come last, e.g.: '
+                '`onecodex analyses <uuid> --raw`.')
     }
 
     def __init__(self, *args, **kwargs):
@@ -48,7 +50,8 @@ class OneCodexArgParser(argparse.ArgumentParser):
         self.add_argument('--no-threads', dest='threads',
                           action='store_false', help=self.HELP['threads'])
         self.add_argument('--max-threads', default=DEFAULT_THREADS,
-                          type=int, help=self.HELP['max_threads'])
+                          type=int, help=self.HELP['max_threads'],
+                          metavar="N")
         self.add_argument('--api-key', help=self.HELP['api_key'])
         self.add_argument('--version', action='version',
                           version=self.HELP['version'])
@@ -73,7 +76,8 @@ class OneCodexArgParser(argparse.ArgumentParser):
         self.analyses_parser.add_argument("--table", help=self.HELP_SUB['table'],
                                           action="store_true")
         self.analyses_parser.add_argument("--raw", help=self.HELP_SUB['raw'],
-                                          default=None, const=".", type=str, nargs="?")
+                                          metavar="RAW_DL_PATH", default=None,
+                                          const=".", type=str, nargs="?")
         self.analyses_parser.set_defaults(which="analyses")
         self.analyses_parser.set_defaults(run=api.analyses)
 
