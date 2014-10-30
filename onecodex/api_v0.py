@@ -251,7 +251,13 @@ def analyses(args):
         stderr("Can only request raw or table data at the same time.")
         sys.exit(1)
     elif args.raw and not args.table:
-        if len(args.analyses) != 1:
+        if len(args.analyses) == 0:
+            stderr("No analysis specified. Please note the first argument "
+                   "following --raw is an optional path for storing the raw "
+                   "download.\nIf you do not want to specify this, append --raw "
+                   "to the end of your command, e.g., `onecodex analyses <id> --raw`.")
+            sys.exit(1)
+        elif len(args.analyses) != 1:
             stderr("Can only request raw data on one Analysis at a time.")
             sys.exit(1)
         download_file_helper(BASE_API + "analyses/" + args.analyses[0] + "/raw",
