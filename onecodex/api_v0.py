@@ -83,7 +83,6 @@ def upload_callback(monitor, upload_progress_bytes, lock, total_bytes, n_files):
         progress = 0.0
     else:
         progress = upload_progress_bytes.value / float(total_bytes)
-    # print upload_progress_bytes.value, monitor.bytes_read
     barLength = 20  # Modify this to change the length of the progress bar
     if progress < 0:
         progress = 0
@@ -135,7 +134,7 @@ def upload(args):
     callback_url = BASE_URL.rstrip("/") + j0['callback_url']
 
     upload_threads = []
-    upload_progress_bytes = Value('i', 0)
+    upload_progress_bytes = Value('L', 0)
     upload_progress_lock = Lock()
     total_bytes = sum([os.path.getsize(f) for f in args.file])
     total_files = Value('i', len(args.file))
