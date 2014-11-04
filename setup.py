@@ -29,8 +29,8 @@ setup(
     zip_safe=True,
     platforms='any',
     install_requires=[
-        'requests>=2.4.3',
-        'requests-toolbelt==0.3.1'
+        'requests>=2.3.0',
+        'requests-toolbelt>=0.3.1'
     ],
     test_suite='nose.collector',
     entry_points={
