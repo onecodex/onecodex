@@ -175,6 +175,7 @@ def upload_helper(f, s3_url, signing_url, callback_url, creds,
             stderr("Upload failed. Please contact help@onecodex.com for "
                    "assistance if you continue to experience problems.")
         sys.exit(1)
+    file_uuid = r1.json()['key'].split("/")[-2][5:]
 
     # Coerce to str or MultipartEncoder fails
     # Need a list to preserve order for S3
@@ -201,7 +202,7 @@ def upload_helper(f, s3_url, signing_url, callback_url, creds,
     if r3.status_code == 200:
         if upload_progress_bytes.value > 0:  # == -1 upon completion
             stderr("\r")
-        print("Successfully uploaded: %s" % f)
+        print("Successfully uploaded: %s. File ID is: %s." % (f, file_uuid))
         with upload_progress_lock:
             total_files.value -= 1
     else:
