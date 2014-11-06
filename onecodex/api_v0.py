@@ -200,9 +200,13 @@ def upload_helper(f, s3_url, signing_url, callback_url, creds,
         "size": os.path.getsize(f)
     })
     if r3.status_code == 200:
-        if upload_progress_bytes.value > 0:  # == -1 upon completion
-            stderr("\r")
-        print("Successfully uploaded: %s. File ID is: %s." % (f, file_uuid))
+        success_msg = "Successfully uploaded: %s. File ID is: %s." % (f, file_uuid)
+        if upload_progress_bytes.value == -1:  # == -1 upon completion
+            print(success_msg)
+        else:
+            sys.stderr.write("\r")
+            sys.stderr.flush()
+            print(success_msg)
         with upload_progress_lock:
             total_files.value -= 1
     else:
