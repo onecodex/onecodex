@@ -254,10 +254,23 @@ def upload_helper(f, s3_url, signing_url, callback_url, creds,
                                                              upload_progress_lock,
                                                              total_bytes=(total_bytes + 8192),
                                                              n_files=total_files))
-    r2 = requests.post(s3_url, data=m, headers={"Content-Type": m.content_type})
-    if r2.status_code != 201:
-        stderr("Upload failed. Please contact help@onecodex.com for assistance.")
-        sys.exit(1)
+    max_retries = 3
+    n_retries = 0
+    while n_retries < max_retries:
+        try:
+            r2 = requests.post(s3_url, data=m, headers={"Content-Type": m.content_type})
+            if r2.status_code != 201:
+                stderr("Upload failed. Please contact help@onecodex.com for assistance.")
+                sys.exit(1)
+            break
+        except requests.exceptions.ConnectionError:
+            n_retries += 1
+            if n_retries == max_retries:
+                stderr("The command line client is experiencing connectivity issues and "
+                       "cannot complete the upload of %s at this time. Please try again "
+                       "later. If the problem persists, contact us at help@onecodex.com "
+                       "for assistance." % stripped_filename)
+                sys.exit(1)
 
     # Finally, issue a callback
     r3 = requests.post(callback_url, auth=creds, data={
