@@ -26,6 +26,10 @@ BASE_URL = BASE_URL._replace(path='/').geturl()
 DEFAULT_THREADS = 4
 CHUNK_SIZE = 8192
 
+# Use multipart upload for anything over ~5GB
+# (a little bit smaller bc 1000^3, not 1024^3)
+MULTIPART_SIZE = 5 * 1000 * 1000 * 1000
+
 BAD_AUTH_MSG = ("\nYour login credentials appear be bad. Try logging out:"
                 "\n    onecodex logout"
                 "\n"
@@ -109,6 +113,67 @@ def upload(args):
     Note that this doesn't actually use the default API route -- it instead
     posts directly to S3.
     """
+    file_sizes = [os.path.getsize(f) for f in args.file]
+    max_file_size = max(file_sizes)
+    if max_file_size > MULTIPART_SIZE:
+        for ix, f in enumerate(args.file):
+            if file_sizes[ix] > MULTIPART_SIZE:
+                upload_multipart(args, f)
+            else:
+                upload_direct(args, [f])
+    else:
+        upload_direct(args, args.file)
+
+
+def upload_multipart(args, f):
+    """
+    Note, for large files we upload them one at a time
+    using a special API.
+    """
+    creds = (args.credentials['api_key'], '')
+    r0 = requests.get(BASE_API + "init_multipart_upload", auth=creds)
+    if r0.status_code != 200:
+        stderr("Failed to initiate large multipart upload (>5GB).")
+        sys.exit(1)
+
+    s3_bucket = r0.json()["s3_bucket"]
+    callback_url = BASE_URL.rstrip("/") + r0.json()['callback_url']
+    file_id = r0.json()["file_id"]
+
+    # Upload to s3 using boto
+    try:
+        import awscli  # noqa
+        import subprocess
+    except ImportError:
+        stderr("You must install the awscli package for files >5GB in size. "
+               "On most systems, it can be installed with `pip install awscli`.")
+        sys.exit(1)
+
+    s3_path = "s3://" + s3_bucket + "/" + file_id
+    s = subprocess.call(["aws", "s3", "cp", f, s3_path])
+    if s != 0:
+        stderr("Failed to upload %s" % f)
+        sys.exit(1)
+
+    r1 = requests.post(callback_url, auth=creds, json={"s3_path": s3_path,
+                                                       "filename": os.path.basename(f)})
+    if r1.status_code != 200:
+        stderr("Upload of %s failed. Please contact help@onecodex.com "
+               "if you experience further issues." % f)
+        sys.exit(1)
+    print("Successfully uploaded: %s\n" % f)
+    print("    ###########################################################\n"
+          "    ### Please note: Large file uploads may take several    ###\n"
+          "    ### minutes to appear on the One Codex website. If a    ###\n"
+          "    ### file does not appear after a longer period of time, ###\n"
+          "    ### however, please contact us at help@onecodex.com.    ###\n"
+          "    ###########################################################\n")
+
+
+def upload_direct(args, files):
+    """
+    Directly POST to S3. This does not use s3cmd or multipart uploads.
+    """
     creds = (args.credentials['api_key'], '')
 
     if args.threads:
@@ -136,10 +201,10 @@ def upload(args):
     upload_threads = []
     upload_progress_bytes = Value('L', 0)
     upload_progress_lock = Lock()
-    total_bytes = sum([os.path.getsize(f) for f in args.file])
-    total_files = Value('i', len(args.file))
-    for f in args.file:
-        if args.threads and len(args.file) > 1:  # parallel uploads
+    total_bytes = sum([os.path.getsize(f) for f in files])
+    total_files = Value('i', len(files))
+    for f in files:
+        if args.threads and len(files) > 1:  # parallel uploads
             # Multi-threaded uploads
             t = Thread(target=upload_helper,
                        args=(f, s3_url, signing_url, callback_url,
