@@ -150,8 +150,17 @@ def upload_multipart(args, f):
         sys.exit(1)
 
     s3_path = "s3://" + s3_bucket + "/" + file_id
-    s = subprocess.call(["aws", "s3", "cp", f, s3_path])
-    if s != 0:
+    print("Starting large (>5GB) file upload. Please be patient while the file transfers...")
+    try:
+        p = subprocess.Popen("aws s3 cp %s %s" % (f, s3_path),
+                             stderr=subprocess.STDOUT, shell=True)
+        p.wait()
+    except KeyboardInterrupt:
+        print("Upload successfully cancelled. Quitting.")
+        p.sigterm()
+        sys.exit(1)
+
+    if p.returncode != 0:
         stderr("Failed to upload %s" % f)
         sys.exit(1)
 
