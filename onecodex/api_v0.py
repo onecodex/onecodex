@@ -164,8 +164,10 @@ def upload_multipart(args, f):
         stderr("Failed to upload %s" % f)
         sys.exit(1)
 
-    r1 = requests.post(callback_url, auth=creds, json={"s3_path": s3_path,
-                                                       "filename": os.path.basename(f)})
+    r1 = requests.post(callback_url, auth=creds,
+                       headers={"Content-Type": "application/json"},
+                       data=json.dumps({"s3_path": s3_path,
+                                        "filename": os.path.basename(f)}))
     if r1.status_code != 200:
         stderr("Upload of %s failed. Please contact help@onecodex.com "
                "if you experience further issues." % f)
