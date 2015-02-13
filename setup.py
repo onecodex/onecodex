@@ -18,7 +18,7 @@ from setuptools import setup
 
 setup(
     name='onecodex',
-    version='0.0.6',
+    version='0.0.7',
     url='https://www.onecodex.com/',
     license='MIT',
     author='Reference Genomics, Inc.',
