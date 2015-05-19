@@ -152,16 +152,24 @@ def upload_multipart(args, f):
     s3_path = "s3://" + s3_bucket + "/" + file_id
     print("Starting large (>5GB) file upload. Please be patient while the file transfers...")
     try:
-        p = subprocess.Popen("aws s3 cp %s %s" % (f, s3_path),
-                             stderr=subprocess.STDOUT, shell=True)
-        p.wait()
+        # We want to only get output from onecodex
+        p = subprocess.Popen("aws s3 cp %s %s" % (f, s3_path), shell=True,
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        print("\n###       AWS S3 Upload Progress               ###")
+        while p.poll() is None:
+            char = p.stdout.read(1)
+            sys.stdout.write(char)
+            sys.stdout.flush()
+
     except KeyboardInterrupt:
-        print("Upload successfully cancelled. Quitting.")
+        stderr("Upload successfully cancelled. Quitting.")
         p.sigterm()
         sys.exit(1)
 
     if p.returncode != 0:
-        stderr("Failed to upload %s" % f)
+        stderr("An error occured uploading %s using the aws-cli." % f)
+        stderr("Please ensure you have configured the aws-cli by running: \n\n"
+               "aws configure \n")
         sys.exit(1)
 
     r1 = requests.post(callback_url, auth=creds,
