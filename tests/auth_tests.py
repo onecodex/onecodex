@@ -2,6 +2,7 @@ import datetime
 import mock
 import os
 from nose.tools import raises
+from nose.plugins.skip import SkipTest
 from onecodex.auth import OneCodexAuth
 from onecodex.cli import OneCodexArgParser
 from subprocess import check_output, CalledProcessError
@@ -109,3 +110,5 @@ def test_bad_aws_creds():
         # try and find the pidof aws
         # aws should have been killed so this raises CalledProcessError
         check_output(["pidof","aws"])
+    except OSError:
+        raise SkipTest("Skipping test - no large fastq file present to test with")
