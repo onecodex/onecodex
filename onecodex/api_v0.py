@@ -139,6 +139,8 @@ def upload_multipart(args, f):
     s3_bucket = r0.json()["s3_bucket"]
     callback_url = BASE_URL.rstrip("/") + r0.json()['callback_url']
     file_id = r0.json()["file_id"]
+    aws_access_key_id = r0.json()["upload_aws_access_key_id"]
+    aws_secret_access_key = r0.json()["upload_aws_secret_access_key"]
 
     # Upload to s3 using boto
     try:
@@ -153,9 +155,14 @@ def upload_multipart(args, f):
     print("Starting large (>5GB) file upload. Please be patient while the file transfers...")
     try:
         # We want to only get output from onecodex
-        p = subprocess.Popen("aws s3 cp %s %s" % (f, s3_path), shell=True,
-                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        print("\n###       AWS S3 Upload Progress               ###")
+        p = subprocess.Popen("AWS_ACCESS_KEY_ID=%s AWS_SECRET_ACCESS_KEY=%s aws s3 cp %s %s" %
+                             (aws_access_key_id, aws_secret_access_key, f, s3_path),
+                             shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        print("\n"
+              "    ###########################################################\n"
+              "    ###           Uploading large multipart file            ###\n"
+              "    ###                Upload output below...               ###\n"
+              "    ###########################################################\n")
         while p.poll() is None:
             char = p.stdout.read(1)
             sys.stdout.write(char)
@@ -168,8 +175,6 @@ def upload_multipart(args, f):
 
     if p.returncode != 0:
         stderr("An error occured uploading %s using the aws-cli." % f)
-        stderr("Please ensure you have configured the aws-cli by running: \n\n"
-               "aws configure \n")
         sys.exit(1)
 
     r1 = requests.post(callback_url, auth=creds,
