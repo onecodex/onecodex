@@ -68,7 +68,7 @@ def test_auth_invalid_key_format():
 # test aws cli proper failing with bad credentials
 @raises(CalledProcessError)
 def test_bad_aws_creds():
-    
+
     # we modify the env here so we have to clean up
     replace_env = False
     aws_access = None
@@ -76,16 +76,16 @@ def test_bad_aws_creds():
 
     if os.environ.get("AWS_ACCESS_KEY_ID"):
         aws_access = os.environ["AWS_ACCESS_KEY_ID"]
-        clean_env = True
+        replace_env = True
 
     if os.environ.get("AWS_SECRET_ACCESS_KEY"):
         aws_secret = os.environ["AWS_SECRET_ACCESS_KEY"]
-        clean_env = True
+        replace_env = True
 
     # set bad credentials in ENV
     # then send the upload request
     try:
-        os.environ["AWS_ACCESS_KEY_ID"] = "CRAPPYKEY" 
+        os.environ["AWS_ACCESS_KEY_ID"] = "CRAPPYKEY"
         os.environ["AWS_SECRET_ACCESS_KEY"] = "CRAPPYKEY"
         API_KEY = "12345678123456781234567812345678"
         parser = OneCodexArgParser()
@@ -104,11 +104,11 @@ def test_bad_aws_creds():
             os.environ["AWS_ACCESS_KEY_ID"] = aws_access
             os.environ["AWS_SECRET_ACCESS_KEY"] = aws_secret
         else:
-            del os.environ["AWS_ACCESS_KEY_ID"] 
+            del os.environ["AWS_ACCESS_KEY_ID"]
             del os.environ["AWS_SECRET_ACCESS_KEY"]
 
         # try and find the pidof aws
         # aws should have been killed so this raises CalledProcessError
-        check_output(["pidof","aws"])
+        check_output(["pidof", "aws"])
     except OSError:
         raise SkipTest("Skipping test - no large fastq file present to test with")

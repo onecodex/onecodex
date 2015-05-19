@@ -153,8 +153,9 @@ def upload_multipart(args, f):
     print("Starting large (>5GB) file upload. Please be patient while the file transfers...")
     try:
         # We want to only get output from onecodex
-        p = subprocess.Popen("aws s3 cp %s %s" % (f, s3_path), shell=True, stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-        print("\n###       AWS S3 Upload progress               ###")
+        p = subprocess.Popen("aws s3 cp %s %s" % (f, s3_path), shell=True,
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        print("\n###       AWS S3 Upload Progress               ###")
         while p.poll() is None:
             char = p.stdout.read(1)
             sys.stdout.write(char)
@@ -162,7 +163,7 @@ def upload_multipart(args, f):
 
     except KeyboardInterrupt:
         stderr("Upload successfully cancelled. Quitting.")
-        p.kill()
+        p.sigterm()
         sys.exit(1)
 
     if p.returncode != 0:
