@@ -5,6 +5,10 @@ from onecodex.auth import OneCodexAuth
 from onecodex import api_v0 as api
 from onecodex.api_v0 import DEFAULT_THREADS
 from onecodex import version
+from onecodex.helpers import warn_if_insecure_platform
+import requests
+from requests.packages.urllib3.exceptions import InsecurePlatformWarning
+requests.packages.urllib3.disable_warnings(InsecurePlatformWarning)
 
 
 class OneCodexArgParser(argparse.ArgumentParser):
@@ -107,6 +111,8 @@ def main(argv=sys.argv[1:]):
         args.run(args)
     except AttributeError:
         pass  # For sub-commands w/o run
+
+    warn_if_insecure_platform()
 
 
 if __name__ == "__main__":
