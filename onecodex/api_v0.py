@@ -155,7 +155,7 @@ def upload_multipart(args, f):
     print("Starting large (>5GB) file upload. Please be patient while the file transfers...")
     try:
         # We want to only get output from onecodex
-        p = subprocess.Popen("AWS_ACCESS_KEY_ID=%s AWS_SECRET_ACCESS_KEY=%s aws s3 cp %s %s" %
+        p = subprocess.Popen("AWS_ACCESS_KEY_ID=%s AWS_SECRET_ACCESS_KEY=%s aws s3 cp %s %s --sse" %
                              (aws_access_key_id, aws_secret_access_key, f, s3_path),
                              shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         print("\n"
@@ -256,7 +256,7 @@ def upload_helper(f, s3_url, signing_url, callback_url, creds,
 
     stripped_filename = os.path.basename(f)
     r1 = requests.post(signing_url, data={"filename": stripped_filename, "via_api": "true"},
-                       auth=creds)
+                       auth=creds, headers={"x-amz-server-side-encryption": "AES256"})
     if r1.status_code != 200:
         try:
             stderr("Failed upload: %s" % r1.json()["msg"])
