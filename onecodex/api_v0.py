@@ -41,6 +41,17 @@ BAD_API_KEY_MSG = ("\nThe --api-key you entered appears to be "
                    "invalid. Please double check the key and try again.\n")
 
 
+SUPPORTED_EXTENSIONS = ["fa", "fasta", "fq", "fastq",
+                        "fa.gz", "fasta.gz", "fq.gz", "fastq.gz",
+                        "fa.gzip", "fasta.gzip", "fq.gzip", "fastq.gzip"]
+
+
+def check_for_allowed_file(f):
+    if f.split(".")[-1] not in SUPPORTED_EXTENSIONS:
+        stderr("Failed upload: Not an allowed file extension.")
+        sys.exit(1)
+
+
 # Helpers
 def pprint(j, args):
     if args.pprint:
@@ -130,6 +141,7 @@ def upload_multipart(args, f):
     Note, for large files we upload them one at a time
     using a special API.
     """
+    check_for_allowed_file(f)
     creds = (args.credentials['api_key'], '')
     r0 = requests.get(BASE_API + "init_multipart_upload", auth=creds)
     if r0.status_code != 200:
