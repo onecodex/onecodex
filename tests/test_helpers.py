@@ -13,4 +13,8 @@ def test_warnings():
         import pyasn1  # noqa
         assert is_insecure_platform() is False
     except ImportError:
-        assert is_insecure_platform() is True
+        import ssl  # noqa
+        if v.major == 2 and v.minor == 7 and v.micro >= 9:
+            assert is_insecure_platform() is False
+        else:
+            assert is_insecure_platform() is True

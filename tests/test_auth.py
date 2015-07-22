@@ -89,7 +89,7 @@ def test_bad_aws_creds():
         os.environ["AWS_SECRET_ACCESS_KEY"] = "CRAPPYKEY"
         API_KEY = "12345678123456781234567812345678"
         parser = OneCodexArgParser()
-        input_args = ["--api-key", API_KEY, "upload", "big1.fastq"]
+        input_args = ["upload", "big1.fastq", "--api-key", API_KEY]
         args = parser.parse_args(input_args)
         OneCodexAuth(args, check_for_update=False, creds_file=TEST_CREDS)
         assert hasattr(args, "credentials")

@@ -69,7 +69,7 @@ class OneCodexAuth(object):
                        "Please delete it and re-authorize.")
                 sys.exit(1)
         else:
-            args.credentials["api_key"] = get_api_key()
+            args.credentials["api_key"] = args.api_key or get_api_key()
             args.credentials["saved_at"] = datetime.datetime.now().strftime(DATE_FORMAT)
             args.credentials["updated_at"] = None
             json.dump(args.credentials, open(fp, mode='w'))
