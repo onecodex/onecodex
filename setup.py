@@ -18,7 +18,7 @@ from setuptools import setup
 
 setup(
     name='onecodex',
-    version='0.0.9',
+    version='0.0.10',
     url='https://www.onecodex.com/',
     license='MIT',
     author='Reference Genomics, Inc.',
@@ -29,7 +29,7 @@ setup(
     zip_safe=True,
     platforms='any',
     install_requires=[
-        'requests>=2.3.0',
+        'requests>=2.6.0',
         'requests-toolbelt>=0.3.1'
     ],
     test_suite='nose.collector',
