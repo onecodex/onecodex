@@ -11,7 +11,7 @@ from multiprocessing import Lock, Value
 from threading import BoundedSemaphore, Thread
 import urlparse
 from onecodex import version
-from onecodex.helpers import stderr
+from onecodex.helpers import check_for_allowed_file, stderr
 
 
 # Config
@@ -39,17 +39,6 @@ BAD_AUTH_MSG = ("\nYour login credentials appear be bad. Try logging out:"
 
 BAD_API_KEY_MSG = ("\nThe --api-key you entered appears to be "
                    "invalid. Please double check the key and try again.\n")
-
-
-SUPPORTED_EXTENSIONS = ["fa", "fasta", "fq", "fastq",
-                        "fa.gz", "fasta.gz", "fq.gz", "fastq.gz",
-                        "fa.gzip", "fasta.gzip", "fq.gzip", "fastq.gzip"]
-
-
-def check_for_allowed_file(f):
-    if f.split(".")[-1] not in SUPPORTED_EXTENSIONS:
-        stderr("Failed upload: Not an allowed file extension.")
-        sys.exit(1)
 
 
 # Helpers

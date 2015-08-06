@@ -2,6 +2,19 @@ from __future__ import print_function
 import sys
 
 
+SUPPORTED_EXTENSIONS = ["fa", "fasta", "fq", "fastq",
+                        "fa.gz", "fasta.gz", "fq.gz", "fastq.gz",
+                        "fa.gzip", "fasta.gzip", "fq.gzip", "fastq.gzip"]
+
+
+def check_for_allowed_file(f):
+    for ext in SUPPORTED_EXTENSIONS:
+        if f.endswith(ext):
+            return True
+    stderr("Failed upload: Not an allowed file extension.")
+    sys.exit(1)
+
+
 def stderr(*objs):
     print(*objs, file=sys.stderr)
 
