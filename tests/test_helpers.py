@@ -1,4 +1,21 @@
-from onecodex.helpers import is_insecure_platform
+from onecodex.helpers import check_for_allowed_file, is_insecure_platform
+
+
+def test_valid_extensions():
+    files = [
+        "my.fasta",
+        "my.fastq",
+        "my.fasta.gz",
+        "my.fastq.gz",
+        "my.fa",
+        "my.fq",
+        "my.fa.gz",
+        "my.fq.gz",
+        "my.really.long.file.fasta",
+        "odd-dashes-in-file.fa"
+    ]
+    for f in files:
+        assert check_for_allowed_file(f)
 
 
 def test_warnings():
