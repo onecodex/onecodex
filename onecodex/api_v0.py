@@ -114,6 +114,9 @@ def upload(args):
     posts directly to S3.
     """
     file_sizes = [os.path.getsize(f) for f in args.file]
+    if min(file_sizes) < 35:
+        stderr('Failed to initiate upload on empty file')
+        return
     max_file_size = max(file_sizes)
     if max_file_size > MULTIPART_SIZE:
         for ix, f in enumerate(args.file):
