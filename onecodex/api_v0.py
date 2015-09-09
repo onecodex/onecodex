@@ -114,6 +114,10 @@ def upload(args):
     posts directly to S3.
     """
     file_sizes = [os.path.getsize(f) for f in args.file]
+    if min(file_sizes) < 35:
+        stderr("Cannot upload empty files. Please check that all files "
+               "contain sequence data and try again.")
+        sys.exit(1)
     max_file_size = max(file_sizes)
     if max_file_size > MULTIPART_SIZE:
         for ix, f in enumerate(args.file):
