@@ -5,4 +5,4 @@ onecodex
 
 MAINTAINERS: [@bovee](https://github.com/bovee), [@boydgreenfield](https://github.com/boydgreenfield)
 
-Command line tool for accessing One Codex Beta API
+Command line tool for accessing the One Codex API

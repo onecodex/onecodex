@@ -19,7 +19,7 @@ if os.environ.get("ONE_CODEX_API_BASE") is not None:
     BASE_API = os.environ.get("ONE_CODEX_API_BASE")
     print("ALL REQUESTS GOING THROUGH: %s" % BASE_API)
 else:
-    BASE_API = "https://beta.onecodex.com/api/v0/"
+    BASE_API = "https://app.onecodex.com/api/v0/"
 
 BASE_URL = urlparse.urlparse(BASE_API)
 BASE_URL = BASE_URL._replace(path='/').geturl()

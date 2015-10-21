@@ -24,7 +24,7 @@ class OneCodexArgParser(argparse.ArgumentParser):
             version.VERSION,
             version.API_VERSION,
             version.API_LINK),
-        'api_key': 'Manually provide a One Codex Beta API key',
+        'api_key': 'Manually provide a One Codex API key',
         'pprint': 'Do not pretty-print JSON responses',
         'threads': 'Do not use multiple background threads to upload files',
         'max_threads': 'Specify a different max # of N upload threads (defaults to 4)',
