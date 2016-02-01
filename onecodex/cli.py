@@ -20,7 +20,7 @@ class OneCodexArgParser(argparse.ArgumentParser):
         'references': 'Describe available Reference databses',
         'login': 'Add an API key (saved in ~/.onecodex)',
         'logout': 'Delete your API key (saved in ~/.onecodex)',
-        'version': '%(prog)s {} (API {}).\nDocs available at: {}'.format(
+        'version': '%(prog)s {0} (API {1}).\nDocs available at: {2}'.format(
             version.VERSION,
             version.API_VERSION,
             version.API_LINK),
