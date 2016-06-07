@@ -1,0 +1,21 @@
+{
+    "$uri": "/api/v1/samples/d66e901ea9854f1f",
+    "created_at": "2016-02-02T07:27:35.755153",
+    "default_analysis": null,
+    "description": null,
+    "error_text": null,
+    "indexed": false,
+    "interleaved": false,
+    "metadata": {
+        "$ref": "/api/v1/metadata/50fd2f0513d34372"
+    },
+    "public": false,
+    "size": 1832009,
+    "starred": false,
+    "success": true,
+    "tags": [],
+    "tier": "standard",
+    "timestamp": 1454398055,
+    "uri": "s3://refgenomics-userdata-dev-encrypted.amazonaws.com/user_be3613535a5145aa/file_d66e901ea9854f1f/MiSeq_accuracy.fa",
+    "via_api": false
+}

@@ -1,0 +1,11 @@
+{
+    "$uri": "/api/v1/classifications/4a668ac6daf74364",
+    "complete": true,
+    "created_at": "2016-02-02T07:27:35.952513",
+    "error_msg": "",
+    "sample": {
+        "$ref": "/api/v1/samples/d5a69fe85b7a4208"
+    },
+    "success": true,
+    "timestamp": 1454398055
+}

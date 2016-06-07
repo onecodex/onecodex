@@ -1,6 +1,9 @@
 set -e
 
 source venv/bin/activate
-nosetests
+make lint
+make test
 echo "Tests successful. Pushing to PyPI..."
-python setup.py sdist upload
+python setup.py sdist
+twine upload dist/*
+

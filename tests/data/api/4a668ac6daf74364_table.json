@@ -1,0 +1,478 @@
+{ 
+  "table":  [
+    {
+      "readcount": 891,
+      "name": "Pelosinus",
+      "rank": "genus",
+      "tax_id": 365348
+    },
+    {
+      "readcount": 890,
+      "name": "Aeromonas",
+      "rank": "genus",
+      "tax_id": 642
+    },
+    {
+      "readcount": 783,
+      "name": "Xanthomonas axonopodis pv. manihotis",
+      "rank": "no rank",
+      "tax_id": 43353
+    },
+    {
+      "readcount": 676,
+      "name": "Mycobacterium",
+      "rank": "genus",
+      "tax_id": 1763
+    },
+    {
+      "readcount": 666,
+      "name": "Bacteroides",
+      "rank": "genus",
+      "tax_id": 816
+    },
+    {
+      "readcount": 558,
+      "name": "Streptococcus pneumoniae",
+      "rank": "species",
+      "tax_id": 1313
+    },
+    {
+      "readcount": 551,
+      "name": "Vibrio cholerae",
+      "rank": "species",
+      "tax_id": 666
+    },
+    {
+      "readcount": 524,
+      "name": "Staphylococcus aureus",
+      "rank": "species",
+      "tax_id": 1280
+    },
+    {
+      "readcount": 458,
+      "name": "Bacillus cereus",
+      "rank": "species",
+      "tax_id": 1396
+    },
+    {
+      "readcount": 395,
+      "name": "Firmicutes",
+      "rank": "phylum",
+      "tax_id": 1239
+    },
+    {
+      "readcount": 395,
+      "name": "Vibrio",
+      "rank": "genus",
+      "tax_id": 662
+    },
+    {
+      "readcount": 381,
+      "name": "Streptococcus",
+      "rank": "genus",
+      "tax_id": 1301
+    },
+    {
+      "readcount": 365,
+      "name": "Rhodobacter sphaeroides 2.4.1",
+      "rank": "no rank",
+      "tax_id": 272943
+    },
+    {
+      "readcount": 274,
+      "name": "Rhodobacter sphaeroides",
+      "rank": "species",
+      "tax_id": 1063
+    },
+    {
+      "readcount": 263,
+      "name": "Mycobacterium chelonae group",
+      "rank": "species group",
+      "tax_id": 670516
+    },
+    {
+      "readcount": 261,
+      "name": "Bacillus cereus VD118",
+      "rank": "no rank",
+      "tax_id": 1053231
+    },
+    {
+      "readcount": 257,
+      "name": "Rhodobacter",
+      "rank": "genus",
+      "tax_id": 1060
+    },
+    {
+      "readcount": 253,
+      "name": "Bacteroides fragilis",
+      "rank": "species",
+      "tax_id": 817
+    },
+    {
+      "readcount": 193,
+      "name": "Bacillus cereus group",
+      "rank": "species group",
+      "tax_id": 86661
+    },
+    {
+      "readcount": 166,
+      "name": "Xanthomonas",
+      "rank": "genus",
+      "tax_id": 338
+    },
+    {
+      "readcount": 57,
+      "name": "Pelosinus fermentans",
+      "rank": "species",
+      "tax_id": 365349
+    },
+    {
+      "readcount": 46,
+      "name": "Bacillus",
+      "rank": "genus",
+      "tax_id": 1386
+    },
+    {
+      "readcount": 42,
+      "name": "root",
+      "rank": "no rank",
+      "tax_id": 1
+    },
+    {
+      "readcount": 39,
+      "name": "Bacteria",
+      "rank": "superkingdom",
+      "tax_id": 2
+    },
+    {
+      "readcount": 36,
+      "name": "Bacteroidales",
+      "rank": "order",
+      "tax_id": 171549
+    },
+    {
+      "readcount": 25,
+      "name": "Aeromonas hydrophila SSU",
+      "rank": "no rank",
+      "tax_id": 1073377
+    },
+    {
+      "readcount": 24,
+      "name": "Mycobacterium abscessus",
+      "rank": "species",
+      "tax_id": 36809
+    },
+    {
+      "readcount": 22,
+      "name": "Aeromonas hydrophila",
+      "rank": "species",
+      "tax_id": 644
+    },
+    {
+      "readcount": 13,
+      "name": "Clostridium sp. ASBs410",
+      "rank": "species",
+      "tax_id": 1304866
+    },
+    {
+      "readcount": 12,
+      "name": "Staphylococcus",
+      "rank": "genus",
+      "tax_id": 1279
+    },
+    {
+      "readcount": 11,
+      "name": "Proteobacteria",
+      "rank": "phylum",
+      "tax_id": 1224
+    },
+    {
+      "readcount": 11,
+      "name": "Bacteroides fragilis HMW 615",
+      "rank": "no rank",
+      "tax_id": 1073387
+    },
+    {
+      "readcount": 8,
+      "name": "Lachnospiraceae bacterium 2_1_46FAA",
+      "rank": "species",
+      "tax_id": 742723
+    },
+    {
+      "readcount": 5,
+      "name": "cellular organisms",
+      "rank": "no rank",
+      "tax_id": 131567
+    },
+    {
+      "readcount": 4,
+      "name": "Sphingomonas echinoides ATCC 14820",
+      "rank": "no rank",
+      "tax_id": 1112212
+    },
+    {
+      "readcount": 4,
+      "name": "Enterobacteriaceae",
+      "rank": "family",
+      "tax_id": 543
+    },
+    {
+      "readcount": 4,
+      "name": "Gammaproteobacteria",
+      "rank": "class",
+      "tax_id": 1236
+    },
+    {
+      "readcount": 4,
+      "name": "Bacilli",
+      "rank": "class",
+      "tax_id": 91061
+    },
+    {
+      "readcount": 3,
+      "name": "Acinetobacter baumannii 478810",
+      "rank": "no rank",
+      "tax_id": 1310720
+    },
+    {
+      "readcount": 3,
+      "name": "Streptococcus pneumoniae TIGR4",
+      "rank": "no rank",
+      "tax_id": 170187
+    },
+    {
+      "readcount": 2,
+      "name": "Alphaproteobacteria",
+      "rank": "class",
+      "tax_id": 28211
+    },
+    {
+      "readcount": 2,
+      "name": "Pelosinus sp. HCF1",
+      "rank": "species",
+      "tax_id": 1235479
+    },
+    {
+      "readcount": 2,
+      "name": "Vibrionaceae",
+      "rank": "family",
+      "tax_id": 641
+    },
+    {
+      "readcount": 2,
+      "name": "Xanthomonas translucens DAR61454",
+      "rank": "no rank",
+      "tax_id": 1205753
+    },
+    {
+      "readcount": 2,
+      "name": "Escherichia coli",
+      "rank": "species",
+      "tax_id": 562
+    },
+    {
+      "readcount": 2,
+      "name": "Xanthomonas axonopodis",
+      "rank": "species",
+      "tax_id": 53413
+    },
+    {
+      "readcount": 1,
+      "name": "Enterococcus faecium",
+      "rank": "species",
+      "tax_id": 1352
+    },
+    {
+      "readcount": 1,
+      "name": "Aeromonas veronii AMC34",
+      "rank": "no rank",
+      "tax_id": 1073383
+    },
+    {
+      "readcount": 1,
+      "name": "Bacillus cereus BAG2X1-2",
+      "rank": "no rank",
+      "tax_id": 1053180
+    },
+    {
+      "readcount": 1,
+      "name": "Bacillus cereus BAG2O-2",
+      "rank": "no rank",
+      "tax_id": 1053177
+    },
+    {
+      "readcount": 1,
+      "name": "Sphingomonas",
+      "rank": "genus",
+      "tax_id": 13687
+    },
+    {
+      "readcount": 1,
+      "name": "Xanthomonas fuscans subsp. aurantifolii",
+      "rank": "subspecies",
+      "tax_id": 76802
+    },
+    {
+      "readcount": 1,
+      "name": "Actinomycetales",
+      "rank": "order",
+      "tax_id": 2037
+    },
+    {
+      "readcount": 1,
+      "name": "Aeromonas salmonicida",
+      "rank": "species",
+      "tax_id": 645
+    },
+    {
+      "readcount": 1,
+      "name": "Staphylococcus aureus M0414",
+      "rank": "no rank",
+      "tax_id": 1388275
+    },
+    {
+      "readcount": 1,
+      "name": "Aeromonas hydrophila 277",
+      "rank": "no rank",
+      "tax_id": 1268080
+    },
+    {
+      "readcount": 1,
+      "name": "Blautia wexlerae",
+      "rank": "species",
+      "tax_id": 418240
+    },
+    {
+      "readcount": 1,
+      "name": "Schizosaccharomyces pombe",
+      "rank": "species",
+      "tax_id": 4896
+    },
+    {
+      "readcount": 1,
+      "name": "Vibrio mimicus VM223",
+      "rank": "no rank",
+      "tax_id": 675820
+    },
+    {
+      "readcount": 1,
+      "name": "Aeromonas veronii",
+      "rank": "species",
+      "tax_id": 654
+    },
+    {
+      "readcount": 1,
+      "name": "Bacteroides eggerthii DSM 20697",
+      "rank": "no rank",
+      "tax_id": 483216
+    },
+    {
+      "readcount": 1,
+      "name": "Bacillales",
+      "rank": "order",
+      "tax_id": 1385
+    },
+    {
+      "readcount": 1,
+      "name": "Vibrio cholerae 1587",
+      "rank": "no rank",
+      "tax_id": 412966
+    },
+    {
+      "readcount": 1,
+      "name": "Rubritepida flocculans DSM 14296",
+      "rank": "no rank",
+      "tax_id": 1123072
+    },
+    {
+      "readcount": 1,
+      "name": "Bacillus cereus HuA2-9",
+      "rank": "no rank",
+      "tax_id": 1053204
+    },
+    {
+      "readcount": 1,
+      "name": "Enterococcus faecalis EnGen0369",
+      "rank": "no rank",
+      "tax_id": 1169301
+    },
+    {
+      "readcount": 1,
+      "name": "Pelosinus fermentans A12",
+      "rank": "no rank",
+      "tax_id": 1149859
+    },
+    {
+      "readcount": 1,
+      "name": "Enterococcus",
+      "rank": "genus",
+      "tax_id": 1350
+    },
+    {
+      "readcount": 1,
+      "name": "Blautia wexlerae DSM 19850",
+      "rank": "no rank",
+      "tax_id": 1121115
+    },
+    {
+      "readcount": 1,
+      "name": "Lachnoclostridium",
+      "rank": "genus",
+      "tax_id": 1506553
+    },
+    {
+      "readcount": 1,
+      "name": "Bacteroides fragilis str. S13 L11",
+      "rank": "no rank",
+      "tax_id": 1339290
+    },
+    {
+      "readcount": 1,
+      "name": "Bacteroidaceae",
+      "rank": "family",
+      "tax_id": 815
+    },
+    {
+      "readcount": 1,
+      "name": "[Clostridium] saccharolyticum WM1",
+      "rank": "no rank",
+      "tax_id": 610130
+    },
+    {
+      "readcount": 1,
+      "name": "Bacteroidetes",
+      "rank": "phylum",
+      "tax_id": 976
+    },
+    {
+      "readcount": 1,
+      "name": "Streptococcus suis 10581",
+      "rank": "no rank",
+      "tax_id": 1214158
+    },
+    {
+      "readcount": 1,
+      "name": "Lactococcus",
+      "rank": "genus",
+      "tax_id": 1357
+    },
+    {
+      "readcount": 1,
+      "name": "Bacillus sp. H1a",
+      "rank": "species",
+      "tax_id": 1397276
+    },
+    {
+      "readcount": 1,
+      "name": "Aeromonas hydrophila ML09-119",
+      "rank": "no rank",
+      "tax_id": 1288394
+    },
+    {
+      "readcount": 1,
+      "name": "Lactobacillales",
+      "rank": "order",
+      "tax_id": 186826
+    }
+  ]
+}

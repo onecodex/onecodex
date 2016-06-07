@@ -1,0 +1,23 @@
+{
+    "$uri": "/api/v1/metadata/50fd2f0513d34372",
+    "created_at": "2016-02-02T07:29:46.541664",
+    "date_collected": null,
+    "date_sequenced": null,
+    "description": null,
+    "is_fixed_length": false,
+    "is_metagenomic": false,
+    "library_type": null,
+    "location_lat": null,
+    "location_lon": null,
+    "location_string": null,
+    "name": null,
+    "platform": null,
+    "project_name": null,
+    "read_length": null,
+    "sample": {
+        "$ref": "/api/v1/samples/d66e901ea9854f1f"
+    },
+    "sample_type": null,
+    "timestamp": 1454398186,
+    "user_edited": false
+}
