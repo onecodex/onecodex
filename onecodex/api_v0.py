@@ -137,6 +137,12 @@ def upload_multipart(args, f):
     check_for_allowed_file(f)
     creds = (args.credentials['api_key'], '')
     r0 = requests.get(BASE_API + "init_multipart_upload", auth=creds)
+    if r0.status_code == 402:
+        stderr("Upload failed: You appear to have hit the usage limits for your account. "
+               "Please login to your account to check your plan and payment information "
+               "or contact help@onecodex.com for support.")
+        sys.exit(1)
+
     if r0.status_code != 200:
         stderr("Failed to initiate large multipart upload (>5GB).")
         sys.exit(1)
@@ -218,8 +224,15 @@ def upload_direct(args, files):
         else:
             stderr(BAD_API_KEY_MSG)
         sys.exit(1)
-    elif r0.status_code != 200:
-        stderr("Failed to get upload signing credentials")
+
+    if r0.status_code == 402:
+        stderr("Upload failed: You appear to have hit the usage limits for your account. "
+               "Please login to your account to check your plan and payment information "
+               "or contact help@onecodex.com for support.")
+        sys.exit(1)
+
+    if r0.status_code != 200:
+        stderr("Failed to initiate upload. Please contact help@onecodex.com.")
         sys.exit(1)
 
     j0 = r0.json()
