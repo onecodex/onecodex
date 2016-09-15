@@ -9,9 +9,12 @@ from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 import sys
 from multiprocessing import Lock, Value
 from threading import BoundedSemaphore, Thread
-import urlparse
 from onecodex import version
 from onecodex.helpers import check_for_allowed_file, stderr
+try:
+    from urlparse import urlparse
+except ImportError:
+    from urllib.parse import urlparse
 
 
 # Config
@@ -21,7 +24,7 @@ if os.environ.get("ONE_CODEX_API_BASE") is not None:
 else:
     BASE_API = "https://app.onecodex.com/api/v0/"
 
-BASE_URL = urlparse.urlparse(BASE_API)
+BASE_URL = urlparse(BASE_API)
 BASE_URL = BASE_URL._replace(path='/').geturl()
 DEFAULT_THREADS = 4
 CHUNK_SIZE = 8192
@@ -54,7 +57,7 @@ def download_file_helper(url, input_path, auth=None):
     r = requests.get(url, stream=True, auth=auth)
     if r.status_code != 200:
         stderr("Failed to download file: %s" % r.json()["message"])
-    original_filename = urlparse.urlparse(r.url).path.split("/")[-1]
+    original_filename = urlparse(r.url).path.split("/")[-1]
     if os.path.isdir(input_path):
         local_full_path = os.path.join(input_path, original_filename)
     else:
