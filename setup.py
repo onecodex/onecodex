@@ -2,8 +2,8 @@
 ``onecodex``
 ------------
 
-``onecodex`` provides a command line client for interaction with the
-One Codex API.
+``onecodex`` provides a command line client and Python library for
+interacting with the One Codex API.
 
 
 
@@ -13,27 +13,41 @@ Links
 * `API Docs: <http://docs.onecodex.com/>`
 
 """
-from setuptools import setup
+from setuptools import setup, find_packages
+
+
+with open('onecodex/version.py') as import_file:
+    exec(import_file.read())
 
 
 setup(
     name='onecodex',
-    version='0.1.4',
-    url='https://www.onecodex.com/',
-    license='MIT',
-    author='Reference Genomics, Inc.',
-    author_email='help@onecodex.com',
-    description='One Codex Command Line Client',
-    long_description=__doc__,
-    packages=['onecodex'],
-    zip_safe=True,
-    platforms='any',
-    install_requires=[
-        'requests>=2.6.0',
-        'requests-toolbelt>=0.3.1'
-    ],
-    test_suite='nose.collector',
-    entry_points={
-        'console_scripts': ['onecodex = onecodex.cli:main']
+    version=__version__,  # noqa
+    packages=find_packages(exclude=['*test*']),
+    install_requires=['potion-client', 'requests>=2.9', 'click>=6.6',
+                      'requests_toolbelt==0.7.0', 'python-dateutil>=2.5.3',
+                      'six>=1.10.0'],
+    include_package_data=True,
+    zip_safe=False,
+    extras_require={
+        'all': ['numpy>=1.11.0', 'pandas>=0.18.1', 'matplotlib>1.5.1', 'networkx>=1.11']
     },
+    dependency_links=['git+https://github.com/onecodex/potion-client.git#egg=potion-client'],
+    author='Kyle McChesney & Nick Greenfield & Roderick Bovee',
+    author_email='opensource@onecodex.com',
+    long_description=__doc__,
+    license='MIT License',
+    keywords='One Codex API Client',
+    url='https://github.com/onecodex/onecodex',
+    classifiers=[
+        'Environment :: Console',
+        'License :: OSI Approved :: MIT License',
+        'Topic :: Scientific/Engineering :: Bio-Informatics',
+        'Topic :: Software Development :: Libraries :: Python Modules',
+        'Topic :: Internet :: WWW/HTTP',
+    ],
+    entry_points={
+        'console_scripts': ['onecodex = onecodex.cli:onecodex']
+    },
+    test_suite='tests'
 )

@@ -1,0 +1,12 @@
+{
+    "$uri": "/api/v1/analyses/1",
+    "analysis_type": "analysis",
+    "complete": true,
+    "created_at": "2016-01-05T15:21:48.188443",
+    "error_msg": "",
+    "sample": {
+        "$ref": "/api/v1/samples/d66e901ea9854f1f"
+    },
+    "success": true,
+    "timestamp": 1452007308
+}

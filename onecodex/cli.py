@@ -1,119 +1,182 @@
 #!/usr/bin/env python
-import argparse
-import sys
-from onecodex.auth import OneCodexAuth
-from onecodex import api_v0 as api
-from onecodex.api_v0 import DEFAULT_THREADS
-from onecodex import version
-from onecodex.helpers import warn_if_insecure_platform
-import requests
-from requests.packages.urllib3.exceptions import InsecurePlatformWarning
-requests.packages.urllib3.disable_warnings(InsecurePlatformWarning)
+"""
+cli.py
+author: @mbiokyle29
+"""
+from __future__ import print_function
+import os
+import logging
+
+import click
+
+from onecodex.utils import (cli_resource_fetcher, download_file_helper,
+                            valid_api_key, OPTION_HELP, pprint,
+                            warn_if_insecure_platform)
+from onecodex.api import Api
+from onecodex.auth import _login, _logout, _silent_login
+from onecodex.version import __version__
+
+# set the context for getting -h also
+CONTEXT_SETTINGS = dict(
+    help_option_names=['-h', '--help'],
+)
+
+# logging
+log = logging.getLogger(__name__)
+log.setLevel(logging.WARN)
+log_formatter = logging.Formatter('One Codex CLI (%(levelname)s): %(message)s')
+stream_handler = logging.StreamHandler()
+stream_handler.setLevel(logging.INFO)
+stream_handler.setFormatter(log_formatter)
+log.addHandler(stream_handler)
 
 
-class OneCodexArgParser(argparse.ArgumentParser):
-    """Parser for the One Codex CLI"""
-    HELP = {
-        'upload': 'Upload one or more files to the One Codex platform',
-        'samples': 'Retrieve uploaded samples',
-        'analyses': 'Retrieve performed analyses',
-        'references': 'Describe available Reference databses',
-        'login': 'Add an API key (saved in ~/.onecodex)',
-        'logout': 'Delete your API key (saved in ~/.onecodex)',
-        'version': '%(prog)s {0} (API {1}).\nDocs available at: {2}'.format(
-            version.VERSION,
-            version.API_VERSION,
-            version.API_LINK),
-        'api_key': 'Manually provide a One Codex API key',
-        'pprint': 'Do not pretty-print JSON responses',
-        'threads': 'Do not use multiple background threads to upload files',
-        'max_threads': 'Specify a different max # of N upload threads (defaults to 4)',
-    }
+# options
+@click.group(context_settings=CONTEXT_SETTINGS)
+@click.option("--api-key", callback=valid_api_key,
+              help=OPTION_HELP['api_key'], metavar="<str:api_key>")
+@click.option("--no-pretty-print", 'no_pprint', is_flag=True,
+              help=OPTION_HELP['no_pprint'])
+@click.option("--verbose", "-v", is_flag=True,
+              help=OPTION_HELP['verbose'])
+@click.version_option(version=__version__)
+@click.pass_context
+def onecodex(ctx, api_key, no_pprint, verbose):
+    """One Codex v1 API command line interface"""
 
-    HELP_SUB = {
-        'file': 'One or more FASTA or FASTQ files to upload. Optionally gzip-compressed.',
-        'samples': 'One or more Sample IDs to lookup. If absent returns all Samples.',
-        'analyses': 'One or more Analysis IDs to lookup. If absent returns all Analyses.',
-        'references': ('One or more Reference IDs to lookup. '
-                       'If absent returns all current References.'),
-        'table': 'Get a JSON array of the Analysis results table.',
-        'raw': ('Output path or directory for a .tsv file with '
-                'the raw read-level results. Defaults to original filename '
-                'in the current working directory. Note if not specifying a '
-                'download path this argument must come last, e.g.: '
-                '`onecodex analyses <uuid> --raw`.')
-    }
+    # set up the context for sub commands
+    click.Context.get_usage = click.Context.get_help
+    ctx.obj = {}
+    ctx.obj['API_KEY'] = api_key
+    ctx.obj['NOPPRINT'] = no_pprint
 
-    def __init__(self, *args, **kwargs):
-        kwargs['prog'] = 'onecodex'
-        super(OneCodexArgParser, self).__init__(*args, **kwargs)
-        self._positionals.title = 'One Codex Commands'
-        self._optionals.title = 'One Codex Options'
-        self.add_argument('--no-pretty-print', dest='pprint',
-                          action="store_false", help=self.HELP['pprint'])
-        self.add_argument('--no-threads', dest='threads',
-                          action='store_false', help=self.HELP['threads'])
-        self.add_argument('--max-threads', default=DEFAULT_THREADS,
-                          type=int, help=self.HELP['max_threads'],
-                          metavar="N")
-        self.add_argument('--api-key', help=self.HELP['api_key'])
-        self.add_argument('--version', action='version',
-                          version=self.HELP['version'])
+    if verbose:
+        log.setLevel(logging.INFO)
 
-    def _init_subparsers(self):
-        """
-        Needs to be outside of __init__ to avoid infinite recursion.
-        """
-        self.subparsers = self.add_subparsers()
-        self.upload_parser = self.subparsers.add_parser("upload", help=self.HELP['upload'])
-        self.upload_parser.add_argument("file", help=self.HELP_SUB['file'], nargs="+")
-        self.upload_parser.set_defaults(which="upload")
-        self.upload_parser.set_defaults(run=api.upload)
+    if os.environ.get("ONE_CODEX_API_BASE") is not None:
+        base_url = os.environ.get("ONE_CODEX_API_BASE")
+        click.echo("ALL REQUESTS GOING THROUGH: %s" % base_url, err=True)
+    else:
+        base_url = "https://app.onecodex.com"
 
-        self.samples_parser = self.subparsers.add_parser("samples", help=self.HELP['samples'])
-        self.samples_parser.add_argument("samples", help=self.HELP_SUB['samples'], nargs="*")
-        self.samples_parser.set_defaults(which="samples")
-        self.samples_parser.set_defaults(run=api.samples)
+    ctx.obj['BASE_URL'] = base_url
 
-        self.analyses_parser = self.subparsers.add_parser("analyses", help=self.HELP['analyses'])
-        self.analyses_parser.add_argument("analyses", help=self.HELP_SUB['analyses'], nargs="*")
-        self.analyses_parser.add_argument("--table", help=self.HELP_SUB['table'],
-                                          action="store_true")
-        self.analyses_parser.add_argument("--raw", help=self.HELP_SUB['raw'],
-                                          metavar="RAW_DL_PATH", default=None,
-                                          const=".", type=str, nargs="?")
-        self.analyses_parser.set_defaults(which="analyses")
-        self.analyses_parser.set_defaults(run=api.analyses)
+    # create the api
+    no_api_subcommands = ["login", "logout"]
+    if ctx.invoked_subcommand not in no_api_subcommands:
+        if api_key is not None:
+            ctx.obj['API'] = Api(base_url=base_url, extensions=False,
+                                 cache_schema=True,
+                                 api_key=api_key)
+        else:
+            # try and find it
+            api_key = _silent_login()
+            if api_key is not None:
+                ctx.obj['API'] = Api(base_url=base_url, extensions=False,
+                                     cache_schema=True, api_key=api_key)
+            else:
+                click.echo("No One Codex API key available - running anonymously", err=True)
+                ctx.obj['API'] = Api(base_url=base_url, extensions=False, cache_schema=True)
 
-        self.references_parser = self.subparsers.add_parser("references",
-                                                            help=self.HELP['references'])
-        self.references_parser.add_argument("references",
-                                            help=self.HELP_SUB['references'], nargs="*")
-        self.references_parser.set_defaults(which="references")
-        self.references_parser.set_defaults(run=api.references)
-
-        self.logout_parser = self.subparsers.add_parser("logout", help=self.HELP['logout'])
-        self.logout_parser.set_defaults(which="logout")
-
-        self.login_parser = self.subparsers.add_parser("login", help=self.HELP['login'])
-        self.login_parser.set_defaults(which="login")
-
-    def parse_args(self, *args, **kwargs):
-        self._init_subparsers()
-        return super(OneCodexArgParser, self).parse_args(*args, **kwargs)
+    # handle checking insecure platform, we let upload command do it by itself
+    if ctx.invoked_subcommand != "upload":
+        warn_if_insecure_platform()
 
 
-def main(argv=sys.argv[1:]):
-    parser = OneCodexArgParser()
-    args = parser.parse_args(argv)
-    OneCodexAuth(args)  # Check and add credentials
-    try:
-        args.run(args)
-    except AttributeError:
-        pass  # For sub-commands w/o run
-
-    warn_if_insecure_platform()
+# resources
+@onecodex.command('analyses')
+@click.argument('analyses', nargs=-1, required=False)
+@click.pass_context
+def analyses(ctx, analyses):
+    """Retrieve performed analyses"""
+    cli_resource_fetcher(ctx, "analyses", analyses)
 
 
-if __name__ == "__main__":
-    main()
+@onecodex.command('classifications')
+@click.option("--raw", 'raw', is_flag=True,
+              help=OPTION_HELP['raw'])
+@click.option("--raw-path", 'raw_path',
+              default="./", help=OPTION_HELP['raw_path'])
+@click.option("--results", 'results', is_flag=True,
+              help=OPTION_HELP['results'])
+@click.pass_context
+@click.argument('classifications', nargs=-1, required=False)
+def classifications(ctx, classifications, results, raw, raw_path):
+    """Retrieve performed metagenomic classifications"""
+
+    # basic operation -- just print
+    if not raw and not results:
+        cli_resource_fetcher(ctx, "classifications", classifications)
+
+    # fetch the results
+    elif not raw and results:
+        if len(classifications) != 1:
+            log.error("Can only request results data on one Classification at a time")
+        else:
+            classification = ctx.obj['API'].Classifications.get(classifications[0])
+            results = classification.results(json=True)
+            pprint(results, ctx.obj['NOPPRINT'])
+
+    # fetch the raw
+    elif raw is not None and not results:
+
+        if len(classifications) != 1:
+            log.error("Can only request raw data on one Classification at a time")
+
+        else:
+            classification = ctx.obj['API'].Classifications.get(classifications[0])
+            tsv_url = classification.readlevel()['url']
+            log.info("Downloading tsv data from: {}".format(tsv_url))
+            download_file_helper(tsv_url, raw_path)
+
+    # both given -- complain
+    else:
+        log.error("Can only request one of raw data or results data at a time")
+
+
+@onecodex.command('panels')
+@click.pass_context
+@click.argument('panels', nargs=-1, required=False)
+def panels(ctx, panels):
+    """Retrieve performed in silico panel results"""
+    cli_resource_fetcher(ctx, "panels", panels)
+
+
+@onecodex.command('samples')
+@click.pass_context
+@click.argument('samples', nargs=-1, required=False)
+def samples(ctx, samples):
+    """Retrieve uploaded samples"""
+    cli_resource_fetcher(ctx, "samples", samples)
+
+
+# utilites
+@onecodex.command('upload')
+@click.option("--no-threads", is_flag=True,
+              help=OPTION_HELP['threads'],
+              default=False)
+@click.option("--max-threads", default=4,
+              help=OPTION_HELP['max_threads'], metavar="<int:threads>")
+@click.argument('files', nargs=-1, required=False,
+                type=click.Path(exists=True))
+@click.pass_context
+def upload(ctx, files, no_threads, max_threads):
+    """Upload a FASTA or FASTQ (optionally gzip'd) to One Codex"""
+    if not no_threads:
+        ctx.obj['API'].Samples.upload(files, threads=max_threads)
+    else:
+        ctx.obj['API'].Samples.upload(files, threads=1)
+
+
+@onecodex.command('login')
+@click.pass_context
+def login(ctx):
+    """Add an API key (saved in ~/.onecodex)"""
+    _login(ctx.obj['BASE_URL'], check_for_update=False)
+
+
+@onecodex.command('logout')
+@click.pass_context
+def logout(ctx):
+    """Delete your API key (saved in ~/.onecodex)"""
+    _logout()

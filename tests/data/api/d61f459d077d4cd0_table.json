@@ -1,0 +1,1126 @@
+{  
+  "table": [
+    {
+      "readcount": 782,
+      "name": "Vibrio cholerae",
+      "rank": "species",
+      "tax_id": 666
+    },
+    {
+      "readcount": 709,
+      "name": "Klebsiella",
+      "rank": "genus",
+      "tax_id": 570
+    },
+    {
+      "readcount": 676,
+      "name": "Staphylococcus aureus",
+      "rank": "species",
+      "tax_id": 1280
+    },
+    {
+      "readcount": 626,
+      "name": "Enterobacteriaceae",
+      "rank": "family",
+      "tax_id": 543
+    },
+    {
+      "readcount": 556,
+      "name": "Enterobacter cloacae complex",
+      "rank": "species group",
+      "tax_id": 354276
+    },
+    {
+      "readcount": 545,
+      "name": "Mycobacterium",
+      "rank": "genus",
+      "tax_id": 1763
+    },
+    {
+      "readcount": 544,
+      "name": "Salmonella enterica subsp. enterica",
+      "rank": "subspecies",
+      "tax_id": 59201
+    },
+    {
+      "readcount": 539,
+      "name": "Rhodobacter sphaeroides 2.4.1",
+      "rank": "no rank",
+      "tax_id": 272943
+    },
+    {
+      "readcount": 420,
+      "name": "Bacillus cereus",
+      "rank": "species",
+      "tax_id": 1396
+    },
+    {
+      "readcount": 404,
+      "name": "Mycobacterium chelonae group",
+      "rank": "species group",
+      "tax_id": 670516
+    },
+    {
+      "readcount": 350,
+      "name": "Salmonella enterica",
+      "rank": "species",
+      "tax_id": 28901
+    },
+    {
+      "readcount": 317,
+      "name": "Citrobacter",
+      "rank": "genus",
+      "tax_id": 544
+    },
+    {
+      "readcount": 315,
+      "name": "Bacillus cereus ATCC 10987",
+      "rank": "no rank",
+      "tax_id": 222523
+    },
+    {
+      "readcount": 259,
+      "name": "Rhodobacter sphaeroides",
+      "rank": "species",
+      "tax_id": 1063
+    },
+    {
+      "readcount": 209,
+      "name": "Firmicutes",
+      "rank": "phylum",
+      "tax_id": 1239
+    },
+    {
+      "readcount": 193,
+      "name": "Vibrio",
+      "rank": "genus",
+      "tax_id": 662
+    },
+    {
+      "readcount": 191,
+      "name": "Enterobacter",
+      "rank": "genus",
+      "tax_id": 547
+    },
+    {
+      "readcount": 140,
+      "name": "Rhodobacter",
+      "rank": "genus",
+      "tax_id": 1060
+    },
+    {
+      "readcount": 139,
+      "name": "Bacillus cereus group",
+      "rank": "species group",
+      "tax_id": 86661
+    },
+    {
+      "readcount": 83,
+      "name": "Klebsiella pneumoniae",
+      "rank": "species",
+      "tax_id": 573
+    },
+    {
+      "readcount": 82,
+      "name": "Proteobacteria",
+      "rank": "phylum",
+      "tax_id": 1224
+    },
+    {
+      "readcount": 78,
+      "name": "Bacteria",
+      "rank": "superkingdom",
+      "tax_id": 2
+    },
+    {
+      "readcount": 75,
+      "name": "Citrobacter freundii",
+      "rank": "species",
+      "tax_id": 546
+    },
+    {
+      "readcount": 57,
+      "name": "Proteus",
+      "rank": "genus",
+      "tax_id": 583
+    },
+    {
+      "readcount": 52,
+      "name": "Proteus penneri ATCC 35198",
+      "rank": "no rank",
+      "tax_id": 471881
+    },
+    {
+      "readcount": 49,
+      "name": "Staphylococcus",
+      "rank": "genus",
+      "tax_id": 1279
+    },
+    {
+      "readcount": 46,
+      "name": "root",
+      "rank": "no rank",
+      "tax_id": 1
+    },
+    {
+      "readcount": 45,
+      "name": "Citrobacter sp. KTE30",
+      "rank": "species",
+      "tax_id": 1169319
+    },
+    {
+      "readcount": 39,
+      "name": "Proteus mirabilis",
+      "rank": "species",
+      "tax_id": 584
+    },
+    {
+      "readcount": 38,
+      "name": "Proteus hauseri ZMd44",
+      "rank": "no rank",
+      "tax_id": 1312367
+    },
+    {
+      "readcount": 36,
+      "name": "Salmonella enterica subsp. enterica serovar Montevideo",
+      "rank": "no rank",
+      "tax_id": 115981
+    },
+    {
+      "readcount": 32,
+      "name": "Citrobacter freundii GTC 09479",
+      "rank": "no rank",
+      "tax_id": 1288347
+    },
+    {
+      "readcount": 32,
+      "name": "Bacillus",
+      "rank": "genus",
+      "tax_id": 1386
+    },
+    {
+      "readcount": 28,
+      "name": "Mycobacterium abscessus",
+      "rank": "species",
+      "tax_id": 36809
+    },
+    {
+      "readcount": 27,
+      "name": "Gammaproteobacteria",
+      "rank": "class",
+      "tax_id": 1236
+    },
+    {
+      "readcount": 27,
+      "name": "Enterobacter cloacae",
+      "rank": "species",
+      "tax_id": 550
+    },
+    {
+      "readcount": 16,
+      "name": "Streptococcus sobrinus",
+      "rank": "species",
+      "tax_id": 1310
+    },
+    {
+      "readcount": 12,
+      "name": "Enterobacter cloacae BIDMC 8",
+      "rank": "no rank",
+      "tax_id": 1329846
+    },
+    {
+      "readcount": 11,
+      "name": "Klebsiella pneumoniae BIDMC 61",
+      "rank": "no rank",
+      "tax_id": 1438700
+    },
+    {
+      "readcount": 10,
+      "name": "Bacillales",
+      "rank": "order",
+      "tax_id": 1385
+    },
+    {
+      "readcount": 10,
+      "name": "Salmonella",
+      "rank": "genus",
+      "tax_id": 590
+    },
+    {
+      "readcount": 9,
+      "name": "Citrobacter freundii MGH 56",
+      "rank": "no rank",
+      "tax_id": 1439318
+    },
+    {
+      "readcount": 7,
+      "name": "Enterobacter sp. MGH 38",
+      "rank": "species",
+      "tax_id": 1329834
+    },
+    {
+      "readcount": 7,
+      "name": "Klebsiella pneumoniae MGH 80",
+      "rank": "no rank",
+      "tax_id": 1438801
+    },
+    {
+      "readcount": 6,
+      "name": "Proteus mirabilis ATCC 29906",
+      "rank": "no rank",
+      "tax_id": 525369
+    },
+    {
+      "readcount": 6,
+      "name": "Enterobacter cloacae subsp. cloacae GS1",
+      "rank": "no rank",
+      "tax_id": 1177927
+    },
+    {
+      "readcount": 6,
+      "name": "Klebsiella variicola At-22",
+      "rank": "no rank",
+      "tax_id": 640131
+    },
+    {
+      "readcount": 5,
+      "name": "Paenibacillus sp. FSL R7-269",
+      "rank": "species",
+      "tax_id": 1226755
+    },
+    {
+      "readcount": 5,
+      "name": "Shigella flexneri 1235-66",
+      "rank": "no rank",
+      "tax_id": 766154
+    },
+    {
+      "readcount": 5,
+      "name": "Bacilli",
+      "rank": "class",
+      "tax_id": 91061
+    },
+    {
+      "readcount": 5,
+      "name": "Klebsiella sp. KTE92",
+      "rank": "species",
+      "tax_id": 1182695
+    },
+    {
+      "readcount": 4,
+      "name": "Escherichia coli",
+      "rank": "species",
+      "tax_id": 562
+    },
+    {
+      "readcount": 4,
+      "name": "Klebsiella pneumoniae MGH 40",
+      "rank": "no rank",
+      "tax_id": 1328374
+    },
+    {
+      "readcount": 4,
+      "name": "cellular organisms",
+      "rank": "no rank",
+      "tax_id": 131567
+    },
+    {
+      "readcount": 4,
+      "name": "Klebsiella pneumoniae MGH 72",
+      "rank": "no rank",
+      "tax_id": 1438795
+    },
+    {
+      "readcount": 4,
+      "name": "Citrobacter freundii 4_7_47CFAA",
+      "rank": "no rank",
+      "tax_id": 742730
+    },
+    {
+      "readcount": 3,
+      "name": "Enterobacter cloacae UCICRE 9",
+      "rank": "no rank",
+      "tax_id": 1329854
+    },
+    {
+      "readcount": 3,
+      "name": "Klebsiella sp. 10982",
+      "rank": "species",
+      "tax_id": 1196034
+    },
+    {
+      "readcount": 3,
+      "name": "Salmonella enterica subsp. enterica serovar 9,12:l,v:- str. 94293",
+      "rank": "no rank",
+      "tax_id": 1387330
+    },
+    {
+      "readcount": 3,
+      "name": "Staphylococcus aureus M1228",
+      "rank": "no rank",
+      "tax_id": 1303785
+    },
+    {
+      "readcount": 3,
+      "name": "Klebsiella pneumoniae MGH 44",
+      "rank": "no rank",
+      "tax_id": 1328376
+    },
+    {
+      "readcount": 3,
+      "name": "Proteus mirabilis BB2000",
+      "rank": "no rank",
+      "tax_id": 1266738
+    },
+    {
+      "readcount": 3,
+      "name": "Klebsiella pneumoniae MGH 68",
+      "rank": "no rank",
+      "tax_id": 1438791
+    },
+    {
+      "readcount": 3,
+      "name": "Providencia rettgeri DSM 1131",
+      "rank": "no rank",
+      "tax_id": 521000
+    },
+    {
+      "readcount": 3,
+      "name": "Citrobacter youngae ATCC 29220",
+      "rank": "no rank",
+      "tax_id": 500640
+    },
+    {
+      "readcount": 3,
+      "name": "Klebsiella pneumoniae UCICRE 10",
+      "rank": "no rank",
+      "tax_id": 1328395
+    },
+    {
+      "readcount": 3,
+      "name": "Enterobacter hormaechei ATCC 49162",
+      "rank": "no rank",
+      "tax_id": 888063
+    },
+    {
+      "readcount": 3,
+      "name": "Micrococcus luteus",
+      "rank": "species",
+      "tax_id": 1270
+    },
+    {
+      "readcount": 2,
+      "name": "Enterobacter aerogenes",
+      "rank": "species",
+      "tax_id": 548
+    },
+    {
+      "readcount": 2,
+      "name": "Escherichia coli IS25",
+      "rank": "no rank",
+      "tax_id": 1432548
+    },
+    {
+      "readcount": 2,
+      "name": "Citrobacter freundii UCI 31",
+      "rank": "no rank",
+      "tax_id": 1400136
+    },
+    {
+      "readcount": 2,
+      "name": "Actinobacillus",
+      "rank": "genus",
+      "tax_id": 713
+    },
+    {
+      "readcount": 2,
+      "name": "Rhodobacteraceae",
+      "rank": "family",
+      "tax_id": 31989
+    },
+    {
+      "readcount": 2,
+      "name": "Klebsiella pneumoniae BIDMC 52",
+      "rank": "no rank",
+      "tax_id": 1400168
+    },
+    {
+      "readcount": 2,
+      "name": "Citrobacter freundii UCI 32",
+      "rank": "no rank",
+      "tax_id": 1400137
+    },
+    {
+      "readcount": 2,
+      "name": "Enterobacter sp. MGH 33",
+      "rank": "species",
+      "tax_id": 1329831
+    },
+    {
+      "readcount": 2,
+      "name": "Staphylococcus aureus subsp. aureus",
+      "rank": "subspecies",
+      "tax_id": 46170
+    },
+    {
+      "readcount": 2,
+      "name": "Klebsiella pneumoniae 342",
+      "rank": "no rank",
+      "tax_id": 507522
+    },
+    {
+      "readcount": 2,
+      "name": "Klebsiella oxytoca",
+      "rank": "species",
+      "tax_id": 571
+    },
+    {
+      "readcount": 2,
+      "name": "Salmonella enterica subsp. enterica serovar Mbandaka str. 2012K-0273",
+      "rank": "no rank",
+      "tax_id": 1328330
+    },
+    {
+      "readcount": 2,
+      "name": "Klebsiella sp. 1_1_55",
+      "rank": "species",
+      "tax_id": 469608
+    },
+    {
+      "readcount": 1,
+      "name": "Bacillus sp. 123MFChir2",
+      "rank": "species",
+      "tax_id": 1169144
+    },
+    {
+      "readcount": 1,
+      "name": "Enterobacteriaceae bacterium LSJC7",
+      "rank": "species",
+      "tax_id": 1224136
+    },
+    {
+      "readcount": 1,
+      "name": "Bacillus cereus VD196",
+      "rank": "no rank",
+      "tax_id": 1053243
+    },
+    {
+      "readcount": 1,
+      "name": "Enterobacter cloacae UCI 49",
+      "rank": "no rank",
+      "tax_id": 1400154
+    },
+    {
+      "readcount": 1,
+      "name": "Bacillus cereus BAG3O-1",
+      "rank": "no rank",
+      "tax_id": 1085388
+    },
+    {
+      "readcount": 1,
+      "name": "Cronobacter sp. 1383",
+      "rank": "species",
+      "tax_id": 1499086
+    },
+    {
+      "readcount": 1,
+      "name": "Vibrio furnissii NCTC 11218",
+      "rank": "no rank",
+      "tax_id": 903510
+    },
+    {
+      "readcount": 1,
+      "name": "Enterobacter cloacae UCI 30",
+      "rank": "no rank",
+      "tax_id": 1400149
+    },
+    {
+      "readcount": 1,
+      "name": "Providencia burhodogranariea DSM 19968",
+      "rank": "no rank",
+      "tax_id": 1141662
+    },
+    {
+      "readcount": 1,
+      "name": "Acinetobacter",
+      "rank": "genus",
+      "tax_id": 469
+    },
+    {
+      "readcount": 1,
+      "name": "Staphylococcaceae",
+      "rank": "family",
+      "tax_id": 90964
+    },
+    {
+      "readcount": 1,
+      "name": "Citrobacter rodentium ICC168",
+      "rank": "no rank",
+      "tax_id": 637910
+    },
+    {
+      "readcount": 1,
+      "name": "Vibrio genomosp. F10",
+      "rank": "species",
+      "tax_id": 723171
+    },
+    {
+      "readcount": 1,
+      "name": "Vibrio cholerae O1 str. NHCC-008D",
+      "rank": "no rank",
+      "tax_id": 1095657
+    },
+    {
+      "readcount": 1,
+      "name": "Klebsiella pneumoniae ISC21",
+      "rank": "no rank",
+      "tax_id": 1432558
+    },
+    {
+      "readcount": 1,
+      "name": "Enterobacter cloacae UCI 23",
+      "rank": "no rank",
+      "tax_id": 1400146
+    },
+    {
+      "readcount": 1,
+      "name": "Rheinheimera",
+      "rank": "genus",
+      "tax_id": 67575
+    },
+    {
+      "readcount": 1,
+      "name": "Enterobacter cloacae subsp. cloacae 08XA1",
+      "rank": "no rank",
+      "tax_id": 1203195
+    },
+    {
+      "readcount": 1,
+      "name": "Vibrionales",
+      "rank": "order",
+      "tax_id": 135623
+    },
+    {
+      "readcount": 1,
+      "name": "Bacillaceae",
+      "rank": "family",
+      "tax_id": 186817
+    },
+    {
+      "readcount": 1,
+      "name": "Citrobacter sp. KTE32",
+      "rank": "species",
+      "tax_id": 1169350
+    },
+    {
+      "readcount": 1,
+      "name": "Photobacterium profundum SS9",
+      "rank": "no rank",
+      "tax_id": 298386
+    },
+    {
+      "readcount": 1,
+      "name": "Streptococcus sobrinus TCI-357",
+      "rank": "no rank",
+      "tax_id": 1074077
+    },
+    {
+      "readcount": 1,
+      "name": "Enterobacter sp. MGH 10",
+      "rank": "species",
+      "tax_id": 1329819
+    },
+    {
+      "readcount": 1,
+      "name": "Streptococcus pneumoniae GA02254",
+      "rank": "no rank",
+      "tax_id": 760742
+    },
+    {
+      "readcount": 1,
+      "name": "Escherichia coli FRIK1997",
+      "rank": "no rank",
+      "tax_id": 1005480
+    },
+    {
+      "readcount": 1,
+      "name": "Acinetobacter nectaris CIP 110549",
+      "rank": "no rank",
+      "tax_id": 1392540
+    },
+    {
+      "readcount": 1,
+      "name": "Vibrio cholerae PS15",
+      "rank": "no rank",
+      "tax_id": 693743
+    },
+    {
+      "readcount": 1,
+      "name": "Klebsiella pneumoniae BIDMC 69",
+      "rank": "no rank",
+      "tax_id": 1438702
+    },
+    {
+      "readcount": 1,
+      "name": "Dickeya chrysanthemi NCPPB 516",
+      "rank": "no rank",
+      "tax_id": 1223571
+    },
+    {
+      "readcount": 1,
+      "name": "Providencia sneebia DSM 19967",
+      "rank": "no rank",
+      "tax_id": 1141660
+    },
+    {
+      "readcount": 1,
+      "name": "Enterobacter cloacae subsp. cloacae NCTC 9394",
+      "rank": "no rank",
+      "tax_id": 718254
+    },
+    {
+      "readcount": 1,
+      "name": "Vibrio cholerae O1",
+      "rank": "no rank",
+      "tax_id": 127906
+    },
+    {
+      "readcount": 1,
+      "name": "Bacillus cereus VD142",
+      "rank": "no rank",
+      "tax_id": 718224
+    },
+    {
+      "readcount": 1,
+      "name": "Providencia stuartii ATCC 25827",
+      "rank": "no rank",
+      "tax_id": 471874
+    },
+    {
+      "readcount": 1,
+      "name": "Providencia alcalifaciens",
+      "rank": "species",
+      "tax_id": 126385
+    },
+    {
+      "readcount": 1,
+      "name": "Yersinia massiliensis CCUG 53443",
+      "rank": "no rank",
+      "tax_id": 1205683
+    },
+    {
+      "readcount": 1,
+      "name": "Klebsiella pneumoniae UCI 25",
+      "rank": "no rank",
+      "tax_id": 1400176
+    },
+    {
+      "readcount": 1,
+      "name": "Klebsiella pneumoniae UCI 18",
+      "rank": "no rank",
+      "tax_id": 1400171
+    },
+    {
+      "readcount": 1,
+      "name": "Salmonella enterica subsp. enterica serovar Muenchen str. baa1674",
+      "rank": "no rank",
+      "tax_id": 1079478
+    },
+    {
+      "readcount": 1,
+      "name": "Citrobacter freundii complex",
+      "rank": "no rank",
+      "tax_id": 1344959
+    },
+    {
+      "readcount": 1,
+      "name": "Enterobacter sp. 5-4",
+      "rank": "species",
+      "tax_id": 1444288
+    },
+    {
+      "readcount": 1,
+      "name": "Klebsiella oxytoca 10-5245",
+      "rank": "no rank",
+      "tax_id": 883120
+    },
+    {
+      "readcount": 1,
+      "name": "Streptococcus anginosus group",
+      "rank": "species group",
+      "tax_id": 671232
+    },
+    {
+      "readcount": 1,
+      "name": "Salmonella enterica subsp. houtenae",
+      "rank": "subspecies",
+      "tax_id": 59205
+    },
+    {
+      "readcount": 1,
+      "name": "Klebsiella pneumoniae UCI 60",
+      "rank": "no rank",
+      "tax_id": 1438805
+    },
+    {
+      "readcount": 1,
+      "name": "Yersinia rohdei ATCC 43380",
+      "rank": "no rank",
+      "tax_id": 527004
+    },
+    {
+      "readcount": 1,
+      "name": "Bacillus cereus Rock3-44",
+      "rank": "no rank",
+      "tax_id": 526986
+    },
+    {
+      "readcount": 1,
+      "name": "Bacillus cereus ATCC 10876",
+      "rank": "no rank",
+      "tax_id": 526980
+    },
+    {
+      "readcount": 1,
+      "name": "Vibrionaceae",
+      "rank": "family",
+      "tax_id": 641
+    },
+    {
+      "readcount": 1,
+      "name": "Salmonella enterica subsp. salamae serovar 58:l,z13,z28:z6 str. 00-0163",
+      "rank": "no rank",
+      "tax_id": 1173951
+    },
+    {
+      "readcount": 1,
+      "name": "Bacillus cereus R309803",
+      "rank": "no rank",
+      "tax_id": 526968
+    },
+    {
+      "readcount": 1,
+      "name": "Staphylococcus aureus subsp. aureus CIG1233",
+      "rank": "no rank",
+      "tax_id": 931447
+    },
+    {
+      "readcount": 1,
+      "name": "Xenorhabdus nematophila",
+      "rank": "species",
+      "tax_id": 628
+    },
+    {
+      "readcount": 1,
+      "name": "Salmonella enterica subsp. enterica serovar Typhi str. UJ816A",
+      "rank": "no rank",
+      "tax_id": 1169661
+    },
+    {
+      "readcount": 1,
+      "name": "Enterobacter cloacae MR2",
+      "rank": "no rank",
+      "tax_id": 1312879
+    },
+    {
+      "readcount": 1,
+      "name": "Vibrio coralliilyticus P1",
+      "rank": "no rank",
+      "tax_id": 909421
+    },
+    {
+      "readcount": 1,
+      "name": "Citrobacter sp. 30_2",
+      "rank": "species",
+      "tax_id": 469595
+    },
+    {
+      "readcount": 1,
+      "name": "Citrobacter sp. MGH 55",
+      "rank": "species",
+      "tax_id": 1439319
+    },
+    {
+      "readcount": 1,
+      "name": "Enterobacter asburiae LF7a",
+      "rank": "no rank",
+      "tax_id": 640513
+    },
+    {
+      "readcount": 1,
+      "name": "Proteus mirabilis WGLW4",
+      "rank": "no rank",
+      "tax_id": 1125693
+    },
+    {
+      "readcount": 1,
+      "name": "Klebsiella pneumoniae MGH 76",
+      "rank": "no rank",
+      "tax_id": 1438799
+    },
+    {
+      "readcount": 1,
+      "name": "Providencia stuartii",
+      "rank": "species",
+      "tax_id": 588
+    },
+    {
+      "readcount": 1,
+      "name": "Providencia",
+      "rank": "genus",
+      "tax_id": 586
+    },
+    {
+      "readcount": 1,
+      "name": "Pasteurella bettyae CCUG 2042",
+      "rank": "no rank",
+      "tax_id": 1095749
+    },
+    {
+      "readcount": 1,
+      "name": "Photorhabdus luminescens subsp. laumondii TTO1",
+      "rank": "no rank",
+      "tax_id": 243265
+    },
+    {
+      "readcount": 1,
+      "name": "Escherichia",
+      "rank": "genus",
+      "tax_id": 561
+    },
+    {
+      "readcount": 1,
+      "name": "Mycobacterium abscessus M24",
+      "rank": "no rank",
+      "tax_id": 1162284
+    },
+    {
+      "readcount": 1,
+      "name": "Lactobacillus",
+      "rank": "genus",
+      "tax_id": 1578
+    },
+    {
+      "readcount": 1,
+      "name": "Enterobacter asburiae L1",
+      "rank": "no rank",
+      "tax_id": 1421338
+    },
+    {
+      "readcount": 1,
+      "name": "Pelosinus sp. HCF1",
+      "rank": "species",
+      "tax_id": 1235479
+    },
+    {
+      "readcount": 1,
+      "name": "Salmonella enterica subsp. enterica serovar Eastbourne str. CFSAN001084",
+      "rank": "no rank",
+      "tax_id": 1194158
+    },
+    {
+      "readcount": 1,
+      "name": "Corynebacterineae",
+      "rank": "suborder",
+      "tax_id": 85007
+    },
+    {
+      "readcount": 1,
+      "name": "Bacillus cereus BAG6X1-2",
+      "rank": "no rank",
+      "tax_id": 1053195
+    },
+    {
+      "readcount": 1,
+      "name": "Acinetobacter sp. NIPH 2036",
+      "rank": "species",
+      "tax_id": 1217696
+    },
+    {
+      "readcount": 1,
+      "name": "Vibrio mimicus",
+      "rank": "species",
+      "tax_id": 674
+    },
+    {
+      "readcount": 1,
+      "name": "Enterobacter sp. MGH 24",
+      "rank": "species",
+      "tax_id": 1329828
+    },
+    {
+      "readcount": 1,
+      "name": "Salmonella enterica subsp. enterica serovar Gaminara str. ATCC BAA-711",
+      "rank": "no rank",
+      "tax_id": 984235
+    },
+    {
+      "readcount": 1,
+      "name": "Klebsiella sp. BRL6-2",
+      "rank": "species",
+      "tax_id": 1168170
+    },
+    {
+      "readcount": 1,
+      "name": "Xenorhabdus bovienii SS-2004",
+      "rank": "no rank",
+      "tax_id": 406818
+    },
+    {
+      "readcount": 1,
+      "name": "Bacillus cereus Rock1-3",
+      "rank": "no rank",
+      "tax_id": 526981
+    },
+    {
+      "readcount": 1,
+      "name": "Bacillus cereus F",
+      "rank": "no rank",
+      "tax_id": 1126681
+    },
+    {
+      "readcount": 1,
+      "name": "Yersinia mollaretii ATCC 43969",
+      "rank": "no rank",
+      "tax_id": 349967
+    },
+    {
+      "readcount": 1,
+      "name": "Klebsiella pneumoniae UCICRE 14",
+      "rank": "no rank",
+      "tax_id": 1328397
+    },
+    {
+      "readcount": 1,
+      "name": "Klebsiella pneumoniae BIDMC 40",
+      "rank": "no rank",
+      "tax_id": 1328426
+    },
+    {
+      "readcount": 1,
+      "name": "Photorhabdus asymbiotica",
+      "rank": "species",
+      "tax_id": 291112
+    },
+    {
+      "readcount": 1,
+      "name": "Klebsiella pneumoniae MGH 30",
+      "rank": "no rank",
+      "tax_id": 1328368
+    },
+    {
+      "readcount": 1,
+      "name": "Klebsiella pneumoniae MGH 20",
+      "rank": "no rank",
+      "tax_id": 1328365
+    },
+    {
+      "readcount": 1,
+      "name": "Coxiella burnetii CbuG_Q212",
+      "rank": "no rank",
+      "tax_id": 434923
+    },
+    {
+      "readcount": 1,
+      "name": "Acinetobacter baumannii 478810",
+      "rank": "no rank",
+      "tax_id": 1310720
+    },
+    {
+      "readcount": 1,
+      "name": "Staphylococcus aureus subsp. aureus ED133",
+      "rank": "no rank",
+      "tax_id": 685039
+    },
+    {
+      "readcount": 1,
+      "name": "Salmonella enterica subsp. enterica serovar Cerro",
+      "rank": "no rank",
+      "tax_id": 340188
+    },
+    {
+      "readcount": 1,
+      "name": "Salmonella enterica subsp. enterica serovar Muenchen str. 08-1125",
+      "rank": "no rank",
+      "tax_id": 1328334
+    },
+    {
+      "readcount": 1,
+      "name": "Mannheimia haemolytica",
+      "rank": "species",
+      "tax_id": 75985
+    },
+    {
+      "readcount": 1,
+      "name": "Vibrio cholerae HC-17A1",
+      "rank": "no rank",
+      "tax_id": 991951
+    },
+    {
+      "readcount": 1,
+      "name": "Mycobacterium abscessus M93",
+      "rank": "no rank",
+      "tax_id": 1149134
+    },
+    {
+      "readcount": 1,
+      "name": "Proteus mirabilis PR03",
+      "rank": "no rank",
+      "tax_id": 1279010
+    },
+    {
+      "readcount": 1,
+      "name": "Enterobacter cloacae UCICRE 12",
+      "rank": "no rank",
+      "tax_id": 1329856
+    },
+    {
+      "readcount": 1,
+      "name": "Vibrio cholerae HC-23A1",
+      "rank": "no rank",
+      "tax_id": 991933
+    },
+    {
+      "readcount": 1,
+      "name": "Enterobacter cloacae UCICRE 3",
+      "rank": "no rank",
+      "tax_id": 1329852
+    },
+    {
+      "readcount": 1,
+      "name": "Vibrio cholerae CP1032(5)",
+      "rank": "no rank",
+      "tax_id": 991923
+    },
+    {
+      "readcount": 1,
+      "name": "Enterobacter sp. BIDMC 30",
+      "rank": "species",
+      "tax_id": 1329842
+    },
+    {
+      "readcount": 1,
+      "name": "Budvicia aquatica DSM 5075 = ATCC 35567",
+      "rank": "no rank",
+      "tax_id": 1111728
+    },
+    {
+      "readcount": 1,
+      "name": "Enterobacter sp. BIDMC 27",
+      "rank": "species",
+      "tax_id": 1329839
+    },
+    {
+      "readcount": 1,
+      "name": "Enterobacter sp. BIDMC 26",
+      "rank": "species",
+      "tax_id": 1329838
+    },
+    {
+      "readcount": 1,
+      "name": "Pseudoalteromonas",
+      "rank": "genus",
+      "tax_id": 53246
+    }
+  ]
+}

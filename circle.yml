@@ -1,5 +1,3 @@
 test:
   override:
-    - nosetests:
-        timeout: 500
-
+    - tox

@@ -1,0 +1,18 @@
+{
+    "$uri": "/api/v1/samples/d5a69fe85b7a4208",
+    "created_at": "2016-02-02T07:27:35.755153",
+    "default_analysis": null,
+    "description": null,
+    "error_text": null,
+    "indexed": false,
+    "interleaved": false,
+    "public": false,
+    "size": 42698,
+    "starred": false,
+    "success": true,
+    "tags": [],
+    "tier": "standard",
+    "timestamp": 1454398055,
+    "uri": "s3://refgenomics-userdata-dev-encrypted.amazonaws.com/user_be3613535a5145aa/file_d5a69fe85b7a4208/HiSeq_short.fa",
+    "via_api": false
+}
