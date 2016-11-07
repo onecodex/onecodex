@@ -1,6 +1,6 @@
 # One Codex API
 
-[![Circle CI](https://circleci.com/gh/onecodex/onecodex.png?style=badge&circle-token=d86a8fc55e54a645ee515387db9acee32068a6ad)](https://circleci.com/gh/onecodex/onecodex)
+[![Circle CI](https://circleci.com/gh/onecodex/onecodex.png?style=shield&circle-token=d86a8fc55e54a645ee515387db9acee32068a6ad)](https://circleci.com/gh/onecodex/onecodex) [![Coverage Status](https://coveralls.io/repos/github/onecodex/onecodex/badge.svg)](https://coveralls.io/github/onecodex/onecodex)
 
 Command line interface (CLI) and Python client library for interacting with the One Codex v1 API.
 
