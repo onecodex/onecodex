@@ -24,7 +24,7 @@ setup(
     name='onecodex',
     version=__version__,  # noqa
     packages=find_packages(exclude=['*test*']),
-    install_requires=['potion-client', 'requests>=2.9', 'click>=6.6',
+    install_requires=['potion-client==2.4.2', 'requests>=2.9', 'click>=6.6',
                       'requests_toolbelt==0.7.0', 'python-dateutil>=2.5.3',
                       'six>=1.10.0'],
     include_package_data=True,
@@ -32,7 +32,7 @@ setup(
     extras_require={
         'all': ['numpy>=1.11.0', 'pandas>=0.18.1', 'matplotlib>1.5.1', 'networkx>=1.11']
     },
-    dependency_links=['git+https://github.com/onecodex/potion-client.git#egg=potion-client'],
+    dependency_links=[],
     author='Kyle McChesney & Nick Greenfield & Roderick Bovee',
     author_email='opensource@onecodex.com',
     long_description=__doc__,
