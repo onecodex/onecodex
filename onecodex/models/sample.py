@@ -135,6 +135,9 @@ class Samples(OneCodexBase):
             if exc.response.status_code == 402:
                 raise OneCodexException('You must either have a premium platform account or be in '
                                         'a notebook environment to download samples.')
+            else:
+                raise OneCodexException('Download failed with an HTTP status code {}.'.format(
+                                        exc.response.status_code))
 
 
 class Metadata(OneCodexBase):
