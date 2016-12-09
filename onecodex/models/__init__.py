@@ -324,6 +324,7 @@ __all__ = ['Samples', 'Classifications', 'Alignments', 'Panels', 'Jobs', 'Projec
 def is_oc_class(cls):
     return inspect.isclass(cls) and issubclass(cls, OneCodexBase)
 
+
 _model_lookup = {}
 for name, obj in inspect.getmembers(sys.modules[__name__], is_oc_class):
     if hasattr(obj, '_resource_path'):
