@@ -75,7 +75,7 @@ def _login(server, check_for_update=True, creds_file=None):
     creds.update({'api_key': api_key, 'saved_at': now, 'updated_at': None})
     with open(fp, mode='w') as f:
         json.dump(creds, f)
-    click.echo("Your ~/.onecodex credentials file successfully created.", err=True)
+    click.echo("Your ~/.onecodex credentials file was successfully created.", err=True)
 
 
 def _logout(creds_file=None):

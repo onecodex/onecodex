@@ -1,4 +1,5 @@
 from __future__ import print_function
+from click.testing import CliRunner
 from contextlib import contextmanager
 import json
 import os
@@ -9,6 +10,7 @@ import requests
 import responses
 
 from onecodex import Api
+from onecodex.lib.inline_validator import FASTXTranslator
 
 
 def intercept(func, log=False, dump=None):
@@ -72,29 +74,6 @@ def mock_requests(mock_json):
                          body=json.dumps(mock_data),
                          content_type=content_type)
         yield
-
-
-# TODO: Consider deleting in favor of context manager as above
-def mock_requests_decorator(mock_json):
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            with responses.mock as rsps:
-                for mock_url, mock_data in mock_json.items():
-                    method, content_type, url = mock_url.split(':', 2)
-                    if not content_type:
-                        content_type = 'application/json'
-                    if callable(mock_data):
-                        rsps.add_callback(method, re.compile('http://[^/]+/' + url + '(\?.*)?$'),
-                                          callback=mock_data,
-                                          content_type=content_type)
-                    else:
-                        rsps.add(method, re.compile('http://[^/]+/' + url + '(\?.*)?$'),
-                                 body=mock_data,
-                                 content_type=content_type)
-                func(*args, **kwargs)
-                assert len(responses.calls) > 0
-        return wrapper
-    return decorator
 
 
 def rs(path):
@@ -202,7 +181,12 @@ def api_data():
 @pytest.fixture(scope='function')
 def upload_mocks():
     def upload_callback(request):
-        return (201, {'location': 'on-aws'}, {})
+        # Get and read the streaming iterator so it's empty
+        if hasattr(request.body, 'fields'):
+            streaming_iterator = request.body.fields['file'][1]
+            streaming_iterator.read()
+            assert isinstance(streaming_iterator, FASTXTranslator)
+        return (201, {'location': 'on-aws'}, '')
 
     json_data = {
         'POST:multipart/form-data:fake_aws_callback': upload_callback,
@@ -243,6 +227,12 @@ def ocx():
         ocx = Api(api_key='1eab4217d30d42849dbde0cd1bb94e39',
                   base_url='http://localhost:3000', cache_schema=False)
         return ocx
+
+
+@pytest.fixture(scope='function')
+def runner():
+    runner = CliRunner(env={"ONE_CODEX_API_BASE": "http://localhost:3000"})
+    return runner
 
 
 # CLI / FILE SYSTEM FIXTURE

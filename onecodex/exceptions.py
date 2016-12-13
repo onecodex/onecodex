@@ -22,3 +22,18 @@ class UnboundObject(OneCodexException):
     To use against the One Codex server, all classes must be derived from an Api instance.
     """
     pass
+
+
+class ValidationError(OneCodexException):
+    pass
+
+
+class ValidationWarning(Warning):
+    pass
+
+
+class UploadException(Exception):
+    """
+    An exception for when things go wrong with uploading
+    """
+    pass

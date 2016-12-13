@@ -26,7 +26,7 @@ setup(
     packages=find_packages(exclude=['*test*']),
     install_requires=['potion-client==2.4.2', 'requests>=2.9', 'click>=6.6',
                       'requests_toolbelt==0.7.0', 'python-dateutil>=2.5.3',
-                      'six>=1.10.0'],
+                      'six>=1.10.0', 'boto3>=1.4.2'],
     include_package_data=True,
     zip_safe=False,
     extras_require={

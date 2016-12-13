@@ -30,6 +30,13 @@ OPTION_HELP = {
     'raw_path': ('Output path or directory for a .tsv file with the raw '
                  'read-level results. Defaults to original filename in '
                  'the current working directory'),
+    'clean': ("Automatically clean up FASTX records during upload. This removes tabs from "
+              "headers and converts U to T. If this isn't passed, these will cause errors."),
+    'interleave': ("Do not automatically interleave paired end files. Note this normally happens "
+                   "during the upload, does not require additional disk space, and does not change "
+                   "the files themselves."),
+    'prompt': ("Manually prompt about automatic paired file interleaving. Setting --no-prompt "
+               "will allow running without any user intervention, e.g. in a script."),
 }
 
 SUPPORTED_EXTENSIONS = ["fa", "fasta", "fq", "fastq",

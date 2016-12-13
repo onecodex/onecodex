@@ -15,12 +15,6 @@ from onecodex import Cli
 DATE_FORMAT = '%Y-%m-%d %H:%M'
 
 
-@pytest.fixture(scope='function')
-def runner():
-    runner = CliRunner(env={"ONE_CODEX_API_BASE": "http://localhost:3000"})
-    return runner
-
-
 def test_cli_help(runner):
     for args in [None, '-h', '--help']:
         command = [args] if args is not None else None
@@ -106,7 +100,7 @@ def make_creds_file():
 
 def test_api_login(runner, mocked_creds_file):
     login_input = 'user@example.com' + '\n' + 'userpassword' + '\n'
-    successful_login_msg = 'Your ~/.onecodex credentials file successfully created.'
+    successful_login_msg = 'Your ~/.onecodex credentials file was successfully created.'
     with Replace('onecodex.auth.fetch_api_key_from_uname', mock_fetch_api_key):
         result = runner.invoke(Cli, ['login'], input=login_input)
         assert result.exit_code == 0
@@ -160,6 +154,10 @@ def test_logout_creds_dne(runner, mocked_creds_file):
 
 
 # Uploads
+SEQUENCE = ('ACGTGTCGTAGGTAGCTACGACGTAGCTAACGTGTCGTAGCTACGACGTAGCTA'
+            'ACGTGTCGTAGCTACGACGTAGCTAGGGACGTGTCGTAGCTACGACGTAGCTAG\n')
+
+
 @pytest.mark.parametrize("files,threads", [
     (["temp.fa"], False),
     (["temp.fa"], True),
@@ -173,12 +171,12 @@ def test_standard_uploads(runner, upload_mocks, files, threads):
     with runner.isolated_filesystem():
         args = ['--api-key', '01234567890123456789012345678901', 'upload']
         if not threads:
-            args.append('--no-threads')
+            args += ['--max-threads', '1']
         for f in files:
             args.append(f)
             with open(f, mode='w') as f_out:
                 f_out.write('>Test fasta\n')
-                f_out.write('ACGTAGCTAGCTGACTAGCTGACTGAC\n')
+                f_out.write(SEQUENCE)
 
         result = runner.invoke(Cli, args)
         assert result.exit_code == 0
@@ -195,18 +193,32 @@ def test_empty_upload(runner, upload_mocks):
         assert result.exit_code != 0
 
 
-@pytest.mark.parametrize('awscli_installed,expected_code,expected_messages', [
-    (False, 1, ['You must install the awscli package for files >5GB in size']),
-    (True, 0, ['Starting large (>5GB) file upload. Please be patient while the file transfers...',
-               'Successfully uploaded: large.fa']),
-])
-def test_large_uploads(runner, upload_mocks, monkeypatch,
-                       awscli_installed, expected_code, expected_messages):
-    # A bunch of imports for AWS CLI mocking
-    import subprocess
-    import sys
-    from testfixtures.popen import MockPopen
-    from mock import Mock
+def test_paired_files(runner, upload_mocks):
+    import mock
+
+    with runner.isolated_filesystem():
+        f, f2 = 'temp_R1.fa', 'temp_R2.fa'
+        with open(f, mode='w') as f_out, open(f2, mode='w') as f_out2:
+            f_out.write('>Test fasta\n')
+            f_out.write(SEQUENCE)
+            f_out2.write('>Test fasta\n')
+            f_out2.write(SEQUENCE)
+
+        args = ['--api-key', '01234567890123456789012345678901', 'upload', f, f2]
+        # check that only one upload is kicked off for the pair of files
+        patch1 = 'onecodex.lib.upload.upload_file'
+        patch2 = 'onecodex.lib.inline_validator.FASTXTranslator.close'
+        with mock.patch(patch1) as mp, mock.patch(patch2) as mp2:
+            result = runner.invoke(Cli, args)
+            assert mp.call_count == 1
+            assert mp2.call_count == 1
+        assert 'It appears there are paired files' in result.output
+        assert result.exit_code == 0
+
+
+def test_large_uploads(runner, upload_mocks, monkeypatch):
+    # a lot of funky mocking
+    import mock
 
     def mockfilesize(path):
         if 'large' in path:
@@ -216,23 +228,24 @@ def test_large_uploads(runner, upload_mocks, monkeypatch,
 
     monkeypatch.setattr(os.path, 'getsize', mockfilesize)
 
-    if awscli_installed:
-        mockpopen = MockPopen()
-        cmd = ("AWS_ACCESS_KEY_ID=aws_key AWS_SECRET_ACCESS_KEY=aws_secret_key "
-               "aws s3 cp large.fa s3://onecodex-multipart-uploads-encrypted/abcdef0987654321 "
-               "--sse")
-        mockpopen.set_command(cmd)
-        monkeypatch.setattr(subprocess, 'Popen', mockpopen)
-        sys.modules['awscli'] = Mock()
-
     with runner.isolated_filesystem():
         big_file = "large.fa"
         with open(big_file, mode='w') as f:
             f.write('>BIG!!!\n')
-            f.write('ACGTGTCGTAGCTACGACGTAGCTAG\n')
+            f.write(SEQUENCE)
 
         args = ['--api-key', '01234567890123456789012345678901', 'upload', big_file]
-        result = runner.invoke(Cli, args)
-        assert result.exit_code == expected_code
-        for e in expected_messages:
-            assert e in result.output
+
+        def side_effect(*args, **kwargs):
+            """Side effect to ensure FASTXValidator gets properly read
+            """
+            args[0].read()
+            return None
+
+        with mock.patch('onecodex.lib.upload.upload_large_file') as mp:
+            mp.side_effect = side_effect
+            result = runner.invoke(Cli, args)
+            assert mp.call_count == 1
+
+        assert result.exit_code == 0
+        assert 'All complete.' in result.output
