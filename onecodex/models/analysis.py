@@ -125,6 +125,9 @@ class Classifications(Analyses):
         else:
             return self._table()
 
+    def readlevel(self):
+        return self._resource.readlevel()
+
     def _table(self):
         import pandas as pd
         if self._cached_table is None:

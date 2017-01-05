@@ -97,23 +97,23 @@ def analyses(ctx, analyses):
 
 
 @onecodex.command('classifications')
-@click.option("--raw", 'raw', is_flag=True,
-              help=OPTION_HELP['raw'])
-@click.option("--raw-path", 'raw_path',
-              default="./", help=OPTION_HELP['raw_path'])
+@click.option("--read-level", 'readlevel', is_flag=True,
+              help=OPTION_HELP['readlevel'])
+@click.option("--read-level-path", 'readlevel_path',
+              default="./", help=OPTION_HELP['readlevel_path'])
 @click.option("--results", 'results', is_flag=True,
               help=OPTION_HELP['results'])
 @click.pass_context
 @click.argument('classifications', nargs=-1, required=False)
-def classifications(ctx, classifications, results, raw, raw_path):
+def classifications(ctx, classifications, results, readlevel, readlevel_path):
     """Retrieve performed metagenomic classifications"""
 
     # basic operation -- just print
-    if not raw and not results:
+    if not readlevel and not results:
         cli_resource_fetcher(ctx, "classifications", classifications)
 
     # fetch the results
-    elif not raw and results:
+    elif not readlevel and results:
         if len(classifications) != 1:
             log.error("Can only request results data on one Classification at a time")
         else:
@@ -121,21 +121,20 @@ def classifications(ctx, classifications, results, raw, raw_path):
             results = classification.results(json=True)
             pprint(results, ctx.obj['NOPPRINT'])
 
-    # fetch the raw
-    elif raw is not None and not results:
-
+    # fetch the readlevel
+    elif readlevel is not None and not results:
         if len(classifications) != 1:
-            log.error("Can only request raw data on one Classification at a time")
+            log.error("Can only request read-level data on one Classification at a time")
 
         else:
             classification = ctx.obj['API'].Classifications.get(classifications[0])
             tsv_url = classification.readlevel()['url']
             log.info("Downloading tsv data from: {}".format(tsv_url))
-            download_file_helper(tsv_url, raw_path)
+            download_file_helper(tsv_url, readlevel_path)
 
     # both given -- complain
     else:
-        log.error("Can only request one of raw data or results data at a time")
+        log.error("Can only request one of read-level data or results data at a time")
 
 
 @onecodex.command('panels')

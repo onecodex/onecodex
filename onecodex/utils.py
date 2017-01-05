@@ -26,10 +26,10 @@ OPTION_HELP = {
     'max_threads': 'Specify a different max # of upload threads (defaults to 4)',  # noqa
     'verbose': 'Log extra information to STDERR',
     'results': 'Get a JSON array of the metagenomic classification results table',
-    'raw': 'Get the readlevel data as a .tsv file',
-    'raw_path': ('Output path or directory for a .tsv file with the raw '
-                 'read-level results. Defaults to original filename in '
-                 'the current working directory'),
+    'readlevel': 'Get the read-level data as a .tsv file',
+    'readlevel_path': ('Output path or directory for a .tsv file with the raw '
+                       'read-level results. Defaults to original filename in '
+                       'the current working directory'),
     'clean': ("Automatically clean up FASTX records during upload. This removes tabs from "
               "headers and converts U to T. If this isn't passed, these will cause errors."),
     'interleave': ("Do not automatically interleave paired end files. Note this normally happens "
