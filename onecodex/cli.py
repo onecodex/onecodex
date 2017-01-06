@@ -4,8 +4,11 @@ cli.py
 author: @mbiokyle29
 """
 from __future__ import print_function
-import os
 import logging
+import os
+import re
+import sys
+import warnings
 
 import click
 
@@ -13,6 +16,7 @@ from onecodex.utils import (cli_resource_fetcher, download_file_helper,
                             valid_api_key, OPTION_HELP, pprint,
                             warn_if_insecure_platform)
 from onecodex.api import Api
+from onecodex.exceptions import ValidationWarning, ValidationError, UploadException
 from onecodex.auth import _login, _logout, _silent_login
 from onecodex.version import __version__
 
@@ -75,7 +79,7 @@ def onecodex(ctx, api_key, no_pprint, verbose):
                 ctx.obj['API'] = Api(base_url=base_url, extensions=False,
                                      cache_schema=True, api_key=api_key)
             else:
-                click.echo("No One Codex API key available - running anonymously", err=True)
+                click.echo("No One Codex API key is available - running anonymously", err=True)
                 ctx.obj['API'] = Api(base_url=base_url, extensions=False, cache_schema=True)
 
     # handle checking insecure platform, we let upload command do it by itself
@@ -93,23 +97,23 @@ def analyses(ctx, analyses):
 
 
 @onecodex.command('classifications')
-@click.option("--raw", 'raw', is_flag=True,
-              help=OPTION_HELP['raw'])
-@click.option("--raw-path", 'raw_path',
-              default="./", help=OPTION_HELP['raw_path'])
+@click.option("--read-level", 'readlevel', is_flag=True,
+              help=OPTION_HELP['readlevel'])
+@click.option("--read-level-path", 'readlevel_path',
+              default="./", help=OPTION_HELP['readlevel_path'])
 @click.option("--results", 'results', is_flag=True,
               help=OPTION_HELP['results'])
 @click.pass_context
 @click.argument('classifications', nargs=-1, required=False)
-def classifications(ctx, classifications, results, raw, raw_path):
+def classifications(ctx, classifications, results, readlevel, readlevel_path):
     """Retrieve performed metagenomic classifications"""
 
     # basic operation -- just print
-    if not raw and not results:
+    if not readlevel and not results:
         cli_resource_fetcher(ctx, "classifications", classifications)
 
     # fetch the results
-    elif not raw and results:
+    elif not readlevel and results:
         if len(classifications) != 1:
             log.error("Can only request results data on one Classification at a time")
         else:
@@ -117,21 +121,20 @@ def classifications(ctx, classifications, results, raw, raw_path):
             results = classification.results(json=True)
             pprint(results, ctx.obj['NOPPRINT'])
 
-    # fetch the raw
-    elif raw is not None and not results:
-
+    # fetch the readlevel
+    elif readlevel is not None and not results:
         if len(classifications) != 1:
-            log.error("Can only request raw data on one Classification at a time")
+            log.error("Can only request read-level data on one Classification at a time")
 
         else:
             classification = ctx.obj['API'].Classifications.get(classifications[0])
             tsv_url = classification.readlevel()['url']
             log.info("Downloading tsv data from: {}".format(tsv_url))
-            download_file_helper(tsv_url, raw_path)
+            download_file_helper(tsv_url, readlevel_path)
 
     # both given -- complain
     else:
-        log.error("Can only request one of raw data or results data at a time")
+        log.error("Can only request one of read-level data or results data at a time")
 
 
 @onecodex.command('panels')
@@ -152,20 +155,76 @@ def samples(ctx, samples):
 
 # utilites
 @onecodex.command('upload')
-@click.option("--no-threads", is_flag=True,
-              help=OPTION_HELP['threads'],
+@click.option('--max-threads', default=4,
+              help=OPTION_HELP['max_threads'], metavar='<int:threads>')
+@click.argument('files', nargs=-1, required=False, type=click.Path(exists=True))
+@click.option('--clean', is_flag=True, help=OPTION_HELP['clean'], default=False)
+@click.option('--do-not-interleave', 'no_interleave', is_flag=True, help=OPTION_HELP['interleave'],
               default=False)
-@click.option("--max-threads", default=4,
-              help=OPTION_HELP['max_threads'], metavar="<int:threads>")
-@click.argument('files', nargs=-1, required=False,
-                type=click.Path(exists=True))
+@click.option('--prompt/--no-prompt', is_flag=True, help=OPTION_HELP['prompt'], default=True)
 @click.pass_context
-def upload(ctx, files, no_threads, max_threads):
+def upload(ctx, files, max_threads, clean, no_interleave, prompt):
     """Upload a FASTA or FASTQ (optionally gzip'd) to One Codex"""
-    if not no_threads:
-        ctx.obj['API'].Samples.upload(files, threads=max_threads)
+    if len(files) == 0:
+        print(ctx.get_help())
+        return
     else:
-        ctx.obj['API'].Samples.upload(files, threads=1)
+        files = list(files)
+
+    if not no_interleave:
+        # "intelligently" find paired files and tuple them
+        paired_files = []
+        single_files = set(files)
+        for filename in files:
+            # convert "read 1" filenames into "read 2" and check that they exist; if they do
+            # upload the files as a pair, autointerleaving them
+            pair = re.sub('[._][Rr]1[._]', lambda x: x.group().replace('1', '2'), filename)
+            # we don't necessary need the R2 to have been passed in; we infer it anyways
+            if pair != filename and os.path.exists(pair):
+                if not prompt and pair not in single_files:
+                    # if we're not prompting, don't automatically pull in files
+                    # not in the list the user passed in
+                    continue
+
+                paired_files.append((filename, pair))
+                if pair in single_files:
+                    single_files.remove(pair)
+                single_files.remove(filename)
+
+        auto_pair = True
+        if prompt and len(paired_files) > 0:
+            pair_list = ''
+            for p in paired_files:
+                pair_list += '\n  {}  &  {}'.format(os.path.basename(p[0]), os.path.basename(p[1]))
+
+            answer = click.confirm(
+                'It appears there are paired files:{}\nInterleave them after upload?'.format(
+                    pair_list
+                ),
+                default='Y'
+            )
+            if not answer:
+                auto_pair = False
+
+        if auto_pair:
+            files = paired_files + list(single_files)
+
+    if not clean:
+        warnings.filterwarnings('error', category=ValidationWarning)
+
+    try:
+        # do the uploading
+        ctx.obj['API'].Samples.upload(files, threads=max_threads)
+    except ValidationWarning as e:
+        sys.stderr.write('\nERROR: {}. {}'.format(
+            e, 'Running with the --clean flag will suppress this error.'
+        ))
+        sys.exit(1)
+    except (ValidationError, UploadException, Exception) as e:
+        # TODO: Some day improve specific other exception error messages, e.g., gzip CRC IOError
+        sys.stderr.write('\nERROR: {}'.format(e))
+        sys.stderr.write('\nPlease feel free to contact us for help at help@onecodex.com')
+        sys.exit(1)
 
 
 @onecodex.command('login')

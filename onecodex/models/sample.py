@@ -1,4 +1,6 @@
 import os
+import sys
+
 import requests
 from requests.exceptions import HTTPError
 from six import string_types
@@ -6,7 +8,7 @@ from six import string_types
 from onecodex.exceptions import OneCodexException
 from onecodex.models import OneCodexBase
 from onecodex.models.helpers import truncate_string
-from onecodex.lib.old_upload import old_upload  # upload_file
+from onecodex.lib.upload import upload  # upload_file
 
 
 class Samples(OneCodexBase):
@@ -91,20 +93,24 @@ class Samples(OneCodexBase):
 
     @classmethod
     def upload(cls, filename, threads=None):
-        # try:
-        #     multipart_req = cls._resource.read_init_multipart_upload()
-        # except HTTPError as exc:
-        #     if exc.response.status_code != 200:
-        #         raise OneCodexException('Could not initial upload with the One Codex server.')
-        # TODO: set up progress callback
+        """
+        Uploads a series of files to the One Codex server. These files are automatically
+        validated during upload.
+
+        Parameters
+        ----------
+        path: list of strings or tuples
+            List of full paths to the files. If one (or more) of the list items are a tuple, this
+            is parsed as a set of files that are paired and the files are automatically
+            iterleaved during upload.
+        """
         # TODO: either raise/wrap UploadException or just us the new one in lib.samples
         # upload_file(filename, cls._resource._client.session, None, 100)
-
         res = cls._resource
-        if isinstance(filename, string_types):
+        if isinstance(filename, string_types) or isinstance(filename, tuple):
             filename = [filename]
-        old_upload(filename, res._client.session, res, res._client._root_url + '/',
-                   threads=threads)
+        upload(filename, res._client.session, res, res._client._root_url + '/', threads=threads,
+               log_to=sys.stderr)
 
         # FIXME: pass the auth into this so we can authenticate the callback?
         # FIXME: return a Sample object?

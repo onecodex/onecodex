@@ -2,8 +2,9 @@
 potion-client==2.4.2
 requests>=2.9
 click>=6.6
-requests_toolbelt==0.7.0
 six>=1.10.0
+boto3>=1.4.2
+requests_toolbelt>=0.7.0
 
 # extensions
 numpy>=1.11.0
