@@ -2,9 +2,7 @@
 
 [![Circle CI](https://circleci.com/gh/onecodex/onecodex.png?style=shield&circle-token=d86a8fc55e54a645ee515387db9acee32068a6ad)](https://circleci.com/gh/onecodex/onecodex) [![Coverage Status](https://coveralls.io/repos/github/onecodex/onecodex/badge.svg)](https://coveralls.io/github/onecodex/onecodex)
 
-Command line interface (CLI) and Python client library for interacting with the One Codex v1 API.
-
-**Warning**: The One Codex v1 API is currently being actively developed. While we do not expect major breaking changes (i.e., removing fields from resources currently available via the API), it should be treated as a **beta release**. If you need strong stability guarantees, we recommend using [our v0 API](docs.onecodex.com/v0/docs).
+Command line interface (CLI) and Python client library for interacting with the One Codex v1 API ([API docs](https://docs.onecodex.com)).
 
 MAINTAINERS: [@bovee](https://github.com/bovee), [@boydgreenfield](https://github.com/boydgreenfield)
 
@@ -60,7 +58,6 @@ Multiple files can be uploaded in a single command as well:
 onecodex upload file1.fq.gz file2.fq.gz ...
 ```
 
-_Note_: Files larger than **5GB** are supported, but require that you have the `aws-cli` package installed on your computer. `aws-cli` can be installed with `pip install aws-cli`.
 
 ## Resources
 The CLI supports retrieving your One Codex samples and analyses. The following resources may be queried:
