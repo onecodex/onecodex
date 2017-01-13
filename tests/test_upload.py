@@ -55,21 +55,22 @@ def test_gzip_correctness_large_file(runner):
     with runner.isolated_filesystem():
         N_READS = 5000
         with open('myfasta.fa', mode='w') as f:
-            for ix in xrange(N_READS):
+            for ix in range(N_READS):
                 read = content.format(ix)
                 read += ''.join(random.choice('ACGT') for _ in range(100)) + '\n'
                 f.write(read)
                 file_content += read
-        outfile = FASTXTranslator(open('myfasta.fa'), recompress=True)
-        with open('myfasta.fa.gz', mode='w') as f:
+
+        outfile = FASTXTranslator(open('myfasta.fa', 'rb'), recompress=True)
+        with open('myfasta.fa.gz', mode='wb') as f:
             f.write(outfile.read())
 
         # Ensure we're actually testing the buffer flushing
         assert len(file_content) > 2 * outfile.checked_buffer.MAX_READS_BUFFER_SIZE
 
         # Check that content matches
-        translated_content = gzip.open('myfasta.fa.gz').read()
-        assert translated_content == file_content
+        translated_content = gzip.open('myfasta.fa.gz', 'rb').read()
+        assert translated_content == file_content.encode()
 
 
 @pytest.mark.parametrize('n_newlines', [0, 1, 2, 3])
@@ -78,22 +79,22 @@ def test_validator_newlines(runner, n_newlines):
     # including our n bytes remaining calculations
     # (Use runner for isolated filesystem only here)
     content = (b'>test\nACGTACGTAGCTGACACGTACGTAGCTGACACGTACGTAGCTGACACGTACGTAGCTGAC' +
-               'ACGTACGTAGCTGACACGTACGTAGCTGACACGTACGTAGCTGACACGTACGTAGCTGAC' +
-               '\n' * n_newlines)
+               b'ACGTACGTAGCTGACACGTACGTAGCTGACACGTACGTAGCTGACACGTACGTAGCTGAC' +
+               b'\n' * n_newlines)
     fakefile = BytesIO(content)
     outfile = FASTXTranslator(fakefile, recompress=False)
     if n_newlines == 0:
-        assert content[-1] == 'C'
+        assert content[-1] == 'C'.encode()[0]
     else:
-        assert content[(-1 * n_newlines):] == '\n' * n_newlines
-    assert outfile.read().rstrip('\n') == content.rstrip('\n')
+        assert content[(-1 * n_newlines):] == b'\n' * n_newlines
+    assert outfile.read() == content.decode().rstrip().encode() + b'\n'
     assert outfile.reads.bytes_left == 0
 
     with runner.isolated_filesystem():
-        with open('myfasta.fa', mode='w') as f:
+        with open('myfasta.fa', mode='wb') as f:
             f.write(content)
-        outfile2 = FASTXTranslator(open('myfasta.fa'), recompress=False)
-        assert outfile2.read().rstrip('\n') == content.rstrip('\n')
+        outfile2 = FASTXTranslator(open('myfasta.fa', 'rb'), recompress=False)
+        assert outfile2.read() == content.decode().rstrip().encode() + b'\n'
         assert outfile2.reads.bytes_left == 0
 
 
@@ -159,7 +160,8 @@ def test_upload_big_file():
     server_url = ''
 
     with patch('boto3.client') as p:
-        upload_large_file(file_obj, 'test.fa', session, samples_resource, server_url)
+        upload_large_file(file_obj, 'test.fa', session,
+                          samples_resource, server_url)
         assert p.call_count == 1
 
     file_obj.close()
@@ -180,16 +182,16 @@ def test_wrapper_speed():
 
     # most of the current bottleneck appears to be in the gzip.write step
     long_seq = b'ACGT' * 20
-    record = b'>header_%s\n' + long_seq + '\n'
-    data = b'\n'.join(record % i for i in range(200))
+    data = b'\n'.join(b'>header_' + str(i).encode() + b'\n' + long_seq + b'\n'
+                      for i in range(200))
     wrapper = FASTXTranslator(BytesIO(data))
     assert len(wrapper.read()) < len(data)
 
 
 def test_multipart_encoder():
     long_seq = b'ACGT' * 50
-    record = b'>header_%s\n' + long_seq + '\n'
-    data = b'\n'.join(record % i for i in range(200))
+    data = b'\n'.join(b'>header_' + str(i).encode() + b'\n' + long_seq + b'\n'
+                      for i in range(200))
     wrapper = FASTXTranslator(BytesIO(data), recompress=False)
     wrapper_len = len(wrapper.read())
     wrapper.seek(0)

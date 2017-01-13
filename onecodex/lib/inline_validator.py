@@ -184,16 +184,14 @@ class FASTXNuclIterator(object):
             seq_reader = re.compile(b"""
                 (?P<id>[^\\n]+)\\n  # the identifier line
                 (?P<seq>[^>]+)  # the sequence
-                %s
-            """ % (b'' if last else b'(?:\\n>)'), re.VERBOSE)
+            """ + (b'' if last else b'(?:\\n>)'), re.VERBOSE)
         elif self.file_type == 'FASTQ':
             seq_reader = re.compile(b"""
                 (?P<id>[^\\n]+)\\n
                 (?P<seq>[^\\n]+)\\n
                 \+(?P<id2>[^\\n]*)\\n
                 (?P<qual>[^\\n]+)
-                %s
-            """ % (b'' if last else b'(?:\\n@)'), re.DOTALL + re.VERBOSE)
+            """ + (b'' if last else b'(?:\\n@)'), re.DOTALL + re.VERBOSE)
         return seq_reader
 
     def _warn_once(self, message):
@@ -252,9 +250,10 @@ class FASTXNuclIterator(object):
                 if self.as_raw:
                     yield (seq_id, seq, qual)
                 elif self.file_type == 'FASTA':
-                    yield b'>{}\n{}\n'.format(seq_id, seq)
+                    yield b'>' + seq_id + b'\n' + seq + b'\n'
                 elif self.file_type == 'FASTQ':
-                    yield b'@{}\n{}\n+{}\n{}\n'.format(seq_id, seq, seq_id2, qual)
+                    yield (b'@' + seq_id + b'\n' + seq +
+                           b'\n+' + seq_id2 + b'\n' + qual + b'\n')
                 end = match.end()
 
             if hasattr(self.file_obj, 'fileobj'):
