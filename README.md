@@ -115,7 +115,7 @@ sample_analysis.table()    # Returns a pandas dataframe
 
 # Development
 
-Before developing, `git` and `python` (version 2.7 or >3.4) are needed.
+Before developing, `git` and `python` (version >=2.7 and/or >=3.4) are needed. We recommend using [pyenv](https://github.com/yyuu/pyenv) for Python version management.
 
 To download the client library from GitHub:
 
