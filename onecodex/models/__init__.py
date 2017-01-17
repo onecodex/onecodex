@@ -307,7 +307,7 @@ class OneCodexBase(object):
         except HTTPError as e:
             if e.response.status_code == 400:
                 err_json = e.response.json().get('errors', [])
-                msg = '; '.join(err['message'] for err in err_json)
+                msg = pretty_print_error(err_json)
                 raise ServerError(msg)
             elif e.response.status_code == 404:
                 action = 'creating' if creating else 'updating'
@@ -326,6 +326,23 @@ from onecodex.models.sample import Samples, Metadata  # noqa
 
 __all__ = ['Samples', 'Classifications', 'Alignments', 'Panels', 'Jobs', 'Projects', 'Tags',
            'Users', 'Metadata']
+
+
+def pretty_print_error(err_json):
+    """Pretty print Flask-Potion error messages for the user
+    """
+    # Special case validation errors
+    if len(err_json) == 1 and 'validationOf' in err_json[0]:
+        required_fields = ', '.join(err_json[0]['validationOf']['required'])
+        return 'Validation error. Requires properties: {}.'.format(required_fields)
+
+    # General error handling
+    msg = '; '.join(err.get('message', '') for err in err_json)
+
+    # Fallback
+    if not msg:
+        msg = 'Bad request.'
+    return msg
 
 
 # go through all the models and generate a lookup table (to use in binding in the API and elsewhere)
