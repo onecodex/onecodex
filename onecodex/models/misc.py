@@ -17,6 +17,12 @@ class Users(OneCodexBase):
 class Projects(OneCodexBase):
     _resource_path = '/api/v1/projects'
 
+    @classmethod
+    def search_public(cls, *filters, **keyword_filters):
+        keyword_filters['_instances'] = 'instances_public'
+        keyword_filters['limit'] = 100
+        return cls.where(*filters, **keyword_filters)
+
 
 class Jobs(OneCodexBase):
     _resource_path = '/api/v1/jobs'

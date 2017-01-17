@@ -30,7 +30,7 @@ class OneCodexBase(object):
             for key, val in kwargs.items():
                 # This modifies kwargs in place to be the underlying
                 # Potion-Client resource
-                if isinstance(self, OneCodexBase):
+                if isinstance(val, OneCodexBase):
                     kwargs[key] = val._resource
             self._resource = self.__class__._resource(**kwargs)
 
@@ -92,6 +92,14 @@ class OneCodexBase(object):
             raise AttributeError('can\'t set attribute')
         elif isinstance(value, OneCodexBase):
             self._resource[key] = value._resource
+            return
+        elif isinstance(value, (list, tuple)):
+            # convert any fancy items into their underlying resources
+            new_value = []
+            for v in value:
+                new_value.append(v._resource if isinstance(v, OneCodexBase) else v)
+            # coerce back to the value passed in
+            self._resource[key] = type(value)(new_value)
             return
         elif hasattr(self, '_resource') and hasattr(self.__class__, '_resource'):
             schema = self.__class__._resource._schema['properties'].get(key)

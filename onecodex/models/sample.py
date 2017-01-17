@@ -80,7 +80,7 @@ class Samples(OneCodexBase):
     def search_public(cls, *filters, **keyword_filters):
         keyword_filters['_instances'] = 'instances_public'
         keyword_filters['limit'] = 100
-        return cls.where(filters, keyword_filters)
+        return cls.where(*filters, **keyword_filters)
 
     def save(self):
         """
