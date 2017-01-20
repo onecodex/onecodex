@@ -102,6 +102,7 @@ class FASTXNuclIterator(object):
         self.seq_reader = self._generate_seq_reader(False)
         self.allow_iupac = allow_iupac
         self.validate = validate
+        self.modified = False
 
         if self.allow_iupac:
             self.valid_bases = re.compile(b'[^ABCDGHIKMNRSTUVWXYabcdghikmnrstuvwxy\s]')
@@ -136,7 +137,9 @@ class FASTXNuclIterator(object):
                 raise ValidationError('{} is bzipped, but lacks a ".bz2" ending'.format(self.name))
             # we can only read BZ2 files in python 3.3 and above
             file_obj.seek(0)
+            patched_name = file_obj.name
             file_obj = bz2.open(file_obj)
+            file_obj.name = patched_name
             start = file_obj.read(1)
 
         # determine if a FASTQ or a FASTA
@@ -199,6 +202,7 @@ class FASTXNuclIterator(object):
             return
         warnings.warn(message, ValidationWarning)
         self.warnings.add(message)
+        self.modified = True
 
     def _validate_record(self, rec):
         # TODO: if there are quality scores, make sure they're in range
@@ -209,11 +213,11 @@ class FASTXNuclIterator(object):
 
         if b'\t' in seq_id or b'\t' in seq_id2:
             self._warn_once('{} can not have tabs in headers; autoreplacing'.format(self.name))
-            seq_id = seq_id.replace('\t', '|')
+            seq_id = seq_id.replace(b'\t', b'|')
 
         # Match then search is ~5-10% faster than just searching
         if not bool(self.valid_bases_match.match(seq)):
-            chars = ','.join(set(self.valid_bases.findall(seq)))
+            chars = b','.join(set(self.valid_bases.findall(seq)))
             raise ValidationError('{} contains non-nucleic acid characters: {}'.format(self.name,
                                                                                        chars))
 
@@ -278,25 +282,15 @@ class FASTXNuclIterator(object):
         self.file_obj.close()
 
 
-class FASTXTranslator(object):
+class BaseFASTXReader(object):
     def __init__(self, file_obj, pair=None, recompress=True, progress_callback=None,
                  total=None, **kwargs):
-        # detect if gzipped/bzipped and uncompress transparently
-        self.reads = FASTXNuclIterator(file_obj, **kwargs)
-        self.reads_iter = iter(self.reads)
+        self._set_read(file_obj, **kwargs)
         if pair is not None:
-            self.reads_pair = FASTXNuclIterator(pair)
-            self.reads_pair_iter = iter(self.reads_pair)
-            if self.reads.file_type != self.reads_pair.file_type:
-                raise ValidationError('Paired read files are different types (FASTA/FASTQ)')
+            self._set_pair(pair)
         else:
             self.reads_pair = None
             self.reads_pair_iter = None
-
-        if recompress:
-            self.checked_buffer = GzipBuffer()
-        else:
-            self.checked_buffer = Buffer()
 
         self.progress_callback = progress_callback
         self.total = total
@@ -305,6 +299,66 @@ class FASTXTranslator(object):
         # save in case we need to reset later
         self._saved_args = kwargs.copy()
         self._saved_args.update({'recompress': recompress, 'progress_callback': progress_callback})
+
+    def _set_read(self, file_obj):
+        raise NotImplementedError
+
+    def _set_pair(self, pair):
+        raise NotImplementedError
+
+    def read(self, n=-1):
+        raise NotImplementedError
+
+    def readall(self):
+        return self.read()
+
+    @property
+    def len(self):
+        raise NotImplementedError
+
+    @property
+    def modified(self):
+        raise NotImplementedError
+
+    @property
+    def is_gzipped(self):
+        """Are the reads files zipped?
+        """
+        read1_gzipped = isinstance(self.reads.file_obj, gzip.GzipFile)
+        read2_gzipped = self.reads_pair is not None and isinstance(self.reads_pair.file_obj,
+                                                                   gzip.GzipFile)
+        return read1_gzipped and self.reads_pair is None or read2_gzipped
+
+    def validate(self):
+        raise NotImplementedError
+
+    def seek(self, loc):
+        raise NotImplementedError
+
+    def write(self, b):
+        raise NotImplementedError
+
+    def close(self):
+        raise NotImplementedError
+
+
+class FASTXTranslator(BaseFASTXReader):
+    def __init__(self, *args, **kwargs):
+        super(FASTXTranslator, self).__init__(*args, **kwargs)
+        if kwargs.get('recompress', True):
+            self.checked_buffer = GzipBuffer()
+        else:
+            self.checked_buffer = Buffer()
+
+    def _set_read(self, file_obj, **kwargs):
+        self.reads = FASTXNuclIterator(file_obj, **kwargs)
+        self.reads_iter = iter(self.reads)
+
+    def _set_pair(self, pair):
+        self.reads_pair = FASTXNuclIterator(pair)
+        self.reads_pair_iter = iter(self.reads_pair)
+        if self.reads.file_type != self.reads_pair.file_type:
+            raise ValidationError('Paired read files are different types (FASTA/FASTQ)')
 
     def read(self, n=-1):
         if self.reads_pair is None:
@@ -353,8 +407,13 @@ class FASTXTranslator(object):
         self.total_written += len(bytes_reads)
         return bytes_reads
 
-    def readall(self):
-        return self.read()
+    @property
+    def modified(self):
+        if self.reads_pair is not None:
+            return True
+        if self.reads.modified:
+            return True
+        return False
 
     @property
     def len(self):
@@ -373,6 +432,11 @@ class FASTXTranslator(object):
     def __len__(self):
         return self.len
 
+    def validate(self):
+        # This is a no-op that really just calls self.len
+        # in order to pre-validate the file
+        return len(self)
+
     def seek(self, loc):
         assert loc == 0  # we can only rewind all the way
         reads = self.reads.file_obj
@@ -385,10 +449,46 @@ class FASTXTranslator(object):
         self.__init__(reads, pair, total=self.total, **self._saved_args)
 
     def write(self, b):
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def close(self):
         assert len(self.checked_buffer) == 0
         self.reads.close()
         if self.reads_pair is not None:
             self.reads_pair.close()
+
+
+class FASTXReader(BaseFASTXReader):
+    def __init__(self, *args, **kwargs):
+        """Class that does not validate the input FASTX file, just provides a progress bar wrapper.
+        """
+        super(FASTXReader, self).__init__(*args, **kwargs)
+
+    def _set_read(self, file_obj):
+        self.reads = file_obj
+        self.reads.seek(0)
+        assert self.reads.tell() == 0
+        self.total_size = os.fstat(self.reads.fileno()).st_size
+        if self.total_size < 70:
+            raise ValidationError('{} is too small to be analyzed: {} bytes'.format(
+                                  self.reads.name, self.total_size))
+
+    def read(self, n=-1):
+        bytes_read = self.reads.read(n)
+        if self.progress_callback is not None:
+            self.progress_callback(self.reads.name, self.reads.tell(), validation=False)
+        return bytes_read
+
+    @property
+    def modified(self):
+        return False
+
+    @property
+    def len(self):
+        return self.total_size - self.reads.tell()
+
+    def seek(self, loc):
+        self.reads.seek(loc)
+
+    def close(self):
+        self.reads.close()

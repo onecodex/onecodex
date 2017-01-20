@@ -22,7 +22,7 @@ exclude_lines =
 ignore_errors = True
 
 omit =
-    onecodex/lib/upload.py
+    onecodex/version.py
 
 [html]
 directory = htmlcov

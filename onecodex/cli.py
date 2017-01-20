@@ -162,8 +162,10 @@ def samples(ctx, samples):
 @click.option('--do-not-interleave', 'no_interleave', is_flag=True, help=OPTION_HELP['interleave'],
               default=False)
 @click.option('--prompt/--no-prompt', is_flag=True, help=OPTION_HELP['prompt'], default=True)
+@click.option('--validate/--do-not-validate', is_flag=True, help=OPTION_HELP['validate'],
+              default=True)
 @click.pass_context
-def upload(ctx, files, max_threads, clean, no_interleave, prompt):
+def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate):
     """Upload a FASTA or FASTQ (optionally gzip'd) to One Codex"""
     if len(files) == 0:
         print(ctx.get_help())
@@ -214,7 +216,7 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt):
 
     try:
         # do the uploading
-        ctx.obj['API'].Samples.upload(files, threads=max_threads)
+        ctx.obj['API'].Samples.upload(files, threads=max_threads, validate=validate)
     except ValidationWarning as e:
         sys.stderr.write('\nERROR: {}. {}'.format(
             e, 'Running with the --clean flag will suppress this error.'

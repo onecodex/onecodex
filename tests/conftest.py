@@ -10,7 +10,7 @@ import requests
 import responses
 
 from onecodex import Api
-from onecodex.lib.inline_validator import FASTXTranslator
+from onecodex.lib.inline_validator import BaseFASTXReader
 
 
 def intercept(func, log=False, dump=None):
@@ -185,7 +185,7 @@ def upload_mocks():
         if hasattr(request.body, 'fields'):
             streaming_iterator = request.body.fields['file'][1]
             streaming_iterator.read()
-            assert isinstance(streaming_iterator, FASTXTranslator)
+            assert isinstance(streaming_iterator, BaseFASTXReader)
         return (201, {'location': 'on-aws'}, '')
 
     json_data = {

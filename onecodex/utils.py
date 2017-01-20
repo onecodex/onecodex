@@ -37,6 +37,8 @@ OPTION_HELP = {
                    "the files themselves."),
     'prompt': ("Manually prompt about automatic paired file interleaving. Setting --no-prompt "
                "will allow running without any user intervention, e.g. in a script."),
+    'validate': ("Do not validate the FASTA/Q file before uploading. Incompatible with automatic "
+                 "paired end interleaving (NOT RECOMMENDED)."),
 }
 
 SUPPORTED_EXTENSIONS = ["fa", "fasta", "fq", "fastq",
