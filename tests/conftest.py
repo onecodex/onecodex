@@ -120,6 +120,8 @@ def update_metadata_callback(req):
 API_DATA = {
     # These are overrides for non-GET calls, which we don't auto-mock
     "DELETE::api/v1/samples/761bc54b97f64980": {},
+    "GET::api/v1/samples/public": {},
+    "GET::api/v1/projects/public": {},
     "GET::api/v1/classifications/f9e4a5506b154953/results": {
         "table": [{
             "name": "Salmonella enterica subsp. enterica",

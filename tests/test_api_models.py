@@ -153,6 +153,16 @@ def test_where_clauses(ocx, api_data, where_args, where_kwargs, queries):
             assert query in url
 
 
+def test_public_search(ocx, api_data):
+    samples = ocx.Samples.search_public(filename="tmp.fa")
+    assert len(samples) == 0
+
+
+def test_public_project(ocx, api_data):
+    projs = ocx.Projects.search_public(name="One Codex Project")
+    assert len(projs) == 0
+
+
 def test_where_clauses_with_tags(ocx, api_data):
     tag = ocx.Tags.get('5c1e9e41043e4435')
     sample = ocx.Samples.get('761bc54b97f64980')
