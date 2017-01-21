@@ -224,7 +224,7 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate):
 def login(ctx):
     """Add an API key (saved in ~/.onecodex)"""
     base_url = os.environ.get("ONE_CODEX_API_BASE", "https://app.onecodex.com")
-    _login(base_url, check_for_update=False)
+    _login(base_url)
 
 
 @onecodex.command('logout')

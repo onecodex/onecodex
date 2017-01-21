@@ -98,7 +98,7 @@ def make_creds_file():
         f.write(json.dumps(fake_creds))
 
 
-def test_api_login(runner, mocked_creds_file):
+def test_api_login(runner, mocked_creds_path):
     login_input = 'user@example.com' + '\n' + 'userpassword' + '\n'
     successful_login_msg = 'Your ~/.onecodex credentials file was successfully created.'
     with Replace('onecodex.auth.fetch_api_key_from_uname', mock_fetch_api_key):
@@ -146,7 +146,7 @@ def test_logout_creds_exists(runner, mocked_creds_file):
         assert os.path.exists(path) is False
 
 
-def test_logout_creds_dne(runner, mocked_creds_file):
+def test_logout_creds_dne(runner, mocked_creds_path):
     expected_message = "No One Codex API keys found."
     result = runner.invoke(Cli, ["logout"])
     assert result.exit_code == 1
