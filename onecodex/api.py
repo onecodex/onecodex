@@ -2,7 +2,7 @@
 api.py
 author: @mbiokyle29
 
-One Codex Api + potion_client subclasses/extensions
+One Codex API
 """
 from __future__ import print_function
 from datetime import datetime
@@ -28,7 +28,7 @@ class Api(object):
         object under the hood for making requests.
     """
 
-    def __init__(self, extensions=True, api_key=None,
+    def __init__(self, api_key=None,
                  bearer_token=None, cache_schema=False,
                  base_url=None,
                  schema_path="/api/v1/schema"):
@@ -102,7 +102,7 @@ class ExtendedPotionClient(PotionClient):
             return self._cached_schema[uri]
         return super(ExtendedPotionClient, self).fetch(uri, cls=cls, **kwargs)
 
-    def _fetch_schema(self, extensions=[], cache_schema=False, creds_file=None):
+    def _fetch_schema(self, cache_schema=False, creds_file=None):
         self._cached_schema = {}
         creds_fp = os.path.expanduser('~/.onecodex') if creds_file is None else creds_file
 

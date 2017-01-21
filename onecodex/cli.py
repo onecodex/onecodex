@@ -61,18 +61,16 @@ def onecodex(ctx, api_key, no_pprint, verbose):
     no_api_subcommands = ["login", "logout"]
     if ctx.invoked_subcommand not in no_api_subcommands:
         if api_key is not None:
-            ctx.obj['API'] = Api(extensions=False,
-                                 cache_schema=True,
+            ctx.obj['API'] = Api(cache_schema=True,
                                  api_key=api_key)
         else:
             # try and find it
             api_key = _silent_login()
             if api_key is not None:
-                ctx.obj['API'] = Api(extensions=False,
-                                     cache_schema=True, api_key=api_key)
+                ctx.obj['API'] = Api(cache_schema=True, api_key=api_key)
             else:
                 click.echo("No One Codex API key is available - running anonymously", err=True)
-                ctx.obj['API'] = Api(extensions=False, cache_schema=True)
+                ctx.obj['API'] = Api(cache_schema=True)
 
     # handle checking insecure platform, we let upload command do it by itself
     if ctx.invoked_subcommand != "upload":

@@ -19,7 +19,7 @@ class TestVanillaApi(unittest.TestCase):
         self.schema_file = resource_string(__name__, 'data/schema.json').decode('utf-8')
         responses.add(responses.GET, self.schema_url,
                       json=json.loads(self.schema_file))
-        self.api = Api(base_url="http://localhost:3000", extensions=False,
+        self.api = Api(base_url="http://localhost:3000",
                        api_key='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
 
     def test_attrs_copied(self):
