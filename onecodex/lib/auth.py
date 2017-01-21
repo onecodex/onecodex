@@ -70,13 +70,13 @@ def check_version(version, server_url, client='cli'):
     latest_version = data['latest_version']
 
     if client == 'cli':
-        uploader_text = ' from http://www.onecodex.com/uploader.html'
+        uploader_text = ' using the command `pip install --upgrade onecodex`.'
     else:
         uploader_text = (' from the '
                          '<a href="http://www.onecodex.com/uploader.html">One Codex website</a>')
 
-    # TODO: once the cli route returns this, remove this outer check
-    if 'min_supported_version' in data:
+    # Only warn on minimum supported for version for the GUI, always warn about upgrades for CLI
+    if client != 'cli' and 'min_supported_version' in data:
         min_version = data['min_supported_version']
         if version_inadequate(version, min_version):
             return True, ('Please upgrade your client to the latest version ' +

@@ -13,7 +13,9 @@ import sys
 import click
 
 from onecodex.utils import collapse_user
-from onecodex.lib.auth import fetch_api_key_from_uname
+from onecodex.version import __version__
+from onecodex.lib.auth import check_version, fetch_api_key_from_uname
+
 
 log = logging.getLogger(__name__)
 DATE_FORMAT = "%Y-%m-%d %H:%M"
@@ -37,7 +39,7 @@ def login_uname_pwd(server):
     return api_key
 
 
-def _login(server, check_for_update=True, creds_file=None):
+def _login(server, creds_file=None):
     """
     Login main function
     """
@@ -99,20 +101,33 @@ def _logout(creds_file=None):
         sys.exit(1)
 
 
-def _silent_login():
+def _silent_login(check_for_update=True):
     """
-    This attempts to get an API key when user doesn't pass it
+    This attempts to get an API key when user doesn't pass it. Used only in the CLI.
     """
     fp = os.path.expanduser('~/.onecodex')
+    if not os.path.exists(fp):
+        return None
 
-    if os.path.exists(fp):
-        try:
-            with open(fp, mode='r') as f:
-                creds = json.load(f)
-                return creds.get('api_key')
-        except ValueError:
-            # TODO: NEED A LOGGER CONFIGURED FOR THIS FILE...
-            log.error("Your ~/.onecodex credentials "
-                      "file appears to be corrupted. "
-                      "Please delete it and re-authorize.")
-            sys.exit(1)
+    try:
+        with open(fp, mode='r') as f:
+            creds = json.load(f)
+
+        if check_for_update:
+            last_update = creds['updated_at'] if creds.get('updated_at') else creds['saved_at']
+            diff = datetime.datetime.now() - datetime.datetime.strptime(last_update,
+                                                                        DATE_FORMAT)
+            if diff.days >= 1:
+                # Check and print warning
+                upgrade_required, msg = check_version(__version__, 'https://app.onecodex.com/')
+                creds['updated_at'] = datetime.datetime.now().strftime(DATE_FORMAT)
+                json.dump(creds, open(fp, mode='w'))
+                if upgrade_required:
+                    click.echo('\nWARNING: {}\n'.format(msg), err=True)
+
+        return creds['api_key']
+    except (KeyError, ValueError):
+        click.echo("Your ~/.onecodex credentials "
+                   "file appears to be corrupted. "
+                   "Please delete it and re-authorize.", err=True)
+        sys.exit(1)

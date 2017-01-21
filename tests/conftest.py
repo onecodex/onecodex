@@ -1,6 +1,7 @@
 from __future__ import print_function
 from click.testing import CliRunner
 from contextlib import contextmanager
+import datetime
 import json
 import os
 from pkg_resources import resource_string
@@ -239,7 +240,7 @@ def runner():
 
 # CLI / FILE SYSTEM FIXTURE
 @pytest.fixture(scope='function')
-def mocked_creds_file(monkeypatch, tmpdir):
+def mocked_creds_path(monkeypatch, tmpdir):
     # TODO: tmpdir is actually a LocalPath object
     # from py.path, and we coerce it into a string
     # for compatibility with the existing library code
@@ -249,3 +250,12 @@ def mocked_creds_file(monkeypatch, tmpdir):
     def mockreturn(path):
         return os.path.join(str(tmpdir), '.onecodex')
     monkeypatch.setattr(os.path, 'expanduser', mockreturn)
+
+
+@pytest.fixture(scope='function')
+def mocked_creds_file(mocked_creds_path):
+    with open(os.path.expanduser('~/.onecodex'), mode='w') as f:
+        f.write(json.dumps({
+            'api_key': None,
+            'saved_at': datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+        }))
