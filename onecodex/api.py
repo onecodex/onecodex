@@ -9,6 +9,7 @@ from datetime import datetime
 import json
 import logging
 import os
+import warnings
 
 from potion_client import Client as PotionClient
 from potion_client.converter import PotionJSONSchemaDecoder, PotionJSONDecoder, PotionJSONEncoder
@@ -29,8 +30,13 @@ class Api(object):
 
     def __init__(self, extensions=True, api_key=None,
                  bearer_token=None, cache_schema=False,
-                 base_url="https://app.onecodex.com",
+                 base_url=None,
                  schema_path="/api/v1/schema"):
+
+        if base_url is None:
+            base_url = os.environ.get("ONE_CODEX_API_BASE", "https://app.onecodex.com")
+            if base_url != 'https://app.onecodex.com':
+                warnings.warn("Using base API URL: {}".format(base_url))
 
         self._req_args = {}
         self._base_url = base_url
