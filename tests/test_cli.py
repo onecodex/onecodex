@@ -211,9 +211,23 @@ def test_paired_files(runner, upload_mocks):
         with mock.patch(patch1) as mp, mock.patch(patch2) as mp2:
             result = runner.invoke(Cli, args)
             assert mp.call_count == 1
-            assert mp2.call_count == 1
+            assert mp2.call_count == 0  # We close in the upload_file call
         assert 'It appears there are paired files' in result.output
         assert result.exit_code == 0
+
+        # Check with validate=False, should fail
+        args = ['--api-key', '01234567890123456789012345678901', 'upload', f, f2,
+                '--do-not-validate']
+        result2 = runner.invoke(Cli, args)
+        assert result2.exit_code != 0
+
+        # Check with validate=False, interleave=False, should success
+        args = ['--api-key', '01234567890123456789012345678901', 'upload', f, f2,
+                '--do-not-validate', '--do-not-interleave']
+        with mock.patch(patch1) as mp:
+            result3 = runner.invoke(Cli, args)
+            assert mp.call_count == 2
+        assert result3.exit_code == 0
 
 
 def test_large_uploads(runner, upload_mocks, monkeypatch):

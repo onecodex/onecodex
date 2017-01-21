@@ -14,7 +14,7 @@ from threading import BoundedSemaphore, Thread
 import requests
 from requests_toolbelt import MultipartEncoder
 
-from onecodex.lib.inline_validator import FASTXTranslator
+from onecodex.lib.inline_validator import FASTXReader, FASTXTranslator
 from onecodex.exceptions import UploadException
 
 
@@ -39,22 +39,27 @@ def _file_stats(filename):
     return new_filename + ext + '.gz', file_size
 
 
-def _wrap_files(filename, logger=None):
+def _wrap_files(filename, logger=None, validate=True):
     """
     A little helper to wrap a sequencing file (or join and wrap R1/R2 pairs)
     and return a merged file_object
     """
     if isinstance(filename, tuple):
+        if not validate:
+            raise UploadException('Validation is required in order to auto-interleave files.')
         file_obj = FASTXTranslator(open(filename[0], 'rb'), pair=open(filename[1], 'rb'),
                                    progress_callback=logger)
     else:
-        file_obj = FASTXTranslator(open(filename, 'rb'), progress_callback=logger)
+        if validate:
+            file_obj = FASTXTranslator(open(filename, 'rb'), progress_callback=logger)
+        else:
+            file_obj = FASTXReader(open(filename, 'rb'), progress_callback=logger)
 
     return file_obj
 
 
 def upload(files, session, samples_resource, server_url, threads=DEFAULT_UPLOAD_THREADS,
-           log_to=None):
+           validate=True, log_to=None):
     """
     Uploads several files to the One Codex server, auto-detecting sizes and using the appropriate
     downstream upload functions. Also, wraps the files with a streaming validator to ensure they
@@ -80,7 +85,7 @@ def upload(files, session, samples_resource, server_url, threads=DEFAULT_UPLOAD_
     # TODO: we should use click.progressbar?
     def progress_bar_display(file_id, bytes_transferred, validation=False):
         validation_in_progress = sum(validated_sizes.values()) != overall_size
-        if validation_in_progress:
+        if validation and validation_in_progress:
             # Validating mode
             prev_progress = sum(validated_sizes.values()) / overall_size
             validated_sizes[file_id] = bytes_transferred
@@ -96,7 +101,7 @@ def upload(files, session, samples_resource, server_url, threads=DEFAULT_UPLOAD_
 
         block = int(round(bar_length * progress))
         bar = '#' * block + '-' * (bar_length - block)
-        if validation_in_progress:
+        if validation and validation_in_progress:
             log_to.write('\rValidating: [{}] {:.0f}% '.format(bar, progress * 100))
         elif progress != 1:
             log_to.write('\rUploading:  [{}] {:.0f}% '.format(bar, progress * 100))
@@ -136,7 +141,7 @@ def upload(files, session, samples_resource, server_url, threads=DEFAULT_UPLOAD_
     uploading_files = []
     for file_path, filename, file_size in zip(files, filenames, file_sizes):
         if file_size < MULTIPART_SIZE:
-            file_obj = _wrap_files(file_path, progress_bar)
+            file_obj = _wrap_files(file_path, logger=progress_bar, validate=validate)
             threaded_upload(file_obj, filename, session, samples_resource, log_to)
             uploading_files.append(file_obj)
 
@@ -151,13 +156,10 @@ def upload(files, session, samples_resource, server_url, threads=DEFAULT_UPLOAD_
         if thread_error.value != '':
             raise UploadException(thread_error.value)
 
-    for file_obj in uploading_files:
-        file_obj.close()
-
     # lastly, upload all the very big files sequentially
     for file_path, filename, file_size in zip(files, filenames, file_sizes):
         if file_size >= MULTIPART_SIZE:
-            file_obj = _wrap_files(file_path, progress_bar)
+            file_obj = _wrap_files(file_path, logger=progress_bar, validate=validate)
             upload_large_file(file_obj, filename, session, samples_resource, server_url,
                               threads=threads, log_to=log_to)
             file_obj.close()
@@ -232,6 +234,15 @@ def upload_file(file_obj, filename, session, samples_resource, log_to=None):
     multipart_fields = OrderedDict()
     for k, v in upload_info['additional_fields'].items():
         multipart_fields[str(k)] = str(v)
+
+    # First validate the file if a FASTXTranslator
+    if isinstance(file_obj, FASTXTranslator):
+        file_obj.validate()
+
+        # If it isn't being modified and is already compressed, don't bother re-parsing it
+        if not file_obj.modified and file_obj.is_gzipped:
+            file_obj = FASTXReader(file_obj.reads.file_obj.fileobj,
+                                   progress_callback=file_obj.progress_callback)
 
     multipart_fields['file'] = (filename, file_obj, 'application/x-gzip')
     encoder = MultipartEncoder(multipart_fields)

@@ -10,7 +10,7 @@ import requests
 import responses
 
 from onecodex import Api
-from onecodex.lib.inline_validator import FASTXTranslator
+from onecodex.lib.inline_validator import BaseFASTXReader
 
 
 def intercept(func, log=False, dump=None):
@@ -120,6 +120,8 @@ def update_metadata_callback(req):
 API_DATA = {
     # These are overrides for non-GET calls, which we don't auto-mock
     "DELETE::api/v1/samples/761bc54b97f64980": {},
+    "GET::api/v1/samples/public": {},
+    "GET::api/v1/projects/public": {},
     "GET::api/v1/classifications/f9e4a5506b154953/results": {
         "table": [{
             "name": "Salmonella enterica subsp. enterica",
@@ -185,7 +187,7 @@ def upload_mocks():
         if hasattr(request.body, 'fields'):
             streaming_iterator = request.body.fields['file'][1]
             streaming_iterator.read()
-            assert isinstance(streaming_iterator, FASTXTranslator)
+            assert isinstance(streaming_iterator, BaseFASTXReader)
         return (201, {'location': 'on-aws'}, '')
 
     json_data = {

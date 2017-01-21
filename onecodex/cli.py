@@ -57,30 +57,20 @@ def onecodex(ctx, api_key, no_pprint, verbose):
     if verbose:
         log.setLevel(logging.INFO)
 
-    if os.environ.get("ONE_CODEX_API_BASE") is not None:
-        base_url = os.environ.get("ONE_CODEX_API_BASE")
-        click.echo("ALL REQUESTS GOING THROUGH: %s" % base_url, err=True)
-    else:
-        base_url = "https://app.onecodex.com"
-
-    ctx.obj['BASE_URL'] = base_url
-
     # create the api
     no_api_subcommands = ["login", "logout"]
     if ctx.invoked_subcommand not in no_api_subcommands:
         if api_key is not None:
-            ctx.obj['API'] = Api(base_url=base_url, extensions=False,
-                                 cache_schema=True,
+            ctx.obj['API'] = Api(cache_schema=True,
                                  api_key=api_key)
         else:
             # try and find it
             api_key = _silent_login()
             if api_key is not None:
-                ctx.obj['API'] = Api(base_url=base_url, extensions=False,
-                                     cache_schema=True, api_key=api_key)
+                ctx.obj['API'] = Api(cache_schema=True, api_key=api_key)
             else:
                 click.echo("No One Codex API key is available - running anonymously", err=True)
-                ctx.obj['API'] = Api(base_url=base_url, extensions=False, cache_schema=True)
+                ctx.obj['API'] = Api(cache_schema=True)
 
     # handle checking insecure platform, we let upload command do it by itself
     if ctx.invoked_subcommand != "upload":
@@ -162,8 +152,10 @@ def samples(ctx, samples):
 @click.option('--do-not-interleave', 'no_interleave', is_flag=True, help=OPTION_HELP['interleave'],
               default=False)
 @click.option('--prompt/--no-prompt', is_flag=True, help=OPTION_HELP['prompt'], default=True)
+@click.option('--validate/--do-not-validate', is_flag=True, help=OPTION_HELP['validate'],
+              default=True)
 @click.pass_context
-def upload(ctx, files, max_threads, clean, no_interleave, prompt):
+def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate):
     """Upload a FASTA or FASTQ (optionally gzip'd) to One Codex"""
     if len(files) == 0:
         print(ctx.get_help())
@@ -214,7 +206,7 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt):
 
     try:
         # do the uploading
-        ctx.obj['API'].Samples.upload(files, threads=max_threads)
+        ctx.obj['API'].Samples.upload(files, threads=max_threads, validate=validate)
     except ValidationWarning as e:
         sys.stderr.write('\nERROR: {}. {}'.format(
             e, 'Running with the --clean flag will suppress this error.'
@@ -231,7 +223,8 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt):
 @click.pass_context
 def login(ctx):
     """Add an API key (saved in ~/.onecodex)"""
-    _login(ctx.obj['BASE_URL'], check_for_update=False)
+    base_url = os.environ.get("ONE_CODEX_API_BASE", "https://app.onecodex.com")
+    _login(base_url, check_for_update=False)
 
 
 @onecodex.command('logout')
