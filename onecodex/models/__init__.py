@@ -72,6 +72,9 @@ class OneCodexBase(object):
                     resource_path = value[0]._uri.rsplit('/', 1)[0]
                     return [_model_lookup[resource_path](_resource=o) for o in value]
                 else:
+                    if key == 'id':
+                        # undo the bad coercion from potion_client/resource.py#L111
+                        return str(value)
                     if schema.get('format') == 'date-time' and value is not None:
                         return parse(value)
                     return value
