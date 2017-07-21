@@ -191,3 +191,8 @@ def test_where_primary_analysis(ocx, api_data):
         query_in_urls.append(query in url)
 
     assert any(query_in_urls)
+
+
+def test_public_analyses(ocx, api_data):
+    analyses = ocx.Analyses.search_public()
+    assert len(analyses) == 1

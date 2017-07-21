@@ -123,6 +123,13 @@ API_DATA = {
     "DELETE::api/v1/samples/761bc54b97f64980": {},
     "GET::api/v1/samples/public": {},
     "GET::api/v1/projects/public": {},
+    "GET::api/v1/analyses/public": [{
+        "$uri": "/api/v1/jobs/d512cb556241440f",
+        "analysis_type": "classification",
+        "created_at": "2015-11-01T16:27:19.140577-08:00",
+        "name": "One Codex Database",
+        "public": True,
+    }],
     "GET::api/v1/classifications/f9e4a5506b154953/results": {
         "table": [{
             "name": "Salmonella enterica subsp. enterica",
