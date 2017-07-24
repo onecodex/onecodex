@@ -124,11 +124,18 @@ API_DATA = {
     "GET::api/v1/samples/public": {},
     "GET::api/v1/projects/public": {},
     "GET::api/v1/analyses/public": [{
-        "$uri": "/api/v1/jobs/d512cb556241440f",
+        "$uri": "/api/v1/analyses/92f8dbd18b6b4945",
         "analysis_type": "classification",
-        "created_at": "2015-11-01T16:27:19.140577-08:00",
-        "name": "One Codex Database",
-        "public": True,
+        "complete": True,
+        "created_at": "2016-05-24T10:46:49.267911-07:00",
+        "error_msg": "",
+        "job": {
+            "$ref": "/api/v1/jobs/d512cb556241440f"
+        },
+        "sample": {
+            "$ref": "/api/v1/samples/b38b40d8b3644d33"
+        },
+        "success": True
     }],
     "GET::api/v1/classifications/f9e4a5506b154953/results": {
         "table": [{
