@@ -83,6 +83,14 @@ def test_gzip_filename_validation(runner):
             FASTXTranslator(open('myfasta.fa.gz.extra', mode='rb'))
 
 
+def test_mislabeled_gzip_filename(runner):
+    with runner.isolated_filesystem():
+        with open('myfasta.fa.gz', mode='w') as f:
+            f.write(str(SAMPLE_FILES['GZIPPABLE']))
+        with pytest.raises(ValidationError):
+            FASTXTranslator(open('myfasta.fa.gz', mode='rb'))
+
+
 @pytest.mark.skipif(sys.version_info < (3, 3),
                     reason="bz2.open interface requires python3.3")
 def test_bzip_filename_validation(runner):
@@ -126,6 +134,7 @@ def test_translator_to_reader(runner):
     ('MODIFIABLE_FASTQ', 'my.fq', True, True, True),
     ('TABBED_FASTQ', 'my.fq', True, False, True),
     ('VALID_FASTQ', 'my.fastz', False, False, False),  # Bad name
+    ('VALID_FASTQ', 'my.fq.gz', False, False, False),   # Bad extension, not gzipped
 ])
 def test_fastq_validation(runner, filename, file_id, validates, allow_iupac, modified):
     warnings.filterwarnings('ignore', category=ValidationWarning)

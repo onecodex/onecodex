@@ -141,6 +141,10 @@ class FASTXNuclIterator(object):
             file_obj = bz2.open(file_obj)
             file_obj.name = patched_name
             start = file_obj.read(1)
+        elif check_filename and file_obj.name.endswith(('.gz', '.gzip')):
+            raise ValidationError('{} is not gzipped but has a ".gz" file extension.')
+        elif check_filename and file_obj.name.endswith(('.bz2', '.bz', '.bzip')):
+            raise ValidationError('{} is not gzipped but has a ".bz2" file extension.')
 
         # determine if a FASTQ or a FASTA
         if start == b'>':
@@ -297,8 +301,16 @@ class BaseFASTXReader(object):
         self.total_written = 0
 
         # save in case we need to reset later
+        # note we can safely set `check_filename` to False
+        # as we only need to check the file on first open
+        # (and it may fail on subsequent opens if we've
+        # replaced the underlying file object)
         self._saved_args = kwargs.copy()
-        self._saved_args.update({'recompress': recompress, 'progress_callback': progress_callback})
+        self._saved_args.update({
+            'recompress': recompress,
+            'progress_callback': progress_callback,
+            'check_filename': False,
+        })
 
     def _set_read(self, file_obj):
         raise NotImplementedError
@@ -446,6 +458,10 @@ class FASTXTranslator(BaseFASTXReader):
             pair.seek(0)
         else:
             pair = None
+
+        # Re-initialize the file. Note that we do *not* need
+        # to do any expensive validation or filename checks
+        # as those have already been done before calling seek(0)
         self.__init__(reads, pair, total=self.total, **self._saved_args)
 
     def write(self, b):
