@@ -194,7 +194,7 @@ def test_where_primary_classification(ocx, api_data):
 
 
 def test_public_analyses(ocx, api_data):
-    analyses = ocx.Analyses.search_public()
+    analyses = ocx.Analyses.where(public=True)
     assert len(analyses) == 1
     a = analyses[0]
     assert a.sample.filename == 'MSA-1000.16S.example.fastq.gz'

@@ -35,12 +35,6 @@ class Analyses(OneCodexBase):
         except AttributeError:
             raise NotImplementedError('.results() not implemented for this Analyses resource.')
 
-    @classmethod
-    def search_public(cls, *filters, **keyword_filters):
-        keyword_filters['_instances'] = 'instances_public'
-        keyword_filters['limit'] = 100
-        return cls.where(*filters, **keyword_filters)
-
 
 class Alignments(Analyses):
     _resource_path = '/api/v1/alignments'
