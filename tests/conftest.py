@@ -124,18 +124,52 @@ API_DATA = {
     "GET::api/v1/samples/public": {},
     "GET::api/v1/projects/public": {},
     "GET::api/v1/analyses/public": [{
-        "$uri": "/api/v1/analyses/92f8dbd18b6b4945",
+        "$uri": "/api/v1/analyses/de58fb3db76c42f3",
         "analysis_type": "classification",
         "complete": True,
-        "created_at": "2016-05-24T10:46:49.267911-07:00",
-        "error_msg": "",
+        "created_at": "2017-08-03T17:23:21.931982+00:00",
+        "error_msg": None,
         "job": {
-            "$ref": "/api/v1/jobs/d512cb556241440f"
+            "$uri": "/api/v1/jobs/cc1d331e1ee54bac",
+            "analysis_type": "classification",
+            "created_at": "2016-05-05T17:27:02.116480+00:00",
+            "name": "One Codex Database",
+            "public": True
         },
         "sample": {
-            "$ref": "/api/v1/samples/b38b40d8b3644d33"
+            "$uri": "/api/v1/samples/205bef56b3d6457d",
+            "created_at": "2017-08-03T17:23:20.284145+00:00",
+            "filename": "MSA-1000.16S.example.fastq.gz",
+            "metadata": {
+                "$ref": "/api/v1/metadata/ab296c81940e4cc0"
+            },
+            "owner": {
+                "$ref": "/api/v1/users/5891ee65711c4d5e"
+            },
+            "primary_classification": {
+                "$ref": "/api/v1/classifications/980c7388c54a46b8"
+            },
+            "project": {
+                "$ref": "/api/v1/projects/66477c4c379a41a5"
+            },
+            "size": 9342972,
+            "tags": [
+                {
+                    "$ref": "/api/v1/tags/e2910f93ec154617"
+                },
+                {
+                    "$ref": "/api/v1/tags/7dd2d4ae9e9c4f14"
+                },
+                {
+                    "$ref": "/api/v1/tags/7d350965f74346c1"
+                },
+                {
+                    "$ref": "/api/v1/tags/1638c7a570214fda"
+                }
+            ],
+            "visibility": "public"
         },
-        "success": True
+        "success": True,
     }],
     "GET::api/v1/classifications/f9e4a5506b154953/results": {
         "table": [{

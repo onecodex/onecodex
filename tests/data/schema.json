@@ -8230,8 +8230,8 @@
                                         "description": "Sort by owner in descending order if 'true', ascending order if 'false'.",
                                         "type": "boolean"
                                     },
-                                    "primary_analysis": {
-                                        "description": "Sort by primary_analysis in descending order if 'true', ascending order if 'false'.",
+                                    "primary_classification": {
+                                        "description": "Sort by primary_classification in descending order if 'true', ascending order if 'false'.",
                                         "type": "boolean"
                                     },
                                     "project": {
@@ -8850,7 +8850,7 @@
                                             }
                                         ]
                                     },
-                                    "primary_analysis": {
+                                    "primary_classification": {
                                         "anyOf": [
                                             {
                                                 "anyOf": [
@@ -9458,8 +9458,8 @@
                                         "description": "Sort by owner in descending order if 'true', ascending order if 'false'.",
                                         "type": "boolean"
                                     },
-                                    "primary_analysis": {
-                                        "description": "Sort by primary_analysis in descending order if 'true', ascending order if 'false'.",
+                                    "primary_classification": {
+                                        "description": "Sort by primary_classification in descending order if 'true', ascending order if 'false'.",
                                         "type": "boolean"
                                     },
                                     "project": {
@@ -10078,7 +10078,7 @@
                                             }
                                         ]
                                     },
-                                    "primary_analysis": {
+                                    "primary_classification": {
                                         "anyOf": [
                                             {
                                                 "anyOf": [
@@ -10686,8 +10686,8 @@
                                         "description": "Sort by owner in descending order if 'true', ascending order if 'false'.",
                                         "type": "boolean"
                                     },
-                                    "primary_analysis": {
-                                        "description": "Sort by primary_analysis in descending order if 'true', ascending order if 'false'.",
+                                    "primary_classification": {
+                                        "description": "Sort by primary_classification in descending order if 'true', ascending order if 'false'.",
                                         "type": "boolean"
                                     },
                                     "project": {
@@ -11306,7 +11306,7 @@
                                             }
                                         ]
                                     },
-                                    "primary_analysis": {
+                                    "primary_classification": {
                                         "anyOf": [
                                             {
                                                 "anyOf": [
@@ -11979,7 +11979,7 @@
                     "readOnly": true,
                     "type": "object"
                 },
-                "primary_analysis": {
+                "primary_classification": {
                     "additionalProperties": false,
                     "properties": {
                         "$ref": {

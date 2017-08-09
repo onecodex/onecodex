@@ -1,1 +1,1 @@
-[{"username": null, "$uri": "/api/v1/users/4ada56103d9a48b8"}, {"username": "boyd", "$uri": "/api/v1/users/be3613535a5145aa"}]
+[{"$uri": "/api/v1/users/4ada56103d9a48b8", "email": "asmngs@onecodex.com", "username": null}]

@@ -77,11 +77,11 @@ def test_panel_instances(runner, api_data, mocked_creds_file):
 # Samples
 def test_samples(runner, api_data, mocked_creds_file):
     r0 = runner.invoke(Cli, ['samples'])
-    r1 = runner.invoke(Cli, ['samples', '761bc54b97f64980'])
+    r1 = runner.invoke(Cli, ['samples', '7428cca4a3a04a8e'])
     assert r0.exit_code == 0
     assert r1.exit_code == 0
-    assert API_DATA['GET::api/v1/samples/761bc54b97f64980']['$uri'] in r0.output
-    assert API_DATA['GET::api/v1/samples/761bc54b97f64980']['$uri'] in r0.output
+    assert API_DATA['GET::api/v1/samples/7428cca4a3a04a8e']['$uri'] in r0.output
+    assert API_DATA['GET::api/v1/samples/7428cca4a3a04a8e']['$uri'] in r1.output
 
 
 # Login tests

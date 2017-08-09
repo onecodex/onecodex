@@ -29,9 +29,9 @@ def test_sample_get(ocx, api_data):
     assert sample.__repr__() == '<Samples 761bc54b97f64980: "SRR2352223.fastq.gz">'
     assert isinstance(sample.created_at, datetime.datetime)
 
-    analysis = sample.primary_analysis
-    assert analysis
-    assert analysis.complete
+    classification = sample.primary_classification
+    assert classification
+    assert classification.complete
 
     tags = sample.tags
     assert len(tags) > 1
@@ -61,31 +61,31 @@ def test_model_deletions(ocx, api_data):
     sample = ocx.Samples.get('761bc54b97f64980')
     sample.delete()
 
-    analysis = sample.primary_analysis
+    analysis = sample.primary_classification
     with pytest.raises(MethodNotSupported):
         analysis.delete()
 
 
 def test_model_updates(ocx, api_data):
     sample = ocx.Samples.get('761bc54b97f64980')
-    sample.starred = not sample.starred
+    sample.visibility = 'public' if sample.visibility == 'private' else 'public'
 
     # Read-only field
     with pytest.raises(MethodNotSupported):
-        sample.public = not sample.public
+        sample.filename = 'something_else'
 
     # No update resource
-    analysis = sample.primary_analysis
+    analysis = sample.primary_classification
     with pytest.raises(MethodNotSupported):
         analysis.created_at = datetime.datetime.utcnow()
 
 
 def test_sample_saving(ocx, api_data):
     sample = ocx.Samples.get('761bc54b97f64980')
-    starred_state = sample.starred
-    sample.starred = not starred_state
+    visibility = sample.visibility
+    sample.visibility = 'private' if visibility == 'public' else 'public'
     sample.save()
-    assert sample.starred is not starred_state
+    assert sample.visibility is not visibility
 
 
 def test_metadata_saving(ocx, api_data):
@@ -103,9 +103,9 @@ def test_metadata_saving(ocx, api_data):
 
 def test_dir_patching(ocx, api_data):
     sample = ocx.Samples.get('761bc54b97f64980')
-    props = {'id', 'created_at', 'filename', 'indexed', 'public',
-             'metadata', 'owner', 'primary_analysis', 'project',
-             'size', 'starred', 'tags'}
+    props = {'id', 'created_at', 'filename', 'visibility',
+             'metadata', 'owner', 'primary_classification', 'project',
+             'size', 'tags'}
     for prop in props:
         assert prop in dir(sample)
     assert len(sample.__dict__) == 1  # I'm not sure we *want* this...
@@ -126,18 +126,18 @@ def test_no_results_on_generic_analysis(ocx, api_data):
 
 # Sorting and where clauses
 @pytest.mark.parametrize('where_args,where_kwargs,queries', [
-    ([], {'public': True},
-        ['where={"public": true}']),
-    ([], {'public': False},
-        ['where={"public": false}']),
+    ([], {'visibility': 'public'},
+        ['where={"visibility": "public"}']),
+    ([], {'visibility': 'private'},
+        ['where={"visibility": "private"}']),
     ([], {'filename': 'SRR1234.fastq.gz'},
         ['where={"filename": "SRR1234.fastq.gz"}']),
-    ([], {'filename': 'SRR1234.fastq.gz', 'sort': 'public'},
+    ([], {'filename': 'SRR1234.fastq.gz', 'sort': 'visibility'},
         ['where={"filename": "SRR1234.fastq.gz"}']),
-    ([], {'public': False, 'filename': 'tmp.fa'},
-        ['"filename": "tmp.fa"', '"public": false']),
-    ([{'public': False, 'filename': 'tmp.fa'}], {},
-        ['"filename": "tmp.fa"', '"public": false']),
+    ([], {'visibility': 'private', 'filename': 'tmp.fa'},
+        ['"filename": "tmp.fa"', '"visibility": "private"']),
+    ([{'visibility': 'private', 'filename': 'tmp.fa'}], {},
+        ['"filename": "tmp.fa"', '"visibility": "private"']),
     (['761bc54b97f64980'], {},
         ['"$uri": {"$in": ["/api/v1/samples/761bc54b97f64980"']),
     (['/api/v1/samples/761bc54b97f64980'], {},
@@ -165,7 +165,7 @@ def test_public_project(ocx, api_data):
 
 def test_where_clauses_with_tags(ocx, api_data):
     tag = ocx.Tags.get('5c1e9e41043e4435')
-    sample = ocx.Samples.get('761bc54b97f64980')
+    sample = ocx.Samples.get('7428cca4a3a04a8e')
     samples = ocx.Samples.where(tags=[tag])
     assert sample in samples
 
@@ -178,13 +178,13 @@ def test_where_clauses_with_tags(ocx, api_data):
     assert any(query_in_urls)
 
 
-def test_where_primary_analysis(ocx, api_data):
+def test_where_primary_classification(ocx, api_data):
     analysis = ocx.Analyses.get('935c2a3611944e39')
-    sample = ocx.Samples.get('761bc54b97f64980')
-    samples = ocx.Samples.where(primary_analysis=analysis)
+    sample = ocx.Samples.get('7428cca4a3a04a8e')
+    samples = ocx.Samples.where(primary_classification=analysis)
     assert sample in samples
 
-    query = '{"primary_analysis": {"$ref": "/api/v1/analyses/935c2a3611944e39"}'
+    query = '{"primary_classification": {"$ref": "/api/v1/analyses/935c2a3611944e39"}'
     query_in_urls = []
     for c in responses.calls:
         url = unquote_plus(c.request.url)
@@ -196,3 +196,7 @@ def test_where_primary_analysis(ocx, api_data):
 def test_public_analyses(ocx, api_data):
     analyses = ocx.Analyses.search_public()
     assert len(analyses) == 1
+    a = analyses[0]
+    assert a.sample.filename == 'MSA-1000.16S.example.fastq.gz'
+    assert a.job.name == 'One Codex Database'
+    assert a.sample.visibility == 'public'

@@ -8,7 +8,7 @@ def test_bearer_auth_from_env(api_data, monkeypatch):
     ocx = Api(base_url='http://localhost:3000', cache_schema=True)
     assert isinstance(ocx._req_args['auth'], BearerTokenAuth)
     sample = ocx.Samples.get('761bc54b97f64980')
-    assert sample.public is False
+    assert sample.visibility != 'public'
 
 
 def test_api_key_auth_from_env(api_data, monkeypatch):
