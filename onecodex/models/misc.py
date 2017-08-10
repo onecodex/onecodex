@@ -1,3 +1,5 @@
+import warnings
+
 from onecodex.models import OneCodexBase
 from onecodex.models.helpers import truncate_string
 
@@ -19,7 +21,8 @@ class Projects(OneCodexBase):
 
     @classmethod
     def search_public(cls, *filters, **keyword_filters):
-        keyword_filters['_instances'] = 'instances_public'
+        warnings.warn('Now supported via `.where(..., public=True)`', DeprecationWarning)
+        keyword_filters['public'] = True
         keyword_filters['limit'] = 100
         return cls.where(*filters, **keyword_filters)
 
