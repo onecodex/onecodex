@@ -197,14 +197,16 @@ class OneCodexBase(object):
         """.format(classname=cls.__name__)
         check_bind(cls)
 
-        instances_route = keyword_filters.pop('_instances', 'instances')
+        public = keyword_filters.pop('public', False)
+        instances_route = keyword_filters.pop('_instances',
+                                              'instances' if not public else 'instances_public')
 
         schema = next(l for l in cls._resource._schema['links'] if l['rel'] == instances_route)
         sort_schema = schema['schema']['properties']['sort']['properties']
         where_schema = schema['schema']['properties']['where']['properties']
 
         sort = generate_potion_sort_clause(keyword_filters.pop('sort', None), sort_schema)
-        limit = keyword_filters.pop('limit', None)
+        limit = keyword_filters.pop('limit', None if not public else 100)
         where = {}
 
         # we're filtering by fancy objects (like SQLAlchemy's filter)

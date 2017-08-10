@@ -20,15 +20,15 @@ class Samples(OneCodexBase):
 
     @classmethod
     def where(cls, *filters, **keyword_filters):
-        instances_route = keyword_filters.get('_instances', 'instances')
-        limit = keyword_filters.pop('limit', None)
+        public = keyword_filters.get('public', False)
+        instances_route = 'instances' if not public else 'instances_public'
+        limit = keyword_filters.get('limit', None if not public else 100)
 
         # we can only search metadata on our own samples currently
         # FIXME: we need to add `instances_public` and `instances_project` metadata routes to
         # mirror the ones on the samples
         metadata_samples = []
-        if instances_route in ['instances']:
-
+        if not public:
             md_schema = next(l for l in Metadata._resource._schema['links']
                              if l['rel'] == instances_route)
 
@@ -78,7 +78,7 @@ class Samples(OneCodexBase):
 
     @classmethod
     def search_public(cls, *filters, **keyword_filters):
-        keyword_filters['_instances'] = 'instances_public'
+        keyword_filters['public'] = True
         keyword_filters['limit'] = 100
         return cls.where(*filters, **keyword_filters)
 
