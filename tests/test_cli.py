@@ -28,7 +28,6 @@ def test_version(runner):
     assert result.exit_code == 0
     assert "onecodex, version" in result.output
 
-
 # Test CLI without base override
 def test_cli_wo_override(api_data, monkeypatch):
     monkeypatch.delattr("requests.sessions.Session.request")
@@ -65,7 +64,7 @@ def test_classification_instance(runner, api_data, mocked_creds_file):
 def test_classifications_table(runner, api_data, mocked_creds_file, monkeypatch):
     result = runner.invoke(Cli, ['classifications', 'f9e4a5506b154953', '--results'])
     assert result.exit_code == 0
-    assert "Salmonella" in result.output
+    assert "Staphylococcus" in result.output
 
 
 # Panels
