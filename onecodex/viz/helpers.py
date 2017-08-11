@@ -1,44 +1,53 @@
+import numpy as np
 import pandas as pd
 
-from onecodex.exceptions import MissingDataException, OneCodexException
+from onecodex.exceptions import OneCodexException
 from onecodex.models import Analyses, Classifications, Samples
 
 
-def normalize_analyses(analyses):
+def normalize_analyses(analyses, skip_missing=True):
     normed_analyses = []
     metadata = []
 
     for a in analyses:
         if isinstance(a, Samples):
-            normed_analyses.append(a.primary_classification)
-            metadata.append(a.metadata)
+            c = a.primary_classification
+            m = a.metadata
         elif isinstance(a, Classifications):
-            normed_analyses.append(a)
-            metadata.append(a.sample.metadata)
+            m = a.sample.metadata
         elif isinstance(a, Analyses):
             if a.analysis_type != 'classification':
                 raise OneCodexException('{} is not a classification'.format(a.id))
             c = Classifications(a._resource._client.Classifications.fetch(a.id))
-            normed_analyses.append(c)
-            metadata.append(a.sample.metadata)
+            m = a.sample.metadata
+
+        if skip_missing and not c.success:
+            continue
+
+        normed_analyses.append(c)
+        metadata.append(m)
 
     return normed_analyses, metadata
 
 
-def collate_analysis_results(analyses, metric='abundance', skip_missing=True):
+def collate_analysis_results(analyses, metric='abundance'):
     """For a set of analyses, return the results as a Pandas DataFrame."""
     assert metric in ['abundance', 'readcount', 'readcount_w_children']
     
     # Keep track of all of the microbial abundances
-    dat = {}
+    dat = [{}]
+    titles = ['test']
+    nan_dat = {}
+
     # Keep track of information for each tax_id
     tax_id_info = {}
     
     # Get results for each of the Sample objects that are passed in
     for a in analyses:
         if a.success is False:
-            if not skip_missing:
-                raise MissingDataException('{} was not successful'.format(a.id))
+            nan_dat[a.id] = np.nan
+            dat.append({})
+            titles.append(a.id)
             continue
             
         # Get the results in table format
@@ -55,27 +64,26 @@ def collate_analysis_results(analyses, metric='abundance', skip_missing=True):
         # Remove entries without the specified metric
         result = {taxid: value for taxid, value in result.items() if value is not None}
 
-        # Remove about 0-values
-        result = {taxid: value for taxid, value in result.items() if value > 0}
-        
-        # Catch any samples that don't have the specified metric
-        if len(result) == 0:
-            if not skip_missing:
-                raise MissingDataException('{} has no entries for {}, skipping.'.format(a.id,
-                                                                                        metric))
-            continue
+        # set up how we fill missing data later
+        # (if the entire row doesn't exist, it should be nans)
+        nan_dat[a.id] = np.nan if len(result) == 0 else 0
 
         # Save the set of microbial abundances
-        dat[str(a.id)] = result
+        dat.append(result)
+        titles.append(a.id)
 
     if len(dat) == 0:
         return None
 
     # Format as a Pandas DataFrame
-    df = pd.DataFrame(dat).fillna(0)
-    df.index.name = 'tax_id'
+    df = pd.DataFrame(dat)
+    df.index = titles
+
+    # fill in missing values    
+    df = df.T.fillna(nan_dat)
 
     # add an index with the tax ids name
+    df.index.name = 'tax_id'
     df['tax_name'] = df.index.map(lambda tid: tax_id_info[tid]['name'])
     df.set_index(['tax_name'], inplace=True, append=True)
 
