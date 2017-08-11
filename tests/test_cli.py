@@ -28,6 +28,7 @@ def test_version(runner):
     assert result.exit_code == 0
     assert "onecodex, version" in result.output
 
+
 # Test CLI without base override
 def test_cli_wo_override(api_data, monkeypatch):
     monkeypatch.delattr("requests.sessions.Session.request")

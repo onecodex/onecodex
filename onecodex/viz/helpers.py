@@ -12,14 +12,14 @@ def normalize_analyses(analyses):
         if isinstance(a, Samples):
             normed_analyses.append(a.primary_classification)
             metadata.append(a.metadata)
+        elif isinstance(a, Classifications):
+            normed_analyses.append(a)
+            metadata.append(a.sample.metadata)
         elif isinstance(a, Analyses):
             if a.analysis_type != 'classification':
                 raise OneCodexException('{} is not a classification'.format(a.id))
             c = Classifications(a._resource._client.Classifications.fetch(a.id))
             normed_analyses.append(c)
-            metadata.append(a.sample.metadata)
-        elif isinstance(a, Classifications):
-            normed_analyses.append(a)
             metadata.append(a.sample.metadata)
 
     return normed_analyses, metadata
