@@ -35,8 +35,8 @@ def collate_analysis_results(analyses, metric='abundance'):
     assert metric in ['abundance', 'readcount', 'readcount_w_children']
     
     # Keep track of all of the microbial abundances
-    dat = [{}]
-    titles = ['test']
+    dat = []
+    titles = []
     nan_dat = {}
 
     # Keep track of information for each tax_id
@@ -79,7 +79,7 @@ def collate_analysis_results(analyses, metric='abundance'):
     df = pd.DataFrame(dat)
     df.index = titles
 
-    # fill in missing values    
+    # fill in missing values
     df = df.T.fillna(nan_dat)
 
     # add an index with the tax ids name
