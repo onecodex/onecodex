@@ -39,5 +39,5 @@ class UploadException(Exception):
     pass
 
 
-class MissingDataException(Exception):
+class MissingDataException(OneCodexException):
     pass

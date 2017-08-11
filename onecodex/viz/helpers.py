@@ -1,7 +1,7 @@
 import pandas as pd
 
-from onecodex.exceptions import MissingDataException
-from onecodex.models import Analyses, Samples
+from onecodex.exceptions import MissingDataException, OneCodexException
+from onecodex.models import Analyses, Classifications, Samples
 
 
 def normalize_analyses(analyses):
@@ -13,6 +13,12 @@ def normalize_analyses(analyses):
             normed_analyses.append(a.primary_classification)
             metadata.append(a.metadata)
         elif isinstance(a, Analyses):
+            if a.analysis_type != 'classification':
+                raise OneCodexException('{} is not a classification'.format(a.id))
+            c = Classifications(a._resource._client.Classifications.fetch(a.id))
+            normed_analyses.append(c)
+            metadata.append(a.sample.metadata)
+        elif isinstance(a, Classifications):
             normed_analyses.append(a)
             metadata.append(a.sample.metadata)
 
@@ -67,12 +73,13 @@ def collate_analysis_results(analyses, metric='abundance', skip_missing=True):
 
     # Format as a Pandas DataFrame
     df = pd.DataFrame(dat).fillna(0)
+    df.index.name = 'tax_id'
 
     # add an index with the tax ids name
-    df['tax_name'] = df['tax_id'].map(lambda tid: tax_id_info[tid]['name'])
-    df.set_index(['tax_name'], append=True)
+    df['tax_name'] = df.index.map(lambda tid: tax_id_info[tid]['name'])
+    df.set_index(['tax_name'], inplace=True, append=True)
 
     # Remove columns (tax_ids) with no values that are > 0
-    df = df.T.loc[:, df.sum() > 0]
+    df = df.T.loc[:, df.T.sum() > 0]
     
     return df

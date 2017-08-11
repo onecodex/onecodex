@@ -173,14 +173,15 @@ API_DATA = {
     }],
     "GET::api/v1/classifications/f9e4a5506b154953/results": {
         "table": [{
-            "name": "Salmonella enterica subsp. enterica",
-            "rank": "subspecies",
-            "readcount": 4642,
-            "readcount_w_children": 4960,
-            "species_abundance": None,
-            "tax_id": 59201
+            'abundance': 1,
+            'name': 'Staphylococcus sp. HGB0015',
+            'parent_tax_id': '1279',
+            'rank': 'species',
+            'readcount': 3,
+            'readcount_w_children': 3,
+            'tax_id': '1078083',
         }]
-    },
+},
     "PATCH::api/v1/samples/761bc54b97f64980": {},
     "PATCH::api/v1/metadata/4fe05e748b5a4f0e": update_metadata_callback
 }
