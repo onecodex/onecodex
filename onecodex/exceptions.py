@@ -37,3 +37,7 @@ class UploadException(Exception):
     An exception for when things go wrong with uploading
     """
     pass
+
+
+class MissingDataException(Exception):
+    pass
