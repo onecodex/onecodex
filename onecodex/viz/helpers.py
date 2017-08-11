@@ -19,7 +19,7 @@ def normalize_analyses(analyses):
     return normed_analyses, metadata
 
 
-def results_dataframe(analyses, metric='abundance', skip_missing=True):
+def collate_analysis_results(analyses, metric='abundance', skip_missing=True):
     """For a set of analyses, return the results as a Pandas DataFrame."""
     assert metric in ['abundance', 'readcount', 'readcount_w_children']
     
@@ -65,14 +65,14 @@ def results_dataframe(analyses, metric='abundance', skip_missing=True):
     if len(dat) == 0:
         return None
 
+    # Format as a Pandas DataFrame
+    df = pd.DataFrame(dat).fillna(0)
+
     # add an index with the tax ids name
     df['tax_name'] = df['tax_id'].map(lambda tid: tax_id_info[tid]['name'])
     df.set_index(['tax_name'], append=True)
 
-    # Format as a Pandas DataFrame
-    df = pd.DataFrame(dat).T.fillna(0)
-    
     # Remove columns (tax_ids) with no values that are > 0
-    df = df.loc[:, df.sum() > 0]
+    df = df.T.loc[:, df.sum() > 0]
     
     return df
