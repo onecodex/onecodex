@@ -5,15 +5,15 @@ from onecodex.exceptions import OneCodexException
 from onecodex.viz.helpers import collate_analysis_results, normalize_analyses
 
 
-def plot_heatmap(analyses, title=None, threshold=None, top_n=20, metric='abundance'):
+def plot_heatmap(analyses, title=None, top_n=20, threshold=None, metric='abundance'):
     # metric: 'abundance' or 'readcount'
     assert len(analyses) > 1
 
     if not (threshold or top_n):
         raise OneCodexException('Please set either "threshold" or "top_n"')
 
-    a, metadata = normalize_analyses(analyses)
-    df = collate_analysis_results(a, metric=metric)
+    normed_analyses, metadata = normalize_analyses(analyses)
+    df = collate_analysis_results(normed_analyses, metric=metric)
 
     df.columns = ['{} ({})'.format(v[1], v[0]) for v in df.columns.values]
     df['display_name'] = [m.name if m.name is not None else m.sample.filename for m in metadata]

@@ -1,4 +1,4 @@
-import matplotlib as plt
+import matplotlib.pyplot as plt
 import seaborn
 import pandas
 from sklearn.decomposition import PCA
@@ -6,7 +6,7 @@ from sklearn.decomposition import PCA
 from onecodex.viz.helpers import collate_analysis_results, normalize_analyses
 
 
-def plot_pca(analyses, title=None, metric='abundance', color_by=None,
+def plot_pca(analyses, title=None, threshold=None, metric='abundance', color_by=None,
              org_vectors=False, org_vectors_scale_factor=8):
     # metric: 'abundance' or 'readcount'
     # color_by: piece of metadata to color by
@@ -15,46 +15,35 @@ def plot_pca(analyses, title=None, metric='abundance', color_by=None,
 
     """Perform Principal Components Analysis to visualize the similarity of samples."""
 
-    df = collate_analysis_results(analyses, metric=metric)
-    _, metadata = normalize_analyses(analyses)
-
-    # Only keep the metadata for samples that have microbial abundance data
-    metadata = metadata.loc[[ix for ix in df.index.values if ix in metadata.index.values], :]
-
-    # Order the abundance data the same as the metadata
-    df = df.loc[metadata.index.values, :]
-
-    # Check to see if the user specified a piece of metadata to color by
-    if color_by is not None:
-        assert color_by in metadata, "Please use color_by= to specify a column of metadata"
-        # Only keep the samples that contain the specified piece of metadata
-        for ix, r in metadata.iterrows():
-            if pandas.isnull(r[color_by]):
-                print("{} does not have a value for {}, omitting.".format(r['filename'], color_by))
-
-        # Drop any rows with the metadata missing
-        metadata = metadata.loc[metadata[color_by].dropna().index.values, :]
-
-        # Order the microbial abundances the same way as the metadata
-        df = df.loc[metadata.index.values, :]
-
-        # Try to coerce the color_by metric to a float, otherwise keep as-is
-        try:
-            metadata[color_by] = metadata[color_by].apply(float)
-        except:
-            pass
+    normed_analyses, metadata = normalize_analyses(analyses)
+    df = collate_analysis_results(normed_analyses, metric=metric)
 
     pca = PCA()
     pca_vals = pca.fit(df.values).transform(df.values)
     pca_vals = pandas.DataFrame(pca_vals, index=df.index)
-    # Reformat the column names to "PCA1", "PCA2", etc.
     pca_vals.rename(columns=lambda x: "PCA{}".format(x + 1), inplace=True)
+
+    pca = PCA()
+    pca_vals = pca.fit(df.values).transform(df.values)
+    pca_vals = pandas.DataFrame(pca_vals, index=df.index)
+    pca_vals.rename(columns=lambda x: "PCA{}".format(x + 1), inplace=True)
+
+    color_by_vals = []
+    if color_by is not None:
+        assert hasattr(metadata[0], color_by)
+        # if the metadata does not have the color_by attribute, make it gray
+        for md in metadata:
+            if getattr(md, color_by) is None:
+                color_by_vals.append('None')
+            else:
+                color_by_vals.append(getattr(md, color_by))
+
+    pca_vals[color_by] = color_by_vals
 
     # Scatter plot of PCA
     if color_by is None:
         g = seaborn.lmplot('PCA1', 'PCA2', data=pca_vals, fit_reg=False)
     else:
-        pca_vals[color_by] = metadata[color_by].values
         g = seaborn.lmplot('PCA1', 'PCA2', data=pca_vals, fit_reg=False, hue=color_by)
 
     # Plot the organism eigenvectors that contribute the most

@@ -14,6 +14,7 @@ def normalize_analyses(analyses, skip_missing=True):
             c = a.primary_classification
             m = a.metadata
         elif isinstance(a, Classifications):
+            c = a
             m = a.sample.metadata
         elif isinstance(a, Analyses):
             if a.analysis_type != 'classification':
@@ -33,7 +34,7 @@ def normalize_analyses(analyses, skip_missing=True):
 def collate_analysis_results(analyses, metric='abundance'):
     """For a set of analyses, return the results as a Pandas DataFrame."""
     assert metric in ['abundance', 'readcount', 'readcount_w_children']
-    
+
     # Keep track of all of the microbial abundances
     dat = []
     titles = []
@@ -41,7 +42,7 @@ def collate_analysis_results(analyses, metric='abundance'):
 
     # Keep track of information for each tax_id
     tax_id_info = {}
-    
+
     # Get results for each of the Sample objects that are passed in
     for a in analyses:
         if a.success is False:
@@ -49,10 +50,10 @@ def collate_analysis_results(analyses, metric='abundance'):
             dat.append({})
             titles.append(a.id)
             continue
-            
+
         # Get the results in table format
         result = a.results()['table']
-        
+
         # Record the information (name, parent) for each organism by  its tax ID
         for d in result:
             if d['tax_id'] not in tax_id_info:
@@ -89,5 +90,5 @@ def collate_analysis_results(analyses, metric='abundance'):
 
     # Remove columns (tax_ids) with no values that are > 0
     df = df.T.loc[:, df.T.sum() > 0]
-    
+
     return df
