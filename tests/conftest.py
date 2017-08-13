@@ -181,7 +181,7 @@ API_DATA = {
             'readcount_w_children': 3,
             'tax_id': '1078083',
         }]
-},
+    },
     "PATCH::api/v1/samples/761bc54b97f64980": {},
     "PATCH::api/v1/metadata/4fe05e748b5a4f0e": update_metadata_callback
 }

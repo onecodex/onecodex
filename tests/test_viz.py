@@ -7,4 +7,4 @@ def test_result_collation(ocx, api_data):
 
     assert 'f9e4a5506b154953' in results.index
     assert len(results.loc['f9e4a5506b154953']) > 0
-    assert 'tax_id' in results.columns.names and 'tax_name' in results.columns.names 
+    assert 'tax_id' in results.columns.names and 'tax_name' in results.columns.names

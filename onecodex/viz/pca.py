@@ -54,8 +54,8 @@ def plot_pca(analyses, title=None, threshold=None, metric='abundance', color_by=
         for taxid, var1, var2 in zip(df.columns, pca.components_[0, :], pca.components_[1, :]):
             if abs(var1) + abs(var2) >= cutoff:
                 g.axes.flat[0].annotate("{} ({})".format(df['tax_name'], taxid),
-                                        xytext=(var1/float(org_vectors_scale_factor),
-                                                var2/float(org_vectors_scale_factor)),
+                                        xytext=(var1 / float(org_vectors_scale_factor),
+                                                var2 / float(org_vectors_scale_factor)),
                                         xy=(0, 0), size=8,
                                         arrowprops={'facecolor': 'black',
                                                     'width': 1, 'headwidth': 5})
