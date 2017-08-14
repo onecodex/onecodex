@@ -1,17 +1,16 @@
 import pandas as pd
 
 from onecodex.viz.helpers import normalize_analyses, collate_analysis_results
-from scipy.spatial.distance import braycurtis, cityblock
-from onecodex.lib.diversity import unifrac, jaccard_dissimilarity
+from onecodex.lib.diversity import bray_curtis, cityblock, unifrac, jaccard_dissimilarity
 
 
-def plot_distance(analyses, title=None,
-                  field='abundance', distance_metric='bray-curtis'):
+def plot_distance(analyses, title=None, distance_metric='bray-curtis',
+                  field='readcount_w_children', rank='species'):
     import matplotlib.pyplot as plt
     import seaborn as sns
 
     if distance_metric == 'bray-curtis':
-        f = braycurtis
+        f = bray_curtis
     elif distance_metric == 'manhattan':
         f = cityblock
     elif distance_metric == 'jaccard':
@@ -35,7 +34,8 @@ def plot_distance(analyses, title=None,
     for id1 in df.index.values:
         dists[names[id1]] = {}
         for id2 in df.index.values:
-            dists[names[id1]][names[id2]] = f(df.loc[id1, :], df.loc[id2, :])
+            dists[names[id1]][names[id2]] = f(df.loc[id1, :], df.loc[id2, :],
+                                              field=field, rank=rank)
     dists = pd.DataFrame(dists)
 
     g = sns.clustermap(dists)

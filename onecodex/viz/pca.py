@@ -3,8 +3,8 @@ import pandas as pd
 from onecodex.viz.helpers import collate_analysis_results, normalize_analyses
 
 
-def plot_pca(analyses, title=None, threshold=None, metric='abundance', color_by=None,
-             org_vectors=False, org_vectors_scale_factor=8):
+def plot_pca(analyses, title=None, threshold=None, field='readcount_w_children',
+             color_by=None, org_vectors=False, org_vectors_scale_factor=8):
     import matplotlib.pyplot as plt
     import seaborn as sns
     from sklearn.decomposition import PCA
@@ -15,7 +15,7 @@ def plot_pca(analyses, title=None, threshold=None, metric='abundance', color_by=
     """Perform Principal Components Analysis to visualize the similarity of samples."""
 
     normed_analyses, metadata = normalize_analyses(analyses)
-    df = collate_analysis_results(normed_analyses, metric=metric)
+    df = collate_analysis_results(normed_analyses, field=field)
 
     pca = PCA()
     pca_vals = pca.fit(df.values).transform(df.values)

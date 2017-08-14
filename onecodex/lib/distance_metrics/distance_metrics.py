@@ -1,16 +1,11 @@
 import skbio.diversity
 
-from onecodex.lib.distance.helpers import alpha_counts, beta_counts
-
-
-ACCEPTABLE_FIELDS = ['abundance', 'readcount', 'readcount_w_children']
+from onecodex.lib.distance.helpers import alpha_counts, beta_counts, ACCEPTABLE_FIELDS
 
 
 def alpha_diversity(classification, distance_metric, ids=None,
                     field='readcount_w_children', rank='species', **kwargs):
-    """
-    Caculate the diversity within a community
-    """
+    """Caculate the diversity within a community"""
     assert field in ACCEPTABLE_FIELDS
 
     counts = alpha_counts(classification, field=field, rank=rank)
@@ -19,14 +14,13 @@ def alpha_diversity(classification, distance_metric, ids=None,
 
 def beta_diversity(classification1, classification2, distance_metric,
                    field='readcount_w_children', rank='species', **kwargs):
-    """
-    Calculate the diversity between 2 communities
-    """
+    """Calculate the diversity between 2 communities"""
     assert field in ACCEPTABLE_FIELDS
 
     tax_ids, uv_counts, _, _ = beta_counts(classification1, classification2,
                                            field=field, rank=rank)
-    return skbio.diversity.beta.pw_distances(uv_counts, distance_metric, tax_ids, **kwargs)
+    # bc_dm = beta_diversity("braycurtis", data, ids)
+    return skbio.diversity.beta_diversity(distance_metric, uv_counts, tax_ids)
 
 
 def simpson(classification, field='readcount_w_children', rank='species'):
@@ -79,8 +73,27 @@ def unifrac(classification1, classification2, weighted=True,
 def jaccard_dissimilarity(classification1, classification2,
                           field='readcount_w_children', rank='species'):
     """Compute the Jaccard dissimilarity between two classifications."""
+    assert field in ACCEPTABLE_FIELDS
+
     _, _, u_counts, v_counts = beta_counts(classification1, classification2,
                                            field=field, rank=rank)
     n_intersection = float(len(set(u_counts) & set(v_counts)))
     n_union = float(len(set(u_counts) | set(v_counts)))
     return 1 - (n_intersection / n_union)
+
+
+def bray_curtis(classification1, classification2, field='readcount_w_children', rank='species'):
+    """Compute the Bray-Curtis dissimilarity between two classifications."""
+    assert field in ACCEPTABLE_FIELDS
+
+    tax_ids, uv_counts, _, _ = beta_counts(classification1, classification2, field=field, rank=rank)
+    return skbio.diversity.beta_diversity('braycurtis', uv_counts, tax_ids)
+
+
+def cityblock(classification1, classification2, field='readcount_w_children', rank='species'):
+    """Compute the Manhattan distance between two classifications."""
+    assert field in ACCEPTABLE_FIELDS
+
+    tax_ids, uv_counts, u_counts, v_counts = beta_counts(classification1, classification2,
+                                                         field=field, rank=rank)
+    return skbio.diversity.beta_diversity('cityblock', uv_counts, tax_ids)
