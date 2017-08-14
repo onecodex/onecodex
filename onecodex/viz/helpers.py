@@ -31,9 +31,9 @@ def normalize_analyses(analyses, skip_missing=True):
     return normed_analyses, metadata
 
 
-def collate_analysis_results(analyses, metric='abundance'):
+def collate_analysis_results(analyses, field='abundance'):
     """For a set of analyses, return the results as a Pandas DataFrame."""
-    assert metric in ['abundance', 'readcount', 'readcount_w_children']
+    assert field in ['abundance', 'readcount', 'readcount_w_children']
 
     # Keep track of all of the microbial abundances
     dat = []
@@ -60,9 +60,9 @@ def collate_analysis_results(analyses, metric='abundance'):
                 tax_id_info[d['tax_id']] = {k: d[k] for k in ['name', 'rank', 'parent_tax_id']}
 
         # Reformat detection infromation as dict of {taxid: value}
-        result = {d['tax_id']: d[metric] for d in result if metric in d}
+        result = {d['tax_id']: d[field] for d in result if field in d}
 
-        # Remove entries without the specified metric
+        # Remove entries without the specified field
         result = {taxid: value for taxid, value in result.items() if value is not None}
 
         # set up how we fill missing data later

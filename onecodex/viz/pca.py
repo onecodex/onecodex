@@ -1,4 +1,4 @@
-import pandas
+import pandas as pd
 
 from onecodex.viz.helpers import collate_analysis_results, normalize_analyses
 
@@ -6,9 +6,8 @@ from onecodex.viz.helpers import collate_analysis_results, normalize_analyses
 def plot_pca(analyses, title=None, threshold=None, metric='abundance', color_by=None,
              org_vectors=False, org_vectors_scale_factor=8):
     import matplotlib.pyplot as plt
-    import seaborn
+    import seaborn as sns
     from sklearn.decomposition import PCA
-    # metric: 'abundance' or 'readcount'
     # color_by: piece of metadata to color by
     # org_vectors: boolean; whether to plot the most highly contributing organisms
     # org_vectors_scale_factor: scale factor to modify the length of the organism vectors
@@ -20,12 +19,12 @@ def plot_pca(analyses, title=None, threshold=None, metric='abundance', color_by=
 
     pca = PCA()
     pca_vals = pca.fit(df.values).transform(df.values)
-    pca_vals = pandas.DataFrame(pca_vals, index=df.index)
+    pca_vals = pd.DataFrame(pca_vals, index=df.index)
     pca_vals.rename(columns=lambda x: "PCA{}".format(x + 1), inplace=True)
 
     pca = PCA()
     pca_vals = pca.fit(df.values).transform(df.values)
-    pca_vals = pandas.DataFrame(pca_vals, index=df.index)
+    pca_vals = pd.DataFrame(pca_vals, index=df.index)
     pca_vals.rename(columns=lambda x: "PCA{}".format(x + 1), inplace=True)
 
     color_by_vals = []
@@ -34,7 +33,7 @@ def plot_pca(analyses, title=None, threshold=None, metric='abundance', color_by=
         # if the metadata does not have the color_by attribute, make it gray
         for md in metadata:
             if getattr(md, color_by) is None:
-                color_by_vals.append('None')
+                color_by_vals.append('Not specified')
             else:
                 color_by_vals.append(getattr(md, color_by))
 
@@ -42,15 +41,15 @@ def plot_pca(analyses, title=None, threshold=None, metric='abundance', color_by=
 
     # Scatter plot of PCA
     if color_by is None:
-        g = seaborn.lmplot('PCA1', 'PCA2', data=pca_vals, fit_reg=False)
+        g = sns.lmplot('PCA1', 'PCA2', data=pca_vals, fit_reg=False)
     else:
-        g = seaborn.lmplot('PCA1', 'PCA2', data=pca_vals, fit_reg=False, hue=color_by)
+        g = sns.lmplot('PCA1', 'PCA2', data=pca_vals, fit_reg=False, hue=color_by)
 
     # Plot the organism eigenvectors that contribute the most
     if org_vectors:
         # Plot the most highly contributing taxa
         n = 3  # Number of taxa to display
-        cutoff = pandas.DataFrame(pca.components_[0:2, :]).abs().sum().sort_values().values[-1 * n]
+        cutoff = pd.DataFrame(pca.components_[0:2, :]).abs().sum().sort_values().values[-1 * n]
         for taxid, var1, var2 in zip(df.columns, pca.components_[0, :], pca.components_[1, :]):
             if abs(var1) + abs(var2) >= cutoff:
                 g.axes.flat[0].annotate("{} ({})".format(df['tax_name'], taxid),

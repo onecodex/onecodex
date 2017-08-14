@@ -4,9 +4,9 @@ from onecodex.viz.helpers import collate_analysis_results, normalize_analyses
 
 def plot_heatmap(analyses, title=None, top_n=20, threshold=None, metric='abundance'):
     import matplotlib.pyplot as plt
-    import seaborn
-
+    import seaborn as sns
     # metric: 'abundance' or 'readcount'
+
     assert len(analyses) > 1
 
     if not (threshold or top_n):
@@ -22,12 +22,12 @@ def plot_heatmap(analyses, title=None, top_n=20, threshold=None, metric='abundan
     if threshold and top_n:
         idx = df.sum(axis=0).sort_values(ascending=False).head(top_n).index
         df = df.loc[:, idx]  # can't use idx with multiple conditions
-        g = seaborn.clustermap(df.loc[:, df.max() >= threshold])
+        g = sns.clustermap(df.loc[:, df.max() >= threshold])
     elif threshold:
-        g = seaborn.clustermap(df.loc[:, df.max() >= threshold])
+        g = sns.clustermap(df.loc[:, df.max() >= threshold])
     elif top_n:
         idx = df.sum(axis=0).sort_values(ascending=False).head(top_n).index
-        g = seaborn.clustermap(df.loc[:, idx])
+        g = sns.clustermap(df.loc[:, idx])
 
     # Rotate the margin labels
     plt.setp(g.ax_heatmap.yaxis.get_majorticklabels(), rotation=0)
