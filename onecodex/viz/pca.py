@@ -1,13 +1,13 @@
-import matplotlib.pyplot as plt
-import seaborn
 import pandas
-from sklearn.decomposition import PCA
 
 from onecodex.viz.helpers import collate_analysis_results, normalize_analyses
 
 
 def plot_pca(analyses, title=None, threshold=None, metric='abundance', color_by=None,
              org_vectors=False, org_vectors_scale_factor=8):
+    import matplotlib.pyplot as plt
+    import seaborn
+    from sklearn.decomposition import PCA
     # metric: 'abundance' or 'readcount'
     # color_by: piece of metadata to color by
     # org_vectors: boolean; whether to plot the most highly contributing organisms

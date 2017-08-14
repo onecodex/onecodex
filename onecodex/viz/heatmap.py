@@ -1,11 +1,11 @@
-import matplotlib.pyplot as plt
-import seaborn
-
 from onecodex.exceptions import OneCodexException
 from onecodex.viz.helpers import collate_analysis_results, normalize_analyses
 
 
 def plot_heatmap(analyses, title=None, top_n=20, threshold=None, metric='abundance'):
+    import matplotlib.pyplot as plt
+    import seaborn
+
     # metric: 'abundance' or 'readcount'
     assert len(analyses) > 1
 
