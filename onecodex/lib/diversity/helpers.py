@@ -1,21 +1,21 @@
 
 
-def alpha_counts(classification, calculate_by='readcount_w_children', rank='species'):
-    return [t[calculate_by] for t in classification.results()['table']
+def alpha_counts(classification, metric='readcount_w_children', rank='species'):
+    return [t[metric] for t in classification.results()['table']
             if t['rank'] == rank]
 
 
 def beta_counts(classification1, classification2,
-                calculate_by='readcount_w_children', rank='species'):
+                metric='readcount_w_children', rank='species'):
         counts = {}
         for row in classification1.results()['table']:
-            counts[row['tax_id']] = [row[calculate_by], 0]
+            counts[row['tax_id']] = [row[metric], 0]
 
         for row in classification2.results()['table']:
             if counts[row['tax_id']][1] is 0:
-                counts[row['tax_id']][1] = row[calculate_by]
+                counts[row['tax_id']][1] = row[metric]
             else:
-                counts[row['tax_id']] = [0, row[calculate_by]]
+                counts[row['tax_id']] = [0, row[metric]]
 
         tax_ids = counts.keys()
         uv_counts = counts.values()
