@@ -61,3 +61,19 @@ def generate_skbio_tree(classification, existing_tree=None):
     assert len(unlinked) == 0, 'some unlinked nodes were not included in the tree'
 
     return tree
+
+
+def prune_to_rank(tree, rank='species'):
+    """
+    Takes a TreeNode tree and prunes off any tips not at the specified rank
+    (and backwards up until all of the tips are at the specified rank.
+    """
+    for node in tree.postorder():
+        if node.rank == rank:
+            node._above_rank = True
+        elif any([getattr(n, '_above_rank', False) for n in node.children]):
+            node._above_rank = True
+        else:
+            node._above_rank = False
+
+    tree.remove_deleted(lambda n: not getattr(n, '_above_rank', False))
