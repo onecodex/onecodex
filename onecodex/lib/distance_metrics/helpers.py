@@ -4,9 +4,8 @@ ACCEPTABLE_FIELDS = ['abundance', 'readcount_w_children', 'readcount']
 def alpha_counts(classification, field='readcount_w_children', rank='species'):
     counts = [t[field] for t in classification.results()['table']
               if t['rank'] == rank]
-    name = classification.results()['table']['name'] \
-        if classification.results()['table']['name'] \
-        else classification.results()['table']['file_name']
+    name = classification.sample.name \
+        if classification.sample.name else classification.sample.filename
     ids = [name]
     return (counts, ids)
 
@@ -16,8 +15,7 @@ def beta_counts(classifications, field='readcount_w_children', rank='species'):
 
     counts = {}
     for c, idx in enumerate(classifications):
-        name = c.results()['table']['name'] if c.results()['table']['name'] \
-                                            else c.results()['table']['file_name']
+        name = c.sample.metadata.name if c.sample.metadata.name else c.sample.filename
         ids.append(name)
         for row in c.results()['table']:
             counts[row['tax_id']][idx] = row[field]

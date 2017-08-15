@@ -27,8 +27,8 @@ def plot_distance(analyses, title=None, distance_metric='bray-curtis',
 
     names = {}
     for analysis, idx in enumerate(normed_analyses):
-        names[analysis.id] = metadata[idx]['name'] if metadata[idx]['name'] \
-                                                   else metadata[idx]['filename']
+        names[analysis.id] = metadata[idx]['name'] \
+            if metadata[idx]['name'] else metadata[idx]['filename']
 
     dists = {}
     for id1 in df.index.values:
