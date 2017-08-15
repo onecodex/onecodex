@@ -38,7 +38,6 @@ def collate_analysis_results(analyses, field='abundance'):
     # Keep track of all of the microbial abundances
     dat = []
     titles = []
-    nan_dat = {}
 
     # Keep track of information for each tax_id
     tax_id_info = {}
@@ -46,7 +45,6 @@ def collate_analysis_results(analyses, field='abundance'):
     # Get results for each of the Sample objects that are passed in
     for a in analyses:
         if a.success is False:
-            nan_dat[a.id] = np.nan
             dat.append({})
             titles.append(a.id)
             continue
@@ -65,10 +63,6 @@ def collate_analysis_results(analyses, field='abundance'):
         # Remove entries without the specified field
         result = {taxid: value for taxid, value in result.items() if value is not None}
 
-        # set up how we fill missing data later
-        # (if the entire row doesn't exist, it should be nans)
-        nan_dat[a.id] = np.nan if len(result) == 0 else 0
-
         # Save the set of microbial abundances
         dat.append(result)
         titles.append(a.id)
@@ -81,7 +75,7 @@ def collate_analysis_results(analyses, field='abundance'):
     df.index = titles
 
     # fill in missing values
-    df = df.T.fillna(nan_dat)
+    df = df.T.fillna(0)
 
     # add an index with the tax ids name
     df.index.name = 'tax_id'

@@ -1,7 +1,7 @@
 import skbio.diversity
 
-from onecodex.lib.taxonomy import generate_skbio_tree
-from onecodex.viz.helpers import normalize_analyses, collate_analysis_results
+from onecodex.lib.taxonomy import generate_skbio_tree, prune_to_rank
+from onecodex.viz.helpers import collate_analysis_results
 
 
 ACCEPTABLE_FIELDS = ['abundance', 'readcount_w_children', 'readcount']
@@ -17,9 +17,8 @@ def alpha_counts(classification, field='readcount_w_children', rank='species'):
 
 
 def beta_counts(classifications, field='readcount_w_children', rank='species'):
-    # FIXME: incorporate rank
-    normed_analyses, metadata = normalize_analyses(classifications)
     df = collate_analysis_results(classifications, field=field)
+    df = df.loc[:, [i[2] == rank for i in df.columns]]
 
     tax_ids = [t[0] for t in df.columns.values]
     vectors = df.values.tolist()
@@ -79,12 +78,22 @@ def unifrac(classifications, weighted=True,
     for c in classifications:
         tree = generate_skbio_tree(c, existing_tree=tree)
 
+    # there's a bug (?) in skbio where it expects the root to only have
+    # one child, so we do a little faking here
+    from skbio.tree import TreeNode
+    new_tree = TreeNode(name='fake root')
+    new_tree.rank = 'no rank'
+    new_tree.append(tree)
+
+    # prune low-level nodes off the tree so the tips are what we're comparing
+    prune_to_rank(new_tree, rank=rank)
+
     if weighted:
         return skbio.diversity.beta_diversity("weighted_unifrac", counts, ids,
-                                              tree=tree, otu_ids=tax_ids)
+                                              tree=new_tree, otu_ids=tax_ids)
     else:
         return skbio.diversity.beta_diversity("unweighted_unifrac", counts, ids,
-                                              tree=tree, otu_ids=tax_ids)
+                                              tree=new_tree, otu_ids=tax_ids)
 
 
 def jaccard(classifications, field='readcount_w_children', rank='species'):

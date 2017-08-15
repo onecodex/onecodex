@@ -17,7 +17,7 @@ def generate_skbio_tree(classification, existing_tree=None):
 
     otus = classification.results()['table']
     if existing_tree is None:
-        tree = TreeNode(name='1')
+        tree = TreeNode(name='1', length=1)
         tree.tax_name = 'Root'
         tree.rank = 'no rank'
     else:
@@ -47,7 +47,7 @@ def generate_skbio_tree(classification, existing_tree=None):
             children = None
 
         # create the node
-        node = TreeNode(name=tax_id, children=children)
+        node = TreeNode(name=tax_id, length=1, children=children)
         node.tax_name = otu.get('name', '')
         node.rank = otu.get('rank', 'no rank')
 
