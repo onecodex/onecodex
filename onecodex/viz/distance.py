@@ -2,7 +2,7 @@ import pandas as pd
 
 from onecodex.exceptions import OneCodexException
 from onecodex.viz.helpers import normalize_analyses
-from onecodex.lib.distance_metrics import braycurtis, cityblock, unifrac, jaccard
+from onecodex.lib.distance_metrics import braycurtis, cityblock, unifrac, jaccard, beta_diversity
 
 
 def plot_distance(analyses, title=None, distance_metric='bray-curtis',

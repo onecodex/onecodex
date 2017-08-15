@@ -43,7 +43,7 @@ def beta_diversity(classifications, distance_metric,
     assert field in ACCEPTABLE_FIELDS
 
     counts, tax_ids, ids = beta_counts(classifications, field=field, rank=rank)
-    return skbio.diversity.beta_diversity(distance_metric, counts, ids, otu_ids=tax_ids)
+    return skbio.diversity.beta_diversity(distance_metric, counts, ids, **kwargs)
 
 
 def simpson(classification, field='readcount_w_children', rank='species'):
@@ -91,7 +91,7 @@ def jaccard(classifications, field='readcount_w_children', rank='species'):
     """Compute the Jaccard dissimilarity between two classifications."""
     assert field in ACCEPTABLE_FIELDS
     counts, tax_ids, ids = beta_counts(classifications, field=field, rank=rank)
-    return skbio.diversity.beta_diversity('jaccard', counts, ids, otu_ids=tax_ids)
+    return skbio.diversity.beta_diversity('jaccard', counts, ids)
 
 
 def braycurtis(classifications, field='readcount_w_children', rank='species'):
@@ -107,4 +107,4 @@ def cityblock(classifications, field='readcount_w_children', rank='species'):
     assert field in ACCEPTABLE_FIELDS
 
     counts, tax_ids, ids = beta_counts(classifications, field=field, rank=rank)
-    return skbio.diversity.beta_diversity('cityblock', counts, ids, otu_ids=tax_ids)
+    return skbio.diversity.beta_diversity('cityblock', counts, ids)
