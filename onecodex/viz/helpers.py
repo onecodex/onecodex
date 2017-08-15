@@ -86,7 +86,8 @@ def collate_analysis_results(analyses, field='abundance'):
     # add an index with the tax ids name
     df.index.name = 'tax_id'
     df['tax_name'] = df.index.map(lambda tid: tax_id_info[tid]['name'])
-    df.set_index(['tax_name'], inplace=True, append=True)
+    df['tax_rank'] = df.index.map(lambda tid: tax_id_info[tid]['rank'])
+    df.set_index(['tax_name', 'tax_rank'], inplace=True, append=True)
 
     # Remove columns (tax_ids) with no values that are > 0
     df = df.T.loc[:, df.T.sum() > 0]
