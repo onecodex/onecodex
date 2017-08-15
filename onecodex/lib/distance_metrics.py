@@ -1,7 +1,44 @@
 import skbio.diversity
 
-from onecodex.lib.distance.helpers import alpha_counts, beta_counts, ACCEPTABLE_FIELDS
 from onecodex.lib.taxonomy import generate_skbio_tree
+from onecodex.viz.helpers import normalize_analyses, collate_analysis_results
+
+
+ACCEPTABLE_FIELDS = ['abundance', 'readcount_w_children', 'readcount']
+
+
+def alpha_counts(classification, field='readcount_w_children', rank='species'):
+    counts = [t[field] for t in classification.results()['table']
+              if t['rank'] == rank]
+    name = classification.sample.name \
+        if classification.sample.name else classification.sample.filename
+    ids = [name]
+    return (counts, ids)
+
+
+def beta_counts(classifications, field='readcount_w_children', rank='species'):
+    # ids = []
+    #
+    # counts = {}
+    # for idx, c in enumerate(classifications):
+    #     name = c.sample.metadata.name if c.sample.metadata.name else c.sample.filename
+    #     ids.append(name)
+    #     for row in c.results()['table']:
+    #         if row['tax_id'] not in counts:
+    #             counts[row['tax_id']] = [0] * len(classifications)
+    #         counts[row['tax_id']][idx] = row[field]
+        # vectors = [list(x) for x in zip(*list(counts.values()))]
+        # tax_ids = list(counts.keys())
+        # return (vectors, tax_ids, ids)
+
+    normed_analyses, metadata = normalize_analyses(classifications)
+    df = collate_analysis_results(classifications, field=field)
+
+    tax_ids = [t[0] for t in df.columns.values]
+    vectors = df.values.tolist()
+    vectors = [[int(i) for i in row] for row in vectors]
+    ids = df.index.values
+    return (vectors, tax_ids, ids)
 
 
 def alpha_diversity(classification, distance_metric, ids=None,
@@ -63,19 +100,19 @@ def unifrac(classifications, weighted=True,
                                               tree=tree, otu_ids=tax_ids)
 
 
-def jaccard_dissimilarity(classifications, field='readcount_w_children', rank='species'):
+def jaccard(classifications, field='readcount_w_children', rank='species'):
     """Compute the Jaccard dissimilarity between two classifications."""
     assert field in ACCEPTABLE_FIELDS
     counts, tax_ids, ids = beta_counts(classifications, field=field, rank=rank)
     return skbio.diversity.beta_diversity('jaccard', counts, ids, otu_ids=tax_ids)
 
 
-def bray_curtis(classifications, field='readcount_w_children', rank='species'):
+def braycurtis(classifications, field='readcount_w_children', rank='species'):
     """Compute the Bray-Curtis dissimilarity between two classifications."""
     assert field in ACCEPTABLE_FIELDS
 
-    counts, tax_ids, ids = beta_counts(classifications, field=field, rank=rank)
-    return skbio.diversity.beta_diversity('braycurtis', counts, ids, otu_ids=tax_ids)
+    counts, _, ids = beta_counts(classifications, field=field, rank=rank)
+    return skbio.diversity.beta_diversity('braycurtis', counts, ids)
 
 
 def cityblock(classifications, field='readcount_w_children', rank='species'):

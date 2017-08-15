@@ -1,8 +1,8 @@
 import pandas as pd
 
 from onecodex.exceptions import OneCodexException
-from onecodex.viz.helpers import normalize_analyses, collate_analysis_results
-from onecodex.lib.diversity import bray_curtis, cityblock, unifrac, jaccard_dissimilarity
+from onecodex.viz.helpers import normalize_analyses
+from onecodex.lib.distance_metrics import braycurtis, cityblock, unifrac, jaccard
 
 
 def plot_distance(analyses, title=None, distance_metric='bray-curtis',
@@ -11,11 +11,11 @@ def plot_distance(analyses, title=None, distance_metric='bray-curtis',
     import seaborn as sns
 
     if distance_metric == 'bray-curtis':
-        f = bray_curtis
+        f = braycurtis
     elif distance_metric == 'manhattan':
         f = cityblock
     elif distance_metric == 'jaccard':
-        f = jaccard_dissimilarity
+        f = jaccard
     elif distance_metric == 'unifrac':
         f = unifrac
     else:
@@ -23,19 +23,22 @@ def plot_distance(analyses, title=None, distance_metric='bray-curtis',
                                 "of bray-curtis, manhattan, jaccard, or unifrac")
 
     normed_analyses, metadata = normalize_analyses(analyses)
-    df = collate_analysis_results(analyses, field=field)
 
     names = {}
-    for analysis, idx in enumerate(normed_analyses):
-        names[analysis.id] = metadata[idx]['name'] \
-            if metadata[idx]['name'] else metadata[idx]['filename']
+    for idx, analysis in enumerate(normed_analyses):
+        # FIXME: if names are not unique, the dict will overwrite
+        # names[analysis.id] = metadata[idx].name \
+        #     if metadata[idx].name else analysis.sample.filename
+        names[analysis.id] = analysis.id
 
+    distances = f(analyses, field=field, rank=rank)
+    ids = distances.ids
+    distance_matrix = distances.data
     dists = {}
-    for id1 in df.index.values:
+    for idx1, id1 in enumerate(ids):
         dists[names[id1]] = {}
-        for id2 in df.index.values:
-            dists[names[id1]][names[id2]] = f(df.loc[id1, :], df.loc[id2, :],
-                                              field=field, rank=rank)
+        for idx2, id2 in enumerate(ids):
+            dists[names[id1]][names[id2]] = distance_matrix[idx1][idx2]
     dists = pd.DataFrame(dists)
 
     g = sns.clustermap(dists)
