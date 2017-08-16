@@ -1,7 +1,6 @@
 import skbio.diversity
 
 from onecodex.lib.taxonomy import generate_skbio_tree, prune_to_rank
-from onecodex.viz.helpers import normalize_analyses, collate_analysis_results
 
 
 ACCEPTABLE_FIELDS = ['abundance', 'readcount_w_children', 'readcount']
@@ -17,6 +16,7 @@ def alpha_counts(classification, field='readcount_w_children', rank='species'):
 
 
 def beta_counts(classifications, field='readcount_w_children', rank='species'):
+    from onecodex.viz.helpers import normalize_analyses, collate_analysis_results
     normed_analyses, _ = normalize_analyses(classifications)
     df = collate_analysis_results(normed_analyses, field=field)
     df = df.loc[:, [i[2] == rank for i in df.columns]]
