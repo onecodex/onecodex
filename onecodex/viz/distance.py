@@ -2,7 +2,7 @@ import pandas as pd
 
 from onecodex.exceptions import OneCodexException
 from onecodex.helpers import normalize_analyses
-from onecodex.distance import braycurtis, cityblock, jaccard
+from onecodex.distance import braycurtis, cityblock, jaccard, unifrac
 
 
 def plot_distance(analyses, title=None, distance_metric='bray-curtis',
@@ -17,9 +17,11 @@ def plot_distance(analyses, title=None, distance_metric='bray-curtis',
         f = cityblock
     elif distance_metric == 'jaccard':
         f = jaccard
+    elif distance_metric == 'unifrac':
+        f = unifrac
     else:
-        raise OneCodexException("Please specify 'distance_metric' as one "
-                                "of bray-curtis, manhattan, or jaccard")
+        raise OneCodexException("'distance_metric' must be one of "
+                                "bray-curtis, manhattan, jaccard, or unifrac")
 
     normed_analyses, metadata = normalize_analyses(analyses)
 
