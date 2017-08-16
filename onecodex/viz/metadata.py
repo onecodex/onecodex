@@ -30,10 +30,6 @@ def plot_metadata(analyses, title=None, metadata='created_at', statistic=None,
 
     normed_analyses, metadata_objs = normalize_analyses(analyses)
 
-    # FIXME: delete after testing
-    for idx, m in enumerate(metadata_objs):
-        m.custom['height'] = idx * 15
-
     df = collate_analysis_results(normed_analyses, field=field)
     df = df.loc[:, [i[2] == rank for i in df.columns]]
 
