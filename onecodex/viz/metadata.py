@@ -11,7 +11,7 @@ def plot_metadata(analyses, title=None, metadata='created_at', statistic=None,
     # metadata -> (lambda?) # TODO
     # ONE of:
     # tax_id -> plot abundance on y axis
-    # statistic -> plot statistic on y axis # TODO
+    # statistic -> plot statistic on y axis
     # statistic (lambda?) # TODO
     import matplotlib.pyplot as plt
     import seaborn as sns
@@ -26,6 +26,7 @@ def plot_metadata(analyses, title=None, metadata='created_at', statistic=None,
             calculate = simpson
 
     sns.set(style="whitegrid")
+    f, ax = plt.subplots()
 
     normed_analyses, metadata_objs = normalize_analyses(analyses)
 
@@ -60,13 +61,15 @@ def plot_metadata(analyses, title=None, metadata='created_at', statistic=None,
         df = df.loc[:, str(tax_id)]
         df = pd.concat([df[:].T, md]).T
         df.rename(columns={df.columns.values[0]: field}, inplace=True)
-        sns.boxplot(x=metadata, y=field, data=df, palette='vlag')
-        sns.swarmplot(x=metadata, y=field, data=df, size=2, color=".3", linewidth=0)
+        sns.boxplot(x=metadata, y=field, data=df, palette='vlag', ax=ax)
+        sns.swarmplot(x=metadata, y=field, data=df, size=2, color=".3", linewidth=0, ax=ax)
     elif statistic:
         df = pd.DataFrame([md, stat], index=[metadata, statistic]).T
         df.T.index = [metadata, statistic]
-        sns.boxplot(x=metadata, y=statistic, data=df.reset_index(), palette='vlag')
+        sns.boxplot(x=metadata, y=statistic, data=df.reset_index(), palette='vlag', ax=ax)
         sns.swarmplot(x=metadata, y=statistic, data=df.reset_index(),
-                      size=2, color=".3", linewidth=0)
+                      size=2, color=".3", linewidth=0, ax=ax)
 
+    if title:
+        f.suptitle(title)
     plt.show()
