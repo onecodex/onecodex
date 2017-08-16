@@ -1,6 +1,6 @@
 import pandas as pd
 
-from onecodex.viz.helpers import collate_analysis_results, normalize_analyses
+from onecodex.helpers import collate_analysis_results, normalize_analyses
 
 
 def plot_pca(analyses, title=None, threshold=None, field='readcount_w_children',

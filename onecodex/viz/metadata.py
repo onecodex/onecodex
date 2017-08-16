@@ -1,8 +1,8 @@
 import pandas as pd
 
 from onecodex.exceptions import OneCodexException
-from onecodex.viz.helpers import normalize_analyses, collate_analysis_results
-from onecodex.lib.distance_metrics import simpson, chao1
+from onecodex.helpers import normalize_analyses, collate_analysis_results
+from onecodex.distance import simpson, chao1
 
 
 def plot_metadata(analyses, title=None, metadata='created_at', statistic=None,

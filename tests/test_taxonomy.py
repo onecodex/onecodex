@@ -1,6 +1,6 @@
 import pytest
 
-from onecodex.lib.taxonomy import generate_skbio_tree, prune_to_rank
+from onecodex.taxonomy import generate_skbio_tree, prune_to_rank
 
 
 def test_tree_generation(ocx, api_data):

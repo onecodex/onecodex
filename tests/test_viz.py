@@ -1,4 +1,4 @@
-from onecodex.viz.helpers import collate_analysis_results
+from onecodex.helpers import collate_analysis_results
 
 
 def test_result_collation(ocx, api_data):
