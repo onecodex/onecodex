@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 
 from onecodex.exceptions import OneCodexException
@@ -31,7 +30,7 @@ def normalize_analyses(analyses, skip_missing=True):
     return normed_analyses, metadata
 
 
-def collate_analysis_results(analyses, field='abundance'):
+def collate_analysis_results(analyses, field='readcount_w_children'):
     """For a set of analyses, return the results as a Pandas DataFrame."""
     assert field in ['abundance', 'readcount', 'readcount_w_children']
 

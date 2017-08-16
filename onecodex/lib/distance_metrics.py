@@ -34,7 +34,7 @@ def alpha_diversity(classification, distance_metric, ids=None,
     assert field in ACCEPTABLE_FIELDS
 
     counts, ids = alpha_counts(classification, field=field, rank=rank)
-    return skbio.diversity.alpha_diversity(distance_metric, counts, ids, **kwargs)
+    return skbio.diversity.alpha_diversity(distance_metric, counts, ids, **kwargs).values[0]
 
 
 def beta_diversity(classifications, distance_metric,
@@ -54,7 +54,7 @@ def simpson(classification, field='readcount_w_children', rank='species'):
     assert field in ACCEPTABLE_FIELDS
 
     counts, ids = alpha_counts(classification, field=field, rank=rank)
-    return skbio.diversity.alpha_diversity('simpson', counts, ids)
+    return skbio.diversity.alpha_diversity('simpson', counts, ids).values[0]
 
 
 def chao1(classification, bias_corrected=True,
@@ -62,7 +62,9 @@ def chao1(classification, bias_corrected=True,
     assert field in ACCEPTABLE_FIELDS
 
     counts, ids = alpha_counts(classification, field=field, rank=rank)
-    return skbio.diversity.alpha_diversity('chao1', counts, ids, bias_corrected=bias_corrected)
+    return skbio.diversity \
+                .alpha_diversity('chao1', counts, ids, bias_corrected=bias_corrected) \
+                .values[0]
 
 
 def unifrac(classifications, weighted=True,
