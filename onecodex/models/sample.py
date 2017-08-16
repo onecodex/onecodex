@@ -1,5 +1,6 @@
 import os
 import sys
+import warnings
 
 import requests
 from requests.exceptions import HTTPError
@@ -78,6 +79,7 @@ class Samples(OneCodexBase):
 
     @classmethod
     def search_public(cls, *filters, **keyword_filters):
+        warnings.warn('Now supported via `where(..., public=True)`', DeprecationWarning)
         keyword_filters['public'] = True
         keyword_filters['limit'] = 100
         return cls.where(*filters, **keyword_filters)
