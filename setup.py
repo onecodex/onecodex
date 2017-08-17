@@ -50,7 +50,7 @@ setup(
         'Topic :: Internet :: WWW/HTTP',
     ],
     entry_points={
-        'console_scripts': ['onecodex = onecodex.cli:onecodex']
+        'console_scripts': ['onecodex = onecodex.cli:onecodex'],
     },
     test_suite='tests'
 )

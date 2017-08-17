@@ -40,6 +40,7 @@ OPTION_HELP = {
                "will allow running without any user intervention, e.g. in a script."),
     'validate': ("Do not validate the FASTA/Q file before uploading. Incompatible with automatic "
                  "paired end interleaving (NOT RECOMMENDED)."),
+    'no_telemetry': 'Do not send errors to One Codex',
 }
 
 SUPPORTED_EXTENSIONS = ["fa", "fasta", "fq", "fastq",
