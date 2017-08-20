@@ -70,6 +70,19 @@ class Api(object):
         self._session = self._client.session
         self._copy_resources()
 
+        # Try to import and copy key modules onto the Api object
+        try:
+            from onecodex import viz
+            setattr(self, 'viz', viz)
+        except ImportError:
+            pass
+
+        try:
+            from onecodex import distance
+            setattr(self, 'distance', distance)
+        except ImportError:
+            pass
+
     def _copy_resources(self):
         """
         Copy all of the resources over to the toplevel client

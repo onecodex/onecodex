@@ -13,6 +13,10 @@ import responses
 from onecodex import Api
 from onecodex.lib.inline_validator import BaseFASTXReader
 
+# we need to do this to make sure matplotlib isn't trying to connect to a GUI
+import matplotlib
+matplotlib.use('Agg')
+
 
 def intercept(func, log=False, dump=None):
     """
@@ -173,12 +177,21 @@ API_DATA = {
     }],
     "GET::api/v1/classifications/f9e4a5506b154953/results": {
         "table": [{
-            "name": "Salmonella enterica subsp. enterica",
-            "rank": "subspecies",
-            "readcount": 4642,
-            "readcount_w_children": 4960,
-            "species_abundance": None,
-            "tax_id": 59201
+            'abundance': None,
+            'name': 'Staphylococcus',
+            'parent_tax_id': '1',
+            'rank': 'genus',
+            'readcount': 0,
+            'readcount_w_children': 3,
+            'tax_id': '1279'
+        }, {
+            'abundance': 1,
+            'name': 'Staphylococcus sp. HGB0015',
+            'parent_tax_id': '1279',
+            'rank': 'species',
+            'readcount': 3,
+            'readcount_w_children': 3,
+            'tax_id': '1078083',
         }]
     },
     "PATCH::api/v1/samples/761bc54b97f64980": {},
@@ -223,13 +236,13 @@ for filename in os.listdir('tests/api_data'):
 API_DATA.update(SCHEMA_ROUTES)
 
 
-@pytest.fixture(scope='function')
+@pytest.yield_fixture(scope='function')
 def api_data():
     with mock_requests(API_DATA):
         yield
 
 
-@pytest.fixture(scope='function')
+@pytest.yield_fixture(scope='function')
 def upload_mocks():
     def upload_callback(request):
         # Get and read the streaming iterator so it's empty
