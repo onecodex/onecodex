@@ -1,5 +1,6 @@
 import os
 import sys
+import warnings
 
 import requests
 from requests.exceptions import HTTPError
@@ -22,7 +23,7 @@ class Samples(OneCodexBase):
     def where(cls, *filters, **keyword_filters):
         public = keyword_filters.get('public', False)
         instances_route = 'instances' if not public else 'instances_public'
-        limit = keyword_filters.get('limit', None if not public else 100)
+        limit = keyword_filters.get('limit', None if not public else 1000)
 
         # we can only search metadata on our own samples currently
         # FIXME: we need to add `instances_public` and `instances_project` metadata routes to
@@ -78,8 +79,9 @@ class Samples(OneCodexBase):
 
     @classmethod
     def search_public(cls, *filters, **keyword_filters):
+        warnings.warn('Now supported via `where(..., public=True)`', DeprecationWarning)
         keyword_filters['public'] = True
-        keyword_filters['limit'] = 100
+        keyword_filters['limit'] = 1000
         return cls.where(*filters, **keyword_filters)
 
     def save(self):

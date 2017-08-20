@@ -206,7 +206,7 @@ class OneCodexBase(object):
         where_schema = schema['schema']['properties']['where']['properties']
 
         sort = generate_potion_sort_clause(keyword_filters.pop('sort', None), sort_schema)
-        limit = keyword_filters.pop('limit', None if not public else 100)
+        limit = keyword_filters.pop('limit', None if not public else 1000)
         where = {}
 
         # we're filtering by fancy objects (like SQLAlchemy's filter)
