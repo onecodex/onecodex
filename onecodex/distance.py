@@ -1,5 +1,8 @@
 import skbio.diversity
 
+from skbio.tree import TreeNode
+
+from onecodex.helpers import normalize_classifications, collate_classification_results
 from onecodex.taxonomy import generate_skbio_tree, prune_to_rank
 
 
@@ -20,9 +23,8 @@ def alpha_counts(classification, field='readcount_w_children', rank='species'):
 
 
 def beta_counts(classifications, field='readcount_w_children', rank='species'):
-    from onecodex.helpers import normalize_analyses, collate_analysis_results
-    normed_analyses, _ = normalize_analyses(classifications)
-    df = collate_analysis_results(normed_analyses, field=field, rank=rank)
+    normed_classifications, _ = normalize_classifications(classifications)
+    df = collate_classification_results(normed_classifications, field=field, rank=rank)
 
     tax_ids = [t[0] for t in df.columns.values]
     vectors = df.values.tolist()
@@ -72,15 +74,13 @@ def unifrac(classifications, weighted=True,
     A beta diversity metric that takes into account the relative relatedness of community members.
     Weighted UniFrac looks at abundances, unweighted UniFrac looks at presence
     """
-    from skbio.tree import TreeNode
-
     assert field in ACCEPTABLE_FIELDS
     counts, tax_ids, ids = beta_counts(classifications, field=field, rank=rank)
 
     tree = None
     for c in classifications:
-        assert c.job.id == classifications[0].job.id, "All classifications must " \
-                                                      "have same job for Unifrac"
+        assert c.job.id == classifications[0].job.id, "All Classifications must " \
+                                                      "have the same Job for Unifrac"
         tree = generate_skbio_tree(c, existing_tree=tree)
 
     # there's a bug (?) in skbio where it expects the root to only have
@@ -93,10 +93,10 @@ def unifrac(classifications, weighted=True,
     prune_to_rank(new_tree, rank=rank)
 
     if weighted:
-        return skbio.diversity.beta_diversity("weighted_unifrac", counts, ids,
+        return skbio.diversity.beta_diversity('weighted_unifrac', counts, ids,
                                               tree=new_tree, otu_ids=tax_ids)
     else:
-        return skbio.diversity.beta_diversity("unweighted_unifrac", counts, ids,
+        return skbio.diversity.beta_diversity('unweighted_unifrac', counts, ids,
                                               tree=new_tree, otu_ids=tax_ids)
 
 
