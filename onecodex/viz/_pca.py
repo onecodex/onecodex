@@ -4,19 +4,19 @@ import pandas as pd
 import seaborn as sns
 from sklearn.decomposition import PCA
 
-from onecodex.helpers import collate_analysis_results, normalize_analyses
+from onecodex.helpers import collate_classification_results, normalize_classifications
 
 
-def plot_pca(analyses, title=None, threshold=None, field='readcount_w_children',
-             rank=None, color_by=None, org_vectors=0, org_vectors_scale=None):
-    # color_by: piece of metadata to color by
+def plot_pca(analyses, threshold=None,
+             title=None, hue=None, xlabel=None, ylabel=None,
+             org_vectors=0, org_vectors_scale=None,
+             field='readcount_w_children', rank=None):
+    """Perform Principal Components Analysis to visualize the similarity of samples."""
+    # hue: piece of metadata to color by
     # org_vectors: boolean; whether to plot the most highly contributing organisms
     # org_vectors_scale_factor: scale factor to modify the length of the organism vectors
-
-    """Perform Principal Components Analysis to visualize the similarity of samples."""
-
-    normed_analyses, metadata = normalize_analyses(analyses)
-    df = collate_analysis_results(normed_analyses, field=field, rank=rank)
+    normed_classifications, metadata = normalize_classifications(analyses)
+    df = collate_classification_results(normed_classifications, field=field, rank=rank)
 
     # normalize the magnitude of the data
     df = (df.T / df.sum(axis=1)).T
@@ -30,10 +30,7 @@ def plot_pca(analyses, title=None, threshold=None, field='readcount_w_children',
 
     # Scatter plot of PCA
     sns.set(style="whitegrid")
-    if color_by is None:
-        g = sns.lmplot('PCA1', 'PCA2', data=plot_data, fit_reg=False)
-    else:
-        g = sns.lmplot('PCA1', 'PCA2', data=plot_data, fit_reg=False, hue=color_by)
+    g = sns.lmplot('PCA1', 'PCA2', data=plot_data, fit_reg=False, hue=hue)
 
     # Plot the organism eigenvectors that contribute the most
     if org_vectors > 0:
@@ -55,8 +52,16 @@ def plot_pca(analyses, title=None, threshold=None, field='readcount_w_children',
                                         xy=(0, 0), size=8,
                                         arrowprops={'facecolor': 'black',
                                                     'width': 1, 'headwidth': 5})
-    plt.xlabel("PCA1 ({}%)".format(round(pca.explained_variance_ratio_[0] * 100, 2)))
-    plt.ylabel("PCA2 ({}%)".format(round(pca.explained_variance_ratio_[1] * 100, 2)))
+    # Labels
+    if xlabel is None:
+        xlabel = 'PCA1 ({}%)'.format(round(pca.explained_variance_ratio_[0] * 100, 2))
+    if ylabel is None:
+        ylabel = 'PCA2 ({}%)'.format(round(pca.explained_variance_ratio_[1] * 100, 2))
+    plt.gca().set_xlabel(xlabel)
+    plt.gca().set_ylabel(ylabel)
+
+    # Title
     if title:
         plt.title(title)
+
     plt.show()

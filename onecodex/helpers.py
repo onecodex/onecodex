@@ -1,17 +1,24 @@
 import pandas as pd
+import warnings
+
+import six
 
 from onecodex.exceptions import OneCodexException
-from onecodex.models import Analyses, Classifications, Samples
+from onecodex.models import Analyses, Classifications, Samples, Metadata
 
 
-def normalize_analyses(analyses, skip_missing=True):
-    normed_analyses = []
+def normalize_classifications(analyses, label=None, skip_missing=True, warn=True):
+    """Get a list of classifications and metadata from input `analyses`.
+
+    These "analyses" may be Samples, Analyses, Classifications, or a mix
+    thereof. Metadata is taken off of the Classification.sample.metadata object.
+    """
+    normed_classifications = []
     metadata = []
 
-    DEFAULT_FIELDS = [
-        'date_collected', 'date_sequenced', 'description', 'external_sample_id', 'library_type',
-        'location_lat', 'location_lon', 'location_string', 'name', 'platform', 'sample_type', 'starred'
-    ]
+    DEFAULT_FIELDS = list(Metadata._resource._schema['properties'].keys())
+    DEFAULT_FIELDS.remove('$uri')
+    DEFAULT_FIELDS.remove('sample')
 
     for a in analyses:
         if isinstance(a, Samples):
@@ -27,20 +34,45 @@ def normalize_analyses(analyses, skip_missing=True):
             m = a.sample.metadata
 
         if skip_missing and not c.success:
+            if warn:
+                warnings.warn('Classification {} not successful. Skipping.'.format(c.id))
             continue
 
-        normed_analyses.append(c)
+        normed_classifications.append(c)
         metadatum = {f: getattr(m, f) for f in DEFAULT_FIELDS}
-        metadatum['_display_name'] = (metadatum['name'] if metadatum['name'] is not None
-                                      else c.sample.filename)
+
+        if label is None:
+            metadatum['_display_name'] = (metadatum['name'] if metadatum['name'] is not None
+                                          else c.sample.filename)
+        elif isinstance(label, six.string_types):
+            if label in metadatum:
+                metadatum['_display_name'] = metadatum[label]
+            elif label in m.custom:
+                metadatum['_display_name'] = m.custom[label]
+            else:
+                metadatum['_display_name'] = None
+        elif callable(label):
+            metadatum['_display_name'] = label(m)
+        else:
+            raise NotImplementedError('Must pass a string or lambda function to `label`.')
+
+        # Add sample_id, metadata_id, and sample created_at
+        metadatum['sample_id'] = m.sample.id
+        metadatum['metadata_id'] = m.id
+        metadatum['created_at'] = m.sample.created_at
+
         metadatum.update(m.custom)
         metadata.append(metadatum)
 
-    return normed_analyses, pd.DataFrame(metadata)
+    metadata = pd.DataFrame(metadata)
+    if all(pd.isnull(metadata['_display_name'])):
+        raise OneCodexException('Could not find any labels for `{}`'.format(label))
+
+    return normed_classifications, metadata
 
 
-def collate_analysis_results(analyses, field='readcount_w_children', rank=None):
-    """For a set of analyses, return the results as a Pandas DataFrame."""
+def collate_classification_results(classifications, field='readcount_w_children', rank=None):
+    """For a set of classifications, return the results as a Pandas DataFrame."""
     assert field in ['abundance', 'readcount', 'readcount_w_children']
 
     # Keep track of all of the microbial abundances
@@ -51,14 +83,15 @@ def collate_analysis_results(analyses, field='readcount_w_children', rank=None):
     tax_id_info = {}
 
     # Get results for each of the Sample objects that are passed in
-    for a in analyses:
-        if a.success is False:
+    # Note: Warnings are handled in the `normalize_classifications` function
+    for c in classifications:
+        if c.success is False:
             dat.append({})
-            titles.append(a.id)
+            titles.append(c.id)
             continue
 
         # Get the results in table format
-        result = a.results()['table']
+        result = c.results()['table']
 
         # Record the information (name, parent) for each organism by  its tax ID
         for d in result:
@@ -73,12 +106,13 @@ def collate_analysis_results(analyses, field='readcount_w_children', rank=None):
 
         # Save the set of microbial abundances
         dat.append(result)
-        titles.append(a.id)
+        titles.append(c.id)
 
     if len(dat) == 0:
         return None
 
     # Format as a Pandas DataFrame
+    # TODO: Optimize this; unexpectedly slow
     df = pd.DataFrame(dat)
     df.index = titles
 
@@ -94,6 +128,7 @@ def collate_analysis_results(analyses, field='readcount_w_children', rank=None):
     # Remove columns (tax_ids) with no values that are > 0
     df = df.T.loc[:, df.T.sum() > 0]
 
+    # TODO: Move this up further to optimize for smaller dataframe above
     if rank is not None:
         df = df.loc[:, [i[2] == rank for i in df.columns]]
 

@@ -3,11 +3,12 @@ import pandas as pd
 import seaborn as sns
 
 from onecodex.exceptions import OneCodexException
-from onecodex.helpers import normalize_analyses
+from onecodex.helpers import normalize_classifications
 from onecodex.distance import braycurtis, cityblock, jaccard, unifrac
 
 
-def plot_distance(analyses, title=None, metric='braycurtis',
+def plot_distance(analyses, metric='braycurtis',
+                  title=None, label=None, xlabel=None, ylabel=None,
                   field='readcount_w_children', rank='species'):
     # if taxonomy trees are inconsistent, unifrac will not work
     if metric in ['braycurtis', 'bray-curtis', 'bray curtis']:
@@ -22,18 +23,17 @@ def plot_distance(analyses, title=None, metric='braycurtis',
         raise OneCodexException("'metric' must be one of "
                                 "braycurtis, manhattan, jaccard, or unifrac")
 
-    normed_analyses, metadata = normalize_analyses(analyses)
+    normed_classifications, metadata = normalize_classifications(analyses, label=label)
 
     # there is no uniqueness constraint on metadata names
     # so plot by uuid, then replace the labels in the dataframe with their names
     uuids = {}
     sample_names = {}
-    for idx, analysis in enumerate(normed_analyses):
+    for idx, analysis in enumerate(normed_classifications):
         uuids[analysis.id] = analysis.id
-        sample_names[analysis.id] = metadata.loc[idx, 'name'] \
-            if metadata.loc[idx, 'name'] else analysis.sample.filename
+        sample_names[analysis.id] = metadata.loc[idx, '_display_name']
 
-    distances = f(normed_analyses, field=field, rank=rank)
+    distances = f(normed_classifications, field=field, rank=rank)
     ids = distances.ids
     distance_matrix = distances.data
     dists = {}
@@ -44,6 +44,12 @@ def plot_distance(analyses, title=None, metric='braycurtis',
     dists = pd.DataFrame(dists).rename(index=sample_names, columns=sample_names)
     g = sns.clustermap(dists)
     plt.setp(g.ax_heatmap.yaxis.get_majorticklabels(), rotation=0)
+
+    # Labels
+    if xlabel is not None:
+        plt.gca().set_xlabel(xlabel)
+    if ylabel is not None:
+        plt.gca().set_ylabel(ylabel)
 
     if title:
         g.fig.suptitle(title)

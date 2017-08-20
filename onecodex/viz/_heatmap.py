@@ -2,17 +2,19 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from onecodex.exceptions import OneCodexException
-from onecodex.helpers import collate_analysis_results, normalize_analyses
+from onecodex.helpers import collate_classification_results, normalize_classifications
 
 
-def plot_heatmap(analyses, title=None, top_n=20, threshold=None, rank=None, field='readcount_w_children'):
+def plot_heatmap(analyses, top_n=20, threshold=None,
+                 title=None, label=None, xlabel=None, ylabel=None,
+                 field='readcount_w_children', rank=None):
     assert len(analyses) > 1
 
     if not (threshold or top_n):
         raise OneCodexException('Please set either "threshold" or "top_n"')
 
-    normed_analyses, metadata = normalize_analyses(analyses)
-    df = collate_analysis_results(normed_analyses, field=field, rank=rank)
+    normed_classifications, metadata = normalize_classifications(analyses, label=label)
+    df = collate_classification_results(normed_classifications, field=field, rank=rank)
 
     df.columns = ['{} ({})'.format(v[1], v[0]) for v in df.columns.values]
     df.index = metadata.loc[:, '_display_name']
@@ -30,6 +32,12 @@ def plot_heatmap(analyses, title=None, top_n=20, threshold=None, rank=None, fiel
 
     # Rotate the margin labels
     plt.setp(g.ax_heatmap.yaxis.get_majorticklabels(), rotation=0)
+
+    # Labels
+    if xlabel is not None:
+        plt.gca().set_xlabel(xlabel)
+    if ylabel is not None:
+        plt.gca().set_ylabel(ylabel)
 
     if title:
         g.fig.suptitle(title)
