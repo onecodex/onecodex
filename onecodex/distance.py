@@ -3,6 +3,10 @@ import skbio.diversity
 from onecodex.taxonomy import generate_skbio_tree, prune_to_rank
 
 
+__all__ = ['alpha_diversity', 'simpson', 'chao1',
+           'beta_diversity', 'unifrac', 'jaccard', 'braycurtis', 'cityblock']
+
+
 ACCEPTABLE_FIELDS = ['abundance', 'readcount_w_children', 'readcount']
 
 

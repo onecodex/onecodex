@@ -6,6 +6,7 @@ One Codex API
 """
 from __future__ import print_function
 from datetime import datetime
+import importlib
 import json
 import logging
 import os
@@ -20,6 +21,14 @@ from onecodex.lib.auth import BearerTokenAuth
 from onecodex.models import _model_lookup
 
 log = logging.getLogger(__name__)
+
+
+class ModuleAlias(object):
+    def __init__(self, name):
+        self.name = name
+
+    def __repr__(self):
+        return '{} helper functions'.format(self.name)
 
 
 class Api(object):
@@ -71,17 +80,15 @@ class Api(object):
         self._copy_resources()
 
         # Try to import and copy key modules onto the Api object
-        try:
-            from onecodex import viz
-            setattr(self, 'viz', viz)
-        except ImportError:
-            pass
-
-        try:
-            from onecodex import distance
-            setattr(self, 'distance', distance)
-        except ImportError:
-            pass
+        for module_name in ['onecodex.viz', 'onecodex.distance']:
+            try:
+                short_name = module_name.split('.')[1]
+                module = importlib.import_module(module_name)
+                setattr(self, short_name, ModuleAlias(short_name))
+                for key in module.__all__:
+                    setattr(getattr(self, short_name), key, getattr(module, key))
+            except ImportError:
+                pass
 
     def _copy_resources(self):
         """
