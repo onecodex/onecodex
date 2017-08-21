@@ -112,14 +112,14 @@ def test_dir_patching(ocx, api_data):
 
 
 def test_classification_methods(ocx, api_data):
-    classification = ocx.Classifications.get('f9e4a5506b154953')
+    classification = ocx.Classifications.get('45a573fb7833449a')
     assert isinstance(classification, onecodex.models.analysis.Classifications)
     t = classification.table()
     assert isinstance(t, pd.DataFrame)
 
 
 def test_no_results_on_generic_analysis(ocx, api_data):
-    analysis = ocx.Analyses.get('f9e4a5506b154953')
+    analysis = ocx.Analyses.get('45a573fb7833449a')
     with pytest.raises(NotImplementedError):
         analysis.results()
 
@@ -154,12 +154,18 @@ def test_where_clauses(ocx, api_data, where_args, where_kwargs, queries):
 
 
 def test_public_search(ocx, api_data):
-    samples = ocx.Samples.search_public(filename="tmp.fa")
+    with pytest.warns(DeprecationWarning):
+        samples = ocx.Samples.search_public(filename='tmp.fa')
+        assert len(samples) == 0
+    samples = ocx.Samples.where(filename='tmp.fa', public=True)
     assert len(samples) == 0
 
 
 def test_public_project(ocx, api_data):
-    projs = ocx.Projects.search_public(name="One Codex Project")
+    with pytest.warns(DeprecationWarning):
+        projs = ocx.Projects.search_public(name='One Codex Project')
+        assert len(projs) == 0
+    projs = ocx.Projects.where(name='One Codex Project', public=True)
     assert len(projs) == 0
 
 

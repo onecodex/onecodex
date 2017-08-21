@@ -24,6 +24,8 @@ def plot_distance(analyses, metric='braycurtis',
                                 "braycurtis, manhattan, jaccard, or unifrac")
 
     normed_classifications, metadata = normalize_classifications(analyses, label=label)
+    if len(normed_classifications) < 2:
+        raise OneCodexException('`plot_distance` requires 2 or more valid classification results.')
 
     # there is no uniqueness constraint on metadata names
     # so plot by uuid, then replace the labels in the dataframe with their names

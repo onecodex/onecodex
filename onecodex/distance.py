@@ -2,6 +2,7 @@ import skbio.diversity
 
 from skbio.tree import TreeNode
 
+from onecodex.exceptions import OneCodexException
 from onecodex.helpers import normalize_classifications, collate_classification_results
 from onecodex.taxonomy import generate_skbio_tree, prune_to_rank
 
@@ -69,7 +70,7 @@ def chao1(classification, bias_corrected=True,
 
 
 def unifrac(classifications, weighted=True,
-            field='readcount_w_children', rank='species'):
+            field='readcount_w_children', rank='species', strict=False):
     """
     A beta diversity metric that takes into account the relative relatedness of community members.
     Weighted UniFrac looks at abundances, unweighted UniFrac looks at presence
@@ -79,8 +80,8 @@ def unifrac(classifications, weighted=True,
 
     tree = None
     for c in classifications:
-        assert c.job.id == classifications[0].job.id, "All Classifications must " \
-                                                      "have the same Job for Unifrac"
+        if strict and c.job.id != classifications[0].job.id:
+            raise OneCodexException('All Classifications must have the same Job for Unifrac')
         tree = generate_skbio_tree(c, existing_tree=tree)
 
     # there's a bug (?) in skbio where it expects the root to only have

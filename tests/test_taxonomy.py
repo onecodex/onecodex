@@ -4,7 +4,7 @@ from onecodex.taxonomy import generate_skbio_tree, prune_to_rank
 
 
 def test_tree_generation(ocx, api_data):
-    classification = ocx.Classifications.get('f9e4a5506b154953')
+    classification = ocx.Classifications.get('45a573fb7833449a')
     tree = generate_skbio_tree(classification)
     assert tree.has_children()
     assert tree.is_root()
@@ -14,7 +14,7 @@ def test_tree_generation(ocx, api_data):
 
 def test_tree_pruning(ocx, api_data):
     from skbio.tree import MissingNodeError
-    classification = ocx.Classifications.get('f9e4a5506b154953')
+    classification = ocx.Classifications.get('45a573fb7833449a')
     tree = generate_skbio_tree(classification)
 
     # the species and genus nodes exist

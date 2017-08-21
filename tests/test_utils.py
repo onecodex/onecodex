@@ -44,7 +44,7 @@ def test_is_valid_api_key():
     ('Samples', []),
     ('Samples', ['761bc54b97f64980']),
     ('Analyses', []),
-    ('Analyses', ['f9e4a5506b154953']),
+    ('Analyses', ['45a573fb7833449a']),
     ('Markerpanels', [])
 ])
 def test_fetcher(ocx, api_data, resource, uris):

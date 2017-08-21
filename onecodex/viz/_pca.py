@@ -4,6 +4,7 @@ import pandas as pd
 import seaborn as sns
 from sklearn.decomposition import PCA
 
+from onecodex.exceptions import OneCodexException
 from onecodex.helpers import collate_classification_results, normalize_classifications
 
 
@@ -17,6 +18,8 @@ def plot_pca(analyses, threshold=None,
     # org_vectors_scale_factor: scale factor to modify the length of the organism vectors
     normed_classifications, metadata = normalize_classifications(analyses)
     df = collate_classification_results(normed_classifications, field=field, rank=rank)
+    if len(df) < 2:
+        raise OneCodexException('`plot_pca` requires 2 or more valid classification results.')
 
     # normalize the magnitude of the data
     df = (df.T / df.sum(axis=1)).T

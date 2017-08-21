@@ -8,13 +8,13 @@ from onecodex.helpers import collate_classification_results, normalize_classific
 def plot_heatmap(analyses, top_n=20, threshold=None,
                  title=None, label=None, xlabel=None, ylabel=None,
                  field='readcount_w_children', rank=None):
-    assert len(analyses) > 1
-
     if not (threshold or top_n):
         raise OneCodexException('Please set either "threshold" or "top_n"')
 
     normed_classifications, metadata = normalize_classifications(analyses, label=label)
     df = collate_classification_results(normed_classifications, field=field, rank=rank)
+    if len(df) < 2:
+        raise OneCodexException('`plot_heatmap` requires 2 or more valid classification results.')
 
     df.columns = ['{} ({})'.format(v[1], v[0]) for v in df.columns.values]
     df.index = metadata.loc[:, '_display_name']

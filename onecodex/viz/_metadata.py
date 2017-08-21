@@ -35,7 +35,7 @@ def plot_metadata(analyses, metadata='created_at', statistic=None, tax_id=None,
         for analysis in normed_classifications:
             try:
                 stat.append(alpha_diversity(analysis, statistic, field=field, rank=rank))
-            except:
+            except ValueError:
                 raise NotImplementedError('{} statistic are currently supported.'.format(statistic))
     elif tax_id:
         df = collate_classification_results(normed_classifications, field=field, rank=rank)
@@ -47,7 +47,8 @@ def plot_metadata(analyses, metadata='created_at', statistic=None, tax_id=None,
     # Plot numeric types as lmplots
     # Plot categorical, boolean, and objects as boxplot
     if 'date' in metadata.split('_') or pd.core.dtypes.common.is_datetime64_any_dtype(md[metadata]):
-        md.loc[:, metadata] = md.loc[:, metadata].apply(pd.to_datetime, utc=True)
+        if not pd.core.dtypes.common.is_datetime64_any_dtype(md[metadata]):
+            md.loc[:, metadata] = md.loc[:, metadata].apply(pd.to_datetime, utc=True)
         fig, ax = plt.subplots()
         ax.xaxis.set_major_locator(mdates.AutoDateLocator())
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%m/%d/%Y'))
