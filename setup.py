@@ -31,7 +31,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     extras_require={
-        'all': ['numpy>=1.11.0', 'pandas>=0.18.1', 'matplotlib>1.5.1', 'networkx>=1.11',
+        'all': ['numpy>=1.11.0', 'pandas>=0.18.1', 'matplotlib>1.5.1',
                 'seaborn>=0.8', 'scikit-learn>=0.19.0', 'scikit-bio==0.4.2']
     },
     dependency_links=[],

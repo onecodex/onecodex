@@ -2,6 +2,7 @@
 utils.py
 author: @mbiokyle29
 """
+import importlib
 import json
 import logging
 import os
@@ -190,3 +191,21 @@ def collapse_user(fp):
     home_dir = os.path.expanduser("~")
     abs_path = os.path.abspath(fp)
     return abs_path.replace(home_dir, "~")
+
+
+class ModuleAlias(object):
+    # Used as a proxy object to attach
+    # all of a module's __all__ namespace to
+    # on an One Codex Api() instance
+    def __init__(self, module_name):
+        self._name = module_name.split('.')[1]
+        try:
+            module = importlib.import_module(module_name)
+            for key in module.__all__:
+                setattr(self, key, getattr(module, key))
+            self._imported = True
+        except ImportError:
+            self._imported = False
+
+    def __repr__(self):
+        return '{} helper functions'.format(self.name)
