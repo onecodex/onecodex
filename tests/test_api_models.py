@@ -206,3 +206,11 @@ def test_public_analyses(ocx, api_data):
     assert a.sample.filename == 'MSA-1000.16S.example.fastq.gz'
     assert a.job.name == 'One Codex Database'
     assert a.sample.visibility == 'public'
+
+
+def test_jobs(ocx, api_data):
+    jobs = ocx.Jobs.all()
+    assert len(jobs) == 23
+
+    jobs = ocx.Jobs.where(public=True)
+    assert len(jobs) == 23

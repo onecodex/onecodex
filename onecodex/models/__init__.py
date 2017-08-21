@@ -197,7 +197,10 @@ class OneCodexBase(object):
         """.format(classname=cls.__name__)
         check_bind(cls)
 
-        public = keyword_filters.pop('public', False)
+        public = False
+        if any(x['rel'] == 'instances_public' for x in cls._resource._schema['links']):
+            public = keyword_filters.pop('public', False)
+
         instances_route = keyword_filters.pop('_instances',
                                               'instances' if not public else 'instances_public')
 
