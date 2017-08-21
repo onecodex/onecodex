@@ -41,6 +41,11 @@ def normalize_classifications(analyses, label=None, skip_missing=True, warn=True
         normed_classifications.append(c)
         metadatum = {f: getattr(m, f) for f in DEFAULT_FIELDS}
 
+        # Add sample_id, metadata_id, and sample created_at
+        metadatum['sample_id'] = m.sample.id
+        metadatum['metadata_id'] = m.id
+        metadatum['created_at'] = m.sample.created_at
+
         if label is None:
             metadatum['_display_name'] = (metadatum['name'] if metadatum['name'] is not None
                                           else c.sample.filename)
@@ -56,11 +61,6 @@ def normalize_classifications(analyses, label=None, skip_missing=True, warn=True
         else:
             raise NotImplementedError('Must pass a string or lambda function to `label`.')
 
-        # Add sample_id, metadata_id, and sample created_at
-        metadatum['sample_id'] = m.sample.id
-        metadatum['metadata_id'] = m.id
-        metadatum['created_at'] = m.sample.created_at
-
         metadatum.update(m.custom)
         metadata.append(metadatum)
 
@@ -71,7 +71,8 @@ def normalize_classifications(analyses, label=None, skip_missing=True, warn=True
     return normed_classifications, metadata
 
 
-def collate_classification_results(classifications, field='readcount_w_children', rank=None):
+def collate_classification_results(classifications, field='readcount_w_children',
+                                   rank=None, remove_zeros=True):
     """For a set of classifications, return the results as a Pandas DataFrame."""
     assert field in ['abundance', 'readcount', 'readcount_w_children']
 
@@ -126,7 +127,10 @@ def collate_classification_results(classifications, field='readcount_w_children'
     df.set_index(['tax_name', 'tax_rank'], inplace=True, append=True)
 
     # Remove columns (tax_ids) with no values that are > 0
-    df = df.T.loc[:, df.T.sum() > 0]
+    if remove_zeros:
+        df = df.T.loc[:, df.T.sum() > 0]
+    else:
+        df = df.T
 
     # TODO: Move this up further to optimize for smaller dataframe above
     if rank is not None:
