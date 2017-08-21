@@ -1,7 +1,10 @@
+import numpy as np
 import pandas as pd
 import warnings
 
 import six
+
+from collections import OrderedDict
 
 from onecodex.exceptions import OneCodexException
 from onecodex.models import Analyses, Classifications, Samples, Metadata
@@ -73,22 +76,24 @@ def normalize_classifications(analyses, label=None, skip_missing=True, warn=True
 
 def collate_classification_results(classifications, field='readcount_w_children',
                                    rank=None, remove_zeros=True):
-    """For a set of classifications, return the results as a Pandas DataFrame."""
+    """For a set of classifications, return the results as a Pandas DataFrame.
+
+    Note: The output format is not guaranteed to be stable at this time (i.e.,
+    column orderings, types, etc. may change).
+    """
     assert field in ['abundance', 'readcount', 'readcount_w_children']
+    TYPE_MAPPING = {
+        'readcount': np.int64,
+        'readcount_w_children': np.int64,
+        'abundance': np.float64,
+    }
 
     # Keep track of all of the microbial abundances
-    dat = []
     titles = []
-
-    # Keep track of information for each tax_id
-    tax_id_info = {}
-
-    # Get results for each of the Sample objects that are passed in
-    # Note: Warnings are handled in the `normalize_classifications` function
+    tax_id_info = OrderedDict()
+    column_ix = 0
     for c in classifications:
         if c.success is False:
-            dat.append({})
-            titles.append(c.id)
             continue
 
         # Get the results in table format
@@ -98,23 +103,18 @@ def collate_classification_results(classifications, field='readcount_w_children'
         for d in result:
             if d['tax_id'] not in tax_id_info:
                 tax_id_info[d['tax_id']] = {k: d[k] for k in ['name', 'rank', 'parent_tax_id']}
+                tax_id_info[d['tax_id']]['column'] = column_ix
+                column_ix += 1
 
-        # Reformat detection infromation as dict of {taxid: value}
-        result = {d['tax_id']: d[field] for d in result if field in d}
-
-        # Remove entries without the specified field
-        result = {taxid: value for taxid, value in result.items() if value is not None}
-
-        # Save the set of microbial abundances
-        dat.append(result)
+    arr = np.zeros((len(classifications), len(tax_id_info)), dtype=TYPE_MAPPING[field])
+    for ix, c in enumerate(classifications):
         titles.append(c.id)
-
-    if len(dat) == 0:
-        return None
+        result = c.results()['table']
+        for d in result:
+            arr[ix, tax_id_info[d['tax_id']]['column']] = d[field]
 
     # Format as a Pandas DataFrame
-    # TODO: Optimize this; unexpectedly slow
-    df = pd.DataFrame(dat)
+    df = pd.DataFrame(arr, columns=tax_id_info.keys())
     df.index = titles
 
     # fill in missing values
