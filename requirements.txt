@@ -1,5 +1,5 @@
 # base
-potion-client==2.4.2
+potion-client==2.5.1
 requests>=2.9
 click>=6.6
 six>=1.10.0
