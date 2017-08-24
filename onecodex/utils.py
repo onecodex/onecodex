@@ -204,7 +204,7 @@ class ModuleAlias(object):
             for key in module.__all__:
                 setattr(self, key, getattr(module, key))
             self._imported = True
-        except ImportError:
+        except Exception:
             self._imported = False
 
     def __repr__(self):
