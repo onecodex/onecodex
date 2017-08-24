@@ -12,3 +12,4 @@ dist/
 htmlcov/
 .DS_Store
 .python-version
+*.ipynb
