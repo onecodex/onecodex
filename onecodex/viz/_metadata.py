@@ -11,17 +11,18 @@ from onecodex.distance import alpha_diversity
 
 def plot_metadata(analyses, metadata='created_at', statistic=None, tax_id=None,
                   title=None, label=None, xlabel=None, ylabel=None,
-                  field='readcount_w_children', rank='species', normalize=False):
+                  field='readcount_w_children', rank='species', normalize=False, **kwargs):
     """Plot by arbitary metadata.
 
     Note that `rank` only applies if you're calculating a `statistic`.
+    Additional **kwargs are passed to Seaborn or Matplotlib plot functions as appropriate.
     """
     if not tax_id and not statistic:
         raise OneCodexException('Please pass a `tax_id` or a `statistic`.')
     elif tax_id and statistic:
         raise OneCodexException('Please pass only a `tax_id` or a `statistic`.')
 
-    sns.set(style="whitegrid")
+    sns.set(style=kwargs.pop('style', 'darkgrid'))
 
     normed_classifications, md = normalize_classifications(analyses, label=label)
 
@@ -53,15 +54,15 @@ def plot_metadata(analyses, metadata='created_at', statistic=None, tax_id=None,
         fig, ax = plt.subplots()
         ax.xaxis.set_major_locator(mdates.AutoDateLocator())
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%m/%d/%Y'))
-        ax.plot_date(md[metadata].values, md['_data'].values)
+        ax.plot_date(md[metadata].values, md['_data'].values, **kwargs)
         fig.autofmt_xdate()
     elif pd.core.dtypes.common.is_numeric_dtype(md[metadata]):
-        sns.lmplot(x=metadata, y='_data', truncate=True, data=md)
+        sns.lmplot(x=metadata, y='_data', truncate=True, data=md, **kwargs)
     elif pd.core.dtypes.common.is_bool_dtype(md[metadata]) or \
             pd.core.dtypes.common.is_categorical_dtype(md[metadata]) or \
             pd.core.dtypes.common.is_object_dtype(md[metadata]):
         md.fillna(value='N/A', inplace=True)
-        sns.boxplot(x=metadata, y='_data', data=md, palette='pastel')
+        sns.boxplot(x=metadata, y='_data', data=md, palette='pastel', **kwargs)
     else:
         raise OneCodexException('Unplottable column type for metadata {}'.format(metadata))
 

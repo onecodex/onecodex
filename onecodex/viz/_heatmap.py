@@ -7,7 +7,11 @@ from onecodex.helpers import collate_classification_results, normalize_classific
 
 def plot_heatmap(analyses, top_n=20, threshold=None,
                  title=None, label=None, xlabel=None, ylabel=None,
-                 field='readcount_w_children', rank=None, normalize=False):
+                 field='readcount_w_children', rank=None, normalize=False, **kwargs):
+    """Plot a heatmap of classification results by sample.
+
+    Additional **kwargs are passed to Seaborn's `sns.clustermap`.
+    """
     if not (threshold or top_n):
         raise OneCodexException('Please set either "threshold" or "top_n"')
 
@@ -22,15 +26,17 @@ def plot_heatmap(analyses, top_n=20, threshold=None,
     df.index = metadata.loc[:, '_display_name']
     df.index.name = ''
 
+    sns.set(style=kwargs.pop('style', 'darkgrid'))
+
     if threshold and top_n:
         idx = df.sum(axis=0).sort_values(ascending=False).head(top_n).index
         df = df.loc[:, idx]  # can't use idx with multiple conditions
-        g = sns.clustermap(df.loc[:, df.max() >= threshold])
+        g = sns.clustermap(df.loc[:, df.max() >= threshold], **kwargs)
     elif threshold:
-        g = sns.clustermap(df.loc[:, df.max() >= threshold])
+        g = sns.clustermap(df.loc[:, df.max() >= threshold], **kwargs)
     elif top_n:
         idx = df.sum(axis=0).sort_values(ascending=False).head(top_n).index
-        g = sns.clustermap(df.loc[:, idx])
+        g = sns.clustermap(df.loc[:, idx], **kwargs)
 
     # Rotate the margin labels
     plt.setp(g.ax_heatmap.yaxis.get_majorticklabels(), rotation=0)

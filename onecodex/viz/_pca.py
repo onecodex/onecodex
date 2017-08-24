@@ -11,8 +11,11 @@ from onecodex.helpers import collate_classification_results, normalize_classific
 def plot_pca(analyses, threshold=None,
              title=None, hue=None, xlabel=None, ylabel=None,
              org_vectors=0, org_vectors_scale=None,
-             field='readcount_w_children', rank=None, normalize=False):
-    """Perform Principal Components Analysis to visualize the similarity of samples."""
+             field='readcount_w_children', rank=None, normalize=False, **kwargs):
+    """Perform Principal Components Analysis to visualize the similarity of samples.
+
+    Additional **kwargs are passed to Seaborn's sns.lmplot.
+    """
     # hue: piece of metadata to color by
     # org_vectors: boolean; whether to plot the most highly contributing organisms
     # org_vectors_scale_factor: scale factor to modify the length of the organism vectors
@@ -34,8 +37,8 @@ def plot_pca(analyses, threshold=None,
     plot_data = pd.concat([pca_vals, metadata.fillna('N/A')], axis=1)
 
     # Scatter plot of PCA
-    sns.set(style="whitegrid")
-    g = sns.lmplot('PCA1', 'PCA2', data=plot_data, fit_reg=False, hue=hue)
+    sns.set(style=kwargs.pop('style', 'darkgrid'))
+    g = sns.lmplot('PCA1', 'PCA2', data=plot_data, fit_reg=False, hue=hue, **kwargs)
 
     # Plot the organism eigenvectors that contribute the most
     if org_vectors > 0:
