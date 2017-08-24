@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+import scipy
+import warnings
 
 from onecodex.exceptions import OneCodexException
 from onecodex.helpers import normalize_classifications
@@ -50,7 +52,12 @@ def plot_distance(analyses, metric='braycurtis',
         for idx2, id2 in enumerate(ids):
             dists[uuids[id1]][uuids[id2]] = distance_matrix[idx1][idx2]
     dists = pd.DataFrame(dists).rename(index=sample_names, columns=sample_names)
-    g = sns.clustermap(dists, **kwargs)
+
+    # Plot cluster map; ignore new SciPy cluster warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', scipy.cluster.hierarchy.ClusterWarning)
+        g = sns.clustermap(dists, **kwargs)
+
     plt.setp(g.ax_heatmap.yaxis.get_majorticklabels(), rotation=0)
 
     # Labels
