@@ -67,12 +67,17 @@ def test_collate_classifications(ocx, api_data, rank, field, remove_zeros,
                                  val1, val2, val3, val4):
     classifications = [ocx.Classifications.get('45a573fb7833449a'),
                        ocx.Classifications.get('593601a797914cbf')]
-    df = collate_classification_results(classifications, rank=rank, field=field,
-                                        remove_zeros=remove_zeros)
+    df, tax_info = collate_classification_results(classifications, rank=rank, field=field,
+                                                  remove_zeros=remove_zeros)
     assert isinstance(df, pd.DataFrame)
     assert len(df) == 2
-    assert df.columns.names == ['tax_id', 'tax_name', 'tax_rank']
-    assert list(df.loc['45a573fb7833449a', '1279'].values) == val1
-    assert list(df.loc['593601a797914cbf', '1279'].values) == val2
-    assert list(df.loc['45a573fb7833449a', '1078083'].values) == val3
-    assert list(df.loc['593601a797914cbf', '1078083'].values) == val4
+    assert df.columns.names == ['tax_id']  # Don't bother w/ a multi-index by default
+
+    SAMPLE_IDS = ['45a573fb7833449a', '593601a797914cbf', '45a573fb7833449a', '593601a797914cbf']
+    TAX_IDS = ['1279', '1279', '1078083', '1078083']
+    for ix, val in enumerate([val1, val2, val3, val4]):
+        if val:
+            assert df.loc[SAMPLE_IDS[ix], TAX_IDS[ix]] == val
+        else:
+            with pytest.raises(KeyError):
+                df.loc[SAMPLE_IDS[ix], TAX_IDS[ix]]

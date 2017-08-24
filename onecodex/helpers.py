@@ -75,7 +75,7 @@ def normalize_classifications(analyses, label=None, skip_missing=True, warn=True
 
 
 def collate_classification_results(classifications, field='readcount_w_children',
-                                   rank=None, remove_zeros=True):
+                                   rank=None, remove_zeros=True, multi_index=False):
     """For a set of classifications, return the results as a Pandas DataFrame.
 
     Note: The output format is not guaranteed to be stable at this time (i.e.,
@@ -122,9 +122,15 @@ def collate_classification_results(classifications, field='readcount_w_children'
 
     # add an index with the tax ids name
     df.index.name = 'tax_id'
-    df['tax_name'] = df.index.map(lambda tid: tax_id_info[tid]['name'])
-    df['tax_rank'] = df.index.map(lambda tid: tax_id_info[tid]['rank'])
-    df.set_index(['tax_name', 'tax_rank'], inplace=True, append=True)
+    if multi_index:
+        df['tax_name'] = df.index.map(lambda tid: tax_id_info[tid]['name'])
+        df['tax_rank'] = df.index.map(lambda tid: tax_id_info[tid]['rank'])
+        df.set_index(['tax_name', 'tax_rank'], inplace=True, append=True)
+        df.sort_index(inplace=True)
+
+    # Subset to rank as appropriate
+    if rank is not None:
+        df = df.loc[[k for k, v in tax_id_info.items() if v['rank'] == rank], :]
 
     # Remove columns (tax_ids) with no values that are > 0
     if remove_zeros:
@@ -132,8 +138,7 @@ def collate_classification_results(classifications, field='readcount_w_children'
     else:
         df = df.T
 
-    # TODO: Move this up further to optimize for smaller dataframe above
-    if rank is not None:
-        df = df.loc[:, [i[2] == rank for i in df.columns]]
+    # Set transposed index name
+    df.index.name = 'classification_id'
 
-    return df
+    return df, tax_id_info

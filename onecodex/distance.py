@@ -25,9 +25,9 @@ def alpha_counts(classification, field='readcount_w_children', rank='species'):
 
 def beta_counts(classifications, field='readcount_w_children', rank='species'):
     normed_classifications, _ = normalize_classifications(classifications)
-    df = collate_classification_results(normed_classifications, field=field, rank=rank)
+    df, tax_info = collate_classification_results(normed_classifications, field=field, rank=rank)
 
-    tax_ids = [t[0] for t in df.columns.values]
+    tax_ids = df.columns.values.tolist()
     vectors = df.values.tolist()
     vectors = [[int(i) for i in row] for row in vectors]
     ids = df.index.values
