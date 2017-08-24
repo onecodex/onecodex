@@ -142,9 +142,9 @@ class FASTXNuclIterator(object):
             file_obj.name = patched_name
             start = file_obj.read(1)
         elif check_filename and file_obj.name.endswith(('.gz', '.gzip')):
-            raise ValidationError('{} is not gzipped but has a ".gz" file extension.')
+            raise ValidationError('{} is not gzipped but has a ".gz" file extension.'.format(self.name))
         elif check_filename and file_obj.name.endswith(('.bz2', '.bz', '.bzip')):
-            raise ValidationError('{} is not gzipped but has a ".bz2" file extension.')
+            raise ValidationError('{} is not gzipped but has a ".bz2" file extension.'.format(self.name))
 
         # determine if a FASTQ or a FASTA
         if start == b'>':
@@ -291,7 +291,7 @@ class BaseFASTXReader(object):
                  total=None, **kwargs):
         self._set_read(file_obj, **kwargs)
         if pair is not None:
-            self._set_pair(pair)
+            self._set_pair(pair, **kwargs)
         else:
             self.reads_pair = None
             self.reads_pair_iter = None
@@ -315,7 +315,7 @@ class BaseFASTXReader(object):
     def _set_read(self, file_obj):
         raise NotImplementedError
 
-    def _set_pair(self, pair):
+    def _set_pair(self, pair, **kwargs):
         raise NotImplementedError
 
     def read(self, n=-1):
@@ -366,8 +366,8 @@ class FASTXTranslator(BaseFASTXReader):
         self.reads = FASTXNuclIterator(file_obj, **kwargs)
         self.reads_iter = iter(self.reads)
 
-    def _set_pair(self, pair):
-        self.reads_pair = FASTXNuclIterator(pair)
+    def _set_pair(self, pair, **kwargs):
+        self.reads_pair = FASTXNuclIterator(pair, **kwargs)
         self.reads_pair_iter = iter(self.reads_pair)
         if self.reads.file_type != self.reads_pair.file_type:
             raise ValidationError('Paired read files are different types (FASTA/FASTQ)')

@@ -59,6 +59,8 @@ class FakeSamplesResource():
 
 class FakeSession():
     def post(self, url, **kwargs):
+        if 'data' in kwargs:
+            kwargs['data'].read()  # So multipart uploader will close properly
         resp = lambda: None  # noqa
         resp.status_code = 201 if 'auth' in kwargs else 200
         return resp
@@ -76,6 +78,13 @@ def test_upload_big_file():
         assert p.call_count == 1
 
     file_obj.close()
+
+
+def test_paired_end_upload():
+    session = FakeSession()
+    samples_resource = FakeSamplesResource()
+    upload([('tests/data/files/test_R1_L001.fq.gz', 'tests/data/files/test_R2_L001.fq.gz')],
+           session, samples_resource, '', threads=1)
 
 
 def test_upload_small_file():
