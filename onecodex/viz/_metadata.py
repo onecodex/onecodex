@@ -9,12 +9,13 @@ from onecodex.helpers import normalize_classifications, collate_classification_r
 from onecodex.distance import alpha_diversity
 
 
-def plot_metadata(analyses, metadata='created_at', statistic=None, tax_id=None, normalize=False,
+def plot_metadata(analyses, metadata='created_at', statistic=None, tax_id=None,
                   title=None, label=None, xlabel=None, ylabel=None,
-                  field='readcount_w_children', rank='species'):
+                  field='readcount_w_children', rank='species', normalize=False):
     """Plot by arbitary metadata.
 
-    Note that `rank` only applies if you're calculating a `statistic`."""
+    Note that `rank` only applies if you're calculating a `statistic`.
+    """
     if not tax_id and not statistic:
         raise OneCodexException('Please pass a `tax_id` or a `statistic`.')
     elif tax_id and statistic:
@@ -35,10 +36,9 @@ def plot_metadata(analyses, metadata='created_at', statistic=None, tax_id=None, 
             except ValueError:
                 raise NotImplementedError('{} statistic are currently supported.'.format(statistic))
     elif tax_id:
-        df, tax_info = collate_classification_results(normed_classifications, field=field, rank=None)
+        df, tax_info = collate_classification_results(normed_classifications, field=field, rank=None,
+                                                      normalize=normalize)
         stat = df.loc[:, str(tax_id)].values
-        if normalize:
-            stat = df.loc[:, str(tax_id)].div(df.sum(axis=1), axis=0)
         if stat.shape[0] == 0:
             raise OneCodexException('No values found for `tax_id` {} and `field` {}.'.format(tax_id, field))
 

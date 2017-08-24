@@ -75,8 +75,9 @@ def normalize_classifications(analyses, label=None, skip_missing=True, warn=True
 
 
 def collate_classification_results(classifications, field='readcount_w_children',
-                                   rank=None, remove_zeros=True, multi_index=False):
-    """For a set of classifications, return the results as a Pandas DataFrame.
+                                   rank=None, remove_zeros=True, multi_index=False,
+                                   normalize=False):
+    """For a set of classifications, return the results as a Pandas DataFrame and a dict of taxa info.
 
     Note: The output format is not guaranteed to be stable at this time (i.e.,
     column orderings, types, etc. may change).
@@ -131,6 +132,10 @@ def collate_classification_results(classifications, field='readcount_w_children'
     # Subset to rank as appropriate
     if rank is not None:
         df = df.loc[[k for k, v in tax_id_info.items() if v['rank'] == rank], :]
+
+    # Normalize
+    if normalize:
+        df = df.div(df.sum(axis=1), axis=0)
 
     # Remove columns (tax_ids) with no values that are > 0
     if remove_zeros:
