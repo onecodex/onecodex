@@ -164,10 +164,10 @@ class TestQueryInterface(unittest.TestCase):
         self.analysis_one_url = 'http://localhost:3000/api/v1/analyses/1'
         self.analysis_two_url = 'http://localhost:3000/api/v1/analyses/2'
         self.analysis_three_url = 'http://localhost:3000/api/v1/analyses/3'
-        self.complete_url = 'http://localhost:3000/api/v1/analyses?per_page=20&where=%7B%22complete%22%3A+true%7D&page=1'
-        self.complete_url_new = 'http://localhost:3000/api/v1/analyses?sort=%7B%7D&per_page=20&where=%7B%22complete%22%3A+true%7D&page=1'
-        self.incomplete_url = 'http://localhost:3000/api/v1/analyses?per_page=20&where=%7B%22complete%22%3A+false%7D&page=1'
-        self.incomplete_url_new = 'http://localhost:3000/api/v1/analyses?sort=%7B%7D&per_page=20&where=%7B%22complete%22%3A+false%7D&page=1'
+        self.complete_url = 'http://localhost:3000/api/v1/analyses?per_page=200&where=%7B%22complete%22%3A+true%7D&page=1'
+        self.complete_url_new = 'http://localhost:3000/api/v1/analyses?sort=%7B%7D&per_page=200&where=%7B%22complete%22%3A+true%7D&page=1'
+        self.incomplete_url = 'http://localhost:3000/api/v1/analyses?per_page=200&where=%7B%22complete%22%3A+false%7D&page=1'
+        self.incomplete_url_new = 'http://localhost:3000/api/v1/analyses?sort=%7B%7D&per_page=200&where=%7B%22complete%22%3A+false%7D&page=1'
         self.sample_url = 'http://localhost:3000/api/v1/samples/d66e901ea9854f1f'
         self.metadata_url = 'http://localhost:3000/api/v1/metadata/50fd2f0513d34372'
 
@@ -207,7 +207,7 @@ class TestQueryInterface(unittest.TestCase):
                       match_querystring=True)
 
         # old way
-        old_complete_analyses = self.api.Analyses._resource.instances(where={'complete': True})  # noqa
+        old_complete_analyses = self.api.Analyses._resource.instances(where={'complete': True}, per_page=200)  # noqa
         self.assertEqual(len(old_complete_analyses), self.num_complete)
 
         responses.add(responses.GET, self.complete_url_new,
@@ -223,7 +223,7 @@ class TestQueryInterface(unittest.TestCase):
                       match_querystring=True)
 
         # old way
-        old_incomplete_analyses = self.api.Analyses._resource.instances(where={'complete': False})  # noqa
+        old_incomplete_analyses = self.api.Analyses._resource.instances(where={'complete': False}, per_page=200)  # noqa
         self.assertEqual(len(old_incomplete_analyses), self.num_incomplete)
 
         responses.add(responses.GET, self.incomplete_url_new,

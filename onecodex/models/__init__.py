@@ -13,6 +13,9 @@ from onecodex.models.helpers import (check_bind, generate_potion_sort_clause,
                                      generate_potion_keyword_where)
 
 
+DEFAULT_PAGE_SIZE = 200
+
+
 class OneCodexBase(object):
     """
     A parent object for all the One Codex objects that wraps the Potion-Client API and makes
@@ -233,7 +236,7 @@ class OneCodexBase(object):
         # the potion-client method returns an iterator (which lazily fetchs the records
         # using `per_page` instances per request) so for limiting we only want to fetch the first
         # n (and not instantiate all the available which is what would happen if we just sliced)
-        cursor = getattr(cls._resource, instances_route)(where=where, sort=sort)
+        cursor = getattr(cls._resource, instances_route)(where=where, sort=sort, per_page=DEFAULT_PAGE_SIZE)
         if limit is not None:
             cursor = itertools.islice(cursor, limit)
         return [cls(_resource=r) for r in cursor]
