@@ -65,6 +65,9 @@ def upload(files, session, samples_resource, server_url, threads=DEFAULT_UPLOAD_
     downstream upload functions. Also, wraps the files with a streaming validator to ensure they
     work.
     """
+    if threads is None:
+        threads = 1
+
     filenames = []
     file_sizes = []
     for file_path in files:
