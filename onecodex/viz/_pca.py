@@ -11,13 +11,14 @@ from onecodex.helpers import collate_classification_results, normalize_classific
 def plot_pca(analyses, threshold=None,
              title=None, hue=None, xlabel=None, ylabel=None,
              org_vectors=0, org_vectors_scale=None,
-             field='readcount_w_children', rank=None):
+             field='readcount_w_children', rank=None, normalize=False):
     """Perform Principal Components Analysis to visualize the similarity of samples."""
     # hue: piece of metadata to color by
     # org_vectors: boolean; whether to plot the most highly contributing organisms
     # org_vectors_scale_factor: scale factor to modify the length of the organism vectors
     normed_classifications, metadata = normalize_classifications(analyses)
-    df, tax_info = collate_classification_results(normed_classifications, field=field, rank=rank)
+    df, tax_info = collate_classification_results(normed_classifications, field=field,
+                                                  rank=rank, normalize=normalize)
 
     if len(df) < 2:
         raise OneCodexException('`plot_pca` requires 2 or more valid classification results.')
