@@ -9,7 +9,11 @@ from onecodex.distance import braycurtis, cityblock, jaccard, unifrac
 
 def plot_distance(analyses, metric='braycurtis',
                   title=None, label=None, xlabel=None, ylabel=None,
-                  field='readcount_w_children', rank='species'):
+                  field='readcount_w_children', rank='species', **kwargs):
+    """Plot beta diversity distance matrix.
+
+    Additional **kwargs are passed to Seaborn's `sns.clustermap`.
+    """
     # if taxonomy trees are inconsistent, unifrac will not work
     if metric in ['braycurtis', 'bray-curtis', 'bray curtis']:
         f = braycurtis
@@ -26,6 +30,8 @@ def plot_distance(analyses, metric='braycurtis',
     normed_classifications, metadata = normalize_classifications(analyses, label=label)
     if len(normed_classifications) < 2:
         raise OneCodexException('`plot_distance` requires 2 or more valid classification results.')
+
+    sns.set(style=kwargs.pop('style', 'darkgrid'))
 
     # there is no uniqueness constraint on metadata names
     # so plot by uuid, then replace the labels in the dataframe with their names
@@ -44,7 +50,7 @@ def plot_distance(analyses, metric='braycurtis',
         for idx2, id2 in enumerate(ids):
             dists[uuids[id1]][uuids[id2]] = distance_matrix[idx1][idx2]
     dists = pd.DataFrame(dists).rename(index=sample_names, columns=sample_names)
-    g = sns.clustermap(dists)
+    g = sns.clustermap(dists, **kwargs)
     plt.setp(g.ax_heatmap.yaxis.get_majorticklabels(), rotation=0)
 
     # Labels
