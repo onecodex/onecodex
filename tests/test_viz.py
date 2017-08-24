@@ -8,11 +8,11 @@ from onecodex.viz import plot_distance, plot_heatmap, plot_metadata, plot_pca
 
 def test_result_collation(ocx, api_data):
     analyses = [ocx.Classifications.get('45a573fb7833449a')]
-    results = collate_classification_results(analyses)
+    results, tax_info = collate_classification_results(analyses)
 
     assert '45a573fb7833449a' in results.index
     assert len(results.loc['45a573fb7833449a']) > 0
-    assert 'tax_id' in results.columns.names and 'tax_name' in results.columns.names
+    assert 'tax_id' in results.columns.names
 
 
 # Note: Need a better plotting setup, these tests just ensure

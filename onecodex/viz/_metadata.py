@@ -38,8 +38,10 @@ def plot_metadata(analyses, metadata='created_at', statistic=None, tax_id=None,
             except ValueError:
                 raise NotImplementedError('{} statistic are currently supported.'.format(statistic))
     elif tax_id:
-        df = collate_classification_results(normed_classifications, field=field, rank=rank)
+        df, tax_info = collate_classification_results(normed_classifications, field=field, rank=None)
         stat = df.loc[:, str(tax_id)].values
+        if stat.shape[0] == 0:
+            raise OneCodexException('No values found for `tax_id` {} and `field` {}.'.format(tax_id, field))
 
     md['_data'] = stat
 
