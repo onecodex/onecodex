@@ -91,9 +91,11 @@ def telemetry(fn):
     def telemetry_wrapper(*args, **kwargs):
         try:
             return fn(*args, **kwargs)
+        except SystemExit as e:
+            sys.exit(e.code)  # make sure we still exit with the proper code
         except:
             ctx = args[0]
-            if ctx.obj['sentry']:
+            if 'sentry' in ctx.obj:
                 ctx.obj['sentry'].captureException()
     return telemetry_wrapper
 

@@ -130,7 +130,7 @@ def test_creds_file_corrupted(runner, mocked_creds_file):
         f.write("aslkdjaslkd\nkasjdlkas\nasdkjaslkd908&S&&^")
     expected_message = "Your ~/.onecodex credentials file appears to be corrupted."
 
-    result = runner.invoke(Cli, ["login"])
+    result = runner.invoke(Cli, ['--no-telemetry', "login"])
     assert result.exit_code == 1
     assert expected_message in result.output
 
