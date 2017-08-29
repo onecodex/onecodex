@@ -4,6 +4,7 @@ cli.py
 author: @mbiokyle29
 """
 from __future__ import print_function
+from functools import wraps
 import logging
 import os
 import platform
@@ -88,6 +89,7 @@ def onecodex(ctx, api_key, no_pprint, verbose, no_telemetry):
 
 
 def telemetry(fn):
+    @wraps(fn)
     def telemetry_wrapper(*args, **kwargs):
         try:
             return fn(*args, **kwargs)
