@@ -2,20 +2,27 @@
 utils.py
 author: @mbiokyle29
 """
+import base64
 import importlib
 import json
 import logging
 import os
 import sys
+import platform
 try:
     from urlparse import urlparse
 except ImportError:
     from urllib.parse import urlparse
 
+from functools import wraps
 
+from raven import Client as RavenClient
 import requests
-from click import BadParameter, echo
+from click import BadParameter, Context, echo
 from potion_client.converter import PotionJSONEncoder
+
+from onecodex.version import __version__
+
 
 log = logging.getLogger(__name__)
 cli_log = logging.getLogger("onecodex.cli")
@@ -40,6 +47,7 @@ OPTION_HELP = {
                "will allow running without any user intervention, e.g. in a script."),
     'validate': ("Do not validate the FASTA/Q file before uploading. Incompatible with automatic "
                  "paired end interleaving (NOT RECOMMENDED)."),
+    'telemetry': 'Send errors to One Codex?',
 }
 
 SUPPORTED_EXTENSIONS = ["fa", "fasta", "fq", "fastq",
@@ -98,10 +106,14 @@ def _cli_resource_fetcher(ctx, resource, uris):
         for uri in uris:
             try:
                 instance = getattr(ctx.obj['API'], resource_name).get(uri)
+                # if instance is not None:
                 instances.append(instance._resource._properties)
+                # else:
+                # cli_log.error('Could not find {} {} (404 status code)'.format(resource_name, uri))
             except requests.exceptions.HTTPError as e:
-                cli_log.error("Could not find %s %s (%d status code)",
-                              resource_name, uri, e.response.status_code)
+                cli_log.error('Could not find %s %s (%d status code)'.format(
+                    resource_name, uri, e.response.status_code
+                ))
         pprint(instances, ctx.obj['NOPPRINT'])
 
 
@@ -191,6 +203,76 @@ def collapse_user(fp):
     home_dir = os.path.expanduser("~")
     abs_path = os.path.abspath(fp)
     return abs_path.replace(home_dir, "~")
+
+
+def get_raven_client(**extra):
+    if os.environ.get('ONE_CODEX_NO_TELEMETRY') is None:
+        key = base64.b64decode(
+            b'NmFlMjMwYWY4NjI5NDg3NmEyYzYwYjZjNDhhZDJiYzI6ZTMyZmYwZTVhNjUwNGQ5NGJhODc0NWZlMmU1ZjNmZjA='
+        ).decode('utf-8')
+
+        # Set Client params
+        # Capture exceptions on exit if onecodex CLI being invoked
+        if os.path.basename(sys.argv[0]) in ['onecodex', 'py.test']:
+            install_sys_hook = True
+        else:
+            install_sys_hook = False
+
+        try:
+            client = RavenClient(
+                dsn=os.environ.get('ONE_CODEX_SENTRY_DSN',
+                                   'https://{}@sentry.onecodex.com/9'.format(key)),
+                install_sys_hook=install_sys_hook,
+                raise_send_errors=False,
+                include_paths=[],
+                release=__version__
+            )
+            extra['platform'] = platform.platform()
+            client.extra_context(extra)
+            return client
+        except Exception:
+            return
+
+
+def telemetry(fn):
+    """
+    Decorator for CLI and other functions that need special Sentry client handling.
+    This function is only required for functions that may exit *before* we set up
+    the ._raven_client object on the Api instance *or* that specifically catch and re-raise
+    exceptions or call sys.exit directly.
+    """
+    @wraps(fn)
+    def telemetry_wrapper(*args, **kwargs):
+        # By default, do not instantiate a client,
+        # and inherit the telemetry settings passed
+        client = None
+        if len(args) > 0 and isinstance(args[0], Context):
+            ctx = args[0]
+
+            # First try to get off API obj
+            if ctx.obj and ctx.obj.get('API') is not None:
+                client = ctx.obj['API']._raven_client
+
+            # Else try to see if telemetry param is set
+            elif ctx.params.get('telemetry', False):
+                client = get_raven_client()
+
+            # Finally check for the ctx.obj['TELEMETRY'] bool
+            elif ctx.obj and ctx.obj.get('TELEMETRY', False):
+                client = get_raven_client()
+
+        try:
+            return fn(*args, **kwargs)
+        except SystemExit as e:
+            if client:
+                client.captureException()
+            sys.exit(e.code)  # make sure we still exit with the proper code
+        except Exception as e:
+            if client:
+                client.captureException()
+            raise e
+
+    return telemetry_wrapper
 
 
 class ModuleAlias(object):

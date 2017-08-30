@@ -32,7 +32,8 @@ setup(
     zip_safe=False,
     extras_require={
         'all': ['numpy>=1.11.0', 'pandas>=0.18.1', 'matplotlib>1.5.1',
-                'seaborn>=0.8', 'scikit-learn>=0.19.0', 'scikit-bio==0.4.2']
+                'seaborn>=0.8', 'scikit-learn>=0.19.0', 'scikit-bio==0.4.2',
+                'networkx>=1.11', 'raven>=6.1.0']
     },
     dependency_links=[],
     author='Kyle McChesney & Nick Greenfield & Roderick Bovee',
@@ -49,7 +50,7 @@ setup(
         'Topic :: Internet :: WWW/HTTP',
     ],
     entry_points={
-        'console_scripts': ['onecodex = onecodex.cli:onecodex']
+        'console_scripts': ['onecodex = onecodex.cli:onecodex'],
     },
     test_suite='tests'
 )

@@ -14,7 +14,7 @@ import click
 
 from onecodex.utils import (cli_resource_fetcher, download_file_helper,
                             valid_api_key, OPTION_HELP, pprint,
-                            warn_if_insecure_platform)
+                            warn_if_insecure_platform, telemetry)
 from onecodex.api import Api
 from onecodex.exceptions import ValidationWarning, ValidationError, UploadException
 from onecodex.auth import _login, _logout, _silent_login
@@ -43,16 +43,19 @@ log.addHandler(stream_handler)
               help=OPTION_HELP['no_pprint'])
 @click.option("--verbose", "-v", is_flag=True,
               help=OPTION_HELP['verbose'])
+@click.option("--telemetry/--no-telemetry", is_flag=True, default=True,
+              help=OPTION_HELP['telemetry'])
 @click.version_option(version=__version__)
 @click.pass_context
-def onecodex(ctx, api_key, no_pprint, verbose):
+@telemetry
+def onecodex(ctx, api_key, no_pprint, verbose, telemetry):
     """One Codex v1 API command line interface"""
-
     # set up the context for sub commands
     click.Context.get_usage = click.Context.get_help
     ctx.obj = {}
     ctx.obj['API_KEY'] = api_key
     ctx.obj['NOPPRINT'] = no_pprint
+    ctx.obj['TELEMETRY'] = telemetry
 
     if verbose:
         log.setLevel(logging.INFO)
@@ -62,15 +65,15 @@ def onecodex(ctx, api_key, no_pprint, verbose):
     if ctx.invoked_subcommand not in no_api_subcommands:
         if api_key is not None:
             ctx.obj['API'] = Api(cache_schema=True,
-                                 api_key=api_key)
+                                 api_key=api_key, telemetry=telemetry)
         else:
             # try and find it
             api_key = _silent_login()
             if api_key is not None:
-                ctx.obj['API'] = Api(cache_schema=True, api_key=api_key)
+                ctx.obj['API'] = Api(cache_schema=True, api_key=api_key, telemetry=telemetry)
             else:
                 click.echo("No One Codex API key is available - running anonymously", err=True)
-                ctx.obj['API'] = Api(cache_schema=True)
+                ctx.obj['API'] = Api(cache_schema=True, telemetry=telemetry)
 
     # handle checking insecure platform, we let upload command do it by itself
     if ctx.invoked_subcommand != "upload":
@@ -155,6 +158,7 @@ def samples(ctx, samples):
 @click.option('--validate/--do-not-validate', is_flag=True, help=OPTION_HELP['validate'],
               default=True)
 @click.pass_context
+@telemetry
 def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate):
     """Upload a FASTA or FASTQ (optionally gzip'd) to One Codex"""
     if len(files) == 0:
@@ -221,6 +225,7 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate):
 
 @onecodex.command('login')
 @click.pass_context
+@telemetry
 def login(ctx):
     """Add an API key (saved in ~/.onecodex)"""
     base_url = os.environ.get("ONE_CODEX_API_BASE", "https://app.onecodex.com")
@@ -229,6 +234,7 @@ def login(ctx):
 
 @onecodex.command('logout')
 @click.pass_context
+@telemetry
 def logout(ctx):
     """Delete your API key (saved in ~/.onecodex)"""
     _logout()
