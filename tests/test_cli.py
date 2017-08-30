@@ -40,15 +40,15 @@ def test_cli_wo_override(api_data, monkeypatch):
 
 # Analyses
 def test_analysis_help(runner, api_data, mocked_creds_file):
-    result = runner.invoke(Cli, ['analyses', '--help'])
+    result = runner.invoke(Cli, ['--no-telemetry', 'analyses', '--help'])
     analysis_desc = "Retrieve performed analyses"
     assert result.exit_code == 0
     assert analysis_desc in result.output
 
 
 def test_analyses(runner, api_data, mocked_creds_file):
-    r0 = runner.invoke(Cli, ['analyses'])
-    r1 = runner.invoke(Cli, ['analyses', '593601a797914cbf'])
+    r0 = runner.invoke(Cli, ['--no-telemetry', 'analyses'])
+    r1 = runner.invoke(Cli, ['--no-telemetry', 'analyses', '593601a797914cbf'])
     assert r0.exit_code == 0
     assert r1.exit_code == 0
     assert API_DATA['GET::api/v1/analyses/593601a797914cbf']['$uri'] in r0.output
@@ -57,27 +57,27 @@ def test_analyses(runner, api_data, mocked_creds_file):
 
 # Classifications
 def test_classification_instance(runner, api_data, mocked_creds_file):
-    result = runner.invoke(Cli, ['classifications', '593601a797914cbf'])
+    result = runner.invoke(Cli, ['--no-telemetry', 'classifications', '593601a797914cbf'])
     assert result.exit_code == 0
     assert API_DATA['GET::api/v1/classifications/593601a797914cbf']['$uri'] in result.output
 
 
 def test_classifications_table(runner, api_data, mocked_creds_file, monkeypatch):
-    result = runner.invoke(Cli, ['classifications', '45a573fb7833449a', '--results'])
+    result = runner.invoke(Cli, ['--no-telemetry', 'classifications', '45a573fb7833449a', '--results'])
     assert result.exit_code == 0
     assert "Staphylococcus" in result.output
 
 
 # Panels
 def test_panel_instances(runner, api_data, mocked_creds_file):
-    result = runner.invoke(Cli, ['panels'])
+    result = runner.invoke(Cli, ['--no-telemetry', 'panels'])
     assert result.exit_code == 0
 
 
 # Samples
 def test_samples(runner, api_data, mocked_creds_file):
-    r0 = runner.invoke(Cli, ['samples'])
-    r1 = runner.invoke(Cli, ['samples', '7428cca4a3a04a8e'])
+    r0 = runner.invoke(Cli, ['--no-telemetry', 'samples'])
+    r1 = runner.invoke(Cli, ['--no-telemetry', 'samples', '7428cca4a3a04a8e'])
     assert r0.exit_code == 0
     assert r1.exit_code == 0
     assert API_DATA['GET::api/v1/samples/7428cca4a3a04a8e']['$uri'] in r0.output
@@ -102,7 +102,7 @@ def test_api_login(runner, mocked_creds_path):
     login_input = 'user@example.com' + '\n' + 'userpassword' + '\n'
     successful_login_msg = 'Your ~/.onecodex credentials file was successfully created.'
     with Replace('onecodex.auth.fetch_api_key_from_uname', mock_fetch_api_key):
-        result = runner.invoke(Cli, ['login'], input=login_input)
+        result = runner.invoke(Cli, ['--no-telemetry', 'login'], input=login_input)
         assert result.exit_code == 0
         assert successful_login_msg in result.output
 
@@ -112,7 +112,7 @@ def test_creds_file_exists(runner, mocked_creds_file):
         make_creds_file()
         expected_message = "Credentials file already exists"
 
-        result = runner.invoke(Cli, ["login"])
+        result = runner.invoke(Cli, ['--no-telemetry', "login"])
         assert result.exit_code == 0
         assert expected_message in result.output
 
@@ -120,7 +120,7 @@ def test_creds_file_exists(runner, mocked_creds_file):
 def test_silent_login(runner, mocked_creds_file, api_data):
     with runner.isolated_filesystem():
         make_creds_file()
-        result = runner.invoke(Cli, ['samples'])
+        result = runner.invoke(Cli, ['--no-telemetry', 'samples'])
         assert result.exit_code == 0
 
 
@@ -140,7 +140,7 @@ def test_logout_creds_exists(runner, mocked_creds_file):
         make_creds_file()
         expected_message = "Successfully removed One Codex credentials."
         path = os.path.expanduser("~/.onecodex")
-        result = runner.invoke(Cli, ["logout"])
+        result = runner.invoke(Cli, ['--no-telemetry', 'logout'])
         assert result.exit_code == 0
         assert expected_message in result.output
         assert os.path.exists(path) is False
@@ -148,7 +148,7 @@ def test_logout_creds_exists(runner, mocked_creds_file):
 
 def test_logout_creds_dne(runner, mocked_creds_path):
     expected_message = "No One Codex API keys found."
-    result = runner.invoke(Cli, ["logout"])
+    result = runner.invoke(Cli, ['--no-telemetry', 'logout'])
     assert result.exit_code == 1
     assert expected_message in result.output
 
@@ -169,7 +169,7 @@ def test_standard_uploads(runner, upload_mocks, files, threads):
        (but not files >5GB)
     """
     with runner.isolated_filesystem():
-        args = ['--api-key', '01234567890123456789012345678901', 'upload']
+        args = ['--no-telemetry', '--api-key', '01234567890123456789012345678901', 'upload']
         if not threads:
             args += ['--max-threads', '1']
         for f in files:
@@ -188,7 +188,7 @@ def test_empty_upload(runner, upload_mocks):
         f = 'tmp.fa'
         f_out = open(f, mode='w')
         f_out.close()
-        args = ['--api-key', '01234567890123456789012345678901', 'upload', f]
+        args = ['--no-telemetry', '--api-key', '01234567890123456789012345678901', 'upload', f]
         result = runner.invoke(Cli, args)
         assert result.exit_code != 0
 
@@ -204,7 +204,7 @@ def test_paired_files(runner, upload_mocks):
             f_out2.write('>Test fasta\n')
             f_out2.write(SEQUENCE)
 
-        args = ['--api-key', '01234567890123456789012345678901', 'upload', f, f2]
+        args = ['--no-telemetry', '--api-key', '01234567890123456789012345678901', 'upload', f, f2]
         # check that only one upload is kicked off for the pair of files
         patch1 = 'onecodex.lib.upload.upload_file'
         patch2 = 'onecodex.lib.inline_validator.FASTXTranslator.close'
@@ -216,13 +216,13 @@ def test_paired_files(runner, upload_mocks):
         assert result.exit_code == 0
 
         # Check with validate=False, should fail
-        args = ['--api-key', '01234567890123456789012345678901', 'upload', f, f2,
+        args = ['--no-telemetry', '--api-key', '01234567890123456789012345678901', 'upload', f, f2,
                 '--do-not-validate']
         result2 = runner.invoke(Cli, args)
         assert result2.exit_code != 0
 
         # Check with validate=False, interleave=False, should success
-        args = ['--api-key', '01234567890123456789012345678901', 'upload', f, f2,
+        args = ['--no-telemetry', '--api-key', '01234567890123456789012345678901', 'upload', f, f2,
                 '--do-not-validate', '--do-not-interleave']
         with mock.patch(patch1) as mp:
             result3 = runner.invoke(Cli, args)
@@ -248,7 +248,8 @@ def test_large_uploads(runner, upload_mocks, monkeypatch):
             f.write('>BIG!!!\n')
             f.write(SEQUENCE)
 
-        args = ['--api-key', '01234567890123456789012345678901', 'upload', big_file]
+        args = ['--no-telemetry', '--api-key',
+                '01234567890123456789012345678901', 'upload', big_file]
 
         def side_effect(*args, **kwargs):
             """Side effect to ensure FASTXValidator gets properly read
