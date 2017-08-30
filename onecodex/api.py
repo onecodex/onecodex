@@ -18,7 +18,7 @@ from requests.auth import HTTPBasicAuth
 
 from onecodex.lib.auth import BearerTokenAuth
 from onecodex.models import _model_lookup
-from onecodex.utils import ModuleAlias
+from onecodex.utils import ModuleAlias, get_raven_client
 
 log = logging.getLogger(__name__)
 
@@ -31,17 +31,18 @@ class Api(object):
 
     def __init__(self, api_key=None,
                  bearer_token=None, cache_schema=False,
-                 base_url=None,
-                 schema_path="/api/v1/schema"):
+                 base_url=None, telemetry=False,
+                 schema_path='/api/v1/schema'):
 
         if base_url is None:
-            base_url = os.environ.get("ONE_CODEX_API_BASE", "https://app.onecodex.com")
+            base_url = os.environ.get('ONE_CODEX_API_BASE', 'https://app.onecodex.com')
             if base_url != 'https://app.onecodex.com':
                 warnings.warn("Using base API URL: {}".format(base_url))
 
         self._req_args = {}
         self._base_url = base_url
         self._schema_path = schema_path
+        self._telemetry = telemetry
 
         # Attempt to automatically fetch API key from
         # ~/.onecodex file, API key, or bearer token environment vars
@@ -51,13 +52,13 @@ class Api(object):
         #       'ONE_CODEX_AUTO_LOGIN' or similar is set.
         if api_key is None and bearer_token is None:
             try:
-                api_key = json.load(open(os.path.expanduser("~/.onecodex")))["api_key"]
+                api_key = json.load(open(os.path.expanduser('~/.onecodex')))['api_key']
             except:
                 pass
             if api_key is None:
-                api_key = os.environ.get("ONE_CODEX_API_KEY")
+                api_key = os.environ.get('ONE_CODEX_API_KEY')
             if bearer_token is None:
-                bearer_token = os.environ.get("ONE_CODEX_BEARER_TOKEN")
+                bearer_token = os.environ.get('ONE_CODEX_BEARER_TOKEN')
 
         if bearer_token:  # prefer bearer token where available
             self._req_args['auth'] = BearerTokenAuth(bearer_token)
@@ -70,6 +71,12 @@ class Api(object):
         self._client._fetch_schema(cache_schema=cache_schema)
         self._session = self._client.session
         self._copy_resources()
+
+        # Optionally configure Raven
+        if self._telemetry:
+            self._raven_client = get_raven_client()
+        else:
+            self._raven_client = None
 
         # Try to import and copy key modules onto the Api object
         for module_name in ['onecodex.viz', 'onecodex.distance']:

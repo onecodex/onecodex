@@ -3,6 +3,7 @@ from click.testing import CliRunner
 from contextlib import contextmanager
 import datetime
 import json
+import mock
 import os
 from pkg_resources import resource_string
 import pytest
@@ -302,19 +303,39 @@ def upload_mocks():
 
 
 # API FIXTURES
+@pytest.yield_fixture(scope='session')
+def ocx_schemas():
+    with mock_requests(SCHEMA_ROUTES):
+        yield
+
+
+@pytest.fixture(scope='session')
+def ocx_w_raven():
+    patched_env = {
+        'ONE_CODEX_API_BASE': 'http://localhost:3000',
+        'ONE_CODEX_API_KEY': '1eab4217d30d42849dbde0cd1bb94e39',
+        'ONE_CODEX_SENTRY_DSN': 'https://key:pass@sentry.example.com/1',
+    }
+    with mock.patch.dict(os.environ, patched_env):
+        with mock_requests(SCHEMA_ROUTES):
+            return Api(cache_schema=False, telemetry=True)
+
+
 @pytest.fixture(scope='session')
 def ocx():
     """Instantiated API client
     """
     with mock_requests(SCHEMA_ROUTES):
-        ocx = Api(api_key='1eab4217d30d42849dbde0cd1bb94e39',
-                  base_url='http://localhost:3000', cache_schema=False)
-        return ocx
+        return Api(api_key='1eab4217d30d42849dbde0cd1bb94e39',
+                   base_url='http://localhost:3000', cache_schema=False)
 
 
 @pytest.fixture(scope='function')
 def runner():
-    runner = CliRunner(env={"ONE_CODEX_API_BASE": "http://localhost:3000"})
+    runner = CliRunner(env={
+        'ONE_CODEX_API_BASE': 'http://localhost:3000',
+        'ONE_CODEX_NO_TELEMETRY': 'True',
+    })
     return runner
 
 
