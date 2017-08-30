@@ -2,6 +2,7 @@
 utils.py
 author: @mbiokyle29
 """
+from functools import wraps
 import importlib
 import json
 import logging
@@ -40,6 +41,7 @@ OPTION_HELP = {
                "will allow running without any user intervention, e.g. in a script."),
     'validate': ("Do not validate the FASTA/Q file before uploading. Incompatible with automatic "
                  "paired end interleaving (NOT RECOMMENDED)."),
+    'no_telemetry': 'Do not send errors to One Codex',
 }
 
 SUPPORTED_EXTENSIONS = ["fa", "fasta", "fq", "fastq",
@@ -191,6 +193,24 @@ def collapse_user(fp):
     home_dir = os.path.expanduser("~")
     abs_path = os.path.abspath(fp)
     return abs_path.replace(home_dir, "~")
+
+
+def telemetry(fn):
+    @wraps(fn)
+    def telemetry_wrapper(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except SystemExit as e:
+            ctx = args[0]
+            if 'sentry' in ctx.obj:
+                ctx.obj['sentry'].captureException()
+            sys.exit(e.code)  # make sure we still exit with the proper code
+        except Exception as e:
+            ctx = args[0]
+            if 'sentry' in ctx.obj:
+                ctx.obj['sentry'].captureException()
+            raise e
+    return telemetry_wrapper
 
 
 class ModuleAlias(object):

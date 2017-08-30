@@ -6,15 +6,17 @@ author: @mbiokyle29
 from __future__ import print_function
 import logging
 import os
+import platform
 import re
 import sys
 import warnings
 
 import click
+from raven import Client
 
 from onecodex.utils import (cli_resource_fetcher, download_file_helper,
                             valid_api_key, OPTION_HELP, pprint,
-                            warn_if_insecure_platform)
+                            warn_if_insecure_platform, telemetry)
 from onecodex.api import Api
 from onecodex.exceptions import ValidationWarning, ValidationError, UploadException
 from onecodex.auth import _login, _logout, _silent_login
@@ -43,10 +45,22 @@ log.addHandler(stream_handler)
               help=OPTION_HELP['no_pprint'])
 @click.option("--verbose", "-v", is_flag=True,
               help=OPTION_HELP['verbose'])
+@click.option("--no-telemetry", is_flag=True,
+              help=OPTION_HELP['no_telemetry'])
 @click.version_option(version=__version__)
 @click.pass_context
-def onecodex(ctx, api_key, no_pprint, verbose):
+@telemetry
+def onecodex(ctx, api_key, no_pprint, verbose, no_telemetry):
     """One Codex v1 API command line interface"""
+    # set up Sentry
+    if not (no_telemetry or os.environ.get('ONE_CODEX_NO_TELEMETRY') is not None):
+        key = 'f74d421bbdb44ea78de504f25067b9a4:16c934ef082e40efaf51958d8521c32d'
+        try:
+            client = Client(dsn="https://{}@sentry.onecodex.com/9".format(key), release=__version__)
+            client.extra_context({'platform': platform.platform()})
+            ctx.obj['sentry'] = client
+        except Exception:
+            pass
 
     # set up the context for sub commands
     click.Context.get_usage = click.Context.get_help
@@ -213,6 +227,8 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate):
         ))
         sys.exit(1)
     except (ValidationError, UploadException, Exception) as e:
+        if ctx.obj['sentry']:
+            ctx.obj['sentry'].captureException()
         # TODO: Some day improve specific other exception error messages, e.g., gzip CRC IOError
         sys.stderr.write('\nERROR: {}'.format(e))
         sys.stderr.write('\nPlease feel free to contact us for help at help@onecodex.com')
