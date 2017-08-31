@@ -74,7 +74,7 @@ class Api(object):
 
         # Optionally configure Raven
         if self._telemetry:
-            self._raven_client = get_raven_client()
+            self._raven_client = get_raven_client(user_context={'email': self._fetch_account_email()})
         else:
             self._raven_client = None
 
@@ -83,6 +83,13 @@ class Api(object):
             module = ModuleAlias(module_name)
             if module._imported:
                 setattr(self, module._name, module)
+
+    def _fetch_account_email(self):
+        creds_fp = os.path.expanduser('~/.onecodex')
+        if os.path.exists(creds_fp):
+            with open(creds_fp) as f:
+                creds = json.load(f)
+                return creds.get('email')
 
     def _copy_resources(self):
         """

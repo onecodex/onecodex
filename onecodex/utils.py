@@ -211,7 +211,7 @@ def collapse_user(fp):
     return abs_path.replace(home_dir, "~")
 
 
-def get_raven_client(**extra):
+def get_raven_client(user_context=None, extra_context=None):
     if os.environ.get('ONE_CODEX_NO_TELEMETRY') is None:
         key = base64.b64decode(
             b'NmFlMjMwYWY4NjI5NDg3NmEyYzYwYjZjNDhhZDJiYzI6ZTMyZmYwZTVhNjUwNGQ5NGJhODc0NWZlMmU1ZjNmZjA='
@@ -233,8 +233,15 @@ def get_raven_client(**extra):
                 include_paths=[],
                 release=__version__
             )
-            extra['platform'] = platform.platform()
-            client.extra_context(extra)
+
+            if extra_context is None:
+                extra_context = {}
+            if user_context is None:
+                user_context = {}
+
+            extra_context['platform'] = platform.platform()
+            client.user_context(user_context)
+            client.extra_context(extra_context)
             return client
         except Exception:
             return
