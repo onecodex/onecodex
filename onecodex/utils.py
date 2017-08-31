@@ -9,6 +9,12 @@ import logging
 import os
 import sys
 import platform
+
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
+
 try:
     from urlparse import urlparse
 except ImportError:
@@ -240,6 +246,9 @@ def telemetry(fn):
     This function is only required for functions that may exit *before* we set up
     the ._raven_client object on the Api instance *or* that specifically catch and re-raise
     exceptions or call sys.exit directly.
+
+    Note that this also overwrites verbose Raven logs on exit ("Sentry is waiting to send..."),
+    see https://github.com/getsentry/raven-python/issues/904 for more details.
     """
     @wraps(fn)
     def telemetry_wrapper(*args, **kwargs):
@@ -266,10 +275,14 @@ def telemetry(fn):
         except SystemExit as e:
             if client:
                 client.captureException()
+                client.context.clear()
+                sys.stdout = StringIO()  # See: https://github.com/getsentry/raven-python/issues/904
             sys.exit(e.code)  # make sure we still exit with the proper code
         except Exception as e:
             if client:
                 client.captureException()
+                client.context.clear()
+                sys.stdout = StringIO()
             raise e
 
     return telemetry_wrapper
