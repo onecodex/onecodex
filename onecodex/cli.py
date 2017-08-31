@@ -84,6 +84,7 @@ def onecodex(ctx, api_key, no_pprint, verbose, telemetry):
 @onecodex.command('analyses')
 @click.argument('analyses', nargs=-1, required=False)
 @click.pass_context
+@telemetry
 def analyses(ctx, analyses):
     """Retrieve performed analyses"""
     cli_resource_fetcher(ctx, "analyses", analyses)
@@ -98,6 +99,7 @@ def analyses(ctx, analyses):
               help=OPTION_HELP['results'])
 @click.pass_context
 @click.argument('classifications', nargs=-1, required=False)
+@telemetry
 def classifications(ctx, classifications, results, readlevel, readlevel_path):
     """Retrieve performed metagenomic classifications"""
 
@@ -133,6 +135,7 @@ def classifications(ctx, classifications, results, readlevel, readlevel_path):
 @onecodex.command('panels')
 @click.pass_context
 @click.argument('panels', nargs=-1, required=False)
+@telemetry
 def panels(ctx, panels):
     """Retrieve performed in silico panel results"""
     cli_resource_fetcher(ctx, "panels", panels)
@@ -141,6 +144,7 @@ def panels(ctx, panels):
 @onecodex.command('samples')
 @click.pass_context
 @click.argument('samples', nargs=-1, required=False)
+@telemetry
 def samples(ctx, samples):
     """Retrieve uploaded samples"""
     cli_resource_fetcher(ctx, "samples", samples)
