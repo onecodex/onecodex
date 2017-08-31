@@ -211,6 +211,28 @@ def collapse_user(fp):
     return abs_path.replace(home_dir, "~")
 
 
+def _setup_sentry_for_ipython(client):
+    from IPython import get_ipython
+    ip = get_ipython()
+
+    def custom_exc(shell, etype, evalue, tb, tb_offset=None):
+        # Show original error
+        shell.showtraceback((etype, evalue, tb), tb_offset=tb_offset)
+
+        # Then send to Sentry
+        client.captureException()
+
+    if ip is not None:
+        ip.set_custom_exc((Exception,), custom_exc)
+
+    # Finally, patch the client to not raise too many exceptions in interactive environment
+    # For now, we accept string and wildcard variables parsed from a special environment
+    # variable. We can add support for hard-coded Exception classes here in the future as needed.
+    client.ignore_exceptions = [
+        x for x in os.environ.get('ONE_CODEX_SENTRY_IGNORE_EXCEPTIONS').split(',') if x
+    ]
+
+
 def get_raven_client(user_context=None, extra_context=None):
     if os.environ.get('ONE_CODEX_NO_TELEMETRY') is None:
         key = base64.b64decode(
@@ -230,7 +252,8 @@ def get_raven_client(user_context=None, extra_context=None):
                                    'https://{}@sentry.onecodex.com/9'.format(key)),
                 install_sys_hook=install_sys_hook,
                 raise_send_errors=False,
-                include_paths=[],
+                ignore_exceptions=[],
+                include_paths=[__name__.split('.', 1)[0]],
                 release=__version__
             )
 
@@ -239,9 +262,16 @@ def get_raven_client(user_context=None, extra_context=None):
             if user_context is None:
                 user_context = {}
 
+            try:
+                _setup_sentry_for_ipython(client)
+                extra_context['ipython'] = True
+            except Exception:
+                pass
+
             extra_context['platform'] = platform.platform()
             client.user_context(user_context)
             client.extra_context(extra_context)
+
             return client
         except Exception:
             return
