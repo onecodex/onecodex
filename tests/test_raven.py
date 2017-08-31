@@ -34,11 +34,12 @@ def test_telemetry_decorator(cli_args, call_count):
         assert grc.call_count == call_count
 
 
-def test_ocx_with_raven(ocx_w_raven):
+def test_ocx_with_raven(ocx_w_raven, mocked_creds_file):
     assert ocx_w_raven._telemetry is True
     assert isinstance(ocx_w_raven._raven_client, RavenClient)
     assert ocx_w_raven._raven_client.remote.base_url == 'https://sentry.example.com'
     assert ocx_w_raven._raven_client.is_enabled() is True
+    assert 'email' in ocx_w_raven._raven_client.context['user']
 
 
 def test_good_sentry_dsn():

@@ -357,6 +357,7 @@ def mocked_creds_path(monkeypatch, tmpdir):
 def mocked_creds_file(mocked_creds_path):
     with open(os.path.expanduser('~/.onecodex'), mode='w') as f:
         f.write(json.dumps({
+            'email': 'test@onecodex.com',
             'api_key': None,
             'saved_at': datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
         }))
