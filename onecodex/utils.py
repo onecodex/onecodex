@@ -112,10 +112,10 @@ def _cli_resource_fetcher(ctx, resource, uris):
         for uri in uris:
             try:
                 instance = getattr(ctx.obj['API'], resource_name).get(uri)
-                # if instance is not None:
-                instances.append(instance._resource._properties)
-                # else:
-                # cli_log.error('Could not find {} {} (404 status code)'.format(resource_name, uri))
+                if instance is not None:
+                    instances.append(instance._resource._properties)
+                else:
+                    cli_log.error('Could not find {} {} (404 status code)'.format(resource_name, uri))
             except requests.exceptions.HTTPError as e:
                 cli_log.error('Could not find %s %s (%d status code)'.format(
                     resource_name, uri, e.response.status_code
