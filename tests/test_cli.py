@@ -92,7 +92,12 @@ def mock_fetch_api_key(username, password, server_url):
 def make_creds_file():
     api_key = '123yuixha87yd87q3123uiqhsd8q2738'
     now = datetime.datetime.now().strftime(DATE_FORMAT)
-    fake_creds = {'api_key': api_key, 'saved_at': now, 'updated_at': None}
+    fake_creds = {
+        'api_key': api_key,
+        'saved_at': now,
+        'updated_at': None,
+        'email': 'demo@onecodex.com'
+    }
     path = os.path.expanduser("~/.onecodex")
     with open(path, mode='w') as f:
         f.write(json.dumps(fake_creds))
