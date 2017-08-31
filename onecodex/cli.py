@@ -72,7 +72,7 @@ def onecodex(ctx, api_key, no_pprint, verbose, telemetry):
             if api_key is not None:
                 ctx.obj['API'] = Api(cache_schema=True, api_key=api_key, telemetry=telemetry)
             else:
-                click.echo("No One Codex API key is available - running anonymously", err=True)
+                click.echo("No One Codex API credentials found - running anonymously", err=True)
                 ctx.obj['API'] = Api(cache_schema=True, telemetry=telemetry)
 
     # handle checking insecure platform, we let upload command do it by itself

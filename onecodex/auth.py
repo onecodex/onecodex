@@ -36,7 +36,7 @@ def login_uname_pwd(server):
 
     # now get the API key
     api_key = fetch_api_key_from_uname(username, password, server)
-    return api_key
+    return username, api_key
 
 
 def _login(server, creds_file=None):
@@ -55,7 +55,7 @@ def _login(server, creds_file=None):
         try:
             with open(fp, mode='r') as f:
                 creds = json.load(f)
-                if 'api_key' in creds:
+                if 'email' in creds:
                     click.echo('Credentials file already exists ({})'.format(collapse_user(fp)),
                                err=True)
                     return
@@ -65,7 +65,7 @@ def _login(server, creds_file=None):
             sys.exit(1)
 
     # else make it
-    api_key = login_uname_pwd(server)
+    email, api_key = login_uname_pwd(server)
 
     if api_key is None:
         click.echo("We could not verify your credentials. Either you mistyped your email "
@@ -74,7 +74,12 @@ def _login(server, creds_file=None):
         sys.exit(1)
 
     now = datetime.datetime.now().strftime(DATE_FORMAT)
-    creds.update({'api_key': api_key, 'saved_at': now, 'updated_at': None})
+    creds.update({
+        'api_key': api_key,
+        'saved_at': now,
+        'updated_at': None,
+        'email': email,
+    })
     with open(fp, mode='w') as f:
         json.dump(creds, f)
     click.echo("Your ~/.onecodex credentials file was successfully created.", err=True)
@@ -112,6 +117,16 @@ def _silent_login(check_for_update=True):
     try:
         with open(fp, mode='r') as f:
             creds = json.load(f)
+
+            # Temporary format bridge: Warn user to log out and log back in
+            # if they need an email but have an API key. Can remove on next
+            # major version bump (to v0.3.0 or later)
+            if creds.get('api_key') is not None and creds.get('email') is None:
+                click.echo('Your login has expired. Please login again using `onecodex login`')
+                return
+
+            if creds.get('email') is None or creds.get('api_key') is None:
+                return
 
         if check_for_update:
             last_update = creds['updated_at'] if creds.get('updated_at') else creds['saved_at']
