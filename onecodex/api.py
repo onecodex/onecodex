@@ -31,7 +31,7 @@ class Api(object):
 
     def __init__(self, api_key=None,
                  bearer_token=None, cache_schema=False,
-                 base_url=None, telemetry=False,
+                 base_url=None, telemetry=None,
                  schema_path='/api/v1/schema'):
 
         if base_url is None:
@@ -42,7 +42,6 @@ class Api(object):
         self._req_args = {}
         self._base_url = base_url
         self._schema_path = schema_path
-        self._telemetry = telemetry
 
         # Attempt to automatically fetch API key from
         # ~/.onecodex file, API key, or bearer token environment vars
@@ -73,10 +72,12 @@ class Api(object):
         self._copy_resources()
 
         # Optionally configure Raven
-        if self._telemetry:
+        if telemetry is True or (telemetry is None and os.environ.get('ONE_CODEX_AUTO_TELEMETRY', False)):
             self._raven_client = get_raven_client(user_context={'email': self._fetch_account_email()})
+            self._telemetry = True
         else:
             self._raven_client = None
+            self._telemetry = False
 
         # Try to import and copy key modules onto the Api object
         for module_name in ['onecodex.viz', 'onecodex.distance']:
