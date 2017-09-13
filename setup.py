@@ -27,13 +27,13 @@ setup(
     packages=find_packages(exclude=['*test*']),
     install_requires=['potion-client==2.5.1', 'requests>=2.9', 'click>=6.6',
                       'requests_toolbelt==0.7.0', 'python-dateutil>=2.5.3',
-                      'six>=1.10.0', 'boto3>=1.4.2'],
+                      'six>=1.10.0', 'boto3>=1.4.2', 'raven>=6.1.0'],
     include_package_data=True,
     zip_safe=False,
     extras_require={
         'all': ['numpy>=1.11.0', 'pandas>=0.18.1', 'matplotlib>1.5.1',
                 'seaborn>=0.8', 'scikit-learn>=0.19.0', 'scikit-bio==0.4.2',
-                'networkx>=1.11', 'raven>=6.1.0']
+                'networkx>=1.11']
     },
     dependency_links=[],
     author='Kyle McChesney & Nick Greenfield & Roderick Bovee',

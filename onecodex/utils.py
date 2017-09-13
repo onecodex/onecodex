@@ -22,7 +22,6 @@ except ImportError:
 
 from functools import wraps
 
-from raven import Client as RavenClient
 import requests
 from click import BadParameter, Context, echo
 from potion_client.converter import PotionJSONEncoder
@@ -247,6 +246,7 @@ def get_raven_client(user_context=None, extra_context=None):
             install_sys_hook = False
 
         try:
+            from raven import Client as RavenClient
             client = RavenClient(
                 dsn=os.environ.get('ONE_CODEX_SENTRY_DSN',
                                    'https://{}@sentry.onecodex.com/9'.format(key)),
@@ -271,8 +271,8 @@ def get_raven_client(user_context=None, extra_context=None):
             extra_context['platform'] = platform.platform()
             client.user_context(user_context)
             client.extra_context(extra_context)
-
             return client
+
         except Exception:
             return
 
