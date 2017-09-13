@@ -33,7 +33,9 @@ setup(
     extras_require={
         'all': ['numpy>=1.11.0', 'pandas>=0.18.1', 'matplotlib>1.5.1',
                 'seaborn>=0.8', 'scikit-learn>=0.19.0', 'scikit-bio==0.4.2',
-                'networkx>=1.11']
+                'networkx>=1.11'],
+        'testing': ['flake8', 'testfixtures', 'responses', 'coverage', 'pytest==3.0.5',
+                    'mock==2.0.0', 'pytest-cov==2.4.0', 'coveralls==1.1', 'tox-pyenv==1.0.3'],
     },
     dependency_links=[],
     author='Kyle McChesney & Nick Greenfield & Roderick Bovee',
