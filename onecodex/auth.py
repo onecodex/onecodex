@@ -133,7 +133,7 @@ def _silent_login(check_for_update=True):
             diff = datetime.datetime.now() - datetime.datetime.strptime(last_update,
                                                                         DATE_FORMAT)
             if diff.days >= 1:
-                # Check and print warning
+                # Check and print warning. TODO: Consider moving this to login command as well
                 upgrade_required, msg = check_version(__version__, 'https://app.onecodex.com/')
                 creds['updated_at'] = datetime.datetime.now().strftime(DATE_FORMAT)
                 json.dump(creds, open(fp, mode='w'))
