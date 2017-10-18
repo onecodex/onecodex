@@ -48,20 +48,21 @@ def plot_metadata(analyses, metadata='created_at', statistic=None, tax_id=None,
     # Try to plot any column with `date` in it as a datetime, or if it's already a datetime
     # Plot numeric types as lmplots
     # Plot categorical, boolean, and objects as boxplot
-    if 'date' in metadata.split('_') or pd.core.dtypes.common.is_datetime64_any_dtype(md[metadata]):
-        if not pd.core.dtypes.common.is_datetime64_any_dtype(md[metadata]):
+    if 'date' in metadata.split('_') or pd.api.types.is_datetime64_any_dtype(md[metadata]):
+        if not pd.api.types.is_datetime64_any_dtype(md[metadata]):
             md.loc[:, metadata] = md.loc[:, metadata].apply(pd.to_datetime, utc=True)
         fig, ax = plt.subplots()
         ax.xaxis.set_major_locator(mdates.AutoDateLocator())
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%m/%d/%Y'))
         ax.plot_date(md[metadata].values, md['_data'].values, **kwargs)
         fig.autofmt_xdate()
-    elif pd.core.dtypes.common.is_numeric_dtype(md[metadata]):
+    elif pd.api.types.is_numeric_dtype(md[metadata]):
         sns.lmplot(x=metadata, y='_data', truncate=True, data=md, **kwargs)
-    elif pd.core.dtypes.common.is_bool_dtype(md[metadata]) or \
-            pd.core.dtypes.common.is_categorical_dtype(md[metadata]) or \
-            pd.core.dtypes.common.is_object_dtype(md[metadata]):
-        md.fillna(value='N/A', inplace=True)
+    elif pd.api.types.is_bool_dtype(md[metadata]) or \
+            pd.api.types.is_categorical_dtype(md[metadata]) or \
+            pd.api.types.is_object_dtype(md[metadata]):
+        na = {field: 'N/A' for field in md.columns}
+        md.fillna(value=na, inplace=True)
         sns.boxplot(x=metadata, y='_data', data=md, palette='pastel', **kwargs)
     else:
         raise OneCodexException('Unplottable column type for metadata {}'.format(metadata))

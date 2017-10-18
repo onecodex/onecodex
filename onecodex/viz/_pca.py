@@ -34,7 +34,8 @@ def plot_pca(analyses, threshold=None,
     pca_vals = pd.DataFrame(pca_vals, index=df.index)
     pca_vals.rename(columns=lambda x: "PCA{}".format(x + 1), inplace=True)
     metadata.index = df.index
-    plot_data = pd.concat([pca_vals, metadata.fillna('N/A')], axis=1)
+    na = {field: 'N/A' for field in metadata.columns}
+    plot_data = pd.concat([pca_vals, metadata.fillna(na)], axis=1)
 
     # Scatter plot of PCA
     sns.set(style=kwargs.pop('style', 'darkgrid'))
