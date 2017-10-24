@@ -62,11 +62,12 @@ SUPPORTED_EXTENSIONS = ["fa", "fasta", "fq", "fastq",
 
 def valid_api_key(ctx, param, value):
     """
-    Ensures an API has valid length (this is a click callback)"""
+    Ensures an API has valid length (this is a click callback)
+    """
     if value is not None and len(value) != 32:
-        l = len(value)
         raise BadParameter(
-            "API Key must be 32 characters long, not {}".format(str(l)))
+            "API Key must be 32 characters long, not {}".format(str(len(value)))
+        )
     else:
         return value
 

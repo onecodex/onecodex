@@ -52,7 +52,7 @@ class Api(object):
         if api_key is None and bearer_token is None:
             try:
                 api_key = json.load(open(os.path.expanduser('~/.onecodex')))['api_key']
-            except:
+            except Exception:
                 pass
             if api_key is None:
                 api_key = os.environ.get('ONE_CODEX_API_KEY')
