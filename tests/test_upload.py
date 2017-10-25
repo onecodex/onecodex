@@ -43,7 +43,7 @@ class FakeSamplesResource():
             'additional_fields': {},
         }
 
-    def read_init_multipart_upload(self):
+    def init_multipart_upload(self):
         return {
             'callback_url': '',
             's3_bucket': '',
