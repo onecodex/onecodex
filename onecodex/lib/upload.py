@@ -183,7 +183,7 @@ def upload_large_file(file_obj, filename, session, samples_resource, server_url,
 
     # first check with the one codex server to get upload parameters
     try:
-        upload_params = samples_resource.read_init_multipart_upload()
+        upload_params = samples_resource.init_multipart_upload()
     except requests.exceptions.HTTPError:
         raise UploadException('Could not initiate upload with One Codex server')
 
