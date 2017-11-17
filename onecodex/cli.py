@@ -155,6 +155,10 @@ def samples(ctx, samples):
 @click.option('--max-threads', default=4,
               help=OPTION_HELP['max_threads'], metavar='<int:threads>')
 @click.argument('files', nargs=-1, required=False, type=click.Path(exists=True))
+@click.option('--forward', type=click.Path(exists=True), 
+              help=OPTION_HELP['forward'])
+@click.option('--reverse', type=click.Path(exists=True), 
+              help=OPTION_HELP['reverse'])
 @click.option('--clean', is_flag=True, help=OPTION_HELP['clean'], default=False)
 @click.option('--do-not-interleave', 'no_interleave', is_flag=True, help=OPTION_HELP['interleave'],
               default=False)
@@ -163,8 +167,15 @@ def samples(ctx, samples):
               default=True)
 @click.pass_context
 @telemetry
-def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate):
+def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate, forward, reverse):
     """Upload a FASTA or FASTQ (optionally gzip'd) to One Codex"""
+
+    if (forward or reverse) and not (forward and reverse):
+        click.echo('You must specify both forward and reverse files', err=True)
+        sys.exit(1)
+    if forward:
+        files = [(forward, reverse)]
+        no_interleave = True
     if len(files) == 0:
         print(ctx.get_help())
         return

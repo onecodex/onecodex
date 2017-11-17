@@ -53,6 +53,8 @@ OPTION_HELP = {
     'validate': ("Do not validate the FASTA/Q file before uploading. Incompatible with automatic "
                  "paired end interleaving (NOT RECOMMENDED)."),
     'telemetry': 'Send errors to One Codex?',
+    'forward': 'Specify a forward reads file',
+    'reverse': 'Specify a reverse reads file'
 }
 
 SUPPORTED_EXTENSIONS = ["fa", "fasta", "fq", "fastq",
