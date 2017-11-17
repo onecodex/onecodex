@@ -234,6 +234,28 @@ def test_paired_files(runner, upload_mocks):
             assert mp.call_count == 2
         assert result3.exit_code == 0
 
+        # Check with --forward and --reverse, should succeed
+        args = ['--api-key', '01234567890123456789012345678901', 'upload', '--forward', f,
+                '--reverse', f2]
+        with mock.patch(patch1) as mp, mock.patch(patch2) as mp2:
+            result4 = runner.invoke(Cli, args)
+            assert mp.call_count == 1
+            assert mp2.call_count == 0  # We close in the upload_file call
+        assert 'It appears there are paired files' not in result4.output
+        assert result4.exit_code == 0
+
+        # Check with only --forward, should fail
+        args = ['--api-key', '01234567890123456789012345678901', 'upload', '--forward', f]
+        result5 = runner.invoke(Cli, args)
+        print('You must specify both forward and reverse files' in result5.output)
+        assert 'You must specify both forward and reverse files' in result5.output
+        assert result5.exit_code != 0
+
+        # Check with only --reverse, should fail
+        args = ['--api-key', '01234567890123456789012345678901', 'upload', '--reverse', f2]
+        result6 = runner.invoke(Cli, args)
+        assert 'You must specify both forward and reverse files' in result6.output
+        assert result6.exit_code != 0
 
 def test_large_uploads(runner, upload_mocks, monkeypatch):
     # a lot of funky mocking
