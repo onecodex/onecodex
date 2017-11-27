@@ -119,6 +119,10 @@ def classifications(ctx, classifications, results, readlevel, readlevel_path):
             log.error("Can only request results data on one Classification at a time")
         else:
             classification = ctx.obj['API'].Classifications.get(classifications[0])
+            if not classification:
+                log.error('Could not find classification {} (404 status code)' \
+                          .format(classifications[0]))
+                return
             results = classification.results(json=True)
             pprint(results, ctx.obj['NOPPRINT'])
 
@@ -129,6 +133,10 @@ def classifications(ctx, classifications, results, readlevel, readlevel_path):
 
         else:
             classification = ctx.obj['API'].Classifications.get(classifications[0])
+            if not classification:
+                log.error('Could not find classification {} (404 status code)' \
+                          .format(classifications[0]))
+                return
             tsv_url = classification.readlevel()['url']
             log.info("Downloading tsv data from: {}".format(tsv_url))
             download_file_helper(tsv_url, readlevel_path)
