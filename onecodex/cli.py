@@ -14,7 +14,8 @@ import click
 
 from onecodex.utils import (cli_resource_fetcher, download_file_helper,
                             valid_api_key, OPTION_HELP, pprint,
-                            warn_if_insecure_platform, telemetry)
+                            warn_if_insecure_platform, is_simplejson_installed,
+                            warn_simplejson, telemetry)
 from onecodex.api import Api
 from onecodex.exceptions import ValidationWarning, ValidationError, UploadException
 from onecodex.auth import _login, _logout, _silent_login
@@ -59,6 +60,11 @@ def onecodex(ctx, api_key, no_pprint, verbose, telemetry):
 
     if verbose:
         log.setLevel(logging.INFO)
+
+    # Show a warning if simplejson is installed
+    if is_simplejson_installed():
+        warn_simplejson()
+        sys.exit(1)
 
     # create the api
     no_api_subcommands = ["login", "logout"]
@@ -155,9 +161,9 @@ def samples(ctx, samples):
 @click.option('--max-threads', default=4,
               help=OPTION_HELP['max_threads'], metavar='<int:threads>')
 @click.argument('files', nargs=-1, required=False, type=click.Path(exists=True))
-@click.option('--forward', type=click.Path(exists=True), 
+@click.option('--forward', type=click.Path(exists=True),
               help=OPTION_HELP['forward'])
-@click.option('--reverse', type=click.Path(exists=True), 
+@click.option('--reverse', type=click.Path(exists=True),
               help=OPTION_HELP['reverse'])
 @click.option('--clean', is_flag=True, help=OPTION_HELP['clean'], default=False)
 @click.option('--do-not-interleave', 'no_interleave', is_flag=True, help=OPTION_HELP['interleave'],
