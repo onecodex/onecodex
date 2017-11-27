@@ -122,6 +122,7 @@ def _cli_resource_fetcher(ctx, resource, uris):
                 cli_log.error('Could not find %s %s (%d status code)'.format(
                     resource_name, uri, e.response.status_code
                 ))
+        # TODO this should probably return, not print
         pprint(instances, ctx.obj['NOPPRINT'])
 
 
