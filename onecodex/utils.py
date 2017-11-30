@@ -3,6 +3,7 @@ utils.py
 author: @mbiokyle29
 """
 import base64
+import gzip
 import importlib
 import json
 import logging
@@ -19,6 +20,11 @@ try:
     from urlparse import urlparse
 except ImportError:
     from urllib.parse import urlparse
+
+try:
+    from itertools import izip as zip
+except ImportError:
+    pass
 
 from functools import wraps
 
@@ -43,6 +49,8 @@ OPTION_HELP = {
     'readlevel_path': ('Output path or directory for a .tsv file with the raw '
                        'read-level results. Defaults to original filename in '
                        'the current working directory'),
+    'reconstruct': ('Given a FASTQ file, reinsert FASTQ headers into '
+                    'read-level results file'),
     'clean': ("Automatically clean up FASTX records during upload. This removes tabs from "
               "headers and converts U to T. If this isn't passed, these will cause errors."),
     'interleave': ("Do not automatically interleave paired end files. Note this normally happens "
@@ -171,13 +179,15 @@ def warn_if_insecure_platform():
         cli_log.info("Python SSLContext passed")
         return False
 
+
 def is_simplejson_installed():
     try:
-        import simplejson
+        import simplejson  # noqa
     except ImportError:
         return False
     else:
         return True
+
 
 def warn_simplejson():
     """
@@ -196,6 +206,16 @@ def warn_simplejson():
          "######################################################################################\n")  # noqa)
     echo(m, err=True)
 
+
+def get_download_dest(input_path, url):
+    original_filename = urlparse(url).path.split("/")[-1]
+    if os.path.isdir(input_path):
+        local_full_path = os.path.join(input_path, original_filename)
+    else:
+        local_full_path = input_path
+    return local_full_path
+
+
 def download_file_helper(url, input_path):
     """
     Manages the chunked downloading of a file given an url
@@ -203,11 +223,8 @@ def download_file_helper(url, input_path):
     r = requests.get(url, stream=True)
     if r.status_code != 200:
         cli_log.error("Failed to download file: %s" % r.json()["message"])
-    original_filename = urlparse(r.url).path.split("/")[-1]
-    if os.path.isdir(input_path):
-        local_full_path = os.path.join(input_path, original_filename)
-    else:
-        local_full_path = input_path
+    local_full_path = get_download_dest(input_path, r.url)
+    original_filename = os.path.split(local_full_path)[-1]
     with open(local_full_path, 'wb') as f:
         echo("Downloading {}".format(original_filename), err=True)
         for chunk in r.iter_content(chunk_size=1024):
@@ -216,6 +233,38 @@ def download_file_helper(url, input_path):
                 f.flush()
     pprint("Successfully downloaded %s to %s" % (original_filename, local_full_path),  # noqa
            True)
+
+
+def get_fastq_headers(fastq):
+    for i, line in enumerate(fastq):
+        if i % 4 == 0:
+            yield line
+
+
+def insert_fastq_headers(fastq, tsv, out):
+    # fastq, tsv, out should be file objects
+    for i, (header, row) in enumerate(zip(get_fastq_headers(fastq), tsv)):
+        if i == 0:
+            out.write('Header' + '\t' + row.strip() + '\n')
+        else:
+            out.write(header.strip() + '\t' + row.strip() + '\n')
+
+
+def reconstruct_read_level_tsv(tsv_url, fastq, readlevel_path):
+    # fastq should be a file object
+    # Get a temporary path for the partial .tsv
+    temp_tsv = os.path.join(os.getcwd(), 'readlevel.temp.tsv.gz')
+    download_file_helper(tsv_url, temp_tsv)
+
+    readlevel_path = get_download_dest(readlevel_path, tsv_url)
+    readlevel_path = readlevel_path.rstrip('.gz')
+    # Reconstruct the full .tsv
+    echo("Reconstructing the .tsv file")
+    with gzip.open(temp_tsv, 'rt') as tsv, open(readlevel_path, 'w') as out:
+        insert_fastq_headers(fastq, tsv, out)
+
+    # Clean up the old .tsv
+    os.remove(temp_tsv)
 
 
 def check_for_allowed_file(f):

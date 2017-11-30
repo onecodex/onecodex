@@ -257,6 +257,7 @@ def test_paired_files(runner, upload_mocks):
         assert 'You must specify both forward and reverse files' in result6.output
         assert result6.exit_code != 0
 
+
 def test_large_uploads(runner, upload_mocks, monkeypatch):
     # a lot of funky mocking
     import mock
