@@ -15,7 +15,8 @@ import click
 from onecodex.utils import (cli_resource_fetcher, download_file_helper,
                             valid_api_key, OPTION_HELP, pprint,
                             warn_if_insecure_platform, is_simplejson_installed,
-                            warn_simplejson, telemetry)
+                            warn_simplejson, reconstruct_read_level_tsv,
+                            telemetry)
 from onecodex.api import Api
 from onecodex.exceptions import ValidationWarning, ValidationError, UploadException
 from onecodex.auth import _login, _logout, _silent_login
@@ -99,14 +100,17 @@ def analyses(ctx, analyses):
 @onecodex.command('classifications')
 @click.option("--read-level", 'readlevel', is_flag=True,
               help=OPTION_HELP['readlevel'])
-@click.option("--read-level-path", 'readlevel_path',
+@click.option("--read-level-path", 'readlevel_path', type=click.Path(),
               default="./", help=OPTION_HELP['readlevel_path'])
 @click.option("--results", 'results', is_flag=True,
               help=OPTION_HELP['results'])
+@click.option("--reconstruct", 'reconstruct_fastq', type=click.File('r'),
+              help=OPTION_HELP['reconstruct'])
 @click.pass_context
 @click.argument('classifications', nargs=-1, required=False)
 @telemetry
-def classifications(ctx, classifications, results, readlevel, readlevel_path):
+def classifications(ctx, classifications, results, readlevel, readlevel_path,
+                    reconstruct_fastq):
     """Retrieve performed metagenomic classifications"""
 
     # basic operation -- just print
@@ -120,7 +124,7 @@ def classifications(ctx, classifications, results, readlevel, readlevel_path):
         else:
             classification = ctx.obj['API'].Classifications.get(classifications[0])
             if not classification:
-                log.error('Could not find classification {} (404 status code)' \
+                log.error('Could not find classification {} (404 status code)'
                           .format(classifications[0]))
                 return
             results = classification.results(json=True)
@@ -130,16 +134,19 @@ def classifications(ctx, classifications, results, readlevel, readlevel_path):
     elif readlevel is not None and not results:
         if len(classifications) != 1:
             log.error("Can only request read-level data on one Classification at a time")
-
         else:
             classification = ctx.obj['API'].Classifications.get(classifications[0])
             if not classification:
-                log.error('Could not find classification {} (404 status code)' \
+                log.error('Could not find classification {} (404 status code)'
                           .format(classifications[0]))
                 return
             tsv_url = classification.readlevel()['url']
             log.info("Downloading tsv data from: {}".format(tsv_url))
-            download_file_helper(tsv_url, readlevel_path)
+            if reconstruct_fastq:
+                reconstruct_read_level_tsv(tsv_url, reconstruct_fastq,
+                                           readlevel_path)
+            else:
+                download_file_helper(tsv_url, readlevel_path)
 
     # both given -- complain
     else:
@@ -181,7 +188,8 @@ def samples(ctx, samples):
               default=True)
 @click.pass_context
 @telemetry
-def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate, forward, reverse):
+def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
+           forward, reverse):
     """Upload a FASTA or FASTQ (optionally gzip'd) to One Codex"""
 
     if (forward or reverse) and not (forward and reverse):
