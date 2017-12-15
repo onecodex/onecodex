@@ -36,6 +36,26 @@ stream_handler.setLevel(logging.INFO)
 stream_handler.setFormatter(log_formatter)
 log.addHandler(stream_handler)
 
+plugin_folder = os.path.join(os.path.dirname(__file__), 'scripts')
+
+
+# http://click.pocoo.org/6/commands/#custom-multi-commands
+class OCXScriptsCli(click.MultiCommand):
+    def list_commands(self, ctx):
+        rv = []
+        for filename in os.listdir(plugin_folder):
+            if filename.endswith('.py'):
+                rv.append(filename[:-3])
+        rv.sort()
+        return rv
+
+    def get_command(self, ctx, name):
+        ns = {}
+        fn = os.path.join(plugin_folder, name + '.py')
+        with open(fn) as f:
+            code = compile(f.read(), fn, 'exec')
+            eval(code, ns, ns)
+        return ns['cli']
 
 # options
 @click.group(context_settings=CONTEXT_SETTINGS)
@@ -86,6 +106,10 @@ def onecodex(ctx, api_key, no_pprint, verbose, telemetry):
     if ctx.invoked_subcommand != "upload":
         warn_if_insecure_platform()
 
+
+@onecodex.group('scripts', cls=OCXScriptsCli, help='Assorted utility scripts')
+def scripts():
+    pass
 
 # resources
 @onecodex.command('analyses')
