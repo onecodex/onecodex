@@ -372,6 +372,14 @@ class FASTXTranslator(BaseFASTXReader):
         if self.reads.file_type != self.reads_pair.file_type:
             raise ValidationError('Paired read files are different types (FASTA/FASTQ)')
 
+    def __iter__(self):
+        if self.reads_pair:
+            for r1, r2 in zip(self.reads_iter, self.reads_pair_iter):
+                yield (r1, r2)
+        else:
+            for r in self.reads_iter:
+                yield r
+
     def read(self, n=-1):
         if self.reads_pair is None:
             while len(self.checked_buffer) < n or n < 0:
