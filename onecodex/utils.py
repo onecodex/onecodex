@@ -3,7 +3,6 @@ utils.py
 author: @mbiokyle29
 """
 import base64
-import gzip
 import importlib
 import json
 import logging
@@ -20,11 +19,6 @@ try:
     from urlparse import urlparse
 except ImportError:
     from urllib.parse import urlparse
-
-try:
-    from itertools import izip as zip
-except ImportError:
-    pass
 
 from functools import wraps
 
@@ -49,8 +43,6 @@ OPTION_HELP = {
     'readlevel_path': ('Output path or directory for a .tsv file with the raw '
                        'read-level results. Defaults to original filename in '
                        'the current working directory'),
-    'reconstruct': ('Given a FASTQ file, reinsert FASTQ headers into '
-                    'read-level results file'),
     'clean': ("Automatically clean up FASTX records during upload. This removes tabs from "
               "headers and converts U to T. If this isn't passed, these will cause errors."),
     'interleave': ("Do not automatically interleave paired end files. Note this normally happens "
@@ -233,38 +225,6 @@ def download_file_helper(url, input_path):
                 f.flush()
     pprint("Successfully downloaded %s to %s" % (original_filename, local_full_path),  # noqa
            True)
-
-
-def get_fastq_headers(fastq):
-    for i, line in enumerate(fastq):
-        if i % 4 == 0:
-            yield line
-
-
-def insert_fastq_headers(fastq, tsv, out):
-    # fastq, tsv, out should be file objects
-    for i, (header, row) in enumerate(zip(get_fastq_headers(fastq), tsv)):
-        if i == 0:
-            out.write('Header' + '\t' + row.strip() + '\n')
-        else:
-            out.write(header.strip() + '\t' + row.strip() + '\n')
-
-
-def reconstruct_read_level_tsv(tsv_url, fastq, readlevel_path):
-    # fastq should be a file object
-    # Get a temporary path for the partial .tsv
-    temp_tsv = os.path.join(os.getcwd(), 'readlevel.temp.tsv.gz')
-    download_file_helper(tsv_url, temp_tsv)
-
-    readlevel_path = get_download_dest(readlevel_path, tsv_url)
-    readlevel_path = readlevel_path.rstrip('.gz')
-    # Reconstruct the full .tsv
-    echo("Reconstructing the .tsv file")
-    with gzip.open(temp_tsv, 'rt') as tsv, open(readlevel_path, 'w') as out:
-        insert_fastq_headers(fastq, tsv, out)
-
-    # Clean up the old .tsv
-    os.remove(temp_tsv)
 
 
 def check_for_allowed_file(f):
