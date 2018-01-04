@@ -192,8 +192,8 @@ def warn_simplejson():
          "#                                                                                    #\n"  # noqa
          "#  You currently have simplejson installed. Unfortunately, this library does not     #\n"  # noqa
          "#  work properly alongside simplejson. Please install this library in a separate     #\n"  # noqa
-         "#  virtual environment using a tool such as virtualenv. For more information, see    #\n"  # noqa
-         "#  https://virtualenv.pypa.io/en/stable/.                                            #\n"  # noqa
+         "#  virtual environment using a tool such as virtualenv or uninstall simplejson.      #\n"  # noqa
+         "#  For more information, see https://virtualenv.pypa.io/en/stable/.                  #\n"  # noqa
          "#                                                                                    #\n"  # noqa
          "######################################################################################\n")  # noqa)
     echo(m, err=True)

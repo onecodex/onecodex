@@ -65,7 +65,6 @@ def onecodex(ctx, api_key, no_pprint, verbose, telemetry):
     # Show a warning if simplejson is installed
     if is_simplejson_installed():
         warn_simplejson()
-        sys.exit(1)
 
     # create the api
     no_api_subcommands = ["login", "logout"]
@@ -196,11 +195,15 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
     if (forward or reverse) and not (forward and reverse):
         click.echo('You must specify both forward and reverse files', err=True)
         sys.exit(1)
-    if forward:
+    if forward and reverse:
+        if len(files) > 0:
+            click.echo('You may not pass a FILES argument when using the '
+                       ' --forward and --reverse options.', err=True)
+            sys.exit(1)
         files = [(forward, reverse)]
         no_interleave = True
     if len(files) == 0:
-        print(ctx.get_help())
+        click.echo(ctx.get_help())
         return
     else:
         files = list(files)
