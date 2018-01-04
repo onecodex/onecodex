@@ -258,6 +258,14 @@ def test_paired_files(runner, upload_mocks):
         assert 'You must specify both forward and reverse files' in result6.output
         assert result6.exit_code != 0
 
+        # Check with --forward, --reverse, and files, should fail
+        args = ['--api-key', '01234567890123456789012345678901', 'upload', '--forward', f,
+                '--reverse', f2, f2]
+        with mock.patch(patch1) as mp, mock.patch(patch2) as mp2:
+            result7 = runner.invoke(Cli, args)
+        assert 'You may not pass a FILES argument' in result7.output
+        assert result7.exit_code != 0
+
 
 def test_large_uploads(runner, upload_mocks, monkeypatch):
     # a lot of funky mocking
