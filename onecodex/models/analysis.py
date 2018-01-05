@@ -45,7 +45,7 @@ class Classifications(Analyses):
     _cached_table = None
 
     @staticmethod
-    def to_otu(classifications):
+    def to_otu(classifications, biom_id=None):
         """
         Converts a list of classifications into a dictionary resembling
         an OTU table.
@@ -56,6 +56,9 @@ class Classifications(Analyses):
             List of Classifications, i.e., ocx.Classifications.where(job=job).
             If 1 Classification is passed, it will be coerced into a list.
 
+        biom_id : str, optional
+            Optionally specify an `id` field for the generated v1 BIOM file.
+
         Returns
         -------
         otu_table : OrderedDcit
@@ -64,7 +67,8 @@ class Classifications(Analyses):
         otu_format = 'Biological Observation Matrix 0.9.1-dev'
         otu_url = 'http://biom-format.org/documentation/format_versions/biom-1.0.html'  # noqa
 
-        otu = OrderedDict({'format': otu_format,
+        otu = OrderedDict({'id': biom_id,
+                           'format': otu_format,
                            'format_url': otu_url,
                            'type': 'OTU table',
                            'generated_by': 'One Codex API V1',
