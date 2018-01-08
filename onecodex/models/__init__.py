@@ -1,10 +1,12 @@
 from datetime import datetime
 import inspect
 import itertools
+import json
 import sys
 
 from dateutil.parser import parse
 from requests.exceptions import HTTPError
+from potion_client.converter import PotionJSONEncoder
 from potion_client.resource import Resource
 import six
 
@@ -145,6 +147,19 @@ class OneCodexBase(object):
     def __eq__(self, other):
         # TODO: We should potentially check that both resources are up-to-date
         return self._resource._uri == other._resource._uri
+
+    def _to_json(self, include_references=True):
+        """Convert the model to JSON using the PotionJSONEncode and automatically
+        resolving the resource as needed (`_properties` call handles this).
+        """
+        if include_references:
+            return json.dumps(self._resource._properties, cls=PotionJSONEncoder)
+        else:
+            return json.dumps(
+                {k: v for k, v in self._resource._properties.items()
+                 if not isinstance(v, Resource) and not k.startswith('$')},
+                cls=PotionJSONEncoder
+            )
 
     @classmethod
     def _convert_id_to_uri(cls, uuid):

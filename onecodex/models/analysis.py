@@ -1,4 +1,5 @@
 import datetime
+import json
 from collections import defaultdict, OrderedDict
 
 from onecodex.models import OneCodexBase
@@ -64,8 +65,10 @@ class Classifications(Analyses):
         otu_table : OrderedDcit
             A BIOM OTU table, returned as a Python OrderedDict (can be dumped to JSON)
         """
-        otu_format = 'Biological Observation Matrix 0.9.1-dev'
-        otu_url = 'http://biom-format.org/documentation/format_versions/biom-1.0.html'  # noqa
+        otu_format = 'Biological Observation Matrix 1.0.0'
+
+        # Note: This is exact format URL is required by https://github.com/biocore/biom-format
+        otu_url = 'http://biom-format.org'
 
         otu = OrderedDict({'id': biom_id,
                            'format': otu_format,
@@ -82,15 +85,27 @@ class Classifications(Analyses):
         if not isinstance(classifications, list):
             classifications = [classifications]
 
+        tax_ids_to_names = {}
         for classification in classifications:
             col_id = len(otu['columns'])  # 0 index
-            columns_entry = {'id': str(classification.id)}
+
+            # Re-encoding the JSON is a bit of a hack, but
+            # we need a ._to_dict() method that properly
+            # resolves references and don't have one at the moment
+            columns_entry = {
+                'id': str(classification.id),
+                'sample_id': str(classification.sample.id),
+                'sample_filename': classification.sample.filename,
+                'metadata': json.loads(classification.sample.metadata._to_json(include_references=False)),
+            }
+
             otu['columns'].append(columns_entry)
             sample_df = classification.table()
 
-            for tax_id in sample_df['tax_id']:
-                rows[tax_id][col_id] = int(
-                    sample_df[sample_df['tax_id'] == tax_id]['readcount'])
+            for row in sample_df.iterrows():
+                tax_id = row[1]['tax_id']
+                tax_ids_to_names[tax_id] = row[1]['name']
+                rows[tax_id][col_id] = int(row[1]['readcount'])
 
         num_rows = len(rows)
         num_cols = len(otu['columns'])
@@ -101,7 +116,12 @@ class Classifications(Analyses):
         for present_taxa in sorted(rows):
             # add the row entry
             row_id = len(otu['rows'])
-            otu['rows'].append({'id': present_taxa})
+            otu['rows'].append({
+                'id': present_taxa,
+                'metadata': {
+                    'taxonomy': tax_ids_to_names[present_taxa],
+                }
+            })
 
             for sample_with_hit in rows[present_taxa]:
                 counts = rows[present_taxa][sample_with_hit]

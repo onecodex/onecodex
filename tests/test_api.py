@@ -87,43 +87,6 @@ class TestExtendedApi(unittest.TestCase):
         self.assertEqual(len(subset_table.index), len(test_ids))
         self.assertEqual(test_ids, list(subset_table['tax_id']))
 
-    @responses.activate
-    def test_classification_otu(self):
-
-        responses.add(responses.GET, self.classification_one_url,
-                      json=json.loads(self.classification_one))
-        responses.add(responses.GET, self.classification_one_table_url,
-                      json=json.loads(self.table_one))
-        responses.add(responses.GET, self.classification_two_url,
-                      json=json.loads(self.classification_two))
-        responses.add(responses.GET, self.classification_two_table_url,
-                      json=json.loads(self.table_two))
-
-        classification_one = self.api.Classifications.get(self.uuid_one)
-        classification_two = self.api.Classifications.get(self.uuid_two)
-        otu = self.api.Classifications.to_otu([classification_one, classification_two])
-
-        self.assertTrue('format' in otu)
-        self.assertEqual(otu['shape'][1], 2)  # should be two cols
-        rows_ids = [int(row['id']) for row in otu['rows']]
-
-        one_abundances = classification_one.abundances(rows_ids)
-        two_abundances = classification_two.abundances(rows_ids)
-
-        row_id = 0
-        for taxid in rows_ids:
-
-            if taxid in one_abundances:
-
-                counts = one_abundances[taxid]
-                self.assertTrue([row_id, 0, counts] in otu['data'])
-
-            if taxid in two_abundances:
-                counts = two_abundances[taxid]
-                self.assertTrue([row_id, 1, counts] in otu['data'])
-
-            row_id += 1
-
 
 class TestQueryInterface(unittest.TestCase):
 
