@@ -1,5 +1,6 @@
 from __future__ import print_function
 import datetime
+import json
 import pandas as pd
 
 import onecodex
@@ -206,6 +207,44 @@ def test_public_analyses(ocx, api_data):
     assert a.sample.filename == 'MSA-1000.16S.example.fastq.gz'
     assert a.job.name == 'One Codex Database'
     assert a.sample.visibility == 'public'
+
+
+def test_biom(ocx, api_data):
+    c1 = ocx.Classifications.get('45a573fb7833449a')
+    c2 = ocx.Classifications.get('593601a797914cbf')
+    biom = ocx.Classifications.to_otu([c1, c2])
+    assert set(biom.keys()) == {
+        'columns', 'data', 'date', 'format', 'format_url',
+        'generated_by', 'id', 'matrix_element_type', 'matrix_type', 'rows', 'shape', 'type'
+    }
+    assert biom['format_url'] == 'http://biom-format.org'
+    assert set(biom['columns'][0].keys()) == {'id', 'sample_id', 'sample_filename', 'metadata'}
+    assert set(biom['rows'][0].keys()) == {'id', 'metadata'}
+    assert 'taxonomy' in biom['rows'][0]['metadata']
+
+    # IDs
+    assert biom['columns'][0]['id'] == c1.id
+    assert biom['columns'][0]['sample_id'] == c1.sample.id
+
+    # Reults
+    assert set(row['metadata']['taxonomy'] for row in biom['rows']) == {
+        'Staphylococcus sp. HGB0015', 'Staphylococcus'
+    }
+
+    # Format is row_id, sample id (column), count
+    assert biom['data'][0] == [0, 0, 3]
+    assert biom['data'][1] == [0, 1, 80]
+    assert biom['data'][2] == [1, 0, 0]
+    assert biom['data'][3] == [1, 1, 0]
+    assert biom['rows'][0]['id'] == '1078083'
+    assert biom['rows'][1]['id'] == '1279'
+
+    # Check that we're not including unnecessary references
+    assert '$uri' not in biom['columns'][0]['metadata']
+    assert 'sample' not in biom['columns'][0]['metadata']
+
+    # Test serialization
+    assert json.loads(json.dumps(biom)) == biom   # tests json serialization
 
 
 def test_jobs(ocx, api_data):
