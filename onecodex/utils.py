@@ -266,7 +266,7 @@ def _setup_sentry_for_ipython(client):
     # For now, we accept string and wildcard variables parsed from a special environment
     # variable. We can add support for hard-coded Exception classes here in the future as needed.
     client.ignore_exceptions = [
-        x for x in os.environ.get('ONE_CODEX_SENTRY_IGNORE_EXCEPTIONS').split(',') if x
+        x for x in os.environ.get('ONE_CODEX_SENTRY_IGNORE_EXCEPTIONS', '').split(',') if x
     ]
 
 
