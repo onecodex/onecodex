@@ -5,7 +5,7 @@ import os
 
 from onecodex.exceptions import OneCodexException, ValidationError
 from onecodex.lib.inline_validator import FASTXTranslator
-from onecodex.utils import download_file_helper, get_download_dest
+from onecodex.utils import download_file_helper, get_download_dest, pretty_errors
 
 
 def with_progress_bar(length, ix, *args, **kwargs):
@@ -65,12 +65,16 @@ def write_fastx_record(record, handler):
 @click.option('-o', '--out', default='.', type=click.Path(), help='Where '
               'to put the filtered outputs')
 @click.pass_context
+@pretty_errors
 def cli(ctx, classification_id, fastx, reverse, tax_id, split_pairs, out):
     tax_ids = tax_id  # rename
     if not len(tax_ids):
         raise OneCodexException('You must supply at least one tax ID')
 
     classification = ctx.obj['API'].Classifications.get(classification_id)
+    if classification is None:
+        raise ValidationError('Classification {} not found.'.format(classification_id))
+
     tsv_url = classification.readlevel()['url']
     readlevel_path = get_download_dest('./', tsv_url)
     if not os.path.exists(readlevel_path):

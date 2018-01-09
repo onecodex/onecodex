@@ -26,6 +26,7 @@ import requests
 from click import BadParameter, Context, echo
 from potion_client.converter import PotionJSONEncoder
 
+from onecodex.exceptions import OneCodexException, UploadException
 from onecodex.version import __version__
 
 
@@ -360,6 +361,24 @@ def telemetry(fn):
             raise e
 
     return telemetry_wrapper
+
+
+def pretty_errors(fn):
+    """
+    Decorator for the CLI for catching errors and then calling sys.exit(1).
+
+    For now, this is intended for use with the CLI and scripts where we only use
+    OneCodexExceptions (incl. ValidationError) and UploadException.
+    """
+    @wraps(fn)
+    def pretty_errors_wrapper(*args, **kwargs):
+        try:
+            fn(*args, **kwargs)
+        except (OneCodexException, UploadException) as e:
+            sys.stderr.write('\nERROR: {}'.format(e))
+            sys.stderr.write('\nPlease feel free to contact us for help at help@onecodex.com\n\n')
+            sys.exit(1)
+    return pretty_errors_wrapper
 
 
 class ModuleAlias(object):

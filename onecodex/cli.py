@@ -260,7 +260,7 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
     except (ValidationError, UploadException, Exception) as e:
         # TODO: Some day improve specific other exception error messages, e.g., gzip CRC IOError
         sys.stderr.write('\nERROR: {}'.format(e))
-        sys.stderr.write('\nPlease feel free to contact us for help at help@onecodex.com')
+        sys.stderr.write('\nPlease feel free to contact us for help at help@onecodex.com\n\n')
         sys.exit(1)
 
 
