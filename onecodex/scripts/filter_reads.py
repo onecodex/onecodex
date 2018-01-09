@@ -43,16 +43,6 @@ def get_filtered_filename(filepath):
     return '{}.filtered{}'.format(prefix, ext), ext
 
 
-def fetch_readlevel_results(api, classification_id):
-    classification = api.Classifications.get(classification_id)
-    if not classification:
-        raise ValidationError('Classification {} '
-                              'not found'.format(classification_id))
-    tsv_url = classification.readlevel()['url']
-    download_file_helper(tsv_url, './')
-    return get_download_dest('./', tsv_url)
-
-
 def write_fastx_record(record, handler):
     if len(record) == 2:
         record_str = '>{}\n{}'
@@ -63,11 +53,11 @@ def write_fastx_record(record, handler):
     handler.write(record_str.format(*record))
 
 
-@click.command(help='Filters read files based on tax ID\'s')
-@click.argument('classification')
+@click.command(help='Filter a FASTX file based on the taxonomic results from a CLASSIFICATION_ID')
+@click.argument('classification_id')
 @click.argument('fastx', type=click.Path())
-@click.option('-t', '--tax-ids', required=True, help='A comma-delimited list '
-              'of tax ID\'s to retain')
+@click.option('-t', '--tax-id', required=True, multiple=True,
+              help='Filter to reads mapping to tax IDs. May be passed multiple times.')
 @click.option('-r', '--reverse', type=click.Path(), help='The reverse (R2) '
               'read file, optionally')
 @click.option('--split-pairs/--keep-pairs', default=False, help='Keep only '
@@ -75,29 +65,24 @@ def write_fastx_record(record, handler):
 @click.option('-o', '--out', default='.', type=click.Path(), help='Where '
               'to put the filtered outputs')
 @click.pass_context
-def cli(ctx, classification, fastx, reverse, tax_ids, split_pairs, out):
-    tax_ids = tax_ids.split(',')
+def cli(ctx, classification_id, fastx, reverse, tax_id, split_pairs, out):
+    tax_ids = tax_id  # rename
     if not len(tax_ids):
         raise OneCodexException('You must supply at least one tax ID')
 
-    readlevel_path = fastx \
-        .replace('_R1', '') \
-        .replace('_R2', '') \
-        .rstrip('.gz') \
-        .rstrip('.gzip') + '.gz.results.tsv.gz'
+    classification = ctx.obj['API'].Classifications.get(classification_id)
+    tsv_url = classification.readlevel()['url']
+    readlevel_path = get_download_dest('./', tsv_url)
     if not os.path.exists(readlevel_path):
-        click.echo('Downloading read-level results')
-        readlevel_path = fetch_readlevel_results(ctx.obj['API'],
-                                                 classification)
+        download_file_helper(tsv_url, './')
     else:
-        click.echo('Using cached read-level results from {}'
-                   .format(readlevel_path))
+        click.echo('Using cached read-level results: {}'
+                   .format(readlevel_path), err=True)
 
     filtered_rows = []
     tsv_row_count = 0
     with gzip.open(readlevel_path, 'rt') as tsv:
         try:
-            click.echo('Getting result count')
             tsv_row_count = get_record_count(tsv) - 1  # discount header line
         except EOFError:
             click.echo('\nWe encountered an error while processing the read '
@@ -107,8 +92,8 @@ def cli(ctx, classification, fastx, reverse, tax_ids, split_pairs, out):
         else:
             tsv.seek(0)
             reader = csv.DictReader(tsv, delimiter='\t')
-            click.echo('Selecting results matching tax ID(s) {}'
-                       .format(','.join(tax_ids)))
+            click.echo('Selecting results matching tax ID(s): {}'
+                       .format(', '.join(tax_ids)), err=True)
             filtered_rows = with_progress_bar(
                 tsv_row_count,
                 filter_rows_by_taxid,
@@ -122,7 +107,6 @@ def cli(ctx, classification, fastx, reverse, tax_ids, split_pairs, out):
         rev_filtered_filename = get_filtered_filename(reverse)[0]
         rev_filtered_filename = os.path.join(out, rev_filtered_filename)
 
-    click.echo('Getting FASTX record count')
     fastx_record_count = 0
     with open(fastx, 'rb') as fastx_file:
         try:
@@ -139,14 +123,18 @@ def cli(ctx, classification, fastx, reverse, tax_ids, split_pairs, out):
         raise OneCodexException('The supplied file has a different number of '
                                 'records than the requested Classification')
 
+    save_msg = 'Saving filtered reads: {}'.format(filtered_filename)
     if reverse:
-        click.echo('Filtering {} and {}'.format(fastx, reverse))
+        save_msg += ' and {}'.format(rev_filtered_filename)
+    click.echo(save_msg, err=True)
+
+    counter = 0
+    if reverse:
         with open(fastx, 'rb') as fastx_file, \
                 open(reverse, 'rb') as reverse_file, \
                 open(filtered_filename, 'wb') as out_file, \
                 open(rev_filtered_filename, 'wb') as rev_out_file:
             if split_pairs:
-                counter = 0
                 for fwd, rev in FASTXTranslator(fastx_file, reverse_file,
                                                 validate=False):
                     if counter in filtered_rows:
@@ -155,7 +143,6 @@ def cli(ctx, classification, fastx, reverse, tax_ids, split_pairs, out):
                         rev_out_file.write(rev)
                     counter += 2
             else:
-                counter = 0
                 for fwd, rev in FASTXTranslator(fastx_file, reverse_file,
                                                 validate=False):
                     if counter in filtered_rows or \
@@ -164,10 +151,8 @@ def cli(ctx, classification, fastx, reverse, tax_ids, split_pairs, out):
                         rev_out_file.write(rev)
                     counter += 2
     else:
-        click.echo('Filtering {}'.format(fastx))
         with open(fastx, 'rb') as fastx_file, \
                 open(filtered_filename, 'wb') as out_file:
-            counter = 0
             for seq in FASTXTranslator(fastx_file, validate=False):
                 if counter in filtered_rows:
                     out_file.write(seq)

@@ -217,6 +217,12 @@ API_DATA = {
             'tax_id': '1078083',
         }]
     },
+    "GET::api/v1/classifications/593601a797914cbf/readlevel": {
+        "url": "https://s3.aws.com/bucket/test_paired_filtering_001.fastq.gz.results.tsv.gz"
+    },
+    "GET::api/v1/classifications/5a4b7e3bd3a44006/readlevel": {
+        "url": "https://s3.aws.com/bucket/test_paired_filtering_001.fastq.gz.results.tsv.gz"
+    },
     "PATCH::api/v1/samples/761bc54b97f64980": {},
     "PATCH::api/v1/metadata/4fe05e748b5a4f0e": update_metadata_callback
 }
