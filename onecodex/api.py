@@ -90,9 +90,9 @@ class Api(object):
         if os.path.exists(creds_fp):
             with open(creds_fp) as f:
                 creds = json.load(f)
-                return creds.get('email')
-        else:
-            return os.environ.get('ONE_CODEX_USER_EMAIL', os.environ.get('ONE_CODEX_USER_UUID'))
+                if 'email' in creds:
+                    return creds['email']
+        return os.environ.get('ONE_CODEX_USER_EMAIL', os.environ.get('ONE_CODEX_USER_UUID'))
 
     def _copy_resources(self):
         """
