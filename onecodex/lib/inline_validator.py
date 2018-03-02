@@ -195,9 +195,9 @@ class FASTXNuclIterator(object):
         elif self.file_type == 'FASTQ':
             seq_reader = re.compile(b"""
                 (?P<id>[^\\n]+)\\n
-                (?P<seq>[^\\n]+)\\n
+                (?P<seq>[^\\n]*)\\n
                 \+(?P<id2>[^\\n]*)\\n
-                (?P<qual>[^\\n]+)
+                (?P<qual>[^\\n]*)
             """ + (b'' if last else b'(?:\\n@)'), re.DOTALL + re.VERBOSE)
         return seq_reader
 
