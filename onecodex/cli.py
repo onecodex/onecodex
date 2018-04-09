@@ -186,11 +186,17 @@ def samples(ctx, samples):
 @click.option('--prompt/--no-prompt', is_flag=True, help=OPTION_HELP['prompt'], default=True)
 @click.option('--validate/--do-not-validate', is_flag=True, help=OPTION_HELP['validate'],
               default=True)
+@click.option('--tags', type=str)
 @click.pass_context
 @telemetry
 def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
-           forward, reverse):
+           forward, reverse, tags):
     """Upload a FASTA or FASTQ (optionally gzip'd) to One Codex"""
+
+    if tags:
+        # TODO - actually use tags from the command line
+        # tag_array = tags.split(',')
+        tag_array = [ctx.obj['API'].Tags.all()[0]]
 
     if (forward or reverse) and not (forward and reverse):
         click.echo('You must specify both forward and reverse files', err=True)
@@ -251,7 +257,11 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
 
     try:
         # do the uploading
-        ctx.obj['API'].Samples.upload(files, threads=max_threads, validate=validate)
+        sample_uuids = ctx.obj['API'].Samples.upload(files, threads=max_threads, validate=validate)
+        for uuid in sample_uuids:
+            sample = ctx.obj['API'].Samples.get(uuid)
+            sample.tags = tag_array
+            sample.save()
     except ValidationWarning as e:
         sys.stderr.write('\nERROR: {}. {}'.format(
             e, 'Running with the --clean flag will suppress this error.'
