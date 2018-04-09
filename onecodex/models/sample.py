@@ -111,9 +111,9 @@ class Samples(OneCodexBase):
         res = cls._resource
         if isinstance(filename, string_types) or isinstance(filename, tuple):
             filename = [filename]
-        upload(filename, res._client.session, res, res._client._root_url + '/', threads=threads,
+        samples = upload(filename, res._client.session, res, res._client._root_url + '/', threads=threads,
                validate=validate, log_to=sys.stderr)
-
+        return samples
         # FIXME: pass the auth into this so we can authenticate the callback?
         # FIXME: return a Sample object?
 
