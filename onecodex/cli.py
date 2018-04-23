@@ -9,18 +9,18 @@ import os
 import re
 import sys
 import warnings
-
 import click
 
 from onecodex.utils import (cli_resource_fetcher, download_file_helper,
                             valid_api_key, OPTION_HELP, pprint,
                             warn_if_insecure_platform, is_simplejson_installed,
-                            warn_simplejson, telemetry)
+                            warn_simplejson, telemetry, snake_case)
 from onecodex.api import Api
 from onecodex.exceptions import ValidationWarning, ValidationError, UploadException
 from onecodex.auth import _login, _logout, _remove_creds, _silent_login
 from onecodex.scripts import filter_reads
 from onecodex.version import __version__
+from onecodex.metadata_upload import validate_appendables, set_valid_appendables
 
 # set the context for getting -h also
 CONTEXT_SETTINGS = dict(
@@ -186,17 +186,30 @@ def samples(ctx, samples):
 @click.option('--prompt/--no-prompt', is_flag=True, help=OPTION_HELP['prompt'], default=True)
 @click.option('--validate/--do-not-validate', is_flag=True, help=OPTION_HELP['validate'],
               default=True)
-@click.option('--tags', type=str)
+@click.option('--tags', '-t', multiple=True)
+@click.option("--metadata", '-md', multiple=True)
 @click.pass_context
 @telemetry
 def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
-           forward, reverse, tags):
+           forward, reverse, tags, metadata):
     """Upload a FASTA or FASTQ (optionally gzip'd) to One Codex"""
 
+    appendables = {}
     if tags:
-        # TODO - actually use tags from the command line
-        # tag_array = tags.split(',')
-        tag_array = [ctx.obj['API'].Tags.all()[0]]
+        appendables['tags'] = []
+        for tag in tags:
+            appendables['tags'].append(tag)
+
+    if metadata:
+        appendables['metadata'] = {}
+        for metadata_kv in metadata:
+            split_metadata = metadata_kv.split('=')
+            if len(split_metadata) > 1:
+                metadata_value = '='.join(split_metadata[1:])
+                appendables['metadata'][snake_case(split_metadata[0])] = metadata_value
+
+
+    appendables = validate_appendables(appendables, ctx.obj['API'])
 
     if (forward or reverse) and not (forward and reverse):
         click.echo('You must specify both forward and reverse files', err=True)
@@ -258,10 +271,8 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
     try:
         # do the uploading
         sample_uuids = ctx.obj['API'].Samples.upload(files, threads=max_threads, validate=validate)
-        for uuid in sample_uuids:
-            sample = ctx.obj['API'].Samples.get(uuid)
-            sample.tags = tag_array
-            sample.save()
+        set_valid_appendables(ctx.obj['API'], sample_uuids, appendables)
+
     except ValidationWarning as e:
         sys.stderr.write('\nERROR: {}. {}'.format(
             e, 'Running with the --clean flag will suppress this error.'

@@ -115,6 +115,7 @@ def upload(files, session, samples_resource, server_url, threads=DEFAULT_UPLOAD_
     progress_bar = None if log_to is None else progress_bar_display
 
     # first, upload all the smaller files in parallel (if multiple threads are requested)
+    uploading_uuids = []
     if threads > 1:
         import ctypes
         thread_error = Value(ctypes.c_wchar_p, '')
@@ -125,7 +126,9 @@ def upload(files, session, samples_resource, server_url, threads=DEFAULT_UPLOAD_
             def _wrapped(*wrapped_args):
                 semaphore.acquire()
                 try:
-                    upload_file(*wrapped_args[:-1])
+                    file_uuid = upload_file(*wrapped_args[:-1])
+                    if file_uuid:
+                        uploading_uuids.append(file_uuid)
                 except Exception as e:
                     # handle inside the thread to prevent the exception message from leaking out
                     wrapped_args[-1].value = '{}'.format(e)
@@ -142,12 +145,12 @@ def upload(files, session, samples_resource, server_url, threads=DEFAULT_UPLOAD_
 
     upload_threads = []
     uploading_files = []
-    uploading_uuids = []
     for file_path, filename, file_size in zip(files, filenames, file_sizes):
         if file_size < MULTIPART_SIZE:
             file_obj = _wrap_files(file_path, logger=progress_bar, validate=validate)
             file_uuid = threaded_upload(file_obj, filename, session, samples_resource, log_to)
-            uploading_uuids.append(file_uuid)
+            if file_uuid:
+                uploading_uuids.append(file_uuid)
             uploading_files.append(file_obj)
 
     if threads > 1:
