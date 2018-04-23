@@ -9,7 +9,6 @@ import os
 import re
 import sys
 import warnings
-
 import click
 
 from onecodex.utils import (cli_resource_fetcher, download_file_helper,
@@ -256,12 +255,11 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
         warnings.filterwarnings('error', category=ValidationWarning)
 
     try:
+        # ctx.obj['API'].Samples.upload(files, threads=max_threads, validate=validate)
         # do the uploading
         sample_uuids = ctx.obj['API'].Samples.upload(files, threads=max_threads, validate=validate)
-        for uuid in sample_uuids:
-            sample = ctx.obj['API'].Samples.get(uuid)
-            sample.tags = tag_array
-            sample.save()
+        update_tag_samples(sample_uuids)
+
     except ValidationWarning as e:
         sys.stderr.write('\nERROR: {}. {}'.format(
             e, 'Running with the --clean flag will suppress this error.'
@@ -272,6 +270,13 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
         sys.stderr.write('\nERROR: {}'.format(e))
         sys.stderr.write('\nPlease feel free to contact us for help at help@onecodex.com\n\n')
         sys.exit(1)
+
+
+def update_tag_samples(sample_uuids):
+    for uuid in sample_uuids:
+        sample = ctx.obj['API'].Samples.get(uuid)
+        sample.tags = tag_array
+        sample.save()
 
 
 @onecodex.command('login')
