@@ -280,7 +280,8 @@ def test_large_uploads(runner, upload_mocks, monkeypatch):
 
     monkeypatch.setattr(os.path, 'getsize', mockfilesize)
 
-    with runner.isolated_filesystem():
+    tag_patch = 'onecodex.cli.update_tag_samples'
+    with mock.patch(tag_patch) as tag_update_mock, runner.isolated_filesystem():
         big_file = "large.fa"
         with open(big_file, mode='w') as f:
             f.write('>BIG!!!\n')

@@ -192,6 +192,7 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
            forward, reverse, tags):
     """Upload a FASTA or FASTQ (optionally gzip'd) to One Codex"""
 
+    tag_array = []
     if tags:
         # TODO - actually use tags from the command line
         # tag_array = tags.split(',')
@@ -255,10 +256,9 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
         warnings.filterwarnings('error', category=ValidationWarning)
 
     try:
-        # ctx.obj['API'].Samples.upload(files, threads=max_threads, validate=validate)
         # do the uploading
         sample_uuids = ctx.obj['API'].Samples.upload(files, threads=max_threads, validate=validate)
-        update_tag_samples(sample_uuids)
+        update_tag_samples(sample_uuids, ctx, tag_array)
 
     except ValidationWarning as e:
         sys.stderr.write('\nERROR: {}. {}'.format(
@@ -272,7 +272,7 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
         sys.exit(1)
 
 
-def update_tag_samples(sample_uuids):
+def update_tag_samples(sample_uuids, ctx, tag_array):
     for uuid in sample_uuids:
         sample = ctx.obj['API'].Samples.get(uuid)
         sample.tags = tag_array
