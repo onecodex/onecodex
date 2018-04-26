@@ -276,7 +276,6 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
 def update_tag_samples(sample_uuids, ctx, tag_array):
     for uuid in sample_uuids:
         sample = ctx.obj['API'].Samples.get(uuid)
-        new_tags = []
         for tag in tag_array:
             new_tag = ctx.obj['API'].Tags.where(name=tag)
             if new_tag:
@@ -287,7 +286,7 @@ def update_tag_samples(sample_uuids, ctx, tag_array):
                 sample.save()
             else:
                 unsaved_tag = ctx.obj['API'].Tags(name=tag, sample=sample)
-                saved_tag = unsaved_tag.save()
+                unsaved_tag.save()
 
 
 @onecodex.command('login')

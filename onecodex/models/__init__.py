@@ -79,7 +79,7 @@ class OneCodexBase(object):
                 else:
                     if key == 'id':
                         # undo the bad coercion from potion_client/resource.py#L111
-                        if value == None:
+                        if value is None:
                             return None
                         else:
                             return str(value)
