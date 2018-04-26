@@ -258,7 +258,8 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
     try:
         # do the uploading
         sample_uuids = ctx.obj['API'].Samples.upload(files, threads=max_threads, validate=validate)
-        update_tag_samples(sample_uuids, ctx, tag_array)
+        if tag_array:
+            update_tag_samples(sample_uuids, ctx, tag_array)
 
     except ValidationWarning as e:
         sys.stderr.write('\nERROR: {}. {}'.format(
@@ -275,7 +276,22 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
 def update_tag_samples(sample_uuids, ctx, tag_array):
     for uuid in sample_uuids:
         sample = ctx.obj['API'].Samples.get(uuid)
-        sample.tags = tag_array
+        sample_tags = sample.tags
+        print('*'*50)
+        print(sample)
+        print(sample_tags)
+        for tag in tag_array:
+            print('next tag:', tag)
+            new_tag = ctx.obj['API'].Tags.where(name=tag)
+            print('new tag:', new_tag)
+            if new_tag:
+                sample_tags.append(new_tag)
+            else:
+                sample_tags.append(ctx.obj['API'].Tags(name=tag))
+            print('modified sample tags:', sample_tags)
+
+        raise(Exception)
+        sample.tags = sample_tags
         sample.save()
 
 
