@@ -79,7 +79,10 @@ class OneCodexBase(object):
                 else:
                     if key == 'id':
                         # undo the bad coercion from potion_client/resource.py#L111
-                        return str(value)
+                        if value == None:
+                            return None
+                        else:
+                            return str(value)
                     if schema.get('format') == 'date-time' and value is not None:
                         return parse(value)
                     return value
