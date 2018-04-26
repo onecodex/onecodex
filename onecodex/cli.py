@@ -195,8 +195,8 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
     tag_array = []
     if tags:
         # TODO - actually use tags from the command line
-        # tag_array = tags.split(',')
-        tag_array = [ctx.obj['API'].Tags.all()[0]]
+        tag_array = [tag.strip() for tag in tags.split(',')]
+        # tag_array = [ctx.obj['API'].Tags.all()[0]]
 
     if (forward or reverse) and not (forward and reverse):
         click.echo('You must specify both forward and reverse files', err=True)
@@ -276,23 +276,18 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
 def update_tag_samples(sample_uuids, ctx, tag_array):
     for uuid in sample_uuids:
         sample = ctx.obj['API'].Samples.get(uuid)
-        sample_tags = sample.tags
-        print('*'*50)
-        print(sample)
-        print(sample_tags)
+        new_tags = []
         for tag in tag_array:
-            print('next tag:', tag)
             new_tag = ctx.obj['API'].Tags.where(name=tag)
-            print('new tag:', new_tag)
             if new_tag:
-                sample_tags.append(new_tag)
+                unsaved_tag = new_tag[0]
+                new_tag_array = sample.tags
+                new_tag_array.append(unsaved_tag)
+                sample.tags = new_tag_array
+                sample.save()
             else:
-                sample_tags.append(ctx.obj['API'].Tags(name=tag))
-            print('modified sample tags:', sample_tags)
-
-        raise(Exception)
-        sample.tags = sample_tags
-        sample.save()
+                unsaved_tag = ctx.obj['API'].Tags(name=tag, sample=sample)
+                saved_tag = unsaved_tag.save()
 
 
 @onecodex.command('login')
