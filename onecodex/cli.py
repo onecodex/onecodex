@@ -186,17 +186,24 @@ def samples(ctx, samples):
 @click.option('--validate/--do-not-validate', is_flag=True, help=OPTION_HELP['validate'],
               default=True)
 @click.option('--tags', type=str)
+@click.option("--metadata", '-md', multiple=True)
 @click.pass_context
 @telemetry
 def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
-           forward, reverse, tags):
+           forward, reverse, tags, metadata):
     """Upload a FASTA or FASTQ (optionally gzip'd) to One Codex"""
 
     tag_array = []
     if tags:
-        # TODO - actually use tags from the command line
         tag_array = [tag.strip() for tag in tags.split(',')]
-        # tag_array = [ctx.obj['API'].Tags.all()[0]]
+
+    metadata_opts = {}
+    if metadata:
+        for metadata_kv in metadata:
+            split_metadata = metadata_kv.split('=')
+            if len(split_metadata) > 1:
+                metadata_value = '='.join(split_metadata[1:])
+                metadata_opts[split_metadata[0].lower()] = metadata_value
 
     if (forward or reverse) and not (forward and reverse):
         click.echo('You must specify both forward and reverse files', err=True)
@@ -258,8 +265,7 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
     try:
         # do the uploading
         sample_uuids = ctx.obj['API'].Samples.upload(files, threads=max_threads, validate=validate)
-        if tag_array:
-            update_tag_samples(sample_uuids, ctx, tag_array)
+        update_sample_tags_and_metadata(sample_uuids, ctx, tag_array, metadata_opts)
 
     except ValidationWarning as e:
         sys.stderr.write('\nERROR: {}. {}'.format(
@@ -273,20 +279,32 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
         sys.exit(1)
 
 
-def update_tag_samples(sample_uuids, ctx, tag_array):
-    for uuid in sample_uuids:
-        sample = ctx.obj['API'].Samples.get(uuid)
-        for tag in tag_array:
-            new_tag = ctx.obj['API'].Tags.where(name=tag)
-            if new_tag:
-                unsaved_tag = new_tag[0]
-                new_tag_array = sample.tags
-                new_tag_array.append(unsaved_tag)
-                sample.tags = new_tag_array
-                sample.save()
-            else:
-                unsaved_tag = ctx.obj['API'].Tags(name=tag, sample=sample)
-                unsaved_tag.save()
+def update_sample_tags_and_metadata(sample_uuids, ctx, tag_array, metadata_opts):
+    if tag_array or metadata_opts:
+        for uuid in sample_uuids:
+            sample = ctx.obj['API'].Samples.get(uuid)
+            if tag_array:
+                new_tag_array = []
+                for tag in tag_array:
+                    existing_tags = ctx.obj['API'].Tags.where(name=tag)
+                    if existing_tags:
+                        unsaved_tag = existing_tags[0]
+                        new_tag_array.append(unsaved_tag)
+                    else:
+                        unsaved_tag = ctx.obj['API'].Tags(name=tag, sample=sample)
+                        unsaved_tag.save()
+
+                if new_tag_array:
+                    potential_tags = sample.tags
+                    potential_tags.extend(new_tag_array)
+                    sample.tags = potential_tags
+                    sample.save()
+
+            if metadata_opts:
+                for k, v in metadata_opts.iteritems():
+                    if k == 'name':
+                        sample.metadata.name = v
+                        sample.metadata.save()
 
 
 @onecodex.command('login')
