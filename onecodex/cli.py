@@ -10,6 +10,7 @@ import re
 import sys
 import warnings
 import click
+import datetime
 
 from onecodex.utils import (cli_resource_fetcher, download_file_helper,
                             valid_api_key, OPTION_HELP, pprint,
@@ -302,10 +303,42 @@ def update_sample_tags_and_metadata(sample_uuids, ctx, tag_array, metadata_opts)
 
             if metadata_opts:
                 for k, v in metadata_opts.iteritems():
-                    if k == 'name':
-                        sample.metadata.name = v
-                        sample.metadata.save()
+                    parse_metadata(sample, k, v)
+                sample.metadata.save()
 
+def parse_metadata(sample, metadata_key, metadata_value):
+    if is_custom_metadata(metadata_key):
+        sample.metadata.custom[metadata_key] = metadata_value
+    else:
+        set_metadata_value(sample.metadata, metadata_key, metadata_value)
+
+
+def set_metadata_value(metadata, metadata_key, metadata_value):
+    metadata_type = is_settable_metadata_keys()[metadata_key]
+    if metadata_type == str:
+        setattr(metadata, metadata_key, metadata_value)
+    elif metadata_type == datetime.datetime:
+        datetime_vals = metadata_value.split(',')
+        datetime_ints = list(map(int, datetime_vals))
+        setattr(metadata, metadata_key, datetime.datetime(*datetime_ints))
+
+
+def is_settable_metadata_keys():
+    return {
+        'name': str,
+        'date_collected': datetime.datetime,
+        'date_sequenced': datetime.datetime,
+        'description': str
+    }
+
+
+def is_custom_metadata(metadata_key):
+    if is_settable_metadata_keys().get(metadata_key):
+        print(metadata_key, ' is NOT settable')
+        return False
+    else:
+        print(metadata_key, ' is settable')
+        return True
 
 @onecodex.command('login')
 @click.pass_context
