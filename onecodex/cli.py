@@ -306,6 +306,7 @@ def update_sample_tags_and_metadata(sample_uuids, ctx, tag_array, metadata_opts)
                     parse_metadata(sample, k, v)
                 sample.metadata.save()
 
+
 def parse_metadata(sample, metadata_key, metadata_value):
     if is_custom_metadata(metadata_key):
         sample.metadata.custom[metadata_key] = metadata_value
@@ -339,6 +340,7 @@ def is_custom_metadata(metadata_key):
     else:
         print(metadata_key, ' is settable')
         return True
+
 
 @onecodex.command('login')
 @click.pass_context
