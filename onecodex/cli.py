@@ -322,23 +322,35 @@ def set_metadata_value(metadata, metadata_key, metadata_value):
         datetime_vals = metadata_value.split(',')
         datetime_ints = list(map(int, datetime_vals))
         setattr(metadata, metadata_key, datetime.datetime(*datetime_ints))
+    elif metadata_type == bool:
+        bool_val = metadata_value.lower() in ['true', '1', 't', 'y', 'yes']
+        setattr(metadata, metadata_key, bool_val)
+    elif metadata_type == 'not_supported':
+        warning = "'{}' is not currently supported from the CLI".format(metadata_key)
+        warnings.warn(warning)
 
 
 def is_settable_metadata_keys():
+    # TODO - Eventually, this shouldn't be hard-coded.
     return {
         'name': str,
+        'description': str,
+        'starred': bool,
         'date_collected': datetime.datetime,
         'date_sequenced': datetime.datetime,
-        'description': str
+        'sequencer': 'not_supported',
+        'location': 'not_supported',
+        'location_lon': 'not_supported',
+        'location_lat': 'not_supported',
+        'location_string': 'not_supported',
+        'platform': 'not_supported'
     }
 
 
 def is_custom_metadata(metadata_key):
     if is_settable_metadata_keys().get(metadata_key):
-        print(metadata_key, ' is NOT settable')
         return False
     else:
-        print(metadata_key, ' is settable')
         return True
 
 
