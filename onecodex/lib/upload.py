@@ -22,7 +22,7 @@ MULTIPART_SIZE = 5 * 1000 * 1000 * 1000
 DEFAULT_UPLOAD_THREADS = 4
 
 
-def _file_stats(filename):
+def _file_stats(filename, validate=True):
     if isinstance(filename, tuple):
         assert len(filename) == 2
         file_size = sum(os.path.getsize(f) for f in filename)
@@ -33,10 +33,16 @@ def _file_stats(filename):
         file_size = os.path.getsize(filename)
 
     new_filename, ext = os.path.splitext(os.path.basename(filename))
+    is_gz = False
     if ext in {'.gz', '.gzip', '.bz', '.bz2', '.bzip'}:
+        is_gz = True
         new_filename, ext = os.path.splitext(new_filename)
 
-    return new_filename + ext + '.gz', file_size
+    final_filename = new_filename + ext
+    if validate or is_gz:
+        final_filename = final_filename + '.gz'
+
+    return final_filename, file_size
 
 
 def _wrap_files(filename, logger=None, validate=True):
@@ -71,7 +77,7 @@ def upload(files, session, samples_resource, server_url, threads=DEFAULT_UPLOAD_
     filenames = []
     file_sizes = []
     for file_path in files:
-        normalized_filename, file_size = _file_stats(file_path)
+        normalized_filename, file_size = _file_stats(file_path, validate=validate)
         filenames.append(normalized_filename)
         file_sizes.append(file_size)
 
