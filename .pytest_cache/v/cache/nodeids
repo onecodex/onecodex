@@ -1,0 +1,3 @@
+[
+  "tests/test_upload.py::test_insufficient_funds_upload"
+]
