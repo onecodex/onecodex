@@ -38,6 +38,7 @@ class UploadException(Exception):
     """
     pass
 
+
 def process_api_error(error):
     error_code = error['status']
     error_message = ''
