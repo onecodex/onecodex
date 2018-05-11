@@ -1,1 +1,9 @@
-{}
+{
+  "tests/test_cli.py::test_large_uploads": true, 
+  "tests/test_cli.py::test_paired_files": true, 
+  "tests/test_cli.py::test_standard_uploads[files0-False]": true, 
+  "tests/test_cli.py::test_standard_uploads[files1-True]": true, 
+  "tests/test_cli.py::test_standard_uploads[files2-False]": true, 
+  "tests/test_cli.py::test_standard_uploads[files3-True]": true, 
+  "tests/test_cli.py::test_update_sample_tags_and_metadata": true
+}
