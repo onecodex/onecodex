@@ -194,30 +194,22 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
            forward, reverse, tags, metadata):
     """Upload a FASTA or FASTQ (optionally gzip'd) to One Codex"""
 
-    print('UPLOAD!!!!!!!!!!!!!!!!!!!!!!')
     appendables = {}
     if tags:
-        print('TAGS:', tags)
         appendables['tags'] = []
         for tag in tags:
             appendables['tags'].append(tag)
-        print('appendables:', appendables)
 
     if metadata:
         appendables['metadata'] = {}
-        print('METADATA:', metadata)
         for metadata_kv in metadata:
-            print('METADATA KV: ', metadata_kv)
             split_metadata = metadata_kv.split('=')
             if len(split_metadata) > 1:
                 metadata_value = '='.join(split_metadata[1:])
                 appendables['metadata'][snake_case(split_metadata[0])] = metadata_value
 
-        print('appendables after md:', appendables)
 
-    print('*'*50)
     appendables = validate_appendables(appendables, ctx.obj['API'])
-    print('-'*50)
 
     if (forward or reverse) and not (forward and reverse):
         click.echo('You must specify both forward and reverse files', err=True)
@@ -279,9 +271,7 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
     try:
         # do the uploading
         sample_uuids = ctx.obj['API'].Samples.upload(files, threads=max_threads, validate=validate)
-        print('='*50)
         set_valid_appendables(ctx.obj['API'], sample_uuids, appendables)
-        print('^'*50)
 
     except ValidationWarning as e:
         sys.stderr.write('\nERROR: {}. {}'.format(

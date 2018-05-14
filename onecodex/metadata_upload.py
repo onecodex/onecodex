@@ -2,7 +2,6 @@ import datetime
 
 
 def validate_appendables(appendables, api):
-    print('ABOUT TO VALIDATE APPENDABLES')
     appendables['valid_tags'] = []
     appendables['custom_metadata'] = {}
     appendables['valid_metadata'] = {}
@@ -119,6 +118,8 @@ def set_valid_appendables(api, sample_uuids, appendables):
             else:
                 unsaved_tag = api.Tags(name=tag, sample=sample)
                 unsaved_tag.save()
+                # TODO - this following line should not be necessary. Consider eventually update the Potion client to not require this.
+                new_tag_array.append(unsaved_tag)
 
         if new_tag_array:
             potential_tags = sample.tags
