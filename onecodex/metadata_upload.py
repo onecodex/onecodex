@@ -1,23 +1,25 @@
 import datetime
+from onecodex.exceptions import ValidationError
 
 
 def validate_appendables(appendables, api):
     appendables['valid_tags'] = []
     appendables['custom_metadata'] = {}
     appendables['valid_metadata'] = {}
-    validate_tags(appendables)
+    validate_tags(appendables, api)
     validate_metadata(appendables, api)
     return appendables
 
 
-def validate_tags(appendables):
+def validate_tags(appendables, api):
     if 'tags' not in appendables:
         return
     tag_array = appendables['tags']
     for tag in tag_array:
         # FIXME - change this number and specify the exception
-        if len(tag) > 500:
-            raise Exception
+        name_property = api.Tags._resource._schema['properties']['name']
+        if 'maxLength' in name_property and len(tag) > name_property['maxLength']:
+            raise ValidationError('{} is too long'.format(tag))
 
         appendables['valid_tags'].append(tag)
 
@@ -28,8 +30,7 @@ def validate_metadata(appendables, api):
     schema_props = metadata_properties(api)
     for key, value in appendables['metadata'].items():
         if is_blacklisted(key):
-            # FIXME - Specify this Exception
-            raise Exception
+            raise ValidationError('{} cannot be manually updated'.format(key))
 
         if key in schema_props.keys():
             settable_value = validate_metadata_against_schema(schema_props, key, value)
@@ -91,7 +92,7 @@ def validate_datetime(value):
 
 
 def is_blacklisted(key):
-    key in ['$uri', 'custom']
+    return key in ['$uri', 'custom']
 
 
 def truthy_values():
@@ -99,7 +100,7 @@ def truthy_values():
 
 
 def falsy_values():
-    return ['false', 0, 'f', 'n', 'no']
+    return ['false', '0', 'f', 'n', 'no']
 
 
 def set_valid_appendables(api, sample_uuids, appendables):
