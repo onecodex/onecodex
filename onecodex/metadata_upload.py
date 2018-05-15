@@ -13,10 +13,11 @@ def validate_appendables(appendables, api):
 def validate_tags(appendables, api):
     if 'tags' not in appendables:
         return
+    
     tag_array = appendables['tags']
     for tag in tag_array:
         name_property = api.Tags._resource._schema['properties']['name']
-        if 'maxLength' in name_property and len(tag) > name_property['maxLength']:
+        if len(tag) > name_property.get('maxLength', 1000):
             raise ValidationError('{} is too long'.format(tag))
 
         appendables['valid_tags'].append({'name': tag})
@@ -25,6 +26,7 @@ def validate_tags(appendables, api):
 def validate_metadata(appendables, api):
     if 'metadata' not in appendables:
         return
+    
     schema_props = metadata_properties(api)
     for key, value in appendables['metadata'].items():
         if is_blacklisted(key):
@@ -107,10 +109,8 @@ def falsy_values():
 
 
 def coerce_custom_value(value):
-    coerced_value = value
     try:
-        coerced_value = float(value)
-        return coerced_value
+        return float(value)
     except ValueError:
         pass
 
@@ -120,6 +120,7 @@ def coerce_custom_value(value):
     if value.lower() in falsy_values():
         return False
 
+    # String case, includes dates in JSON
     return value
 
 
