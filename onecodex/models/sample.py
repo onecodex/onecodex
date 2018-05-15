@@ -115,7 +115,6 @@ class Samples(OneCodexBase):
                          validate=validate, log_to=sys.stderr, metadata=metadata, tags=tags)
         return samples
         # FIXME: pass the auth into this so we can authenticate the callback?
-        # FIXME: return a Sample object?
 
     def download(self, path=None):
         """
