@@ -11,7 +11,6 @@ from testfixtures import Replace
 # Module imports
 from tests.conftest import API_DATA
 from onecodex import Cli
-from onecodex.metadata_upload import validate_appendables, set_valid_appendables
 
 DATE_FORMAT = '%Y-%m-%d %H:%M'
 
@@ -185,13 +184,8 @@ def test_standard_uploads(runner, upload_mocks, files, threads):
     """Test single and multi file uploads, with and without threads
        (but not files >5GB)
     """
-    print('IN TEST!')
     tag_validation_patch = 'onecodex.metadata_upload.validate_appendables'
-    print('TAG VALIDATION PATCH:', tag_validation_patch)
-    tag_patch = 'onecodex.metadata_upload.set_valid_appendables'
-    print('TAG PATCH:', tag_patch)
-    with mock.patch(tag_patch), mock.patch(tag_validation_patch),  runner.isolated_filesystem():
-        print('INSIDE THE TEST!')
+    with mock.patch(tag_validation_patch), runner.isolated_filesystem():
         args = ['--api-key', '01234567890123456789012345678901', 'upload']
         if not threads:
             args += ['--max-threads', '1']
@@ -202,7 +196,6 @@ def test_standard_uploads(runner, upload_mocks, files, threads):
                 f_out.write(SEQUENCE)
 
         result = runner.invoke(Cli, args)
-        print('RESULT:', result)
         assert result.exit_code == 0
         assert 'ab6276c673814123' in result.output  # mocked file id
 
@@ -220,8 +213,7 @@ def test_empty_upload(runner, upload_mocks):
 def test_paired_files(runner, upload_mocks):
     import mock
     tag_validation_patch = 'onecodex.metadata_upload.validate_appendables'
-    tag_patch = 'onecodex.metadata_upload.set_valid_appendables'
-    with mock.patch(tag_patch), mock.patch(tag_validation_patch), runner.isolated_filesystem():
+    with mock.patch(tag_validation_patch), runner.isolated_filesystem():
         f, f2 = 'temp_R1.fa', 'temp_R2.fa'
         with open(f, mode='w') as f_out, open(f2, mode='w') as f_out2:
             f_out.write('>Test fasta\n')
@@ -297,8 +289,7 @@ def test_large_uploads(runner, upload_mocks, monkeypatch):
 
     monkeypatch.setattr(os.path, 'getsize', mockfilesize)
     tag_validation_patch = 'onecodex.metadata_upload.validate_appendables'
-    tag_patch = 'onecodex.metadata_upload.set_valid_appendables'
-    with mock.patch(tag_patch), mock.patch(tag_validation_patch), runner.isolated_filesystem():
+    with mock.patch(tag_validation_patch), runner.isolated_filesystem():
         big_file = "large.fa"
         with open(big_file, mode='w') as f:
             f.write('>BIG!!!\n')
@@ -319,29 +310,3 @@ def test_large_uploads(runner, upload_mocks, monkeypatch):
 
         assert result.exit_code == 0
         assert 'All complete.' in result.output
-
-
-# @pytest.mark.parametrize()
-# def test_metadata_parsing(ocx):
-
-
-
-# def test_tag_upload(runner, upload_mocks):
-#     import mock
-#     files = ["temp.fa"]
-#     threads = False
-#     tag_patch = 'onecodex.metadata_upload.set_valid_appendables'
-#     with mock.patch(tag_patch) as mocked_tags, runner.isolated_filesystem():
-#         args = ['--api-key', '01234567890123456789012345678901', 'upload', '--tags=isolate,Pathogen']
-#         if not threads:
-#             args += ['--max-threads', '1']
-#         for f in files:
-#             args.append(f)
-#             with open(f, mode='w') as f_out:
-#                 f_out.write('>Test fasta\n')
-#                 f_out.write(SEQUENCE)
-
-#         result = runner.invoke(Cli, args)
-#         assert mocked_tags.called_count == 1
-
-

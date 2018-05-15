@@ -94,7 +94,7 @@ class Samples(OneCodexBase):
             self.metadata.save()
 
     @classmethod
-    def upload(cls, filename, threads=None, validate=True):
+    def upload(cls, filename, threads=None, validate=True, metadata={}, tags=[]):
         """
         Uploads a series of files to the One Codex server. These files are automatically
         validated during upload.
@@ -112,7 +112,7 @@ class Samples(OneCodexBase):
         if isinstance(filename, string_types) or isinstance(filename, tuple):
             filename = [filename]
         samples = upload(filename, res._client.session, res, res._client._root_url + '/', threads=threads,
-                         validate=validate, log_to=sys.stderr)
+                         validate=validate, log_to=sys.stderr, metadata=metadata, tags=tags)
         return samples
         # FIXME: pass the auth into this so we can authenticate the callback?
         # FIXME: return a Sample object?

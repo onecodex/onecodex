@@ -20,7 +20,7 @@ from onecodex.exceptions import ValidationWarning, ValidationError, UploadExcept
 from onecodex.auth import _login, _logout, _remove_creds, _silent_login
 from onecodex.scripts import filter_reads
 from onecodex.version import __version__
-from onecodex.metadata_upload import validate_appendables, set_valid_appendables
+from onecodex.metadata_upload import validate_appendables
 
 # set the context for getting -h also
 CONTEXT_SETTINGS = dict(
@@ -208,7 +208,6 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
                 metadata_value = '='.join(split_metadata[1:])
                 appendables['metadata'][snake_case(split_metadata[0])] = metadata_value
 
-
     appendables = validate_appendables(appendables, ctx.obj['API'])
 
     if (forward or reverse) and not (forward and reverse):
@@ -270,8 +269,7 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
 
     try:
         # do the uploading
-        sample_uuids = ctx.obj['API'].Samples.upload(files, threads=max_threads, validate=validate)
-        set_valid_appendables(ctx.obj['API'], sample_uuids, appendables)
+        ctx.obj['API'].Samples.upload(files, threads=max_threads, validate=validate, metadata=appendables['valid_metadata'], tags=appendables['valid_tags'])
 
     except ValidationWarning as e:
         sys.stderr.write('\nERROR: {}. {}'.format(

@@ -59,7 +59,7 @@ def _wrap_files(filename, logger=None, validate=True):
 
 
 def upload(files, session, samples_resource, server_url, threads=DEFAULT_UPLOAD_THREADS,
-           validate=True, log_to=None):
+           validate=True, log_to=None, metadata={}, tags=[]):
     """
     Uploads several files to the One Codex server, auto-detecting sizes and using the appropriate
     downstream upload functions. Also, wraps the files with a streaming validator to ensure they
@@ -126,7 +126,7 @@ def upload(files, session, samples_resource, server_url, threads=DEFAULT_UPLOAD_
             def _wrapped(*wrapped_args):
                 semaphore.acquire()
                 try:
-                    file_uuid = upload_file(*wrapped_args[:-1])
+                    file_uuid = upload_file(*wrapped_args[:-1], metadata=metadata, tags=tags)
                     if file_uuid:
                         uploading_uuids.append(file_uuid)
                 except Exception as e:
@@ -221,7 +221,7 @@ def upload_large_file(file_obj, filename, session, samples_resource, server_url,
         log_to.flush()
 
 
-def upload_file(file_obj, filename, session, samples_resource, log_to=None):
+def upload_file(file_obj, filename, session, samples_resource, log_to=None, metadata={}, tags=[]):
     """
     Uploads a file to the One Codex server directly to the users S3 bucket by self-signing
     """
@@ -229,7 +229,9 @@ def upload_file(file_obj, filename, session, samples_resource, log_to=None):
         upload_info = samples_resource.init_upload({
             'filename': filename,
             'size': 1,  # because we don't have the actually uploaded size yet b/c we're gziping it
-            'upload_type': 'standard'  # This is multipart form data
+            'upload_type': 'standard',  # This is multipart form data
+            'metadata': metadata,
+            'tags': tags
         })
     except requests.exceptions.HTTPError:
         raise UploadException(

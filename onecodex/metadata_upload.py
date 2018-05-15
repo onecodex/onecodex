@@ -1,11 +1,10 @@
-import datetime
+import re
 from onecodex.exceptions import ValidationError
 
 
 def validate_appendables(appendables, api):
     appendables['valid_tags'] = []
-    appendables['custom_metadata'] = {}
-    appendables['valid_metadata'] = {}
+    appendables['valid_metadata'] = {'custom': {}}
     validate_tags(appendables, api)
     validate_metadata(appendables, api)
     return appendables
@@ -16,12 +15,11 @@ def validate_tags(appendables, api):
         return
     tag_array = appendables['tags']
     for tag in tag_array:
-        # FIXME - change this number and specify the exception
         name_property = api.Tags._resource._schema['properties']['name']
         if 'maxLength' in name_property and len(tag) > name_property['maxLength']:
             raise ValidationError('{} is too long'.format(tag))
 
-        appendables['valid_tags'].append(tag)
+        appendables['valid_tags'].append({'name': tag})
 
 
 def validate_metadata(appendables, api):
@@ -36,7 +34,8 @@ def validate_metadata(appendables, api):
             settable_value = validate_metadata_against_schema(schema_props, key, value)
             appendables['valid_metadata'][key] = settable_value
         else:
-            appendables['custom_metadata'][key] = value
+            coerced_value = coerce_custom_value(value)
+            appendables['valid_metadata']['custom'][key] = coerced_value
 
 
 def validate_metadata_against_schema(schema_props, key, value):
@@ -55,19 +54,20 @@ def validate_metadata_against_schema(schema_props, key, value):
 
 def validate_enum(value, schema_rules):
     if value not in schema_rules['enum']:
-        # FIXME - Make this more explicit
-        raise Exception
+        raise ValidationError('{} is not a valid value for this key. Value must be one of the following options: {}'.format(value, schema_rules['enum']))
     return value
 
 
 def validate_number(value, schema_rules):
-    num_value = float(value)
-    if 'minimum' in schema_rules and schema_rules['minimum'] > num_value:
-        # FIXME - Make this more explicit
-        raise Exception
-    if 'maximum' in value and schema_rules['maximum'] < num_value:
-        # FIXME - Make this more explicit
-        raise Exception
+    num_value = value
+    try:
+        num_value = float(value)
+    except ValueError:
+        raise ValidationError('{} must be a number'.format(value))
+    if 'minimum' in schema_rules and num_value <= schema_rules['minimum']:
+        raise ValidationError('{} must be larger than the minimum value: {}'.format(value, schema_rules['minimum']))
+    if 'maximum' in schema_rules and num_value >= schema_rules['maximum']:
+        raise ValidationError('{} must be smaller than the maximum value: {}'.format(value, schema_rules['maximum']))
     return num_value
 
 
@@ -77,18 +77,14 @@ def validate_boolean(value):
     elif value.lower() in falsy_values():
         return False
     else:
-        # FIXME - Make this more explicit
-        raise Exception
+        raise ValidationError('{} must be either "true" or "false"'.format(value))
 
 
 def validate_datetime(value):
-    datetime_vals = value.split(',')
-    datetime_ints = list(map(int, datetime_vals))
-    try:
-        return datetime.datetime(*datetime_ints)
-    except TypeError:
-        # FIXME - Make this more explicit
-        raise Exception
+    if not is_iso_8601_compliant(value):
+        raise ValidationError('"{}" must be formatted in iso8601 compliant date format. Example: "2018-05-15T16:21:36+00:00"'.format(value))
+
+    return value
 
 
 def is_blacklisted(key):
@@ -103,37 +99,26 @@ def falsy_values():
     return ['false', '0', 'f', 'n', 'no']
 
 
-def set_valid_appendables(api, sample_uuids, appendables):
-    # TODO - Change this to something like
-    # `samples = Sample.where('sample_uuid in ?', sample_uuids)
-    # for sample in samples:
+def coerce_custom_value(value):
+    coerced_value = value
+    try:
+        coerced_value = float(value)
+        return coerced_value
+    except ValueError:
+        pass
 
-    for sample_uuid in sample_uuids:
-        sample = api.Samples.get(sample_uuid)
-        new_tag_array = []
-        for tag in appendables['valid_tags']:
-            existing_tags = api.Tags.where(name=tag)
-            if existing_tags:
-                unsaved_tag = existing_tags[0]
-                new_tag_array.append(unsaved_tag)
-            else:
-                unsaved_tag = api.Tags(name=tag, sample=sample)
-                unsaved_tag.save()
-                # TODO - this following line should not be necessary. Consider eventually update the Potion client to not require this.
-                new_tag_array.append(unsaved_tag)
+    if value.lower() in truthy_values():
+        return True
 
-        if new_tag_array:
-            potential_tags = sample.tags
-            potential_tags.extend(new_tag_array)
-            sample.tags = potential_tags
+    if value.lower() in falsy_values():
+        return False
 
-        for k, v in appendables['valid_metadata'].items():
-            setattr(sample.metadata, k, v)
+    return value
 
-        for k, v in appendables['custom_metadata'].items():
-            sample.metadata.custom[k] = v
-        sample.metadata.save()
-        sample.save()
+
+def is_iso_8601_compliant(value):
+    iso8601 = re.compile(r'^(?P<full>((?P<year>\d{4})([/-]?(?P<mon>(0[1-9])|(1[012]))([/-]?(?P<mday>(0[1-9])|([12]\d)|(3[01])))?)?(?:T(?P<hour>([01][0-9])|(?:2[0123]))(\:?(?P<min>[0-5][0-9])(\:?(?P<sec>[0-5][0-9]([\,\.]\d{1,10})?))?)?(?:Z|([\-+](?:([01][0-9])|(?:2[0123]))(\:?(?:[0-5][0-9]))?))?)?))$')
+    return iso8601.match(value)
 
 
 def metadata_properties(api):
