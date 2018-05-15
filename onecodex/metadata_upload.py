@@ -54,7 +54,14 @@ def validate_metadata_against_schema(schema_props, key, value):
 
 def validate_enum(value, schema_rules):
     if value not in schema_rules['enum']:
-        raise ValidationError('{} is not a valid value for this key. Value must be one of the following options: {}'.format(value, schema_rules['enum']))
+        # This is gross, but is necessary for string comparison between Python2 ([u'Illumina HiSeq']) and Python3 (['Illumina Hiseq']). On the plus side, it makes the error message more Human Readable.
+        error_array = []
+        for rule in schema_rules['enum']:
+            if rule:
+                error_array.append(str(rule))
+            else:
+                error_array.append(rule)
+        raise ValidationError('{} is not a valid value for this key. Value must be one of the following options: {}'.format(value, error_array))
     return value
 
 

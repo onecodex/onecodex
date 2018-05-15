@@ -96,14 +96,14 @@ def test_validate_number_invalid_large():
     schema_props = schema_rules('location_lat')
     with pytest.raises(ValidationError) as exception_info:
         validate_number('200', schema_props)
-    assert exception_info.value.message == '200 must be smaller than the maximum value: 90.0'
+    assert '200 must be smaller than the maximum value: 90.0' in str(exception_info)
 
 
 def test_validate_number_invalid_small():
     schema_props = schema_rules('location_lat')
     with pytest.raises(ValidationError) as exception_info:
         validate_number('-200', schema_props)
-    assert exception_info.value.message == '-200 must be larger than the minimum value: -90.0'
+    assert '-200 must be larger than the minimum value: -90.0' in str(exception_info)
 
 
 def test_validate_enum_valid():
@@ -115,7 +115,7 @@ def test_validate_enum_invalid():
     schema_props = schema_rules('platform')
     with pytest.raises(ValidationError) as exception_info:
         validate_enum('Foo', schema_props)
-    assert exception_info.value.message == "Foo is not a valid value for this key. Value must be one of the following options: [u'Illumina MiSeq', u'Illumina HiSeq', u'Illumina NextSeq 500', u'Illumina Genome Analyzer II', u'PacBio', u'Oxford Nanopore MinION', u'Ion Torrent', u'Ion Proton', u'SOLiD', u'454 sequencing', u'Sanger', None]"
+    assert "Foo is not a valid value for this key. Value must be one of the following options: ['Illumina MiSeq', 'Illumina HiSeq', 'Illumina NextSeq 500', 'Illumina Genome Analyzer II', 'PacBio', 'Oxford Nanopore MinION', 'Ion Torrent', 'Ion Proton', 'SOLiD', '454 sequencing', 'Sanger', None]" in str(exception_info)
 
 
 def test_validate_boolean_truthy():
@@ -139,7 +139,7 @@ def test_validate_boolean_falsy():
 def test_validate_boolean_invalid():
     with pytest.raises(ValidationError) as exception_info:
         validate_boolean('FOO')
-    assert exception_info.value.message == 'FOO must be either "true" or "false"'
+    assert 'FOO must be either "true" or "false"' in str(exception_info)
 
 
 def test_validate_datetime_valid():
@@ -150,7 +150,7 @@ def test_validate_datetime_valid():
 def test_validate_datetime_invalid():
     with pytest.raises(ValidationError) as exception_info:
         validate_datetime('2018, 05, 15, 16, 21, 36')
-    assert exception_info.value.message == '"2018, 05, 15, 16, 21, 36" must be formatted in iso8601 compliant date format. Example: "2018-05-15T16:21:36+00:00"'
+    assert '"2018, 05, 15, 16, 21, 36" must be formatted in iso8601 compliant date format. Example: "2018-05-15T16:21:36+00:00"' in str(exception_info)
 
 
 def test_is_blacklisted_valid():
