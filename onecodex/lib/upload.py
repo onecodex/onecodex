@@ -15,14 +15,14 @@ import requests
 from requests_toolbelt import MultipartEncoder
 
 from onecodex.lib.inline_validator import FASTXReader, FASTXTranslator
-from onecodex.exceptions import UploadException
+from onecodex.exceptions import UploadException, process_api_error
 
 
 MULTIPART_SIZE = 5 * 1000 * 1000 * 1000
 DEFAULT_UPLOAD_THREADS = 4
 
 
-def _file_stats(filename):
+def _file_stats(filename, validate=True):
     if isinstance(filename, tuple):
         assert len(filename) == 2
         file_size = sum(os.path.getsize(f) for f in filename)
@@ -33,10 +33,16 @@ def _file_stats(filename):
         file_size = os.path.getsize(filename)
 
     new_filename, ext = os.path.splitext(os.path.basename(filename))
+    is_gz = False
     if ext in {'.gz', '.gzip', '.bz', '.bz2', '.bzip'}:
+        is_gz = True
         new_filename, ext = os.path.splitext(new_filename)
 
-    return new_filename + ext + '.gz', file_size
+    final_filename = new_filename + ext
+    if validate or is_gz:
+        final_filename = final_filename + '.gz'
+
+    return final_filename, file_size
 
 
 def _wrap_files(filename, logger=None, validate=True):
@@ -71,7 +77,7 @@ def upload(files, session, samples_resource, server_url, threads=DEFAULT_UPLOAD_
     filenames = []
     file_sizes = []
     for file_path in files:
-        normalized_filename, file_size = _file_stats(file_path)
+        normalized_filename, file_size = _file_stats(file_path, validate=validate)
         filenames.append(normalized_filename)
         file_sizes.append(file_size)
 
@@ -238,13 +244,11 @@ def upload_file(file_obj, filename, session, samples_resource, log_to, metadata,
 
     try:
         upload_info = samples_resource.init_upload(upload_args)
-    except requests.exceptions.HTTPError:
-        raise UploadException(
-            "The attempt to initiate your upload failed. Please make "
-            "sure you are logged in (`onecodex login`) and try again. "
-            "If you continue to experience problems, contact us at "
-            "help@onecodex.com for assistance."
-        )
+
+    except requests.exceptions.HTTPError as e:
+        error_object = e[0]
+        process_api_error(error_object)
+
     upload_url = upload_info['upload_url']
 
     # Need a OrderedDict to preserve order for S3 (although this doesn't actually matter?)
