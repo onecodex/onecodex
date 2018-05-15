@@ -94,7 +94,7 @@ class Samples(OneCodexBase):
             self.metadata.save()
 
     @classmethod
-    def upload(cls, filename, threads=None, validate=True, metadata={}, tags=[]):
+    def upload(cls, filename, threads=None, validate=True, metadata=None, tags=None):
         """
         Uploads a series of files to the One Codex server. These files are automatically
         validated during upload.

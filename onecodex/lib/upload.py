@@ -59,7 +59,7 @@ def _wrap_files(filename, logger=None, validate=True):
 
 
 def upload(files, session, samples_resource, server_url, threads=DEFAULT_UPLOAD_THREADS,
-           validate=True, log_to=None, metadata={}, tags=[]):
+           validate=True, log_to=None, metadata=None, tags=[]):
     """
     Uploads several files to the One Codex server, auto-detecting sizes and using the appropriate
     downstream upload functions. Also, wraps the files with a streaming validator to ensure they
@@ -221,18 +221,25 @@ def upload_large_file(file_obj, filename, session, samples_resource, server_url,
         log_to.flush()
 
 
-def upload_file(file_obj, filename, session, samples_resource, log_to=None, metadata={}, tags=[]):
+def upload_file(file_obj, filename, session, samples_resource, log_to=None, metadata=None, tags=None):
     """
     Uploads a file to the One Codex server directly to the users S3 bucket by self-signing
     """
-    try:
-        upload_info = samples_resource.init_upload({
+    upload_args = {
             'filename': filename,
             'size': 1,  # because we don't have the actually uploaded size yet b/c we're gziping it
             'upload_type': 'standard',  # This is multipart form data
             'metadata': metadata,
             'tags': tags
-        })
+        }
+    if metadata:
+        upload_args['metadata'] = metadata
+
+    if tags:
+        upload_args['tags'] = tags
+
+    try:
+        upload_info = samples_resource.init_upload(upload_args)
     except requests.exceptions.HTTPError:
         raise UploadException(
             "The attempt to initiate your upload failed. Please make "
