@@ -59,7 +59,7 @@ def _wrap_files(filename, logger=None, validate=True):
 
 
 def upload(files, session, samples_resource, server_url, threads=DEFAULT_UPLOAD_THREADS,
-           validate=True, log_to=None, metadata=None, tags=[]):
+           validate=True, log_to=None, metadata=None, tags=None):
     """
     Uploads several files to the One Codex server, auto-detecting sizes and using the appropriate
     downstream upload functions. Also, wraps the files with a streaming validator to ensure they

@@ -13,7 +13,7 @@ def validate_appendables(appendables, api):
 def validate_tags(appendables, api):
     if 'tags' not in appendables:
         return
-    
+
     tag_array = appendables['tags']
     for tag in tag_array:
         name_property = api.Tags._resource._schema['properties']['name']
@@ -26,7 +26,7 @@ def validate_tags(appendables, api):
 def validate_metadata(appendables, api):
     if 'metadata' not in appendables:
         return
-    
+
     schema_props = metadata_properties(api)
     for key, value in appendables['metadata'].items():
         if is_blacklisted(key):
