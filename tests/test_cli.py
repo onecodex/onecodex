@@ -180,10 +180,12 @@ SEQUENCE = ('ACGTGTCGTAGGTAGCTACGACGTAGCTAACGTGTCGTAGCTACGACGTAGCTA'
     (["temp.fa", "temp2.fa"], True),
 ])
 def test_standard_uploads(runner, upload_mocks, files, threads):
+    import mock
     """Test single and multi file uploads, with and without threads
        (but not files >5GB)
     """
-    with runner.isolated_filesystem():
+    tag_validation_patch = 'onecodex.metadata_upload.validate_appendables'
+    with mock.patch(tag_validation_patch), runner.isolated_filesystem():
         args = ['--api-key', '01234567890123456789012345678901', 'upload']
         if not threads:
             args += ['--max-threads', '1']
@@ -210,8 +212,8 @@ def test_empty_upload(runner, upload_mocks):
 
 def test_paired_files(runner, upload_mocks):
     import mock
-
-    with runner.isolated_filesystem():
+    tag_validation_patch = 'onecodex.metadata_upload.validate_appendables'
+    with mock.patch(tag_validation_patch), runner.isolated_filesystem():
         f, f2 = 'temp_R1.fa', 'temp_R2.fa'
         with open(f, mode='w') as f_out, open(f2, mode='w') as f_out2:
             f_out.write('>Test fasta\n')
@@ -286,8 +288,8 @@ def test_large_uploads(runner, upload_mocks, monkeypatch):
             return 500  # small
 
     monkeypatch.setattr(os.path, 'getsize', mockfilesize)
-
-    with runner.isolated_filesystem():
+    tag_validation_patch = 'onecodex.metadata_upload.validate_appendables'
+    with mock.patch(tag_validation_patch), runner.isolated_filesystem():
         big_file = "large.fa"
         with open(big_file, mode='w') as f:
             f.write('>BIG!!!\n')

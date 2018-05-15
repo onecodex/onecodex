@@ -1,0 +1,10 @@
+[
+  "tests/test_metadata_upload.py::test_validate_appendables", 
+  "tests/test_metadata_upload.py::test_validate_tags_valid", 
+  "tests/test_metadata_upload.py::test_validate_tags_invalid", 
+  "tests/test_metadata_upload.py::test_validate_metadata_valid", 
+  "tests/test_metadata_upload.py::test_validate_metadata_not_present", 
+  "tests/test_metadata_upload.py::test_validate_metadata_blacklisted", 
+  "tests/test_metadata_upload.py::test_validate_metadata_custom_valid", 
+  "tests/test_metadata_upload.py::test_validate_metadata_against_schema"
+]
