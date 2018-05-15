@@ -13,3 +13,4 @@ htmlcov/
 .DS_Store
 .python-version
 *.ipynb
+.pytest_cache/*

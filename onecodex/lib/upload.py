@@ -15,7 +15,7 @@ import requests
 from requests_toolbelt import MultipartEncoder
 
 from onecodex.lib.inline_validator import FASTXReader, FASTXTranslator
-from onecodex.exceptions import UploadException
+from onecodex.exceptions import UploadException, process_api_error
 
 
 MULTIPART_SIZE = 5 * 1000 * 1000 * 1000
@@ -230,13 +230,10 @@ def upload_file(file_obj, filename, session, samples_resource, log_to=None):
             'size': 1,  # because we don't have the actually uploaded size yet b/c we're gziping it
             'upload_type': 'standard'  # This is multipart form data
         })
-    except requests.exceptions.HTTPError:
-        raise UploadException(
-            "The attempt to initiate your upload failed. Please make "
-            "sure you are logged in (`onecodex login`) and try again. "
-            "If you continue to experience problems, contact us at "
-            "help@onecodex.com for assistance."
-        )
+    except requests.exceptions.HTTPError as e:
+        error_object = e[0]
+        process_api_error(error_object)
+
     upload_url = upload_info['upload_url']
 
     # Need a OrderedDict to preserve order for S3 (although this doesn't actually matter?)
