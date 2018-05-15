@@ -154,7 +154,8 @@ def upload(files, session, samples_resource, server_url, threads=DEFAULT_UPLOAD_
     for file_path, filename, file_size in zip(files, filenames, file_sizes):
         if file_size < MULTIPART_SIZE:
             file_obj = _wrap_files(file_path, logger=progress_bar, validate=validate)
-            file_uuid = threaded_upload(file_obj, filename, session, samples_resource, log_to, metadata, tags)
+            file_uuid = threaded_upload(file_obj, filename, session, samples_resource, log_to,
+                                        metadata, tags)
             if file_uuid:
                 uploading_uuids.append(file_uuid)
             uploading_files.append(file_obj)
@@ -276,7 +277,7 @@ def upload_file(file_obj, filename, session, samples_resource, log_to, metadata,
         try:
             upload_request = session.post(upload_url, data=encoder,
                                           headers={'Content-Type': content_type}, auth={})
-            if upload_request.status_code != 201:
+            if upload_request.status_code not in [200, 201]:
                 raise UploadException("Upload failed. Please contact "
                                       "help@onecodex.com for assistance.")
             file_obj.close()
@@ -295,11 +296,11 @@ def upload_file(file_obj, filename, session, samples_resource, log_to, metadata,
 
     # Finally, issue a callback
     try:
-        samples_resource.confirm_upload({
-            'sample_id': upload_info['sample_id'],
-            'upload_type': 'standard'
-        })
-
+        if not multipart_fields.get('callback_url'):
+            samples_resource.confirm_upload({
+                'sample_id': upload_info['sample_id'],
+                'upload_type': 'standard'
+            })
     except requests.exceptions.HTTPError:
         raise UploadException('Failed to upload: %s' % filename)
 
