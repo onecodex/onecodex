@@ -270,7 +270,18 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
 def login(ctx):
     """Add an API key (saved in ~/.onecodex)"""
     base_url = os.environ.get("ONE_CODEX_API_BASE", "https://app.onecodex.com")
-    _login(base_url)
+    if not ctx.obj['API_KEY']:
+        _login(base_url)
+    else:
+        email = _login(base_url, api_key=ctx.obj['API_KEY'])
+        ocx = Api(cache_schema=True, api_key=ctx.obj['API_KEY'], telemetry=ctx.obj['TELEMETRY'])
+
+        # TODO: This should be protected or built in as a first class resource
+        # with, e.g., connection error catching (it's not part of our formally documeted API at the moment)
+        if ocx._client.Account.instances()['email'] != email:
+            click.echo('Your login credentials do not match the provided email!', err=True)
+            _logout()
+            sys.exit(1)
 
 
 @onecodex.command('logout')
