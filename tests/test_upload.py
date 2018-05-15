@@ -92,7 +92,7 @@ def test_upload_small_file():
     session = FakeSession()
     samples_resource = FakeSamplesResource()
 
-    upload_file(file_obj, 'test.fa', session, samples_resource)
+    upload_file(file_obj, 'test.fa', session, samples_resource, None, {}, [])
     file_obj.close()
 
 

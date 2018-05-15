@@ -126,7 +126,7 @@ def upload(files, session, samples_resource, server_url, threads=DEFAULT_UPLOAD_
             def _wrapped(*wrapped_args):
                 semaphore.acquire()
                 try:
-                    file_uuid = upload_file(*wrapped_args[:-1], metadata=metadata, tags=tags)
+                    file_uuid = upload_file(*wrapped_args[:-1])
                     if file_uuid:
                         uploading_uuids.append(file_uuid)
                 except Exception as e:
@@ -148,7 +148,7 @@ def upload(files, session, samples_resource, server_url, threads=DEFAULT_UPLOAD_
     for file_path, filename, file_size in zip(files, filenames, file_sizes):
         if file_size < MULTIPART_SIZE:
             file_obj = _wrap_files(file_path, logger=progress_bar, validate=validate)
-            file_uuid = threaded_upload(file_obj, filename, session, samples_resource, log_to)
+            file_uuid = threaded_upload(file_obj, filename, session, samples_resource, log_to, metadata, tags)
             if file_uuid:
                 uploading_uuids.append(file_uuid)
             uploading_files.append(file_obj)
@@ -221,7 +221,7 @@ def upload_large_file(file_obj, filename, session, samples_resource, server_url,
         log_to.flush()
 
 
-def upload_file(file_obj, filename, session, samples_resource, log_to=None, metadata=None, tags=None):
+def upload_file(file_obj, filename, session, samples_resource, log_to, metadata, tags):
     """
     Uploads a file to the One Codex server directly to the users S3 bucket by self-signing
     """
