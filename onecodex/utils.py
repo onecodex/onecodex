@@ -9,6 +9,7 @@ import logging
 import os
 import sys
 import platform
+import re
 
 try:
     from StringIO import StringIO
@@ -397,3 +398,8 @@ class ModuleAlias(object):
 
     def __repr__(self):
         return '{} helper functions'.format(self.name)
+
+
+def snake_case(input_string):
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', input_string)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()

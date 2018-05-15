@@ -4,6 +4,7 @@ author: @mbiokyle29
 """
 from click import BadParameter
 from functools import partial
+from onecodex.utils import snake_case
 import pytest
 
 
@@ -55,3 +56,9 @@ def test_fetcher(ocx, api_data, resource, uris):
             resource_class = getattr(ocx, resource)
             instance = resource_class.get(uri)
             assert instance is not None
+
+
+def test_snake_case():
+    test_cases = ['SnakeCase', 'snakeCase', 'SNAKE_CASE']
+    for test_case in test_cases:
+        assert snake_case(test_case) == 'snake_case'

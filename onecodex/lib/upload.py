@@ -65,7 +65,7 @@ def _wrap_files(filename, logger=None, validate=True):
 
 
 def upload(files, session, samples_resource, server_url, threads=DEFAULT_UPLOAD_THREADS,
-           validate=True, log_to=None):
+           validate=True, log_to=None, metadata=None, tags=None):
     """
     Uploads several files to the One Codex server, auto-detecting sizes and using the appropriate
     downstream upload functions. Also, wraps the files with a streaming validator to ensure they
@@ -121,6 +121,7 @@ def upload(files, session, samples_resource, server_url, threads=DEFAULT_UPLOAD_
     progress_bar = None if log_to is None else progress_bar_display
 
     # first, upload all the smaller files in parallel (if multiple threads are requested)
+    uploading_uuids = []
     if threads > 1:
         import ctypes
         thread_error = Value(ctypes.c_wchar_p, '')
@@ -131,7 +132,9 @@ def upload(files, session, samples_resource, server_url, threads=DEFAULT_UPLOAD_
             def _wrapped(*wrapped_args):
                 semaphore.acquire()
                 try:
-                    upload_file(*wrapped_args[:-1])
+                    file_uuid = upload_file(*wrapped_args[:-1])
+                    if file_uuid:
+                        uploading_uuids.append(file_uuid)
                 except Exception as e:
                     # handle inside the thread to prevent the exception message from leaking out
                     wrapped_args[-1].value = '{}'.format(e)
@@ -151,7 +154,9 @@ def upload(files, session, samples_resource, server_url, threads=DEFAULT_UPLOAD_
     for file_path, filename, file_size in zip(files, filenames, file_sizes):
         if file_size < MULTIPART_SIZE:
             file_obj = _wrap_files(file_path, logger=progress_bar, validate=validate)
-            threaded_upload(file_obj, filename, session, samples_resource, log_to)
+            file_uuid = threaded_upload(file_obj, filename, session, samples_resource, log_to, metadata, tags)
+            if file_uuid:
+                uploading_uuids.append(file_uuid)
             uploading_files.append(file_obj)
 
     if threads > 1:
@@ -176,6 +181,8 @@ def upload(files, session, samples_resource, server_url, threads=DEFAULT_UPLOAD_
     if log_to is not None:
         log_to.write('\rUploading: All complete.' + (bar_length - 3) * ' ' + '\n')
         log_to.flush()
+
+    return uploading_uuids
 
 
 def upload_large_file(file_obj, filename, session, samples_resource, server_url, threads=10,
@@ -220,16 +227,24 @@ def upload_large_file(file_obj, filename, session, samples_resource, server_url,
         log_to.flush()
 
 
-def upload_file(file_obj, filename, session, samples_resource, log_to=None):
+def upload_file(file_obj, filename, session, samples_resource, log_to, metadata, tags):
     """
     Uploads a file to the One Codex server directly to the users S3 bucket by self-signing
     """
+    upload_args = {
+        'filename': filename,
+        'size': 1,  # because we don't have the actually uploaded size yet b/c we're gziping it
+        'upload_type': 'standard'  # This is multipart form data
+    }
+    if metadata:
+        upload_args['metadata'] = metadata
+
+    if tags:
+        upload_args['tags'] = tags
+
     try:
-        upload_info = samples_resource.init_upload({
-            'filename': filename,
-            'size': 1,  # because we don't have the actually uploaded size yet b/c we're gziping it
-            'upload_type': 'standard'  # This is multipart form data
-        })
+        upload_info = samples_resource.init_upload(upload_args)
+
     except requests.exceptions.HTTPError as e:
         error_object = e[0]
         process_api_error(error_object)
@@ -284,6 +299,7 @@ def upload_file(file_obj, filename, session, samples_resource, log_to=None):
             'sample_id': upload_info['sample_id'],
             'upload_type': 'standard'
         })
+
     except requests.exceptions.HTTPError:
         raise UploadException('Failed to upload: %s' % filename)
 
@@ -292,3 +308,4 @@ def upload_file(file_obj, filename, session, samples_resource, log_to=None):
             filename, upload_info['sample_id']
         ))
         log_to.flush()
+    return upload_info['sample_id']

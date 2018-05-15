@@ -210,7 +210,6 @@ def test_empty_upload(runner, upload_mocks):
 
 def test_paired_files(runner, upload_mocks):
     import mock
-
     with runner.isolated_filesystem():
         f, f2 = 'temp_R1.fa', 'temp_R2.fa'
         with open(f, mode='w') as f_out, open(f2, mode='w') as f_out2:
@@ -286,7 +285,6 @@ def test_large_uploads(runner, upload_mocks, monkeypatch):
             return 500  # small
 
     monkeypatch.setattr(os.path, 'getsize', mockfilesize)
-
     with runner.isolated_filesystem():
         big_file = "large.fa"
         with open(big_file, mode='w') as f:
