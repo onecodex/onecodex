@@ -228,9 +228,7 @@ def upload_file(file_obj, filename, session, samples_resource, log_to=None, meta
     upload_args = {
             'filename': filename,
             'size': 1,  # because we don't have the actually uploaded size yet b/c we're gziping it
-            'upload_type': 'standard',  # This is multipart form data
-            'metadata': metadata,
-            'tags': tags
+            'upload_type': 'standard'  # This is multipart form data
         }
     if metadata:
         upload_args['metadata'] = metadata
