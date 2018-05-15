@@ -203,9 +203,9 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
     if metadata:
         appendables['metadata'] = {}
         for metadata_kv in metadata:
-            split_metadata = metadata_kv.split('=')
+            split_metadata = metadata_kv.split('=', 1)
             if len(split_metadata) > 1:
-                metadata_value = '='.join(split_metadata[1:])
+                metadata_value = split_metadata[1]
                 appendables['metadata'][snake_case(split_metadata[0])] = metadata_value
 
     appendables = validate_appendables(appendables, ctx.obj['API'])
