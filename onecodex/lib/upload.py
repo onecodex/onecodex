@@ -226,10 +226,10 @@ def upload_file(file_obj, filename, session, samples_resource, log_to, metadata,
     Uploads a file to the One Codex server directly to the users S3 bucket by self-signing
     """
     upload_args = {
-            'filename': filename,
-            'size': 1,  # because we don't have the actually uploaded size yet b/c we're gziping it
-            'upload_type': 'standard'  # This is multipart form data
-        }
+        'filename': filename,
+        'size': 1,  # because we don't have the actually uploaded size yet b/c we're gziping it
+        'upload_type': 'standard'  # This is multipart form data
+    }
     if metadata:
         upload_args['metadata'] = metadata
 
