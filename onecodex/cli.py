@@ -9,8 +9,8 @@ import os
 import re
 import sys
 import warnings
-
 import click
+import datetime
 
 from onecodex.utils import (cli_resource_fetcher, download_file_helper,
                             valid_api_key, OPTION_HELP, pprint,
@@ -186,11 +186,25 @@ def samples(ctx, samples):
 @click.option('--prompt/--no-prompt', is_flag=True, help=OPTION_HELP['prompt'], default=True)
 @click.option('--validate/--do-not-validate', is_flag=True, help=OPTION_HELP['validate'],
               default=True)
+@click.option('--tags', type=str)
+@click.option("--metadata", '-md', multiple=True)
 @click.pass_context
 @telemetry
 def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
-           forward, reverse):
+           forward, reverse, tags, metadata):
     """Upload a FASTA or FASTQ (optionally gzip'd) to One Codex"""
+
+    tag_array = []
+    if tags:
+        tag_array = [tag.strip() for tag in tags.split(',')]
+
+    metadata_opts = {}
+    if metadata:
+        for metadata_kv in metadata:
+            split_metadata = metadata_kv.split('=')
+            if len(split_metadata) > 1:
+                metadata_value = '='.join(split_metadata[1:])
+                metadata_opts[split_metadata[0].lower()] = metadata_value
 
     if (forward or reverse) and not (forward and reverse):
         click.echo('You must specify both forward and reverse files', err=True)
@@ -251,7 +265,9 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
 
     try:
         # do the uploading
-        ctx.obj['API'].Samples.upload(files, threads=max_threads, validate=validate)
+        sample_uuids = ctx.obj['API'].Samples.upload(files, threads=max_threads, validate=validate)
+        update_sample_tags_and_metadata(sample_uuids, ctx, tag_array, metadata_opts)
+
     except ValidationWarning as e:
         sys.stderr.write('\nERROR: {}. {}'.format(
             e, 'Running with the --clean flag will suppress this error.'
@@ -262,6 +278,80 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
         sys.stderr.write('\nERROR: {}'.format(e))
         sys.stderr.write('\nPlease feel free to contact us for help at help@onecodex.com\n\n')
         sys.exit(1)
+
+
+def update_sample_tags_and_metadata(sample_uuids, ctx, tag_array, metadata_opts):
+    if tag_array or metadata_opts:
+        for uuid in sample_uuids:
+            sample = ctx.obj['API'].Samples.get(uuid)
+            if tag_array:
+                new_tag_array = []
+                for tag in tag_array:
+                    existing_tags = ctx.obj['API'].Tags.where(name=tag)
+                    if existing_tags:
+                        unsaved_tag = existing_tags[0]
+                        new_tag_array.append(unsaved_tag)
+                    else:
+                        unsaved_tag = ctx.obj['API'].Tags(name=tag, sample=sample)
+                        unsaved_tag.save()
+
+                if new_tag_array:
+                    potential_tags = sample.tags
+                    potential_tags.extend(new_tag_array)
+                    sample.tags = potential_tags
+                    sample.save()
+
+            if metadata_opts:
+                for k, v in metadata_opts.iteritems():
+                    parse_metadata(sample, k, v)
+                sample.metadata.save()
+
+
+def parse_metadata(sample, metadata_key, metadata_value):
+    if is_custom_metadata(metadata_key):
+        sample.metadata.custom[metadata_key] = metadata_value
+    else:
+        set_metadata_value(sample.metadata, metadata_key, metadata_value)
+
+
+def set_metadata_value(metadata, metadata_key, metadata_value):
+    metadata_type = is_settable_metadata_keys()[metadata_key]
+    if metadata_type == str:
+        setattr(metadata, metadata_key, metadata_value)
+    elif metadata_type == datetime.datetime:
+        datetime_vals = metadata_value.split(',')
+        datetime_ints = list(map(int, datetime_vals))
+        setattr(metadata, metadata_key, datetime.datetime(*datetime_ints))
+    elif metadata_type == bool:
+        bool_val = metadata_value.lower() in ['true', '1', 't', 'y', 'yes']
+        setattr(metadata, metadata_key, bool_val)
+    elif metadata_type == 'not_supported':
+        warning = "'{}' is not currently supported from the CLI".format(metadata_key)
+        warnings.warn(warning)
+
+
+def is_settable_metadata_keys():
+    # TODO - Eventually, this shouldn't be hard-coded.
+    return {
+        'name': str,
+        'description': str,
+        'starred': bool,
+        'date_collected': datetime.datetime,
+        'date_sequenced': datetime.datetime,
+        'sequencer': 'not_supported',
+        'location': 'not_supported',
+        'location_lon': 'not_supported',
+        'location_lat': 'not_supported',
+        'location_string': 'not_supported',
+        'platform': 'not_supported'
+    }
+
+
+def is_custom_metadata(metadata_key):
+    if is_settable_metadata_keys().get(metadata_key):
+        return False
+    else:
+        return True
 
 
 @onecodex.command('login')
