@@ -18,7 +18,7 @@ from onecodex.utils import (cli_resource_fetcher, download_file_helper,
                             warn_simplejson, telemetry)
 from onecodex.api import Api
 from onecodex.exceptions import ValidationWarning, ValidationError, UploadException
-from onecodex.auth import _login, _logout, _silent_login
+from onecodex.auth import _login, _logout, _remove_creds, _silent_login
 from onecodex.scripts import filter_reads
 from onecodex.version import __version__
 
@@ -280,7 +280,7 @@ def login(ctx):
         # with, e.g., connection error catching (it's not part of our formally documeted API at the moment)
         if ocx._client.Account.instances()['email'] != email:
             click.echo('Your login credentials do not match the provided email!', err=True)
-            _logout()
+            _remove_creds()
             sys.exit(1)
 
 

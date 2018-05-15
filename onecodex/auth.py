@@ -90,20 +90,26 @@ def _login(server, creds_file=None, api_key=None):
     return email
 
 
-def _logout(creds_file=None):
+def _remove_creds(creds_file=None):
     """
-    Logout main function, just rm ~/.onecodex more or less
+    Remove ~/.onecodex file, returning True if successul or False if the file didn't exist
     """
-
-    # creds file path setup
     if creds_file is None:
         fp = os.path.expanduser("~/.onecodex")
     else:
         fp = creds_file
 
     if os.path.exists(fp):
-        # we might not want to do this if there's there are cached schema in it?
         os.remove(fp)
+        return True
+    return False
+
+
+def _logout(creds_file=None):
+    """
+    Logout main function, just rm ~/.onecodex more or less
+    """
+    if _remove_creds(creds_file=creds_file):
         click.echo("Successfully removed One Codex credentials.", err=True)
         sys.exit(0)
     else:
