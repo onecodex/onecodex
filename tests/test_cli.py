@@ -112,6 +112,16 @@ def test_api_login(runner, mocked_creds_path):
         assert successful_login_msg in result.output
 
 
+@pytest.mark.parametrize('email,success,code', [
+    ('incorrect+email@onecodex.com', False, 1),
+    ('asmngs@onecodex.com', True, 0),
+])
+def test_api_key_login(runner, api_data, mocked_creds_path, email, success, code):
+    result = runner.invoke(Cli, ['--api-key', '0' * 32, 'login'], input=email)
+    assert result.exit_code == code
+    assert os.path.exists(os.path.expanduser('~/.onecodex')) is success
+
+
 def test_creds_file_exists(runner, mocked_creds_file):
     with runner.isolated_filesystem():
         make_creds_file()

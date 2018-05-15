@@ -19,6 +19,7 @@ def fetch_api_key_from_uname(username, password, server_url):
     """
     Retrieves an API key from the One Codex webpage given the username and password
     """
+    # TODO: Hit programmatic endpoint to fetch JWT key, not API key
     with requests.Session() as session:
         # get the login page normally
         text = session.get(server_url + 'login').text

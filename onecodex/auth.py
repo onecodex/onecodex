@@ -22,11 +22,15 @@ DATE_FORMAT = "%Y-%m-%d %H:%M"
 API_KEY_LEN = 32
 
 
-def login_uname_pwd(server):
+def login_uname_pwd(server, api_key=None):
     """
     Prompts user for username and password, gets API key from server
+    if not provided.
     """
-    username = click.prompt("Please enter your One Codex  (email)")
+    username = click.prompt("Please enter your One Codex (email)")
+    if api_key is not None:
+        return username, api_key
+
     password = click.prompt("Please enter your password (typing will be hidden)",
                             hide_input=True)
 
@@ -39,7 +43,7 @@ def login_uname_pwd(server):
     return username, api_key
 
 
-def _login(server, creds_file=None):
+def _login(server, creds_file=None, api_key=None):
     """
     Login main function
     """
@@ -58,14 +62,14 @@ def _login(server, creds_file=None):
                 if 'email' in creds:
                     click.echo('Credentials file already exists ({})'.format(collapse_user(fp)),
                                err=True)
-                    return
+                    return creds['email']
         except ValueError:
             click.echo("Your ~/.onecodex credentials file appears to be corrupted."  # noqa
                        "Please delete it and re-authorize.", err=True)
             sys.exit(1)
 
     # else make it
-    email, api_key = login_uname_pwd(server)
+    email, api_key = login_uname_pwd(server, api_key=api_key)
 
     if api_key is None:
         click.echo("We could not verify your credentials. Either you mistyped your email "
@@ -83,22 +87,29 @@ def _login(server, creds_file=None):
     with open(fp, mode='w') as f:
         json.dump(creds, f)
     click.echo("Your ~/.onecodex credentials file was successfully created.", err=True)
+    return email
 
 
-def _logout(creds_file=None):
+def _remove_creds(creds_file=None):
     """
-    Logout main function, just rm ~/.onecodex more or less
+    Remove ~/.onecodex file, returning True if successul or False if the file didn't exist
     """
-
-    # creds file path setup
     if creds_file is None:
         fp = os.path.expanduser("~/.onecodex")
     else:
         fp = creds_file
 
     if os.path.exists(fp):
-        # we might not want to do this if there's there are cached schema in it?
         os.remove(fp)
+        return True
+    return False
+
+
+def _logout(creds_file=None):
+    """
+    Logout main function, just rm ~/.onecodex more or less
+    """
+    if _remove_creds(creds_file=creds_file):
         click.echo("Successfully removed One Codex credentials.", err=True)
         sys.exit(0)
     else:
