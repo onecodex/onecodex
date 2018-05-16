@@ -186,8 +186,8 @@ def samples(ctx, samples):
 @click.option('--prompt/--no-prompt', is_flag=True, help=OPTION_HELP['prompt'], default=True)
 @click.option('--validate/--do-not-validate', is_flag=True, help=OPTION_HELP['validate'],
               default=True)
-@click.option('--tags', '-t', multiple=True)
-@click.option("--metadata", '-md', multiple=True)
+@click.option('--tag', '-t', 'tags', multiple=True, help=OPTION_HELP['tag'])
+@click.option("--metadata", '-md', multiple=True, help=OPTION_HELP['metadata'])
 @click.pass_context
 @telemetry
 def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
@@ -269,7 +269,8 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
 
     try:
         # do the uploading
-        ctx.obj['API'].Samples.upload(files, threads=max_threads, validate=validate, metadata=appendables['valid_metadata'], tags=appendables['valid_tags'])
+        ctx.obj['API'].Samples.upload(files, threads=max_threads, validate=validate,
+                                      metadata=appendables['valid_metadata'], tags=appendables['valid_tags'])
 
     except ValidationWarning as e:
         sys.stderr.write('\nERROR: {}. {}'.format(

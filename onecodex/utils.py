@@ -56,7 +56,12 @@ OPTION_HELP = {
                  "paired end interleaving (NOT RECOMMENDED)."),
     'telemetry': 'Send errors to One Codex?',
     'forward': 'Specify a forward reads file',
-    'reverse': 'Specify a reverse reads file'
+    'reverse': 'Specify a reverse reads file',
+    'tag': ('Add one or more tags to all uploaded samples '
+            'e.g., `onecodex upload --tag "Cohort A" $FILE`'),
+    'metadata': ('Add one or more metadata attributes to all uploaded samples, '
+                 'e.g., `onecodex upload --metadata starred=true --metadata '
+                 'platform="Illumina MiSeq" $FILE`'),
 }
 
 SUPPORTED_EXTENSIONS = ["fa", "fasta", "fq", "fastq",
