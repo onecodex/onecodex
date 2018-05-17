@@ -278,11 +278,33 @@ def upload_file(file_obj, filename, session, samples_resource, log_to, metadata,
             upload_request = session.post(upload_url, data=encoder,
                                           headers={'Content-Type': content_type}, auth={})
             if upload_request.status_code not in [200, 201]:
-                raise UploadException("Upload failed. Please contact "
-                                      "help@onecodex.com for assistance.")
+                msg = 'Upload failed. Please contact help@onecodex.com for assistance.'
+                if upload_request.status_code >= 400 and upload_request.status_code < 500:
+                    try:
+                        msg = '{}. Please ensure your file is valid and then try again.'.format(
+                            upload_request.json()['message']
+                        )
+                    except Exception:
+                        pass
+                raise UploadException(msg)
+
             file_obj.close()
             break
-        except requests.exceptions.ConnectionError:
+        except requests.exceptions.ConnectionError as e:
+            # For proxy, try special route to check the errors
+            # in case Python is just dropping the Connection due to validation issues
+            if multipart_fields.get('sample_id'):
+                error_url = '/'.join(upload_url.split('/')[:-1]) + '/errors'
+                try:
+                    e_resp = session.post(error_url, json={'sample_id': multipart_fields.get('sample_id')})
+                    if e_resp.status_code == 200:
+                        msg = '{}. Please ensure your file is valid and then try again.'.format(
+                            e_resp.json()['message']
+                        )
+                        raise UploadException(msg)
+                except requests.exceptions.RequestException:
+                    pass
+
             n_retries += 1
             # reset the file_obj back to the start; we may need to rebuild the encoder too?
             file_obj.seek(0)
