@@ -15,20 +15,30 @@ import requests
 from requests_toolbelt import MultipartEncoder
 
 from onecodex.lib.inline_validator import FASTXReader, FASTXTranslator
-from onecodex.exceptions import UploadException, process_api_error
+from onecodex.exceptions import OneCodexException, UploadException, process_api_error
 
 
 MULTIPART_SIZE = 5 * 1000 * 1000 * 1000
 DEFAULT_UPLOAD_THREADS = 4
+
+def interleaved_filename(filename):
+    # strip out the _R1_/etc chunk from the first filename if this is a paired upload
+    # and make that the filename
+
+    if not isinstance(filename, tuple):
+        raise OneCodexException('Cannot get the interleaved filename without a tuple.')
+    if re.match('.*[._][Rr][12][_.].*', filename[0]):
+        return re.sub('[._][Rr][12]', '', filename[0])
+    else:
+        print('Does not match')
+        return filename[0]
 
 
 def _file_stats(filename, validate=True):
     if isinstance(filename, tuple):
         assert len(filename) == 2
         file_size = sum(os.path.getsize(f) for f in filename)
-        # strip out the _R1_/etc chunk from the first filename if this is a paired upload
-        # and make that the filename
-        filename = re.sub('[._][Rr][12][._]', '_', filename[0])
+        filename = interleaved_filename(filename)
     else:
         file_size = os.path.getsize(filename)
 

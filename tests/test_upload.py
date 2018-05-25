@@ -6,7 +6,14 @@ from mock import patch
 import pytest
 
 from onecodex.lib.inline_validator import FASTXTranslator
-from onecodex.lib.upload import upload, upload_file, upload_large_file
+from onecodex.lib.upload import upload, upload_file, upload_large_file, interleaved_filename
+
+
+@pytest.mark.parametrize('files,filename', [
+    (('test_R1.fastq', 'test_R2.fastq'), 'test.fastq')
+])
+def test_interleaved_filenames(files, filename):
+    assert interleaved_filename(files) == filename
 
 
 @pytest.mark.parametrize('file_list,n_small,n_big', [
