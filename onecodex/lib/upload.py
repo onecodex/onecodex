@@ -21,6 +21,7 @@ from onecodex.exceptions import OneCodexException, UploadException, process_api_
 MULTIPART_SIZE = 5 * 1000 * 1000 * 1000
 DEFAULT_UPLOAD_THREADS = 4
 
+
 def interleaved_filename(filename):
     # strip out the _R1_/etc chunk from the first filename if this is a paired upload
     # and make that the filename
