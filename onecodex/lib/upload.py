@@ -65,7 +65,7 @@ def _wrap_files(filename, logger=None, validate=True):
 
 
 def upload(files, session, samples_resource, server_url, threads=DEFAULT_UPLOAD_THREADS,
-           validate=True, log_to=None, metadata=None, tags=None):
+           validate=True, log_to=None, metadata=None, tags=None, project=None):
     """
     Uploads several files to the One Codex server, auto-detecting sizes and using the appropriate
     downstream upload functions. Also, wraps the files with a streaming validator to ensure they
@@ -155,7 +155,7 @@ def upload(files, session, samples_resource, server_url, threads=DEFAULT_UPLOAD_
         if file_size < MULTIPART_SIZE:
             file_obj = _wrap_files(file_path, logger=progress_bar, validate=validate)
             file_uuid = threaded_upload(file_obj, filename, session, samples_resource, log_to,
-                                        metadata, tags)
+                                        metadata, tags, project)
             if file_uuid:
                 uploading_uuids.append(file_uuid)
             uploading_files.append(file_obj)
@@ -228,7 +228,7 @@ def upload_large_file(file_obj, filename, session, samples_resource, server_url,
         log_to.flush()
 
 
-def upload_file(file_obj, filename, session, samples_resource, log_to, metadata, tags):
+def upload_file(file_obj, filename, session, samples_resource, log_to, metadata, tags, project):
     """
     Uploads a file to the One Codex server directly to the users S3 bucket by self-signing
     """
@@ -242,6 +242,9 @@ def upload_file(file_obj, filename, session, samples_resource, log_to, metadata,
 
     if tags:
         upload_args['tags'] = tags
+
+    if project:
+        upload_args['project'] = project
 
     try:
         upload_info = samples_resource.init_upload(upload_args)

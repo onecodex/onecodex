@@ -188,10 +188,11 @@ def samples(ctx, samples):
               default=True)
 @click.option('--tag', '-t', 'tags', multiple=True, help=OPTION_HELP['tag'])
 @click.option("--metadata", '-md', multiple=True, help=OPTION_HELP['metadata'])
+@click.option("--project")
 @click.pass_context
 @telemetry
 def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
-           forward, reverse, tags, metadata):
+           forward, reverse, tags, metadata, project):
     """Upload a FASTA or FASTQ (optionally gzip'd) to One Codex"""
 
     appendables = {}
@@ -268,9 +269,11 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
         warnings.filterwarnings('error', category=ValidationWarning)
 
     try:
+        # get project
+        project = ctx.obj['API'].Projects.get(project)
         # do the uploading
         ctx.obj['API'].Samples.upload(files, threads=max_threads, validate=validate,
-                                      metadata=appendables['valid_metadata'], tags=appendables['valid_tags'])
+                                      metadata=appendables['valid_metadata'], tags=appendables['valid_tags'], project=project)
 
     except ValidationWarning as e:
         sys.stderr.write('\nERROR: {}. {}'.format(
