@@ -449,13 +449,10 @@ class FASTXTranslator(BaseFASTXReader):
             self.seek(0)
         return self.total - self.total_written
 
-    def __len__(self):
-        return self.len
-
     def validate(self):
         # This is a no-op that really just calls self.len
         # in order to pre-validate the file
-        return len(self)
+        return self.len
 
     def seek(self, loc):
         assert loc == 0  # we can only rewind all the way
