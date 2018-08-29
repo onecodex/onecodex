@@ -1,8 +1,0 @@
-dependencies:
-  post:
-    - pyenv local 2.7.11 3.4.3
-
-test:
-  override:
-    - tox
-

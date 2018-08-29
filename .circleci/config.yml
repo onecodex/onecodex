@@ -1,0 +1,75 @@
+workflows:
+  version: 2
+  build-py23:
+    jobs:
+      - build-py3
+      - build-py2
+
+version: 2
+jobs:
+  build-py3:
+    docker:
+      - image: circleci/python:3.4-stretch
+    steps:
+      - checkout
+      - run:
+          name: Install Python deps in virtual environment
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install numpy
+            pip install .[all,testing]
+      - run:
+          name: Run tests
+          command: |
+            . venv/bin/activate
+            py.test --ignore tests/test_minimal.py --ignore tests/test_simplejson.py tests/
+  build-py2:
+    docker:
+      - image: circleci/python:2.7-stretch
+    steps:
+      - checkout
+      - run:
+          name: Install Python deps in virtual environment
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install numpy
+            pip install .[all,testing]
+      - run:
+          name: Run tests
+          command: |
+            . venv/bin/activate
+            py.test --ignore tests/test_minimal.py --ignore tests/test_simplejson.py tests/
+
+# version: 2
+# jobs:
+#   build:
+#     docker:
+#       - image: circleci/python:3.6.6-stretch
+#     steps:
+#       - run:
+#           name: Install requirements.txt
+#           command: |
+#             git clone https://github.com/pyenv/pyenv.git ~/.pyenv
+#             echo 'export PYENV_ROOT="$HOME/.pyenv"' >> $BASH_ENV
+#             echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> $BASH_ENV
+#       - run:
+#           name: Install Python versions
+#           command: |
+#             pyenv install 2.7.11
+#             pyenv install 3.4.3
+#             pyenv global 2.7.11 3.4.3
+#       - run:
+#           command: |
+#             pyenv version
+
+
+# dependencies:
+#   post:
+#     - pyenv local 2.7.11 3.4.3
+
+# test:
+#   override:
+#     - tox
+
