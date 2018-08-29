@@ -32,7 +32,7 @@ jobs:
       - run:
           name: Install Python deps in virtual environment
           command: |
-            python3 -m venv venv
+            virtualenv venv
             . venv/bin/activate
             pip install numpy
             pip install .[all,testing]
