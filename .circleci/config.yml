@@ -1,0 +1,117 @@
+workflows:
+  version: 2
+  all-tests:
+    jobs:
+      - test-py3
+      - test-py2
+      - test-minimal
+      - test-simplejson
+      - coverage
+      - lint
+
+version: 2
+jobs:
+  test-py3:
+    docker:
+      - image: circleci/python:3.4-stretch
+    steps:
+      - checkout
+      - run:
+          name: Install Python deps in virtual environment
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install numpy
+            pip install .[all,testing]
+      - run:
+          name: Run tests
+          command: |
+            . venv/bin/activate
+            py.test --ignore tests/test_minimal.py --ignore tests/test_simplejson.py tests/
+  test-py2:
+    docker:
+      - image: circleci/python:2.7-stretch
+    steps:
+      - checkout
+      - run:
+          name: Install Python deps in virtual environment
+          command: |
+            virtualenv venv
+            . venv/bin/activate
+            pip install numpy
+            pip install .[all,testing]
+      - run:
+          name: Run tests
+          command: |
+            . venv/bin/activate
+            py.test --ignore tests/test_minimal.py --ignore tests/test_simplejson.py tests/
+  test-minimal:
+    docker:
+      - image: circleci/python:3.4-stretch
+    steps:
+      - checkout
+      - run:
+          name: Install Python deps in virtual environment
+          command: |
+            virtualenv venv
+            . venv/bin/activate
+            pip install numpy
+            pip install .[testing]
+      - run:
+          name: Run tests
+          command: |
+            . venv/bin/activate
+            py.test tests/test_cli.py tests/test_minimal.py tests/test_raven.py
+  test-simplejson:
+    docker:
+      - image: circleci/python:3.4-stretch
+    steps:
+      - checkout
+      - run:
+          name: Install Python deps in virtual environment
+          command: |
+            virtualenv venv
+            . venv/bin/activate
+            pip install numpy
+            pip install simplejson
+            pip install .[all,testing]
+      - run:
+          name: Run tests
+          command: |
+            . venv/bin/activate
+            py.test tests/test_simplejson.py
+  lint:
+    docker:
+      - image: circleci/python:2.7-stretch
+    steps:
+      - checkout
+      - run:
+          name: Install Python deps in virtual environment
+          command: |
+            virtualenv venv
+            . venv/bin/activate
+            pip install .[testing]
+      - run:
+          name: Run flake8
+          command: |
+            . venv/bin/activate
+            flake8 --ignore E501 --exclude onecodex/schemas/* onecodex/
+            flake8 --ignore E501 --exclude onecodex/schemas/* tests/
+  coverage:
+    docker:
+      - image: circleci/python:3.4-stretch
+    steps:
+      - checkout
+      - run:
+          name: Install Python deps in virtual environment
+          command: |
+            virtualenv venv
+            . venv/bin/activate
+            pip install .[all,testing]
+      - run:
+          name: Run flake8
+          command: |
+            . venv/bin/activate
+            py.test --cov-report=html --cov=onecodex --ignore tests/test_minimal.py --ignore tests/test_simplejson.py tests/
+            coveralls
+
