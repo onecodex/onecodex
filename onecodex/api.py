@@ -191,7 +191,11 @@ class ExtendedPotionClient(PotionClient):
 
             # always resave the creds (to make sure we're removing schema if we need to be or
             # saving if we need to do that instead)
-            json.dump(creds, open(creds_fp, mode='w'))
+            try:
+                json.dump(creds, open(creds_fp, mode='w'))
+            except IOError:
+                # it's possible we don't have write access to the users home directory
+                pass
 
         for name, resource_schema in schema['properties'].items():
             class_name = upper_camel_case(name)
