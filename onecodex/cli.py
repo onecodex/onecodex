@@ -270,29 +270,35 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
     if not clean:
         warnings.filterwarnings('error', category=ValidationWarning)
 
-    # get project
-    project = ctx.obj['API'].Projects.get(project_id)
-    if not project:
-        project = ctx.obj['API'].Projects.where(name=project_id)
-    if not project:
-        project = ctx.obj['API'].Projects.where(project_name=project_id)
-    if not project:
-        raise OneCodexException('{} is not a valid project UUID' \
-                                .format(project_uuid))
+    upload_kwargs = {
+        'threads': max_threads, 
+        'validate': validate,
+        'metadata': appendables['valid_metadata'], 
+        'tags': appendables['valid_tags'], 
+    }
 
-    if not isinstance(project, list):
-        project = [project]
+    # get project
+    if project_id:
+        project = ctx.obj['API'].Projects.get(project_id)
+        if not project:
+            project = ctx.obj['API'].Projects.where(name=project_id)
+        if not project:
+            project = ctx.obj['API'].Projects.where(project_name=project_id)
+        if not project:
+            raise OneCodexException('{} is not a valid project UUID' \
+                                    .format(project_uuid))
+
+        if not isinstance(project, list):
+            project = [project]
+
+        upload_kwargs['project'] = project[0]
+
     try:
         # do the uploading
         ctx.obj['API'].Samples.upload(
             files, 
-            threads=max_threads, 
-            validate=validate,
-            metadata=appendables['valid_metadata'], 
-            tags=appendables['valid_tags'], 
-            project=project[0]
+            **upload_kwargs            
         )
-
     except ValidationWarning as e:
         sys.stderr.write('\nERROR: {}. {}'.format(
             e, 'Running with the --clean flag will suppress this error.'
