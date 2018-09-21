@@ -57,11 +57,14 @@ OPTION_HELP = {
     'telemetry': 'Send errors to One Codex?',
     'forward': 'Specify a forward reads file',
     'reverse': 'Specify a reverse reads file',
-    'tag': ('Add one or more tags to all uploaded samples '
-            'e.g., `onecodex upload --tag "Cohort A" $FILE`'),
-    'metadata': ('Add one or more metadata attributes to all uploaded samples, '
-                 'e.g., `onecodex upload --metadata starred=true --metadata '
-                 'platform="Illumina MiSeq" $FILE`'),
+    'tag': ('NOTE: We recommend invoking the upload command separately for each '
+            'sample to add sample-specific tags.\n\nAdd one or more tags to '
+            'all uploaded samples e.g., `onecodex upload --tag "Cohort A" $FILE`.'),
+    'metadata': ('NOTE: We recommend invoking the upload command separately for each '
+                 'sample to add sample-specific metadata.\n\nAdd one or more '
+                 'metadata attributes to all uploaded samples, '
+                 'e.g. `onecodex upload --metadata starred=true --metadata '
+                 'platform="Illumina MiSeq" $FILE`. '),
 }
 
 SUPPORTED_EXTENSIONS = ["fa", "fasta", "fq", "fastq",
