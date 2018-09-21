@@ -10,7 +10,8 @@ from onecodex.lib.upload import upload, upload_file, upload_large_file, interlea
 
 
 @pytest.mark.parametrize('files,filename', [
-    (('test_R1.fastq', 'test_R2.fastq'), 'test.fastq')
+    (('test_R1.fastq', 'test_R2.fastq'), 'test.fastq'),
+    (('test_R1_001.fastq', 'test_R2_001.fastq'), 'test_001.fastq')
 ])
 def test_interleaved_filenames(files, filename):
     assert interleaved_filename(files) == filename
