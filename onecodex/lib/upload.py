@@ -255,7 +255,7 @@ def upload_file(file_obj, filename, session, samples_resource, log_to, metadata,
         upload_args['tags'] = tags
 
     if project:
-        upload_args['project'] = project
+        upload_args['project'] = project.id
 
     try:
         upload_info = samples_resource.init_upload(upload_args)

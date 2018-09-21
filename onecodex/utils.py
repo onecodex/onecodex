@@ -65,6 +65,11 @@ OPTION_HELP = {
                  'metadata attributes to all uploaded samples, '
                  'e.g. `onecodex upload --metadata starred=true --metadata '
                  'platform="Illumina MiSeq" $FILE`. '),
+    'project': 'Provide the name, short name, or alphanumeric UUID of a ' \
+               'project to automatically add the samples to that project on ' \
+               'upload. NOTE: does not currently support adding a sample to ' \
+               'a public project. Projects are searched by UUID, then name, ' \
+               'then short name in that order.'
 }
 
 SUPPORTED_EXTENSIONS = ["fa", "fasta", "fq", "fastq",
