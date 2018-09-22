@@ -239,7 +239,7 @@ def upload_large_file(file_obj, filename, session, samples_resource, server_url,
         log_to.flush()
 
 
-def upload_file(file_obj, filename, session, samples_resource, log_to, metadata, tags, project):
+def upload_file(file_obj, filename, session, samples_resource, log_to, metadata, tags, project=None):
     """
     Uploads a file to the One Codex server directly to the users S3 bucket by self-signing
     """

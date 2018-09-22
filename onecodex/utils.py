@@ -339,7 +339,6 @@ def telemetry(fn):
     Note that this also overwrites verbose Raven logs on exit ("Sentry is waiting to send..."),
     see https://github.com/getsentry/raven-python/issues/904 for more details.
     """
-    return fn
 
     @wraps(fn)
     def telemetry_wrapper(*args, **kwargs):
