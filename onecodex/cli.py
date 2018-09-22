@@ -16,7 +16,7 @@ from onecodex.utils import (cli_resource_fetcher, download_file_helper,
                             warn_if_insecure_platform, is_simplejson_installed,
                             warn_simplejson, telemetry, snake_case)
 from onecodex.api import Api
-from onecodex.exceptions import (OneCodexException, ValidationWarning, 
+from onecodex.exceptions import (OneCodexException, ValidationWarning,
                                  ValidationError, UploadException)
 from onecodex.auth import _login, _logout, _remove_creds, _silent_login
 from onecodex.scripts import filter_reads
@@ -271,10 +271,10 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
         warnings.filterwarnings('error', category=ValidationWarning)
 
     upload_kwargs = {
-        'threads': max_threads, 
+        'threads': max_threads,
         'validate': validate,
-        'metadata': appendables['valid_metadata'], 
-        'tags': appendables['valid_tags'], 
+        'metadata': appendables['valid_metadata'],
+        'tags': appendables['valid_tags'],
     }
 
     # get project
@@ -285,8 +285,8 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
         if not project:
             project = ctx.obj['API'].Projects.where(project_name=project_id)
         if not project:
-            raise OneCodexException('{} is not a valid project UUID' \
-                                    .format(project_uuid))
+            raise OneCodexException('{} is not a valid project UUID'
+                                    .format(project_id))
 
         if not isinstance(project, list):
             project = [project]
@@ -296,8 +296,8 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
     try:
         # do the uploading
         ctx.obj['API'].Samples.upload(
-            files, 
-            **upload_kwargs            
+            files,
+            **upload_kwargs
         )
     except ValidationWarning as e:
         sys.stderr.write('\nERROR: {}. {}'.format(
