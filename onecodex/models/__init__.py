@@ -5,6 +5,7 @@ import json
 import sys
 
 from dateutil.parser import parse
+import pytz
 from requests.exceptions import HTTPError
 from potion_client.converter import PotionJSONEncoder
 from potion_client.resource import Resource
@@ -84,7 +85,11 @@ class OneCodexBase(object):
                         else:
                             return str(value)
                     if schema.get('format') == 'date-time' and value is not None:
-                        return parse(value)
+                        datetime_value = parse(value)
+                        if datetime_value.tzinfo is None:
+                            return pytz.utc.localize(datetime_value)
+                        else:
+                            return datetime_value.astimezone(pytz.utc)
                     return value
         elif key == 'id' or key in self.__class__._resource._schema['properties']:
             # make fields appear blank if there's no _resource bound to me

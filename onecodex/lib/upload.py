@@ -15,20 +15,31 @@ import requests
 from requests_toolbelt import MultipartEncoder
 
 from onecodex.lib.inline_validator import FASTXReader, FASTXTranslator
-from onecodex.exceptions import UploadException, process_api_error
+from onecodex.exceptions import OneCodexException, UploadException, process_api_error
 
 
 MULTIPART_SIZE = 5 * 1000 * 1000 * 1000
 DEFAULT_UPLOAD_THREADS = 4
 
 
+def interleaved_filename(filename):
+    # strip out the _R1_/etc chunk from the first filename if this is a paired upload
+    # and make that the filename
+
+    if not isinstance(filename, tuple):
+        raise OneCodexException('Cannot get the interleaved filename without a tuple.')
+    if re.match('.*[._][Rr][12][_.].*', filename[0]):
+        return re.sub('[._][Rr][12]', '', filename[0])
+    else:
+        print('Does not match')
+        return filename[0]
+
+
 def _file_stats(filename, validate=True):
     if isinstance(filename, tuple):
         assert len(filename) == 2
         file_size = sum(os.path.getsize(f) for f in filename)
-        # strip out the _R1_/etc chunk from the first filename if this is a paired upload
-        # and make that the filename
-        filename = re.sub('[._][Rr][12][._]', '_', filename[0])
+        filename = interleaved_filename(filename)
     else:
         file_size = os.path.getsize(filename)
 
@@ -65,7 +76,7 @@ def _wrap_files(filename, logger=None, validate=True):
 
 
 def upload(files, session, samples_resource, server_url, threads=DEFAULT_UPLOAD_THREADS,
-           validate=True, log_to=None, metadata=None, tags=None):
+           validate=True, log_to=None, metadata=None, tags=None, project=None):
     """
     Uploads several files to the One Codex server, auto-detecting sizes and using the appropriate
     downstream upload functions. Also, wraps the files with a streaming validator to ensure they
@@ -155,7 +166,7 @@ def upload(files, session, samples_resource, server_url, threads=DEFAULT_UPLOAD_
         if file_size < MULTIPART_SIZE:
             file_obj = _wrap_files(file_path, logger=progress_bar, validate=validate)
             file_uuid = threaded_upload(file_obj, filename, session, samples_resource, log_to,
-                                        metadata, tags)
+                                        metadata, tags, project)
             if file_uuid:
                 uploading_uuids.append(file_uuid)
             uploading_files.append(file_obj)
@@ -228,7 +239,7 @@ def upload_large_file(file_obj, filename, session, samples_resource, server_url,
         log_to.flush()
 
 
-def upload_file(file_obj, filename, session, samples_resource, log_to, metadata, tags):
+def upload_file(file_obj, filename, session, samples_resource, log_to, metadata, tags, project=None):
     """
     Uploads a file to the One Codex server directly to the users S3 bucket by self-signing
     """
@@ -242,6 +253,9 @@ def upload_file(file_obj, filename, session, samples_resource, log_to, metadata,
 
     if tags:
         upload_args['tags'] = tags
+
+    if project:
+        upload_args['project'] = project.id
 
     try:
         upload_info = samples_resource.init_upload(upload_args)

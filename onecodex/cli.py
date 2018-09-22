@@ -12,11 +12,12 @@ import warnings
 import click
 
 from onecodex.utils import (cli_resource_fetcher, download_file_helper,
-                            valid_api_key, OPTION_HELP, pprint,
+                            valid_api_key, OPTION_HELP, pprint, pretty_errors,
                             warn_if_insecure_platform, is_simplejson_installed,
                             warn_simplejson, telemetry, snake_case)
 from onecodex.api import Api
-from onecodex.exceptions import ValidationWarning, ValidationError, UploadException
+from onecodex.exceptions import (OneCodexException, ValidationWarning,
+                                 ValidationError, UploadException)
 from onecodex.auth import _login, _logout, _remove_creds, _silent_login
 from onecodex.scripts import filter_reads
 from onecodex.version import __version__
@@ -187,11 +188,13 @@ def samples(ctx, samples):
 @click.option('--validate/--do-not-validate', is_flag=True, help=OPTION_HELP['validate'],
               default=True)
 @click.option('--tag', '-t', 'tags', multiple=True, help=OPTION_HELP['tag'])
-@click.option("--metadata", '-md', multiple=True, help=OPTION_HELP['metadata'])
+@click.option('--metadata', '-md', multiple=True, help=OPTION_HELP['metadata'])
+@click.option('--project', '-p', 'project_id', help=OPTION_HELP['project'])
 @click.pass_context
+@pretty_errors
 @telemetry
 def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
-           forward, reverse, tags, metadata):
+           forward, reverse, tags, metadata, project_id):
     """Upload a FASTA or FASTQ (optionally gzip'd) to One Codex"""
 
     appendables = {}
@@ -267,11 +270,35 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
     if not clean:
         warnings.filterwarnings('error', category=ValidationWarning)
 
+    upload_kwargs = {
+        'threads': max_threads,
+        'validate': validate,
+        'metadata': appendables['valid_metadata'],
+        'tags': appendables['valid_tags'],
+    }
+
+    # get project
+    if project_id:
+        project = ctx.obj['API'].Projects.get(project_id)
+        if not project:
+            project = ctx.obj['API'].Projects.where(name=project_id)
+        if not project:
+            project = ctx.obj['API'].Projects.where(project_name=project_id)
+        if not project:
+            raise OneCodexException('{} is not a valid project UUID'
+                                    .format(project_id))
+
+        if not isinstance(project, list):
+            project = [project]
+
+        upload_kwargs['project'] = project[0]
+
     try:
         # do the uploading
-        ctx.obj['API'].Samples.upload(files, threads=max_threads, validate=validate,
-                                      metadata=appendables['valid_metadata'], tags=appendables['valid_tags'])
-
+        ctx.obj['API'].Samples.upload(
+            files,
+            **upload_kwargs
+        )
     except ValidationWarning as e:
         sys.stderr.write('\nERROR: {}. {}'.format(
             e, 'Running with the --clean flag will suppress this error.'

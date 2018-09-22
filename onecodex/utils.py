@@ -57,11 +57,19 @@ OPTION_HELP = {
     'telemetry': 'Send errors to One Codex?',
     'forward': 'Specify a forward reads file',
     'reverse': 'Specify a reverse reads file',
-    'tag': ('Add one or more tags to all uploaded samples '
-            'e.g., `onecodex upload --tag "Cohort A" $FILE`'),
-    'metadata': ('Add one or more metadata attributes to all uploaded samples, '
-                 'e.g., `onecodex upload --metadata starred=true --metadata '
-                 'platform="Illumina MiSeq" $FILE`'),
+    'tag': ('NOTE: We recommend invoking the upload command separately for each '
+            'sample to add sample-specific tags.\n\nAdd one or more tags to '
+            'all uploaded samples e.g., `onecodex upload --tag "Cohort A" $FILE`.'),
+    'metadata': ('NOTE: We recommend invoking the upload command separately for each '
+                 'sample to add sample-specific metadata.\n\nAdd one or more '
+                 'metadata attributes to all uploaded samples, '
+                 'e.g. `onecodex upload --metadata starred=true --metadata '
+                 'platform="Illumina MiSeq" $FILE`. '),
+    'project': 'Provide the name, short name, or alphanumeric UUID of a ' \
+               'project to automatically add the samples to that project on ' \
+               'upload. NOTE: does not currently support adding a sample to ' \
+               'a public project. Projects are searched by UUID, then name, ' \
+               'then short name in that order.'
 }
 
 SUPPORTED_EXTENSIONS = ["fa", "fasta", "fq", "fastq",
@@ -331,6 +339,7 @@ def telemetry(fn):
     Note that this also overwrites verbose Raven logs on exit ("Sentry is waiting to send..."),
     see https://github.com/getsentry/raven-python/issues/904 for more details.
     """
+
     @wraps(fn)
     def telemetry_wrapper(*args, **kwargs):
         # By default, do not instantiate a client,
