@@ -40,6 +40,7 @@ setup(
     dependency_links=[],
     author='Kyle McChesney & Nick Greenfield & Roderick Bovee',
     author_email='opensource@onecodex.com',
+    description='One Codex API client and Python library',
     long_description=__doc__,
     license='MIT License',
     keywords='One Codex API Client',
