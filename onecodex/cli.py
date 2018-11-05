@@ -11,6 +11,8 @@ import sys
 import warnings
 import click
 
+from functools import wraps
+
 from onecodex.utils import (cli_resource_fetcher, download_file_helper,
                             valid_api_key, OPTION_HELP, pprint, pretty_errors,
                             warn_if_insecure_platform, is_simplejson_installed,
@@ -36,6 +38,30 @@ stream_handler = logging.StreamHandler()
 stream_handler.setLevel(logging.INFO)
 stream_handler.setFormatter(log_formatter)
 log.addHandler(stream_handler)
+
+
+def login_required(fn):
+    """
+    Decorator for the CLI for requiring login before proceeding.
+    """
+
+    @wraps(fn)
+    def login_wrapper(ctx, *args, **kwargs):
+        if 'API_KEY' in ctx.obj:
+            ctx.obj['API'] = Api(cache_schema=True,
+                                 api_key=ctx.obj['API_KEY'], telemetry=telemetry)
+        else:
+            # try and find it
+            api_key = _silent_login()
+            if api_key is not None:
+                ctx.obj['API'] = Api(cache_schema=True, api_key=api_key, telemetry=telemetry)
+            else:
+                click.echo('The command you specified requires authentication. Please login first.\n', err=True)
+                ctx.exit()
+
+        return fn(ctx, *args, **kwargs)
+
+    return login_wrapper
 
 
 # options
@@ -67,21 +93,6 @@ def onecodex(ctx, api_key, no_pprint, verbose, telemetry):
     if is_simplejson_installed():
         warn_simplejson()
 
-    # create the api
-    no_api_subcommands = ["login", "logout"]
-    if ctx.invoked_subcommand not in no_api_subcommands:
-        if api_key is not None:
-            ctx.obj['API'] = Api(cache_schema=True,
-                                 api_key=api_key, telemetry=telemetry)
-        else:
-            # try and find it
-            api_key = _silent_login()
-            if api_key is not None:
-                ctx.obj['API'] = Api(cache_schema=True, api_key=api_key, telemetry=telemetry)
-            else:
-                click.echo("No One Codex API credentials found - running anonymously", err=True)
-                ctx.obj['API'] = Api(cache_schema=True, api_key='', telemetry=telemetry)
-
     # handle checking insecure platform, we let upload command do it by itself
     if ctx.invoked_subcommand != "upload":
         warn_if_insecure_platform()
@@ -92,7 +103,22 @@ def scripts():
     pass
 
 
-scripts.add_command(filter_reads.cli, 'filter_reads')
+@scripts.command('filter_reads', help='Filter a FASTX file based on the taxonomic results from a CLASSIFICATION_ID')
+@click.argument('classification_id')
+@click.argument('fastx', type=click.Path())
+@click.option('-t', '--tax-id', required=True, multiple=True,
+              help='Filter to reads mapping to tax IDs. May be passed multiple times.')
+@click.option('-r', '--reverse', type=click.Path(), help='The reverse (R2) '
+              'read file, optionally')
+@click.option('--split-pairs/--keep-pairs', default=False, help='Keep only '
+              'the read pair member that matches the list of tax ID\'s')
+@click.option('-o', '--out', default='.', type=click.Path(), help='Where '
+              'to put the filtered outputs')
+@click.pass_context
+@pretty_errors
+@login_required
+def filter_reads_cli(ctx, classification_id, fastx, reverse, tax_id, split_pairs, out):
+    filter_reads.cli(ctx, classification_id, fastx, reverse, tax_id, split_pairs, out)
 
 
 # resources
@@ -100,6 +126,7 @@ scripts.add_command(filter_reads.cli, 'filter_reads')
 @click.argument('analyses', nargs=-1, required=False)
 @click.pass_context
 @telemetry
+@login_required
 def analyses(ctx, analyses):
     """Retrieve performed analyses"""
     cli_resource_fetcher(ctx, "analyses", analyses)
@@ -115,6 +142,7 @@ def analyses(ctx, analyses):
 @click.pass_context
 @click.argument('classifications', nargs=-1, required=False)
 @telemetry
+@login_required
 def classifications(ctx, classifications, results, readlevel, readlevel_path):
     """Retrieve performed metagenomic classifications"""
 
@@ -158,6 +186,7 @@ def classifications(ctx, classifications, results, readlevel, readlevel_path):
 @click.pass_context
 @click.argument('panels', nargs=-1, required=False)
 @telemetry
+@login_required
 def panels(ctx, panels):
     """Retrieve performed in silico panel results"""
     cli_resource_fetcher(ctx, "panels", panels)
@@ -167,6 +196,7 @@ def panels(ctx, panels):
 @click.pass_context
 @click.argument('samples', nargs=-1, required=False)
 @telemetry
+@login_required
 def samples(ctx, samples):
     """Retrieve uploaded samples"""
     cli_resource_fetcher(ctx, "samples", samples)
@@ -193,6 +223,7 @@ def samples(ctx, samples):
 @click.pass_context
 @pretty_errors
 @telemetry
+@login_required
 def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
            forward, reverse, tags, metadata, project_id):
     """Upload a FASTA or FASTQ (optionally gzip'd) to One Codex"""

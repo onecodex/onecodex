@@ -5,7 +5,7 @@ import os
 
 from onecodex.exceptions import OneCodexException, ValidationError
 from onecodex.lib.inline_validator import FASTXTranslator
-from onecodex.utils import download_file_helper, get_download_dest, pretty_errors
+from onecodex.utils import download_file_helper, get_download_dest
 
 
 def with_progress_bar(length, ix, *args, **kwargs):
@@ -53,19 +53,6 @@ def write_fastx_record(record, handler):
     handler.write(record_str.format(*record))
 
 
-@click.command(help='Filter a FASTX file based on the taxonomic results from a CLASSIFICATION_ID')
-@click.argument('classification_id')
-@click.argument('fastx', type=click.Path())
-@click.option('-t', '--tax-id', required=True, multiple=True,
-              help='Filter to reads mapping to tax IDs. May be passed multiple times.')
-@click.option('-r', '--reverse', type=click.Path(), help='The reverse (R2) '
-              'read file, optionally')
-@click.option('--split-pairs/--keep-pairs', default=False, help='Keep only '
-              'the read pair member that matches the list of tax ID\'s')
-@click.option('-o', '--out', default='.', type=click.Path(), help='Where '
-              'to put the filtered outputs')
-@click.pass_context
-@pretty_errors
 def cli(ctx, classification_id, fastx, reverse, tax_id, split_pairs, out):
     tax_ids = tax_id  # rename
     if not len(tax_ids):
