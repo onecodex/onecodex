@@ -10,6 +10,7 @@ from onecodex.exceptions import OneCodexException
 from onecodex.models import OneCodexBase
 from onecodex.models.helpers import truncate_string
 from onecodex.lib.upload import upload  # upload_file
+from onecodex.utils import snake_case
 
 
 class Samples(OneCodexBase):
@@ -94,7 +95,8 @@ class Samples(OneCodexBase):
             self.metadata.save()
 
     @classmethod
-    def upload(cls, filename, threads=None, validate=True, metadata=None, tags=None, project=None):
+    def upload(cls, filename, threads=None, validate=True, metadata=None, tags=None,
+               project=None, metadata_snake_case=True):
         """
         Uploads a series of files to the One Codex server. These files are automatically
         validated during upload.
@@ -111,6 +113,16 @@ class Samples(OneCodexBase):
         res = cls._resource
         if isinstance(filename, string_types) or isinstance(filename, tuple):
             filename = [filename]
+
+        # snakecase metadata, but only if flag is set
+        if metadata_snake_case and metadata is not None:
+            new_metadata = {}
+
+            for md_key, md_val in metadata.items():
+                new_metadata[snake_case(md_key)] = md_val
+
+            metadata = new_metadata
+
         samples = upload(filename, res._client.session, res, res._client._root_url + '/', threads=threads,
                          validate=validate, log_to=sys.stderr, metadata=metadata, tags=tags, project=project)
         return samples
