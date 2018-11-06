@@ -5,7 +5,8 @@ import os
 
 from onecodex.exceptions import OneCodexException, ValidationError
 from onecodex.lib.inline_validator import FASTXTranslator
-from onecodex.utils import download_file_helper, get_download_dest, pretty_errors
+from onecodex.utils import download_file_helper, get_download_dest
+
 
 def with_progress_bar(length, ix, *args, **kwargs):
     label = kwargs.pop('label', None)

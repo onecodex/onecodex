@@ -103,6 +103,7 @@ def onecodex(ctx, api_key, no_pprint, verbose, telemetry):
 def scripts():
     pass
 
+
 @scripts.command('filter_reads', help='Filter a FASTX file based on the taxonomic results from a CLASSIFICATION_ID')
 @click.argument('classification_id')
 @click.argument('fastx', type=click.Path())
