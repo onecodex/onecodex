@@ -103,8 +103,22 @@ def onecodex(ctx, api_key, no_pprint, verbose, telemetry):
 def scripts():
     pass
 
-
-scripts.add_command(filter_reads.cli, 'filter_reads')
+@scripts.command('filter_reads', help='Filter a FASTX file based on the taxonomic results from a CLASSIFICATION_ID')
+@click.argument('classification_id')
+@click.argument('fastx', type=click.Path())
+@click.option('-t', '--tax-id', required=True, multiple=True,
+              help='Filter to reads mapping to tax IDs. May be passed multiple times.')
+@click.option('-r', '--reverse', type=click.Path(), help='The reverse (R2) '
+              'read file, optionally')
+@click.option('--split-pairs/--keep-pairs', default=False, help='Keep only '
+              'the read pair member that matches the list of tax ID\'s')
+@click.option('-o', '--out', default='.', type=click.Path(), help='Where '
+              'to put the filtered outputs')
+@click.pass_context
+@pretty_errors
+@login_required
+def filter_reads_cli(ctx, classification_id, fastx, reverse, tax_id, split_pairs, out):
+    filter_reads.cli(ctx, classification_id, fastx, reverse, tax_id, split_pairs, out)
 
 
 # resources
