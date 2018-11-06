@@ -57,7 +57,6 @@ def login_required(fn):
                 ctx.obj['API'] = Api(cache_schema=True, api_key=api_key, telemetry=telemetry)
             else:
                 click.echo('The command you specified requires authentication. Please login first.\n', err=True)
-                click.echo(ctx.get_help())
                 ctx.exit()
 
         return fn(ctx, *args, **kwargs)
