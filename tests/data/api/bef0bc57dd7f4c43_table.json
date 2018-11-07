@@ -1,0 +1,387 @@
+{
+    "host_tax_ids": [
+        "9606",
+        "29278"
+    ],
+    "n_reads": 100,
+    "table": [
+        {
+            "abundance": null,
+            "name": "root",
+            "parent_tax_id": null,
+            "rank": "no rank",
+            "readcount": 0,
+            "readcount_w_children": 72,
+            "tax_id": "1"
+        },
+        {
+            "abundance": null,
+            "name": "Bacteria",
+            "parent_tax_id": "131567",
+            "rank": "superkingdom",
+            "readcount": 5,
+            "readcount_w_children": 72,
+            "tax_id": "2"
+        },
+        {
+            "abundance": null,
+            "name": "cellular organisms",
+            "parent_tax_id": "1",
+            "rank": "no rank",
+            "readcount": 0,
+            "readcount_w_children": 72,
+            "tax_id": "131567"
+        },
+        {
+            "abundance": null,
+            "name": "Bacteroidetes",
+            "parent_tax_id": "68336",
+            "rank": "phylum",
+            "readcount": 0,
+            "readcount_w_children": 36,
+            "tax_id": "976"
+        },
+        {
+            "abundance": null,
+            "name": "Bacteroidetes/Chlorobi group",
+            "parent_tax_id": "1783270",
+            "rank": "no rank",
+            "readcount": 0,
+            "readcount_w_children": 36,
+            "tax_id": "68336"
+        },
+        {
+            "abundance": null,
+            "name": "Bacteroidales",
+            "parent_tax_id": "200643",
+            "rank": "order",
+            "readcount": 12,
+            "readcount_w_children": 36,
+            "tax_id": "171549"
+        },
+        {
+            "abundance": null,
+            "name": "Bacteroidia",
+            "parent_tax_id": "976",
+            "rank": "class",
+            "readcount": 0,
+            "readcount_w_children": 36,
+            "tax_id": "200643"
+        },
+        {
+            "abundance": null,
+            "name": "FCB group",
+            "parent_tax_id": "2",
+            "rank": "no rank",
+            "readcount": 0,
+            "readcount_w_children": 36,
+            "tax_id": "1783270"
+        },
+        {
+            "abundance": null,
+            "name": "Terrabacteria group",
+            "parent_tax_id": "2",
+            "rank": "no rank",
+            "readcount": 0,
+            "readcount_w_children": 28,
+            "tax_id": "1783272"
+        },
+        {
+            "abundance": null,
+            "name": "Firmicutes",
+            "parent_tax_id": "1783272",
+            "rank": "phylum",
+            "readcount": 2,
+            "readcount_w_children": 25,
+            "tax_id": "1239"
+        },
+        {
+            "abundance": null,
+            "name": "Bacteroidaceae",
+            "parent_tax_id": "171549",
+            "rank": "family",
+            "readcount": 0,
+            "readcount_w_children": 23,
+            "tax_id": "815"
+        },
+        {
+            "abundance": null,
+            "name": "Bacteroides",
+            "parent_tax_id": "815",
+            "rank": "genus",
+            "readcount": 21,
+            "readcount_w_children": 23,
+            "tax_id": "816"
+        },
+        {
+            "abundance": null,
+            "name": "Clostridia",
+            "parent_tax_id": "1239",
+            "rank": "class",
+            "readcount": 0,
+            "readcount_w_children": 23,
+            "tax_id": "186801"
+        },
+        {
+            "abundance": null,
+            "name": "Clostridiales",
+            "parent_tax_id": "186801",
+            "rank": "order",
+            "readcount": 7,
+            "readcount_w_children": 23,
+            "tax_id": "186802"
+        },
+        {
+            "abundance": null,
+            "name": "Clostridium",
+            "parent_tax_id": "31979",
+            "rank": "genus",
+            "readcount": 1,
+            "readcount_w_children": 7,
+            "tax_id": "1485"
+        },
+        {
+            "abundance": null,
+            "name": "Clostridiaceae",
+            "parent_tax_id": "186802",
+            "rank": "family",
+            "readcount": 0,
+            "readcount_w_children": 7,
+            "tax_id": "31979"
+        },
+        {
+            "abundance": null,
+            "name": "Lachnospiraceae",
+            "parent_tax_id": "186802",
+            "rank": "family",
+            "readcount": 0,
+            "readcount_w_children": 7,
+            "tax_id": "186803"
+        },
+        {
+            "abundance": null,
+            "name": "Roseburia",
+            "parent_tax_id": "186803",
+            "rank": "genus",
+            "readcount": 1,
+            "readcount_w_children": 6,
+            "tax_id": "841"
+        },
+        {
+            "abundance": 0.054875299766356134,
+            "name": "Clostridium sp. AT4",
+            "parent_tax_id": "1485",
+            "rank": "species",
+            "readcount": 6,
+            "readcount_w_children": 6,
+            "tax_id": "1720194"
+        },
+        {
+            "abundance": 0.06309565275511247,
+            "name": "Roseburia faecis",
+            "parent_tax_id": "841",
+            "rank": "species",
+            "readcount": 5,
+            "readcount_w_children": 5,
+            "tax_id": "301302"
+        },
+        {
+            "abundance": null,
+            "name": "Bifidobacterium",
+            "parent_tax_id": "31953",
+            "rank": "genus",
+            "readcount": 3,
+            "readcount_w_children": 3,
+            "tax_id": "1678"
+        },
+        {
+            "abundance": null,
+            "name": "Actinobacteria",
+            "parent_tax_id": "201174",
+            "rank": "class",
+            "readcount": 0,
+            "readcount_w_children": 3,
+            "tax_id": "1760"
+        },
+        {
+            "abundance": null,
+            "name": "Bifidobacteriaceae",
+            "parent_tax_id": "85004",
+            "rank": "family",
+            "readcount": 0,
+            "readcount_w_children": 3,
+            "tax_id": "31953"
+        },
+        {
+            "abundance": null,
+            "name": "Bifidobacteriales",
+            "parent_tax_id": "1760",
+            "rank": "order",
+            "readcount": 0,
+            "readcount_w_children": 3,
+            "tax_id": "85004"
+        },
+        {
+            "abundance": null,
+            "name": "Actinobacteria",
+            "parent_tax_id": "1783272",
+            "rank": "phylum",
+            "readcount": 0,
+            "readcount_w_children": 3,
+            "tax_id": "201174"
+        },
+        {
+            "abundance": 0.8820290474785315,
+            "name": "Bacteroides uniformis",
+            "parent_tax_id": "816",
+            "rank": "species",
+            "readcount": 2,
+            "readcount_w_children": 2,
+            "tax_id": "820"
+        },
+        {
+            "abundance": null,
+            "name": "Proteobacteria",
+            "parent_tax_id": "2",
+            "rank": "phylum",
+            "readcount": 0,
+            "readcount_w_children": 2,
+            "tax_id": "1224"
+        },
+        {
+            "abundance": null,
+            "name": "Betaproteobacteria",
+            "parent_tax_id": "1224",
+            "rank": "class",
+            "readcount": 0,
+            "readcount_w_children": 2,
+            "tax_id": "28216"
+        },
+        {
+            "abundance": null,
+            "name": "Sutterella",
+            "parent_tax_id": "995019",
+            "rank": "genus",
+            "readcount": 2,
+            "readcount_w_children": 2,
+            "tax_id": "40544"
+        },
+        {
+            "abundance": null,
+            "name": "Burkholderiales",
+            "parent_tax_id": "28216",
+            "rank": "order",
+            "readcount": 0,
+            "readcount_w_children": 2,
+            "tax_id": "80840"
+        },
+        {
+            "abundance": null,
+            "name": "Sutterellaceae",
+            "parent_tax_id": "80840",
+            "rank": "family",
+            "readcount": 0,
+            "readcount_w_children": 2,
+            "tax_id": "995019"
+        },
+        {
+            "abundance": null,
+            "name": "Verrucomicrobiales",
+            "parent_tax_id": "203494",
+            "rank": "order",
+            "readcount": 0,
+            "readcount_w_children": 1,
+            "tax_id": "48461"
+        },
+        {
+            "abundance": null,
+            "name": "Verrucomicrobia",
+            "parent_tax_id": "1783257",
+            "rank": "phylum",
+            "readcount": 0,
+            "readcount_w_children": 1,
+            "tax_id": "74201"
+        },
+        {
+            "abundance": null,
+            "name": "Dorea",
+            "parent_tax_id": "186803",
+            "rank": "genus",
+            "readcount": 1,
+            "readcount_w_children": 1,
+            "tax_id": "189330"
+        },
+        {
+            "abundance": null,
+            "name": "Verrucomicrobiae",
+            "parent_tax_id": "74201",
+            "rank": "class",
+            "readcount": 0,
+            "readcount_w_children": 1,
+            "tax_id": "203494"
+        },
+        {
+            "abundance": null,
+            "name": "Oscillospiraceae",
+            "parent_tax_id": "186802",
+            "rank": "family",
+            "readcount": 1,
+            "readcount_w_children": 1,
+            "tax_id": "216572"
+        },
+        {
+            "abundance": null,
+            "name": "Akkermansia",
+            "parent_tax_id": "1647988",
+            "rank": "genus",
+            "readcount": 1,
+            "readcount_w_children": 1,
+            "tax_id": "239934"
+        },
+        {
+            "abundance": null,
+            "name": "Parabacteroides",
+            "parent_tax_id": "2005525",
+            "rank": "genus",
+            "readcount": 1,
+            "readcount_w_children": 1,
+            "tax_id": "375288"
+        },
+        {
+            "abundance": null,
+            "name": "Ruminococcaceae",
+            "parent_tax_id": "186802",
+            "rank": "family",
+            "readcount": 1,
+            "readcount_w_children": 1,
+            "tax_id": "541000"
+        },
+        {
+            "abundance": null,
+            "name": "Akkermansiaceae",
+            "parent_tax_id": "48461",
+            "rank": "family",
+            "readcount": 0,
+            "readcount_w_children": 1,
+            "tax_id": "1647988"
+        },
+        {
+            "abundance": null,
+            "name": "PVC group",
+            "parent_tax_id": "2",
+            "rank": "no rank",
+            "readcount": 0,
+            "readcount_w_children": 1,
+            "tax_id": "1783257"
+        },
+        {
+            "abundance": null,
+            "name": "Tannerellaceae",
+            "parent_tax_id": "171549",
+            "rank": "family",
+            "readcount": 0,
+            "readcount_w_children": 1,
+            "tax_id": "2005525"
+        }
+    ]
+}

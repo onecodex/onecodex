@@ -12,6 +12,9 @@ import sys
 
 import click
 
+from functools import wraps
+
+from onecodex.api import Api
 from onecodex.utils import collapse_user
 from onecodex.version import __version__
 from onecodex.lib.auth import check_version, fetch_api_key_from_uname
@@ -157,3 +160,27 @@ def _silent_login(check_for_update=True):
                    "file appears to be corrupted. "
                    "Please delete it and re-authorize.", err=True)
         sys.exit(1)
+
+
+def login_required(fn):
+    """
+    Decorator for the CLI for requiring login before proceeding.
+    """
+
+    @wraps(fn)
+    def login_wrapper(ctx, *args, **kwargs):
+        if 'API_KEY' in ctx.obj and ctx.obj['API_KEY'] is not None:
+            ctx.obj['API'] = Api(cache_schema=True,
+                                 api_key=ctx.obj['API_KEY'], telemetry=ctx.obj['TELEMETRY'])
+        else:
+            # try and find it
+            api_key = _silent_login()
+            if api_key is not None:
+                ctx.obj['API'] = Api(cache_schema=True, api_key=api_key, telemetry=ctx.obj['TELEMETRY'])
+            else:
+                click.echo('The command you specified requires authentication. Please login first.\n', err=True)
+                ctx.exit()
+
+        return fn(ctx, *args, **kwargs)
+
+    return login_wrapper

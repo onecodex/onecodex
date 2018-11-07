@@ -80,14 +80,14 @@ def check_version(version, server_url, client='cli'):
     if client != 'cli' and 'min_supported_version' in data:
         min_version = data['min_supported_version']
         if version_inadequate(version, min_version):
-            return True, ('Please upgrade your client to the latest version ' +
-                          '(v{}){}; '.format(latest_version, uploader_text) +
-                          'this version (v{}) is no longer supported.'.format(version))
+            return True, ('Please upgrade your client to the latest version (v{}){}; '
+                          'this version (v{}) is no longer supported'
+                          '.'.format(latest_version, uploader_text, version))
         else:
             return False, None
 
     if version_inadequate(version, latest_version):
-        return True, ('Please upgrade your client to the latest version ' +
+        return True, ('Please upgrade your client to the latest version '
                       '(v{}){}'.format(latest_version, uploader_text))
 
     return False, None
