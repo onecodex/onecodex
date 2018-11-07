@@ -47,6 +47,7 @@ def test_analysis_help(runner, api_data, mocked_creds_file):
 
 
 def test_analyses(runner, api_data, mocked_creds_file):
+    make_creds_file()
     r0 = runner.invoke(Cli, ['analyses'])
     r1 = runner.invoke(Cli, ['analyses', '593601a797914cbf'])
     assert r0.exit_code == 0
@@ -57,12 +58,14 @@ def test_analyses(runner, api_data, mocked_creds_file):
 
 # Classifications
 def test_classification_instance(runner, api_data, mocked_creds_file):
+    make_creds_file()
     result = runner.invoke(Cli, ['classifications', '593601a797914cbf'])
     assert result.exit_code == 0
     assert API_DATA['GET::api/v1/classifications/593601a797914cbf']['$uri'] in result.output
 
 
 def test_classifications_table(runner, api_data, mocked_creds_file, monkeypatch):
+    make_creds_file()
     result = runner.invoke(Cli, ['classifications', '45a573fb7833449a', '--results'])
     assert result.exit_code == 0
     assert "Staphylococcus" in result.output
@@ -76,6 +79,7 @@ def test_panel_instances(runner, api_data, mocked_creds_file):
 
 # Samples
 def test_samples(runner, api_data, mocked_creds_file):
+    make_creds_file()
     r0 = runner.invoke(Cli, ['samples'])
     r1 = runner.invoke(Cli, ['samples', '7428cca4a3a04a8e'])
     assert r0.exit_code == 0
