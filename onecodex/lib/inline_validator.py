@@ -144,7 +144,7 @@ class FASTXNuclIterator(object):
         elif check_filename and file_obj.name.endswith(('.gz', '.gzip')):
             raise ValidationError('{} is not gzipped but has a ".gz" file extension.'.format(self.name))
         elif check_filename and file_obj.name.endswith(('.bz2', '.bz', '.bzip')):
-            raise ValidationError('{} is not gzipped but has a ".bz2" file extension.'.format(self.name))
+            raise ValidationError('{} is not bzipped but has a ".bz2" file extension.'.format(self.name))
 
         # determine if a FASTQ or a FASTA
         if start == b'>':
