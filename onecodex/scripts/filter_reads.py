@@ -103,7 +103,8 @@ def recurse_taxonomy_map(tax_id_map, tax_id, parent=False):
         return list(set(_child_recurse(tax_id, [])))
 
 
-def cli(ctx, classification_id, fastx, reverse, tax_id, with_children, split_pairs, out):
+def cli(ctx, classification_id, fastx, reverse, tax_id, with_children,
+        split_pairs, exclude_reads, out):
     tax_ids = tax_id  # rename
     if not len(tax_ids):
         raise OneCodexException('You must supply at least one tax ID')
@@ -191,23 +192,39 @@ def cli(ctx, classification_id, fastx, reverse, tax_id, with_children, split_pai
             if split_pairs:
                 for fwd, rev in FASTXTranslator(fastx_file, reverse_file,
                                                 validate=False):
-                    if counter in filtered_rows:
-                        out_file.write(fwd)
-                    if (counter + 1) in filtered_rows:
-                        rev_out_file.write(rev)
+                    if exclude_reads:
+                        if counter not in filtered_rows:
+                            out_file.write(fwd)
+                        if (counter + 1) not in filtered_rows:
+                            rev_out_file.write(rev)
+                    else:
+                        if counter in filtered_rows:
+                            out_file.write(fwd)
+                        if (counter + 1) in filtered_rows:
+                            rev_out_file.write(rev)
                     counter += 2
             else:
                 for fwd, rev in FASTXTranslator(fastx_file, reverse_file,
                                                 validate=False):
-                    if counter in filtered_rows or \
-                       (counter + 1) in filtered_rows:
-                        out_file.write(fwd)
-                        rev_out_file.write(rev)
+                    if exclude_reads:
+                        if counter not in filtered_rows and \
+                           (counter + 1) not in filtered_rows:
+                            out_file.write(fwd)
+                            rev_out_file.write(rev)
+                    else:
+                        if counter in filtered_rows or \
+                           (counter + 1) in filtered_rows:
+                            out_file.write(fwd)
+                            rev_out_file.write(rev)
                     counter += 2
     else:
         with open(fastx, 'rb') as fastx_file, \
                 open(filtered_filename, 'wb') as out_file:
             for seq in FASTXTranslator(fastx_file, validate=False):
-                if counter in filtered_rows:
-                    out_file.write(seq)
+                if exclude_reads:
+                    if counter not in filtered_rows:
+                        out_file.write(seq)
+                else:
+                    if counter in filtered_rows:
+                        out_file.write(seq)
                 counter += 1

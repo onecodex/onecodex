@@ -114,13 +114,17 @@ def scripts():
               'read file, optionally')
 @click.option('--split-pairs/--keep-pairs', default=False, help='Keep only '
               'the read pair member that matches the list of tax ID\'s')
+@click.option('--exclude-reads', default=False, is_flag=True,
+              help='Rather than keep reads matching reads, choosing this option will exclude them.')
 @click.option('-o', '--out', default='.', type=click.Path(), help='Where '
               'to put the filtered outputs')
 @click.pass_context
 @pretty_errors
 @login_required
-def filter_reads_cli(ctx, classification_id, fastx, reverse, tax_id, with_children, split_pairs, out):
-    filter_reads.cli(ctx, classification_id, fastx, reverse, tax_id, with_children, split_pairs, out)
+def filter_reads_cli(ctx, classification_id, fastx, reverse, tax_id, with_children,
+                     split_pairs, exclude_reads, out):
+    filter_reads.cli(ctx, classification_id, fastx, reverse, tax_id, with_children,
+                     split_pairs, exclude_reads, out)
 
 
 # resources
