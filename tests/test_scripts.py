@@ -5,6 +5,7 @@ import shutil
 import pytest
 
 from onecodex import Cli
+from tests.test_cli import make_creds_file
 
 
 @pytest.mark.parametrize('paired,split_pairs,with_children,exclude_reads', [
@@ -24,8 +25,10 @@ from onecodex import Cli
     (True, True, False, True),  # --split-pairs --exclude-reads
     (True, True, True, True),   # --split-pairs --with-children --exclude-reads
 ])
+
 def test_filter_reads(runner, api_data, mocked_creds_file, paired, split_pairs,
                       with_children, exclude_reads):
+    make_creds_file()
     basedir = os.path.abspath(os.path.dirname(__file__))
     data_dir = os.path.join(basedir, 'data/files')
     files = [

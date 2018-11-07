@@ -47,7 +47,7 @@ def login_required(fn):
 
     @wraps(fn)
     def login_wrapper(ctx, *args, **kwargs):
-        if 'API_KEY' in ctx.obj:
+        if 'API_KEY' in ctx.obj and ctx.obj['API_KEY'] is not None:
             ctx.obj['API'] = Api(cache_schema=True,
                                  api_key=ctx.obj['API_KEY'], telemetry=telemetry)
         else:
