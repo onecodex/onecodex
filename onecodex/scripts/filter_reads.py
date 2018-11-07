@@ -53,7 +53,57 @@ def write_fastx_record(record, handler):
     handler.write(record_str.format(*record))
 
 
-def cli(ctx, classification_id, fastx, reverse, tax_id, split_pairs, out):
+def make_taxonomy_dict(classification, parent=False):
+    """
+    Takes a classification data frame returned by the API and parses it
+    into a dictionary mapping a tax_id to its children (or parent).
+    Restricted to tax_id's that are represented in the classification
+    results.
+    """
+
+    tax_id_map = {}
+
+    if parent:
+        for row in classification.table().itertuples():
+            if row.parent_tax_id is not None:
+                tax_id_map[row.tax_id] = row.parent_tax_id
+    else:
+        for row in classification.table().itertuples():
+            try:
+                tax_id_map[row.parent_tax_id].add(row.tax_id)
+            except KeyError:
+                tax_id_map[row.parent_tax_id] = set([row.tax_id])
+
+    return tax_id_map
+
+
+def recurse_taxonomy_map(tax_id_map, tax_id, parent=False):
+    """
+    Takes the output dict from make_taxonomy_map and an input tax_id
+    and recurses either up or down through the tree to get /all/ children
+    (or parents) of the given tax_id.
+    """
+
+    if parent:
+        pass
+    else:
+        def _child_recurse(tax_id, visited):
+            try:
+                children = [tax_id] + list(tax_id_map[tax_id])
+            except KeyError:
+                children = [tax_id]
+
+            for child in children:
+                if child not in visited:
+                    visited.append(child)
+                    children.extend(_child_recurse(child, visited))
+
+            return children
+
+        return list(set(_child_recurse(tax_id, [])))
+
+
+def cli(ctx, classification_id, fastx, reverse, tax_id, with_children, split_pairs, out):
     tax_ids = tax_id  # rename
     if not len(tax_ids):
         raise OneCodexException('You must supply at least one tax ID')
@@ -61,6 +111,19 @@ def cli(ctx, classification_id, fastx, reverse, tax_id, split_pairs, out):
     classification = ctx.obj['API'].Classifications.get(classification_id)
     if classification is None:
         raise ValidationError('Classification {} not found.'.format(classification_id))
+
+    if with_children:
+        tax_id_map = make_taxonomy_dict(classification)
+
+        new_tax_ids = []
+
+        for t_id in tax_ids:
+            try:
+                new_tax_ids.extend(recurse_taxonomy_map(tax_id_map, t_id))
+            except KeyError:
+                pass
+
+        tax_ids = list(set(new_tax_ids))
 
     tsv_url = classification.readlevel()['url']
     readlevel_path = get_download_dest('./', tsv_url)
