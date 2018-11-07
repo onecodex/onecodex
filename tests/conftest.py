@@ -75,11 +75,11 @@ def mock_requests(mock_json):
             if not content_type:
                 content_type = 'application/json'
             if callable(mock_data):
-                rsps.add_callback(method, re.compile('http://[^/]+/' + url + '(\?.*)?$'),
+                rsps.add_callback(method, re.compile('http://[^/]+/' + url + '(\\?.*)?$'),
                                   callback=mock_data,
                                   content_type=content_type)
             else:
-                rsps.add(method, re.compile('http://[^/]+/' + url + '(\?.*)?$'),
+                rsps.add(method, re.compile('http://[^/]+/' + url + '(\\?.*)?$'),
                          body=json.dumps(mock_data),
                          content_type=content_type)
         yield
@@ -223,9 +223,21 @@ API_DATA = {
     "GET::api/v1/classifications/5a4b7e3bd3a44006/readlevel": {
         "url": "https://s3.aws.com/bucket/test_paired_filtering_001.fastq.gz.results.tsv.gz"
     },
+    "GET::api/v1/classifications/bef0bc57dd7f4c43/readlevel": {
+        "url": "https://s3.aws.com/bucket/test_paired_filtering_001.fastq.gz.results.tsv.gz"
+    },
+    "GET::api/v1/classifications/0f4ee4ecb3a3412f/readlevel": {
+        "url": "https://s3.aws.com/bucket/test_single_filtering_001.fastq.gz.results.tsv.gz"
+    },
     "PATCH::api/v1/samples/761bc54b97f64980": {},
     "PATCH::api/v1/metadata/4fe05e748b5a4f0e": update_metadata_callback
 }
+
+# explicitly load classification results for testing filter_reads
+API_DATA['GET::api/v1/classifications/bef0bc57dd7f4c43/results'] = \
+    json.load(open(os.path.join('tests', 'data', 'api', 'bef0bc57dd7f4c43_table.json')))
+API_DATA['GET::api/v1/classifications/0f4ee4ecb3a3412f/results'] = \
+    json.load(open(os.path.join('tests', 'data', 'api', '0f4ee4ecb3a3412f_table.json')))
 
 for filename in os.listdir('tests/api_data'):
     if not filename.endswith('.json'):

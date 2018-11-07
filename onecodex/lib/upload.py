@@ -304,7 +304,7 @@ def upload_file(file_obj, filename, session, samples_resource, log_to, metadata,
 
             file_obj.close()
             break
-        except requests.exceptions.ConnectionError as e:
+        except requests.exceptions.ConnectionError:
             # For proxy, try special route to check the errors
             # in case Python is just dropping the Connection due to validation issues
             if multipart_fields.get('sample_id'):

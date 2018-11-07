@@ -16,16 +16,16 @@ SAMPLE_FILES = {
     'GZIPPABLE':
         b'>Test\n' + b'ACGATCGATCGATCGAACGATCGTACGTAGCCGTCGATCGACACGA\n' * 30,
     'VALID_FASTQ':
-        (b'@Header1\nACGTACGTACGT\n+Header1\nAAAAAAAAAAAA\n' +
+        (b'@Header1\nACGTACGTACGT\n+Header1\nAAAAAAAAAAAA\n'
          b'@Header2\nACGTACGTACGT\n+Header2\nAAAAAAAAAAAA\n'),
     'INVALID_FASTQ':
-        (b'@Header1\nACGTACGTACGT\n+\nAAAAAAAAAAAA\n' +
+        (b'@Header1\nACGTACGTACGT\n+\nAAAAAAAAAAAA\n'
          b'@Header2\nACGTACGTAQGT\n+\nAAAAAAAAAAAA\n'),
     'MODIFIABLE_FASTQ':
-        (b'@Header1\nACGTACGTACGT\n+\nAAAAAAAAAAAA\n' +
+        (b'@Header1\nACGTACGTACGT\n+\nAAAAAAAAAAAA\n'
          b'@Header2\nACGTACGTAXGT\n+\nAAAAAAAAAAAA\n'),
     'TABBED_FASTQ':
-        (b'@Header1\tSecret Val\nACGTACGTACGT\n+\nAAAAAAAAAAAA\n' +
+        (b'@Header1\tSecret Val\nACGTACGTACGT\n+\nAAAAAAAAAAAA\n'
          b'@Header2\nACGTACGTANGT\n+\nAAAAAAAAAAAA\n'),
 }
 
@@ -186,9 +186,9 @@ def test_validator_newlines(runner, n_newlines):
     # Test that we properly parse files with 0, 1, or more than 1 newline at the end
     # including our n bytes remaining calculations
     # (Use runner for isolated filesystem only here)
-    content = (b'>test\nACGTACGTAGCTGACACGTACGTAGCTGACACGTACGTAGCTGACACGTACGTAGCTGAC' +
-               b'ACGTACGTAGCTGACACGTACGTAGCTGACACGTACGTAGCTGACACGTACGTAGCTGAC' +
-               b'\n' * n_newlines)
+    content = (b'>test\nACGTACGTAGCTGACACGTACGTAGCTGACACGTACGTAGCTGACACGTACGTAGCTGAC'
+               b'ACGTACGTAGCTGACACGTACGTAGCTGACACGTACGTAGCTGACACGTACGTAGCTGAC')
+    content += (b'\n' * n_newlines)
     fakefile = BytesIO(content)
     outfile = FASTXTranslator(fakefile, recompress=False)
     if n_newlines == 0:

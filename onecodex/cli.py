@@ -11,8 +11,6 @@ import sys
 import warnings
 import click
 
-from functools import wraps
-
 from onecodex.utils import (cli_resource_fetcher, download_file_helper,
                             valid_api_key, OPTION_HELP, pprint, pretty_errors,
                             warn_if_insecure_platform, is_simplejson_installed,
@@ -20,7 +18,7 @@ from onecodex.utils import (cli_resource_fetcher, download_file_helper,
 from onecodex.api import Api
 from onecodex.exceptions import (OneCodexException, ValidationWarning,
                                  ValidationError, UploadException)
-from onecodex.auth import _login, _logout, _remove_creds, _silent_login
+from onecodex.auth import _login, _logout, _remove_creds, login_required
 from onecodex.scripts import filter_reads
 from onecodex.version import __version__
 from onecodex.metadata_upload import validate_appendables
@@ -38,30 +36,6 @@ stream_handler = logging.StreamHandler()
 stream_handler.setLevel(logging.INFO)
 stream_handler.setFormatter(log_formatter)
 log.addHandler(stream_handler)
-
-
-def login_required(fn):
-    """
-    Decorator for the CLI for requiring login before proceeding.
-    """
-
-    @wraps(fn)
-    def login_wrapper(ctx, *args, **kwargs):
-        if 'API_KEY' in ctx.obj:
-            ctx.obj['API'] = Api(cache_schema=True,
-                                 api_key=ctx.obj['API_KEY'], telemetry=telemetry)
-        else:
-            # try and find it
-            api_key = _silent_login()
-            if api_key is not None:
-                ctx.obj['API'] = Api(cache_schema=True, api_key=api_key, telemetry=telemetry)
-            else:
-                click.echo('The command you specified requires authentication. Please login first.\n', err=True)
-                ctx.exit()
-
-        return fn(ctx, *args, **kwargs)
-
-    return login_wrapper
 
 
 # options
@@ -103,24 +77,7 @@ def scripts():
     pass
 
 
-@scripts.command('filter_reads', help='Filter a FASTX file based on the taxonomic results from a CLASSIFICATION_ID')
-@click.argument('classification_id')
-@click.argument('fastx', type=click.Path())
-@click.option('-t', '--tax-id', required=True, multiple=True,
-              help='Filter reads mapping to tax IDs. May be passed multiple times.')
-@click.option('--with-children', default=False, is_flag=True,
-              help='Keep reads of child taxa, too. For example, all strains of E. coli')
-@click.option('-r', '--reverse', type=click.Path(), help='The reverse (R2) '
-              'read file, optionally')
-@click.option('--split-pairs/--keep-pairs', default=False, help='Keep only '
-              'the read pair member that matches the list of tax ID\'s')
-@click.option('-o', '--out', default='.', type=click.Path(), help='Where '
-              'to put the filtered outputs')
-@click.pass_context
-@pretty_errors
-@login_required
-def filter_reads_cli(ctx, classification_id, fastx, reverse, tax_id, with_children, split_pairs, out):
-    filter_reads.cli(ctx, classification_id, fastx, reverse, tax_id, with_children, split_pairs, out)
+scripts.add_command(filter_reads.cli, 'filter_reads')
 
 
 # resources

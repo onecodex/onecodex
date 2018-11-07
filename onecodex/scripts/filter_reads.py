@@ -3,9 +3,10 @@ import csv
 import gzip
 import os
 
+from onecodex.auth import login_required
 from onecodex.exceptions import OneCodexException, ValidationError
 from onecodex.lib.inline_validator import FASTXTranslator
-from onecodex.utils import download_file_helper, get_download_dest
+from onecodex.utils import download_file_helper, get_download_dest, pretty_errors
 
 
 def with_progress_bar(length, ix, *args, **kwargs):
@@ -64,15 +65,18 @@ def make_taxonomy_dict(classification, parent=False):
     tax_id_map = {}
 
     if parent:
-        for row in classification.table().itertuples():
-            if row.parent_tax_id is not None:
-                tax_id_map[row.tax_id] = row.parent_tax_id
+        for row in classification.results()['table']:
+            if row['parent_tax_id'] is not None and \
+               row['tax_id'] is not None:
+                tax_id_map[row['tax_id']] = row['parent_tax_id']
     else:
-        for row in classification.table().itertuples():
-            try:
-                tax_id_map[row.parent_tax_id].add(row.tax_id)
-            except KeyError:
-                tax_id_map[row.parent_tax_id] = set([row.tax_id])
+        for row in classification.results()['table']:
+            if row['parent_tax_id'] is not None and \
+               row['tax_id'] is not None:
+                try:
+                    tax_id_map[row['parent_tax_id']].add(row['tax_id'])
+                except KeyError:
+                    tax_id_map[row['parent_tax_id']] = set([row['tax_id']])
 
     return tax_id_map
 
@@ -103,7 +107,26 @@ def recurse_taxonomy_map(tax_id_map, tax_id, parent=False):
         return list(set(_child_recurse(tax_id, [])))
 
 
-def cli(ctx, classification_id, fastx, reverse, tax_id, with_children, split_pairs, out):
+@click.command('filter_reads', help='Filter a FASTX file based on the taxonomic results from a CLASSIFICATION_ID')
+@click.argument('classification_id')
+@click.argument('fastx', type=click.Path())
+@click.option('-t', '--tax-id', required=True, multiple=True,
+              help='Filter reads mapping to tax IDs. May be passed multiple times.')
+@click.option('--with-children', default=False, is_flag=True,
+              help='Keep reads of child taxa, too. For example, all strains of E. coli')
+@click.option('-r', '--reverse', type=click.Path(), help='The reverse (R2) '
+              'read file, optionally')
+@click.option('--split-pairs/--keep-pairs', default=False, help='Keep only '
+              'the read pair member that matches the list of tax ID\'s')
+@click.option('--exclude-reads', default=False, is_flag=True,
+              help='Rather than keep reads matching reads, choosing this option will exclude them.')
+@click.option('-o', '--out', default='.', type=click.Path(), help='Where '
+              'to put the filtered outputs')
+@click.pass_context
+@pretty_errors
+@login_required
+def cli(ctx, classification_id, fastx, reverse, tax_id, with_children,
+        split_pairs, exclude_reads, out):
     tax_ids = tax_id  # rename
     if not len(tax_ids):
         raise OneCodexException('You must supply at least one tax ID')
@@ -118,10 +141,7 @@ def cli(ctx, classification_id, fastx, reverse, tax_id, with_children, split_pai
         new_tax_ids = []
 
         for t_id in tax_ids:
-            try:
-                new_tax_ids.extend(recurse_taxonomy_map(tax_id_map, t_id))
-            except KeyError:
-                pass
+            new_tax_ids.extend(recurse_taxonomy_map(tax_id_map, t_id))
 
         tax_ids = list(set(new_tax_ids))
 
@@ -191,23 +211,39 @@ def cli(ctx, classification_id, fastx, reverse, tax_id, with_children, split_pai
             if split_pairs:
                 for fwd, rev in FASTXTranslator(fastx_file, reverse_file,
                                                 validate=False):
-                    if counter in filtered_rows:
-                        out_file.write(fwd)
-                    if (counter + 1) in filtered_rows:
-                        rev_out_file.write(rev)
+                    if exclude_reads:
+                        if counter not in filtered_rows:
+                            out_file.write(fwd)
+                        if (counter + 1) not in filtered_rows:
+                            rev_out_file.write(rev)
+                    else:
+                        if counter in filtered_rows:
+                            out_file.write(fwd)
+                        if (counter + 1) in filtered_rows:
+                            rev_out_file.write(rev)
                     counter += 2
             else:
                 for fwd, rev in FASTXTranslator(fastx_file, reverse_file,
                                                 validate=False):
-                    if counter in filtered_rows or \
-                       (counter + 1) in filtered_rows:
-                        out_file.write(fwd)
-                        rev_out_file.write(rev)
+                    if exclude_reads:
+                        if counter not in filtered_rows and \
+                           (counter + 1) not in filtered_rows:
+                            out_file.write(fwd)
+                            rev_out_file.write(rev)
+                    else:
+                        if counter in filtered_rows or \
+                           (counter + 1) in filtered_rows:
+                            out_file.write(fwd)
+                            rev_out_file.write(rev)
                     counter += 2
     else:
         with open(fastx, 'rb') as fastx_file, \
                 open(filtered_filename, 'wb') as out_file:
             for seq in FASTXTranslator(fastx_file, validate=False):
-                if counter in filtered_rows:
-                    out_file.write(seq)
+                if exclude_reads:
+                    if counter not in filtered_rows:
+                        out_file.write(seq)
+                else:
+                    if counter in filtered_rows:
+                        out_file.write(seq)
                 counter += 1

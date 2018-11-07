@@ -105,11 +105,11 @@ class FASTXNuclIterator(object):
         self.modified = False
 
         if self.allow_iupac:
-            self.valid_bases = re.compile(b'[^ABCDGHIKMNRSTUVWXYabcdghikmnrstuvwxy\s]')
-            self.valid_bases_match = re.compile(b'^[ABCDGHIKMNRSTUVWXYabcdghikmnrstuvwxy\s]*$')
+            self.valid_bases = re.compile(b'[^ABCDGHIKMNRSTUVWXYabcdghikmnrstuvwxy\\s]')
+            self.valid_bases_match = re.compile(b'^[ABCDGHIKMNRSTUVWXYabcdghikmnrstuvwxy\\s]*$')
         else:
-            self.valid_bases = re.compile(b'[^ACGTNacgtn\s]')
-            self.valid_bases_match = re.compile(b'^[ACGTNacgtn\s]*$')
+            self.valid_bases = re.compile(b'[^ACGTNacgtn\\s]')
+            self.valid_bases_match = re.compile(b'^[ACGTNacgtn\\s]*$')
         self.as_raw = as_raw
 
         self._set_total_size()
@@ -149,14 +149,11 @@ class FASTXNuclIterator(object):
         # determine if a FASTQ or a FASTA
         if start == b'>':
             self.file_type = 'FASTA'
-            if check_filename and not ('.fa' in file_obj.name or
-                                       '.fna' in file_obj.name or
-                                       '.fasta' in file_obj.name):
+            if check_filename and not ('.fa' in file_obj.name or '.fna' in file_obj.name or '.fasta' in file_obj.name):
                 raise ValidationError('{} is FASTA, but lacks a ".fa" ending'.format(self.name))
         elif start == b'@':
             self.file_type = 'FASTQ'
-            if check_filename and not ('.fq' in file_obj.name or
-                                       '.fastq' in file_obj.name):
+            if check_filename and not ('.fq' in file_obj.name or '.fastq' in file_obj.name):
                 raise ValidationError('{} is FASTQ, but lacks a ".fq" ending'.format(self.name))
         else:
             raise ValidationError('{} is not valid FASTX'.format(self.name))
@@ -196,7 +193,7 @@ class FASTXNuclIterator(object):
             seq_reader = re.compile(b"""
                 (?P<id>[^\\n]+)\\n
                 (?P<seq>[^\\n]*)\\n
-                \+(?P<id2>[^\\n]*)\\n
+                \\+(?P<id2>[^\\n]*)\\n
                 (?P<qual>[^\\n]*)
             """ + (b'' if last else b'(?:\\n@)'), re.DOTALL + re.VERBOSE)
         return seq_reader
@@ -260,8 +257,7 @@ class FASTXNuclIterator(object):
                 elif self.file_type == 'FASTA':
                     yield b'>' + seq_id + b'\n' + seq + b'\n'
                 elif self.file_type == 'FASTQ':
-                    yield (b'@' + seq_id + b'\n' + seq +
-                           b'\n+' + seq_id2 + b'\n' + qual + b'\n')
+                    yield (b'@' + seq_id + b'\n' + seq + b'\n+' + seq_id2 + b'\n' + qual + b'\n')
                 end = match.end()
 
             if hasattr(self.file_obj, 'fileobj'):
