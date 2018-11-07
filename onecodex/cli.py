@@ -107,7 +107,9 @@ def scripts():
 @click.argument('classification_id')
 @click.argument('fastx', type=click.Path())
 @click.option('-t', '--tax-id', required=True, multiple=True,
-              help='Filter to reads mapping to tax IDs. May be passed multiple times.')
+              help='Filter reads mapping to tax IDs. May be passed multiple times.')
+@click.option('--with-children', default=False, is_flag=True,
+              help='Keep reads of child taxa, too. For example, all strains of E. coli')
 @click.option('-r', '--reverse', type=click.Path(), help='The reverse (R2) '
               'read file, optionally')
 @click.option('--split-pairs/--keep-pairs', default=False, help='Keep only '
@@ -117,8 +119,8 @@ def scripts():
 @click.pass_context
 @pretty_errors
 @login_required
-def filter_reads_cli(ctx, classification_id, fastx, reverse, tax_id, split_pairs, out):
-    filter_reads.cli(ctx, classification_id, fastx, reverse, tax_id, split_pairs, out)
+def filter_reads_cli(ctx, classification_id, fastx, reverse, tax_id, with_children, split_pairs, out):
+    filter_reads.cli(ctx, classification_id, fastx, reverse, tax_id, with_children, split_pairs, out)
 
 
 # resources
