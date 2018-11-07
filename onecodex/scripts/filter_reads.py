@@ -65,14 +65,17 @@ def make_taxonomy_dict(classification, parent=False):
 
     if parent:
         for row in classification.table().itertuples():
-            if row.parent_tax_id is not None:
+            if row.parent_tax_id is not None and \
+               row.tax_id is not None:
                 tax_id_map[row.tax_id] = row.parent_tax_id
     else:
         for row in classification.table().itertuples():
-            try:
-                tax_id_map[row.parent_tax_id].add(row.tax_id)
-            except KeyError:
-                tax_id_map[row.parent_tax_id] = set([row.tax_id])
+            if row.parent_tax_id is not None and \
+               row.tax_id is not None:
+                try:
+                    tax_id_map[row.parent_tax_id].add(row.tax_id)
+                except KeyError:
+                    tax_id_map[row.parent_tax_id] = set([row.tax_id])
 
     return tax_id_map
 
@@ -119,10 +122,7 @@ def cli(ctx, classification_id, fastx, reverse, tax_id, with_children,
         new_tax_ids = []
 
         for t_id in tax_ids:
-            try:
-                new_tax_ids.extend(recurse_taxonomy_map(tax_id_map, t_id))
-            except KeyError:
-                pass
+            new_tax_ids.extend(recurse_taxonomy_map(tax_id_map, t_id))
 
         tax_ids = list(set(new_tax_ids))
 
