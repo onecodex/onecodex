@@ -16,7 +16,7 @@ from onecodex.utils import (cli_resource_fetcher, download_file_helper,
                             warn_if_insecure_platform, is_simplejson_installed,
                             warn_simplejson, telemetry)
 from onecodex.api import Api
-from onecodex.exceptions import (OneCodexException, ValidationWarning,
+from onecodex.exceptions import (ValidationWarning,
                                  ValidationError, UploadException)
 from onecodex.auth import _login, _logout, _remove_creds, login_required
 from onecodex.scripts import filter_reads
@@ -265,23 +265,8 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
         'validate': validate,
         'metadata': appendables['valid_metadata'],
         'tags': appendables['valid_tags'],
+        'project': project_id,
     }
-
-    # get project
-    if project_id:
-        project = ctx.obj['API'].Projects.get(project_id)
-        if not project:
-            project = ctx.obj['API'].Projects.where(name=project_id)
-        if not project:
-            project = ctx.obj['API'].Projects.where(project_name=project_id)
-        if not project:
-            raise OneCodexException('{} is not a valid project UUID'
-                                    .format(project_id))
-
-        if not isinstance(project, list):
-            project = [project]
-
-        upload_kwargs['project'] = project[0]
 
     try:
         # do the uploading

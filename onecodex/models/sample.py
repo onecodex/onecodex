@@ -7,7 +7,7 @@ from requests.exceptions import HTTPError
 from six import string_types
 
 from onecodex.exceptions import OneCodexException
-from onecodex.models import OneCodexBase
+from onecodex.models import OneCodexBase, Projects
 from onecodex.models.helpers import truncate_string
 from onecodex.lib.upload import upload  # upload_file
 from onecodex.utils import snake_case
@@ -108,6 +108,7 @@ class Samples(OneCodexBase):
             is parsed as a set of files that are paired and the files are automatically
             iterleaved during upload.
         """
+
         # TODO: either raise/wrap UploadException or just us the new one in lib.samples
         # upload_file(filename, cls._resource._client.session, None, 100)
         res = cls._resource
@@ -122,6 +123,22 @@ class Samples(OneCodexBase):
                 new_metadata[snake_case(md_key)] = md_val
 
             metadata = new_metadata
+
+        if not isinstance(project, Projects) and project is not None:
+            project_search = Projects.get(project)
+            if not project_search:
+                project_search = Projects.where(name=project)
+            if not project_search:
+                try:
+                    project_search = Projects.where(project_name=project)
+                except HTTPError:
+                    project_search = None
+            if not project_search:
+                raise OneCodexException('{} is not a valid project UUID'
+                                        .format(project))
+
+            if isinstance(project_search, list):
+                project = project_search[0]
 
         samples = upload(filename, res._client.session, res, res._client._root_url + '/', threads=threads,
                          validate=validate, log_to=sys.stderr, metadata=metadata, tags=tags, project=project)
