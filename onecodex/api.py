@@ -10,6 +10,7 @@ import json
 import logging
 import os
 import warnings
+import errno
 
 from potion_client import Client as PotionClient
 from potion_client.converter import PotionJSONSchemaDecoder, PotionJSONDecoder, PotionJSONEncoder
@@ -18,7 +19,7 @@ from requests.auth import HTTPBasicAuth
 
 from onecodex.lib.auth import BearerTokenAuth
 from onecodex.models import _model_lookup
-from onecodex.utils import ModuleAlias, get_raven_client
+from onecodex.utils import ModuleAlias, get_raven_client, collapse_user
 
 log = logging.getLogger(__name__)
 
@@ -50,10 +51,19 @@ class Api(object):
         # TODO: Consider only doing this if an add'l env var like
         #       'ONE_CODEX_AUTO_LOGIN' or similar is set.
         if api_key is None and bearer_token is None:
-            try:
-                api_key = json.load(open(os.path.expanduser('~/.onecodex')))['api_key']
-            except Exception:
+            creds_file = os.path.expanduser('~/.onecodex')
+
+            if not os.path.exists(creds_file):
                 pass
+            elif not os.access(creds_file, os.R_OK):
+                warnings.warn('Check permissions on {}'.format(collapse_user(creds_file)))
+            else:
+                try:
+                    api_key = json.load(open(creds_file, 'r'))['api_key']
+                except (KeyError, ValueError):
+                    warnings.warn('Credentials file ({}) is corrupt'
+                                  .format(collapse_user(creds_file)))
+
             if api_key is None:
                 api_key = os.environ.get('ONE_CODEX_API_KEY')
             if bearer_token is None:
@@ -86,12 +96,20 @@ class Api(object):
                 setattr(self, module._name, module)
 
     def _fetch_account_email(self):
-        creds_fp = os.path.expanduser('~/.onecodex')
-        if os.path.exists(creds_fp):
-            with open(creds_fp) as f:
-                creds = json.load(f)
-                if 'email' in creds:
-                    return creds['email']
+        creds_file = os.path.expanduser('~/.onecodex')
+
+        if not os.path.exists(creds_file):
+            pass
+        elif not os.access(creds_file, os.R_OK):
+            warnings.warn('Check permissions on {}'.format(collapse_user(creds_file)))
+        else:
+            try:
+                return json.load(open(creds_file, 'r'))['email']
+            except KeyError:
+                pass
+            except ValueError:
+                warnings.warn('Credentials file ({}) is corrupt'.format(collapse_user(creds_file)))
+
         return os.environ.get('ONE_CODEX_USER_EMAIL', os.environ.get('ONE_CODEX_USER_UUID'))
 
     def _copy_resources(self):
@@ -128,12 +146,18 @@ class ExtendedPotionClient(PotionClient):
 
     def _fetch_schema(self, cache_schema=False, creds_file=None):
         self._cached_schema = {}
-        creds_fp = os.path.expanduser('~/.onecodex') if creds_file is None else creds_file
+        creds_file = os.path.expanduser('~/.onecodex') if creds_file is None else creds_file
+        creds = {}
 
-        if os.path.exists(creds_fp):
-            creds = json.load(open(creds_fp, 'r'))
+        if not os.path.exists(creds_file):
+            pass
+        elif not os.access(creds_file, os.R_OK):
+            warnings.warn('Check permissions on {}'.format(collapse_user(creds_file)))
         else:
-            creds = {}
+            try:
+                creds = json.load(open(creds_file, 'r'))
+            except ValueError:
+                warnings.warn('Credentials file ({}) is corrupt'.format(collapse_user(creds_file)))
 
         schema = None
         serialized_schema = None
@@ -191,7 +215,18 @@ class ExtendedPotionClient(PotionClient):
 
             # always resave the creds (to make sure we're removing schema if we need to be or
             # saving if we need to do that instead)
-            json.dump(creds, open(creds_fp, mode='w'))
+            try:
+                if creds:
+                    json.dump(creds, open(creds_file, 'w'))
+                else:
+                    os.remove(creds_file)
+            except Exception as e:
+                if e.errno == errno.ENOENT:
+                    pass
+                elif e.errno == errno.EACCES:
+                    warnings.warn('Check permissions on {}'.format(collapse_user(creds_file)))
+                else:
+                    raise
 
         for name, resource_schema in schema['properties'].items():
             class_name = upper_camel_case(name)
