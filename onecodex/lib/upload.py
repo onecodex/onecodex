@@ -11,6 +11,7 @@ import os
 import re
 from threading import BoundedSemaphore, Thread
 
+import warnings
 import requests
 from requests_toolbelt import MultipartEncoder
 
@@ -31,7 +32,7 @@ def interleaved_filename(filename):
     if re.match('.*[._][Rr][12][_.].*', filename[0]):
         return re.sub('[._][Rr][12]', '', filename[0])
     else:
-        print('WARNING: Paired-end filenames do not match--are you sure they are correct?')
+        warnings.warn('WARNING: Paired-end filenames do not match--are you sure they are correct?')
         return filename[0]
 
 
