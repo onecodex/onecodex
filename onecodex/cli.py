@@ -13,8 +13,7 @@ import click
 
 from onecodex.utils import (cli_resource_fetcher, download_file_helper,
                             valid_api_key, OPTION_HELP, pprint, pretty_errors,
-                            warn_if_insecure_platform, is_simplejson_installed,
-                            warn_simplejson, telemetry)
+                            warn_if_insecure_platform, telemetry)
 from onecodex.api import Api
 from onecodex.exceptions import (ValidationWarning,
                                  ValidationError, UploadException)
@@ -62,10 +61,6 @@ def onecodex(ctx, api_key, no_pprint, verbose, telemetry):
 
     if verbose:
         log.setLevel(logging.INFO)
-
-    # Show a warning if simplejson is installed
-    if is_simplejson_installed():
-        warn_simplejson()
 
     # handle checking insecure platform, we let upload command do it by itself
     if ctx.invoked_subcommand != "upload":

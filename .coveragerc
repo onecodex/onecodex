@@ -23,6 +23,7 @@ ignore_errors = True
 
 omit =
     onecodex/version.py
+    onecodex/vendored/*
 
 [html]
 directory = htmlcov

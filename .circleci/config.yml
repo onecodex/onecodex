@@ -27,7 +27,7 @@ jobs:
           name: Run tests
           command: |
             . venv/bin/activate
-            py.test --ignore tests/test_minimal.py --ignore tests/test_simplejson.py tests/
+            py.test --ignore tests/test_minimal.py tests/
   test-py2:
     docker:
       - image: circleci/python:2.7-stretch
@@ -44,7 +44,7 @@ jobs:
           name: Run tests
           command: |
             . venv/bin/activate
-            py.test --ignore tests/test_minimal.py --ignore tests/test_simplejson.py tests/
+            py.test --ignore tests/test_minimal.py tests/
   test-minimal:
     docker:
       - image: circleci/python:3.4-stretch
@@ -79,7 +79,7 @@ jobs:
           name: Run tests
           command: |
             . venv/bin/activate
-            py.test tests/test_simplejson.py
+            py.test --ignore tests/test_minimal.py tests/
   lint:
     docker:
       - image: circleci/python:2.7-stretch
@@ -112,6 +112,6 @@ jobs:
           name: Run flake8
           command: |
             . venv/bin/activate
-            py.test --cov-report=html --cov=onecodex --ignore tests/test_minimal.py --ignore tests/test_simplejson.py tests/
+            py.test --cov-report=html --cov=onecodex --ignore tests/test_minimal.py tests/
             coveralls
 

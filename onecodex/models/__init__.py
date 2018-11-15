@@ -7,10 +7,10 @@ import sys
 from dateutil.parser import parse
 import pytz
 from requests.exceptions import HTTPError
-from potion_client.converter import PotionJSONEncoder
-from potion_client.resource import Resource
 import six
 
+from onecodex.vendored.potion_client.converter import PotionJSONEncoder
+from onecodex.vendored.potion_client.resource import Resource
 from onecodex.exceptions import MethodNotSupported, PermissionDenied, ServerError
 from onecodex.models.helpers import (check_bind, generate_potion_sort_clause,
                                      generate_potion_keyword_where)
