@@ -1,10 +1,10 @@
 # base
-potion-client==2.5.1
 requests>=2.9
 click>=6.6
 six>=1.10.0
 boto3>=1.4.2
 requests_toolbelt>=0.7.0
+jsonschema>=2.4
 
 # extensions
 numpy>=1.11.0
@@ -28,3 +28,5 @@ mock==2.0.0
 pytest-cov==2.4.0
 coveralls==1.1
 tox-pyenv==1.0.3
+responses
+nose>=1.3

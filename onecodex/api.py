@@ -12,11 +12,11 @@ import os
 import warnings
 import errno
 
-from potion_client import Client as PotionClient
-from potion_client.converter import PotionJSONSchemaDecoder, PotionJSONDecoder, PotionJSONEncoder
-from potion_client.utils import upper_camel_case
 from requests.auth import HTTPBasicAuth
 
+from onecodex.vendored.potion_client import Client as PotionClient
+from onecodex.vendored.potion_client.converter import PotionJSONSchemaDecoder, PotionJSONDecoder, PotionJSONEncoder
+from onecodex.vendored.potion_client.utils import upper_camel_case
 from onecodex.lib.auth import BearerTokenAuth
 from onecodex.models import _model_lookup
 from onecodex.utils import ModuleAlias, get_raven_client, collapse_user

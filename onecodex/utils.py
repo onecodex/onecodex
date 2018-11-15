@@ -25,8 +25,8 @@ from functools import wraps
 
 import requests
 from click import BadParameter, Context, echo
-from potion_client.converter import PotionJSONEncoder
 
+from onecodex.vendored.potion_client.converter import PotionJSONEncoder
 from onecodex.exceptions import OneCodexException, UploadException
 from onecodex.version import __version__
 
@@ -185,33 +185,6 @@ def warn_if_insecure_platform():
     else:
         cli_log.info("Python SSLContext passed")
         return False
-
-
-def is_simplejson_installed():
-    try:
-        import simplejson  # noqa
-    except ImportError:
-        return False
-    else:
-        return True
-
-
-def warn_simplejson():
-    """
-    Right now, potion-client is incompatible with requests when simplejson is
-    installed. Until this is patched upstream, we display this warning to
-    users when simplejson is installed.
-    """
-    m = ("\n"
-         "######################################################################################\n"  # noqa
-         "#                                                                                    #\n"  # noqa
-         "#  You currently have simplejson installed. Unfortunately, this library does not     #\n"  # noqa
-         "#  work properly alongside simplejson. Please install this library in a separate     #\n"  # noqa
-         "#  virtual environment using a tool such as virtualenv or uninstall simplejson.      #\n"  # noqa
-         "#  For more information, see https://virtualenv.pypa.io/en/stable/.                  #\n"  # noqa
-         "#                                                                                    #\n"  # noqa
-         "######################################################################################\n")  # noqa)
-    echo(m, err=True)
 
 
 def get_download_dest(input_path, url):
