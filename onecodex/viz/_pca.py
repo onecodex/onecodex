@@ -1,76 +1,140 @@
-import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
-import seaborn as sns
+import numpy as np
 from sklearn.decomposition import PCA
+import altair as alt
 
 from onecodex.exceptions import OneCodexException
 from onecodex.helpers import collate_classification_results, normalize_classifications
 
 
-def plot_pca(analyses, threshold=None,
-             title=None, hue=None, xlabel=None, ylabel=None,
-             org_vectors=0, org_vectors_scale=None,
-             field='readcount_w_children', rank=None, normalize=False, **kwargs):
-    """Perform Principal Components Analysis to visualize the similarity of samples.
+def plot_pca(analyses,
+             title=None, xlabel=None, ylabel=None, color=None, size=None, tooltip=None,
+             field='readcount_w_children', rank=None, normalize=True):
+    """Perform principal component analysis and plot first two axes.
 
-    Additional **kwargs are passed to Seaborn's sns.lmplot.
+    analyses (list) -- list of Samples, Classifications, or Analyses objects to be PCA'd
+
+    field ('readcount_w_children' | 'readcount' | 'abundance')
+        - 'readcount_w_children': total reads of this taxon and all its descendants
+        - 'readcount': total reads of this taxon
+        - 'abundance': genome size-normalized relative abundances, from shotgun sequencing
+    rank (None | 'kingdom' | 'phylum' | 'class' | 'order' | 'family' | 'genus' | 'species')
+        - None: include all ranks
+        - 'kingdom' or others: restrict analysis to taxa at this rank
+    normalize (bool): convert from read counts to relative abundances (each sample sums to 1.0)
+
+    title (string) -- main title of the plot
+    xlabel, ylabel (string) -- axes labels
+    color (string) -- metadata field to color points by
+    size (string) -- metadata field to size points by
+    tooltip (list) -- display these metadata fields when points are hovered over
     """
-    # hue: piece of metadata to color by
-    # org_vectors: boolean; whether to plot the most highly contributing organisms
-    # org_vectors_scale_factor: scale factor to modify the length of the organism vectors
+
     normed_classifications, metadata = normalize_classifications(analyses)
     df, tax_info = collate_classification_results(normed_classifications, field=field,
                                                   rank=rank, normalize=normalize)
 
+    metadata.index = df.index
+    metadata = metadata.fillna({field: 'N/A' for field in metadata.columns})
+
     if len(df) < 2:
         raise OneCodexException('`plot_pca` requires 2 or more valid classification results.')
 
-    # normalize the magnitude of the data
-    df = (df.T / df.sum(axis=1)).T
+    if tooltip:
+        if not isinstance(tooltip, list):
+            tooltip = [tooltip]
+    else:
+        tooltip = []
+
+    # support point color/sizes and tooltips by taxid
+    for param in [color, size] + tooltip:
+        if param:
+            if param.startswith('taxid_'):
+                taxid = param[6:]
+
+                if taxid not in df:
+                    raise OneCodexException('Tax ID {} not found in analyses'.format(taxid))
+
+                metadata[param] = df[taxid]
+            else:
+                if param not in metadata and param != df.index.name:
+                    raise OneCodexException('Column {} not found in metadata'.format(param))
 
     pca = PCA()
     pca_vals = pca.fit(df.values).transform(df.values)
     pca_vals = pd.DataFrame(pca_vals, index=df.index)
     pca_vals.rename(columns=lambda x: "PCA{}".format(x + 1), inplace=True)
-    metadata.index = df.index
-    na = {field: 'N/A' for field in metadata.columns}
-    plot_data = pd.concat([pca_vals, metadata.fillna(na)], axis=1)
+    plot_data = pd.concat([pca_vals, metadata], axis=1).reset_index()
 
-    # Scatter plot of PCA
-    sns.set(style=kwargs.pop('style', 'darkgrid'))
-    g = sns.lmplot('PCA1', 'PCA2', data=plot_data, fit_reg=False, hue=hue, **kwargs)
-
-    # Plot the organism eigenvectors that contribute the most
-    if org_vectors > 0:
-        # Plot the most highly contributing taxa
-        magnitudes = np.sqrt(pca.components_[0] ** 2 + pca.components_[1] ** 2)
-        magnitudes.sort()
-        cutoff = magnitudes[-1 * org_vectors]
-        # we can't use the "levels" method here b/c https://stackoverflow.com/questions/28772494
-        tax_ids = [x for x in df.columns.values]
-        tax_id_map = {x: tax_info[x]['name'] for x in df.columns}
-        if org_vectors_scale is None:
-            org_vectors_scale = 0.8 * np.max(pca_vals.abs().values)
-        for taxid, var1, var2 in \
-                zip(tax_ids, pca.components_[0, :], pca.components_[1, :]):
-            if np.sqrt(var1 ** 2 + var2 ** 2) >= cutoff:
-                g.axes.flat[0].annotate("{} ({})".format(tax_id_map[taxid], taxid),
-                                        xytext=(var1 * float(org_vectors_scale),
-                                                var2 * float(org_vectors_scale)),
-                                        xy=(0, 0), size=8,
-                                        arrowprops={'facecolor': 'black',
-                                                    'width': 1, 'headwidth': 5})
-    # Labels
+    # label the axes
     if xlabel is None:
         xlabel = 'PCA1 ({}%)'.format(round(pca.explained_variance_ratio_[0] * 100, 2))
     if ylabel is None:
         ylabel = 'PCA2 ({}%)'.format(round(pca.explained_variance_ratio_[1] * 100, 2))
-    plt.gca().set_xlabel(xlabel)
-    plt.gca().set_ylabel(ylabel)
 
-    # Title
+    alt_kwargs = dict(
+        x=alt.X('PCA1', axis=alt.Axis(title=xlabel)),
+        y=alt.Y('PCA2', axis=alt.Axis(title=ylabel)),
+        color=color,
+        size=size,
+        tooltip=tooltip,
+        href='url:N',
+        url='https://app.onecodex.com/classification/' + alt.datum.classification_id
+    )
+
+    # remove unused kwargs, altair doesn't like them
+    for param in ('color', 'size', 'tooltip'):
+        if not alt_kwargs[param]:
+            alt_kwargs.pop(param)
+
+    alt.renderers.enable('notebook')
+
+    chart = alt.Chart(plot_data) \
+               .transform_calculate(url=alt_kwargs.pop('url')) \
+               .mark_circle() \
+               .encode(**alt_kwargs)
+
     if title:
-        plt.title(title)
+        chart = chart.properties(title=title)
 
-    plt.show()
+    # Plot the organism eigenvectors that contribute the most
+    if org_vectors > 0:
+        plot_data = {
+            'x': [],
+            'y': [],
+            'o': [],             # order these points should be connected in
+            'Eigenvectors': []
+        }
+
+        # Plot the most highly contributing taxa
+        magnitudes = np.sqrt(pca.components_[0] ** 2 + pca.components_[1] ** 2)
+        magnitudes.sort()
+        cutoff = magnitudes[-1 * org_vectors]
+
+        if org_vectors_scale is None:
+            org_vectors_scale = 0.8 * np.max(pca_vals.abs().values)
+
+        for taxid, var1, var2 in zip(df.columns.values, pca.components_[0, :], pca.components_[1, :]):
+            if np.sqrt(var1 ** 2 + var2 ** 2) >= cutoff:
+                plot_data['x'].extend([0, var1 * float(org_vectors_scale)])
+                plot_data['y'].extend([0, var2 * float(org_vectors_scale)])
+                plot_data['o'].extend([0, 1])
+                plot_data['Eigenvectors'].extend([tax_info[taxid]['name']] * 2)
+
+                org_vectors -= 1
+
+                if org_vectors == 0:
+                    break
+
+        plot_data = pd.DataFrame(plot_data)
+
+        vector_chart = alt.Chart(plot_data) \
+                          .mark_line(point=False) \
+                          .encode(x=alt.X('x', axis=None),
+                                  y=alt.Y('y', axis=None),
+                                  order='o',
+                                  color='Eigenvectors')
+
+        (chart + vector_chart).interactive().display()
+    else:
+        chart.interactive().display()
