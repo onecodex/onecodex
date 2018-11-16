@@ -9,13 +9,13 @@ jsonschema>=2.4
 # extensions
 numpy>=1.11.0
 pandas>=0.20.0,<0.21.0
-matplotlib>=1.5.1
 networkx>=1.11
 pytz>=2014.1
 seaborn==0.8
 sklearn
 scikit-bio==0.4.2
 raven>=6.1.0
+altair>=2.2.2
 
 # testing
 tox

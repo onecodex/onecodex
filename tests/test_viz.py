@@ -61,14 +61,22 @@ def test_plot_pca(ocx, api_data):
                 ocx.Classifications.get('593601a797914cbf')]
 
     analyses = analyses + analyses  # Note a uniqueness check may eventually render this an error
-    plot_pca(analyses, hue='platform', org_vectors=1)
+    plot_pca(analyses, color='platform', size='taxid_1279', tooltip='classification_id')
 
 
 def test_plot_pca_exceptions(ocx, api_data):
     # Requires >1 classification or blows up
     analyses = [ocx.Classifications.get('45a573fb7833449a')]
     with pytest.raises(OneCodexException):
-        plot_pca(analyses, hue='platform')
+        plot_pca(analyses, color='platform')
+
+    analyses = analyses + analyses + analyses
+
+    with pytest.raises(OneCodexException):
+        plot_pca(analyses, color='metadata_that_doesnt_exist')
+
+    with pytest.raises(OneCodexException):
+        plot_pca(analyses, color='taxid_that_doesnt_exist')
 
 
 def test_plot_heatmap(ocx, api_data):

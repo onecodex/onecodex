@@ -135,7 +135,7 @@ def collate_classification_results(classifications, field='readcount_w_children'
 
     # Normalize
     if normalize:
-        df = df.div(df.sum(axis=1), axis=0)
+        df = df.div(df.sum(axis=0), axis=1)
 
     # Remove columns (tax_ids) with no values that are > 0
     if remove_zeros:
