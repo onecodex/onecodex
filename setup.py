@@ -21,6 +21,10 @@ with open('onecodex/version.py') as import_file:
     exec(import_file.read())
 
 
+with open('README.md') as readme:
+    README = readme.read()
+
+
 setup(
     name='onecodex',
     version=__version__,  # noqa
@@ -42,7 +46,8 @@ setup(
     author='Kyle McChesney & Nick Greenfield & Roderick Bovee',
     author_email='opensource@onecodex.com',
     description='One Codex API client and Python library',
-    long_description=__doc__,
+    long_description=README,
+    long_description_content_type='text/markdown',
     license='MIT License',
     keywords='One Codex API Client',
     url='https://github.com/onecodex/onecodex',

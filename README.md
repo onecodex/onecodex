@@ -1,4 +1,4 @@
-# One Codex API
+# One Codex API - Python Client Library and CLI
 
 [![Circle CI](https://circleci.com/gh/onecodex/onecodex.png?style=shield&circle-token=d86a8fc55e54a645ee515387db9acee32068a6ad)](https://circleci.com/gh/onecodex/onecodex) [![Coverage Status](https://coveralls.io/repos/github/onecodex/onecodex/badge.svg)](https://coveralls.io/github/onecodex/onecodex)
 
