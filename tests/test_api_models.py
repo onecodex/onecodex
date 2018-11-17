@@ -39,6 +39,87 @@ def test_sample_get(ocx, api_data):
     assert 'isolate' in [t.name for t in tags]
 
 
+def test_resourcelist(ocx, api_data):
+    sample = ocx.Samples.get('761bc54b97f64980')
+    tags1 = onecodex.models.ResourceList(sample.tags._resource,
+                                         onecodex.models.misc.Tags)
+    tags2 = onecodex.models.ResourceList(sample.tags._resource,
+                                         onecodex.models.misc.Tags)
+
+    assert isinstance(sample.tags, onecodex.models.ResourceList)
+
+    # test manipulation of tags lists
+    tag_to_pop = sample.tags[-1]
+    popped_tag = sample.tags.pop()
+    assert id(tag_to_pop._resource) == id(popped_tag._resource)
+
+    sample.tags.insert(0, popped_tag)
+    assert id(sample.tags[0]._resource) == id(popped_tag._resource)
+    assert sample.tags.index(popped_tag) == 0
+
+    assert sample.tags.count(popped_tag) == 1
+    sample.tags.remove(popped_tag)
+    assert sample.tags.count(popped_tag) == 0
+
+    with pytest.raises(ValueError):
+        sample.tags.remove(popped_tag)
+    with pytest.raises(ValueError):
+        sample.tags.index(popped_tag)
+
+    # we can set tags list in-place
+    sample.tags[0] = popped_tag
+    assert id(sample.tags[0]._resource) == id(popped_tag._resource)
+
+    # changes in one instance of a ResourceList affect other instances
+    assert id(tags1) != id(tags2) != id(sample.tags)
+    assert id(tags1._resource) == id(tags2._resource) == id(sample.tags._resource)
+
+    assert len(tags1) == len(tags2) == len(sample.tags)
+
+    for i in range(len(tags1)):
+        assert tags1[i] == tags2[i] == sample.tags[i]
+
+
+def test_comparisons(ocx, api_data):
+    sample1 = ocx.Samples.get('761bc54b97f64980')
+    sample2 = ocx.Samples.get('761bc54b97f64980')
+
+    # should be different objects
+    assert id(sample1) != id(sample2)
+
+    # but they should reference the same Resource
+    assert id(sample1._resource) == id(sample2._resource)
+
+    # and so they should be equal
+    assert sample1 == sample2
+
+    # but any non-equivalence comparisons should throw errors
+    with pytest.raises(NotImplementedError):
+        sample1 > sample2
+    with pytest.raises(NotImplementedError):
+        sample1 >= sample2
+    with pytest.raises(NotImplementedError):
+        sample1 < sample2
+    with pytest.raises(NotImplementedError):
+        sample1 <= sample2
+
+    # and this should be true of ResourceLists too
+    assert sample1.tags == sample2.tags
+
+    with pytest.raises(NotImplementedError):
+        sample1.tags > sample2.tags
+    with pytest.raises(NotImplementedError):
+        sample1.tags >= sample2.tags
+    with pytest.raises(NotImplementedError):
+        sample1.tags < sample2.tags
+    with pytest.raises(NotImplementedError):
+        sample1.tags <= sample2.tags
+
+    # and so should comparisons with asimilar objects
+    assert sample1 != [1, 2, 3]
+    assert sample1.tags != [1, 2, 3]
+
+
 def test_dir_method(ocx, api_data):
     sample = ocx.Samples.get('761bc54b97f64980')
 

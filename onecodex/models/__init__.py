@@ -19,6 +19,129 @@ from onecodex.models.helpers import (check_bind, generate_potion_sort_clause,
 DEFAULT_PAGE_SIZE = 200
 
 
+class ResourceList:
+    """
+    In OneCodexBase, when attributes are lists, actions performed on the returned lists are not
+    passed through to the underlying resource list. This class passes those actions through, and
+    will generally act like a list.
+    """
+
+    def _update(self):
+        self._res_list = [self.oc_model(x) for x in self._resource]
+
+    def __init__(self, _resource, oc_model):
+        # turn potion Resource objects into OneCodex objects
+        self._resource = _resource
+        self.oc_model = oc_model
+        self._update()
+
+    def __lt__(self, other):
+        raise NotImplementedError
+
+    def __le__(self, other):
+        raise NotImplementedError
+
+    def __gt__(self, other):
+        raise NotImplementedError
+
+    def __ge__(self, other):
+        raise NotImplementedError
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
+
+        # two ResourceLists are equal if they refer to the same underlying Resource
+        return id(self._resource) == id(other._resource)
+
+    def __repr__(self):
+        self._update()
+        return self._res_list.__repr__()
+
+    def __len__(self):
+        self._update()
+        return len(self._res_list)
+
+    def __getitem__(self, x):
+        self._update()
+        return self._res_list[x]
+
+    def __setitem__(self, k, v):
+        if isinstance(v, self.oc_model) and \
+           isinstance(v._resource, Resource):
+            self._resource[k] = v._resource
+        else:
+            raise ValueError("Expected object of type '{}', got '{}'"
+                             .format(self.oc_model.__name__, type(v).__name__))
+
+    def __delitem__(self, x):
+        del self._resource[x]
+
+    def __iter__(self):
+        self._update()
+        return self._res_list.__iter__()
+
+    def __reversed__(self):
+        self._update()
+        return reversed(self._res_list)
+
+    def count(self, x):
+        # assume that ResourceList objects are identical if they share the same underlying resource
+        if isinstance(x, self.oc_model) and \
+           isinstance(x._resource, Resource):
+            n = 0
+            for res_obj in self._resource:
+                if res_obj == x._resource:
+                    n += 1
+            return n
+        else:
+            raise ValueError("Expected object of type '{}', got '{}'"
+                             .format(self.oc_model.__name__, type(x).__name__))
+
+    def index(self, x):
+        # assume that ResourceList objects are identical if they share the same underlying resource
+        if isinstance(x, self.oc_model) and isinstance(x._resource, Resource):
+            for res_obj_idx, res_obj in enumerate(self._resource):
+                if res_obj == x._resource:
+                    return res_obj_idx
+            raise ValueError('{} is not in list'.format(x))
+
+        raise ValueError("Expected object of type '{}', got '{}'"
+                         .format(self.oc_model.__name__, type(x).__name__))
+
+    def remove(self, x):
+        del self._resource[self.index(x)]
+
+    def insert(self, idx, x):
+        if isinstance(x, self.oc_model) and \
+           isinstance(x._resource, Resource):
+            self._resource.insert(idx, x._resource)
+        else:
+            raise ValueError("Expected object of type '{}', got '{}'"
+                             .format(self.oc_model.__name__, type(x).__name__))
+
+    def append(self, x):
+        if isinstance(x, self.oc_model) and \
+           isinstance(x._resource, Resource):
+            self._resource.append(x._resource)
+        else:
+            raise ValueError("Expected object of type '{}', got '{}'"
+                             .format(self.oc_model.__name__, type(x).__name__))
+
+    def extend(self, iterable):
+        for x in iterable:
+            self.append(x)
+
+    def pop(self):
+        self._update()
+        self._resource.pop()
+        return self._res_list.pop()
+
+    def clear(self):
+        self._resource.clear()
+        self._res_list.clear()
+
+
 class OneCodexBase(object):
     """
     A parent object for all the One Codex objects that wraps the Potion-Client API and makes
@@ -39,6 +162,18 @@ class OneCodexBase(object):
                 if isinstance(val, OneCodexBase):
                     kwargs[key] = val._resource
             self._resource = self.__class__._resource(**kwargs)
+
+    def __lt__(self, other):
+        raise NotImplementedError
+
+    def __le__(self, other):
+        raise NotImplementedError
+
+    def __gt__(self, other):
+        raise NotImplementedError
+
+    def __ge__(self, other):
+        raise NotImplementedError
 
     def __repr__(self):
         return '<{} {}>'.format(self.__class__.__name__, self.id)
@@ -76,7 +211,7 @@ class OneCodexBase(object):
                 elif isinstance(value, list) and len(value) > 0 and isinstance(value[0], Resource):
                     # convert lists of potion resources into wrapped ones
                     resource_path = value[0]._uri.rsplit('/', 1)[0]
-                    return [_model_lookup[resource_path](_resource=o) for o in value]
+                    return ResourceList(value, _model_lookup[resource_path])
                 else:
                     if key == 'id':
                         # undo the bad coercion from potion_client/resource.py#L111
@@ -153,6 +288,9 @@ class OneCodexBase(object):
             del self._resource[key]
 
     def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
+
         # TODO: We should potentially check that both resources are up-to-date
         return self._resource._uri == other._resource._uri
 
