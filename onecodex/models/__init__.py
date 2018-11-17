@@ -100,16 +100,14 @@ class ResourceList:
 
     def index(self, x):
         # assume that ResourceList objects are identical if they share the same underlying resource
-        if isinstance(x, self.oc_model) and \
-           isinstance(x._resource, Resource):
+        if isinstance(x, self.oc_model) and isinstance(x._resource, Resource):
             for res_obj_idx, res_obj in enumerate(self._resource):
                 if res_obj == x._resource:
                     return res_obj_idx
-            else:
-                raise ValueError('{} is not in list'.format(x))
-        else:
-            raise ValueError("Expected object of type '{}', got '{}'"
-                             .format(self.oc_model.__name__, type(x).__name__))
+            raise ValueError('{} is not in list'.format(x))
+
+        raise ValueError("Expected object of type '{}', got '{}'"
+                         .format(self.oc_model.__name__, type(x).__name__))
 
     def remove(self, x):
         del self._resource[self.index(x)]
