@@ -1,30 +1,42 @@
-import pytest; pytest.importorskip('skbio')  # noqa
 import hashlib
 import os
+import pytest; pytest.importorskip('skbio')  # noqa
 import shutil
 
 from onecodex import Cli
 
 
-@pytest.mark.parametrize('paired,split_pairs,with_children,exclude_reads', [
+@pytest.mark.parametrize('paired,split_pairs,with_children,exclude_reads,include_lowconf', [
     # single end
-    (False, False, False, False),
-    (False, False, True, False),  # --with-children
-    (False, False, True, False),  # --exclude-reads
-    (False, False, True, True),   # --with-children --exclude-reads
+    (False, False, False, False, False),
+    (False, False, False, True, False),  # --exclude-reads
+    (False, False, False, False, True),  # --include-lowconf
+    (False, False, False, True, True),   # --exclude-reads --include-lowconf
+    (False, False, True, False, False),  # --with-children
+    (False, False, True, True, False),   # --with-children --exclude-reads
+    (False, False, True, False, True),   # --with-children --include-lowconf
+    (False, False, True, True, True),    # --with-children --exclude-reads --include-lowconf
 
     # paired-end
-    (True, False, False, False),
-    (True, False, True, False),  # --with-children
-    (True, False, False, True),  # --exclude-reads
-    (True, False, True, True),   # --with-children --exclude-reads
-    (True, True, False, False),  # --split-pairs
-    (True, True, True, False),   # --split-pairs --with-children
-    (True, True, False, True),   # --split-pairs --exclude-reads
-    (True, True, True, True),    # --split-pairs --with-children --exclude-reads
+    (True, False, False, False, False),
+    (True, False, False, True, False),    # --exclude-reads
+    (True, False, False, False, True),    # --include-lowconf
+    (True, False, False, True, True),     # --exclude-reads --include-lowconf
+    (True, False, True, False, False),    # --with-children
+    (True, False, True, True, False),     # --with-children --exclude-reads
+    (True, False, True, False, True),     # --with-children --include-lowconf
+    (True, False, True, True, True),      # --with-children --exclude-reads --include-lowconf
+    (True, True, False, False, False),    # --split-pairs
+    (True, True, False, True, False),     # --split-pairs --exclude-reads
+    (True, True, False, False, True),     # --split-pairs --include-lowconf
+    (True, True, False, True, True),      # --split-pairs --exclude-reads --include-lowconf
+    (True, True, True, False, False),     # --split-pairs --with-children
+    (True, True, True, True, False),      # --split-pairs --with-children --exclude-reads
+    (True, True, True, False, True),      # --split-pairs --with-children --include-lowconf
+    (True, True, True, True, True),       # --split-pairs --with-children --exclude-reads --include-lowconf
 ])
-def test_filter_reads(runner, api_data, mocked_creds_file, paired, split_pairs,
-                      with_children, exclude_reads):
+def test_subset_reads(runner, api_data, mocked_creds_file, paired, split_pairs,
+                      with_children, exclude_reads, include_lowconf):
     basedir = os.path.abspath(os.path.dirname(__file__))
     data_dir = os.path.join(basedir, 'data/files')
     files = [
@@ -48,7 +60,8 @@ def test_filter_reads(runner, api_data, mocked_creds_file, paired, split_pairs,
             dest = os.getcwd()
             shutil.copy(path, dest)
 
-        args = ['scripts', 'filter_reads']
+        args = ['scripts', 'subset_reads']
+
         if paired:
             args += [
                 'bef0bc57dd7f4c43',
@@ -58,36 +71,9 @@ def test_filter_reads(runner, api_data, mocked_creds_file, paired, split_pairs,
                 '-t',
                 '816'
             ]
+
             outfiles = ['test_paired_filtering_R1_001.filtered.fastq',
                         'test_paired_filtering_R2_001.filtered.fastq']
-            digests = ['f483a5e69f32839f90aea13be55e2c73',
-                       '3e1fb9a6df1407d79733e40466fc143e']
-            if with_children:
-                args += ['--with-children']
-                args[args.index('816')] = '2'
-                digests = ['b4899aff26a94f4a5022252354cc32a3',
-                           'f7c97b5d094ad41db620374adbb9d9ba']
-
-                if exclude_reads:
-                    args += ['--exclude-reads']
-                    digests = ['d6c512756d29f744e74c421c66ee95f1',
-                               '33db92453df39be740ea1bb30c4e8be5']
-
-                    if split_pairs:
-                        args += ['--split-pairs']
-                        digests = ['6411c6d6a1e3cceb43c55428d4e8cdb9',
-                                   '3486c724c38b25a5bab32d7afac484bd']
-
-            else:
-                if exclude_reads:
-                    args += ['--exclude-reads']
-                    digests = ['f5aac827c45f24a138386ebbfc3e7611',
-                               'a9fc38e273e766dcbc346445d6dac566']
-
-                    if split_pairs:
-                        args += ['--split-pairs']
-                        digests = ['f548459a490b7579f8a989e2127caf2d',
-                                   'cf0ea0fa04cf40b5120cfa5c3731e779']
         else:
             args += [
                 '0f4ee4ecb3a3412f',
@@ -95,15 +81,74 @@ def test_filter_reads(runner, api_data, mocked_creds_file, paired, split_pairs,
                 '-t',
                 '816',
             ]
+
             outfiles = ['test_single_filtering_001.filtered.fastq']
-            digests = ['26fda71d0ce44292c87c0fb71222f3a9']
 
-        result = runner.invoke(Cli, args, catch_exceptions=False)
+        if with_children:
+            args += ['--with-children']
+            args[args.index('816')] = '2'
 
+        if exclude_reads:
+            args += ['--exclude-reads']
+
+        if split_pairs:
+            args += ['--split-pairs']
+
+        if include_lowconf:
+            args += ['--include-lowconf']
+
+        result = runner.invoke(Cli, args)
         assert 'Using cached read-level results' in result.output
 
         results_digests = []
         for f in outfiles:
             results_digests.append(md5sum(f).hexdigest())
 
-        assert results_digests == digests
+        digests = {
+            # single-end
+            (False, False, False, False, False): ['cc4856f34c4e4742414de15b429466cd'],
+            (False, False, False, True, False):  ['df8b67bf7e4e92122387c0a46a2f0ad4'],
+            (False, False, False, False, True):  ['26fda71d0ce44292c87c0fb71222f3a9'],
+            (False, False, False, True, True):   ['bb2f55962087097a6ecea10e921fa137'],
+            (False, False, True, False, False):  ['8a773e43459561db491ec36a7d9e7df5'],
+            (False, False, True, True, False):   ['60473e16683b258cc7e4da7e733adb68'],
+            (False, False, True, False, True):   ['6081c9985bb9f1ccf32bdcf2b41da14d'],
+            (False, False, True, True, True):    ['bd009027ef68c8f0b3d5c31b38893ca7'],
+
+            # paired-end
+            (True, False, False, False, False):  ['f483a5e69f32839f90aea13be55e2c73',
+                                                  '3e1fb9a6df1407d79733e40466fc143e'],
+            (True, False, False, True, False):   ['478e2bbabf6ec09ddd9856da3176e238',
+                                                  'adc4e91104e4be9736a23b4b3a8d1b5e'],
+            (True, False, False, False, True):   ['f483a5e69f32839f90aea13be55e2c73',
+                                                  '3e1fb9a6df1407d79733e40466fc143e'],
+            (True, False, False, True, True):    ['a009992b18579e9f917478e22ba6d393',
+                                                  'ff8ea269b733ad0665ea75cd3bfd1b4c'],
+            (True, False, True, False, False):   ['b4899aff26a94f4a5022252354cc32a3',
+                                                  'f7c97b5d094ad41db620374adbb9d9ba'],
+            (True, False, True, True, False):    ['74811360d6203345e7f30eb6fbf34a92',
+                                                  '79c7956338fdb2431cdb28280ebf68e3'],
+            (True, False, True, False, True):    ['b4899aff26a94f4a5022252354cc32a3',
+                                                  'f7c97b5d094ad41db620374adbb9d9ba'],
+            (True, False, True, True, True):     ['3db7eca476d25fcc0e5adc37e8e83c56',
+                                                  'ceb7f837ab51d4bec8bb7a1d53f2ea86'],
+            (True, True, False, False, False):   ['2a517f1f55d1e01a7dd2904121105af0',
+                                                  'ac1f2c8b35a8d269edc2a9ac3e1171c3'],
+            (True, True, False, True, False):    ['252467b00875869305c30572c923e0a1',
+                                                  'f4081d90fc4ef90c23d8c53a847234dd'],
+            (True, True, False, False, True):    ['2a517f1f55d1e01a7dd2904121105af0',
+                                                  'ac1f2c8b35a8d269edc2a9ac3e1171c3'],
+            (True, True, False, True, True):     ['f548459a490b7579f8a989e2127caf2d',
+                                                  'cf0ea0fa04cf40b5120cfa5c3731e779'],
+            (True, True, True, False, False):    ['225333af8f060124f43412661efc0dc1',
+                                                  '49df9e1764732d12aa4970720214b9bd'],
+            (True, True, True, True, False):     ['74811360d6203345e7f30eb6fbf34a92',
+                                                  '79c7956338fdb2431cdb28280ebf68e3'],
+            (True, True, True, False, True):     ['225333af8f060124f43412661efc0dc1',
+                                                  '49df9e1764732d12aa4970720214b9bd'],
+            (True, True, True, True, True):      ['6411c6d6a1e3cceb43c55428d4e8cdb9',
+                                                  '3486c724c38b25a5bab32d7afac484bd'],
+        }
+
+        assert results_digests == digests[(paired, split_pairs, with_children,
+                                           exclude_reads, include_lowconf)]

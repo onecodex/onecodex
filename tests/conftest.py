@@ -230,7 +230,7 @@ API_DATA = {
     "PATCH::api/v1/metadata/4fe05e748b5a4f0e": update_metadata_callback
 }
 
-# explicitly load classification results for testing filter_reads
+# explicitly load classification results for testing subset_reads
 API_DATA['GET::api/v1/classifications/bef0bc57dd7f4c43/results'] = \
     json.load(open(os.path.join('tests', 'data', 'api', 'bef0bc57dd7f4c43_table.json')))
 API_DATA['GET::api/v1/classifications/0f4ee4ecb3a3412f/results'] = \
