@@ -14,7 +14,7 @@ import warnings
 from onecodex.api import Api
 from onecodex.auth import _login, _logout, _remove_creds, login_required
 from onecodex.metadata_upload import validate_appendables
-from onecodex.scripts import filter_reads
+from onecodex.scripts import subset_reads
 from onecodex.utils import (cli_resource_fetcher, download_file_helper,
                             valid_api_key, OPTION_HELP, pprint, pretty_errors,
                             warn_if_insecure_platform, telemetry)
@@ -77,7 +77,7 @@ def scripts():
     pass
 
 
-scripts.add_command(filter_reads.cli, 'filter_reads')
+scripts.add_command(subset_reads.cli, 'subset_reads')
 
 
 # resources

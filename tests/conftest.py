@@ -234,7 +234,7 @@ API_DATA = {
     "GET::mock/download/url": "1234567890",
 }
 
-# explicitly load classification results for testing filter_reads
+# explicitly load classification results for testing subset_reads
 API_DATA['GET::api/v1/classifications/bef0bc57dd7f4c43/results'] = \
     json.load(open(os.path.join('tests', 'data', 'api', 'bef0bc57dd7f4c43_table.json')))
 API_DATA['GET::api/v1/classifications/0f4ee4ecb3a3412f/results'] = \
