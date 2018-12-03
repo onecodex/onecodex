@@ -16,6 +16,7 @@ sklearn
 scikit-bio==0.4.2
 raven>=6.1.0
 altair>=2.2.2
+vega>=1.4.0
 
 # testing
 tox

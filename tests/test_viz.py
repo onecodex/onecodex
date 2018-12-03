@@ -21,38 +21,35 @@ def test_plot_metadata(ocx, api_data):
     analyses = [ocx.Classifications.get('45a573fb7833449a')]
     samples = [a.sample for a in analyses]
 
-    plot_metadata(analyses, statistic='simpson')
+    plot_metadata(analyses)
 
     # Should resolve via samples OK too; date objects should get coerced OK
-    plot_metadata(samples, metadata='date_sequenced', statistic='simpson')
+    plot_metadata(samples, category='date_sequenced', quantity='chao1')
 
     # And bools
-    plot_metadata(samples, metadata='starred', statistic='simpson')
+    plot_metadata(samples, category='starred', quantity='simpson')
 
     # Numbers too
     samples[0].metadata.custom['my_int'] = 10
-    plot_metadata(samples, metadata='my_int', statistic='simpson',
+    plot_metadata(samples, category='my_int', quantity='simpson',
                   xlabel='X Axis', ylabel='Y Axis', title='Title')
 
 
 def test_plot_metadata_exceptions(ocx, api_data):
     analyses = [ocx.Classifications.get('45a573fb7833449a')]
 
-    # Must specify a statistic or tax_id
     with pytest.raises(OneCodexException):
-        plot_metadata(analyses)
+        plot_metadata(analyses, quantity='tax_id_that_doesnt_exist')
 
-    # Cannot specify both
     with pytest.raises(OneCodexException):
-        plot_metadata(analyses, statistic='simpson', tax_id=562)
+        plot_metadata(analyses, quantity='metadata_that_doesnt_exist')
 
-    # Metadata field must exist
+    # metadata for vertical axis exists but is non-numeric
     with pytest.raises(OneCodexException):
-        plot_metadata(analyses, metadata='invalid_field')
+        plot_metadata(analyses, quantity='created_at')
 
-    # Statistic must be valid
-    with pytest.raises(NotImplementedError):
-        plot_metadata(analyses, statistic='simpson2')
+    with pytest.raises(OneCodexException):
+        plot_metadata(analyses, category='metadata_that_doesnt_exist')
 
 
 def test_plot_pca(ocx, api_data):
