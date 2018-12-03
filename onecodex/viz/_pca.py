@@ -27,7 +27,10 @@ def plot_pca(analyses,
     xlabel, ylabel (string) -- axes labels
     color (string) -- metadata field to color points by
     size (string) -- metadata field to size points by
+        - For color and size, use 'taxid_N' where N is an arbitrary taxid to color or size
+          points based on the abundance of that taxid
     tooltip (list) -- display these metadata fields when points are hovered over
+        - Use 'taxid_N' where N is an arbitrary taxid to display its abundance in a tooltip
     """
 
     normed_classifications, metadata = normalize_classifications(analyses)
