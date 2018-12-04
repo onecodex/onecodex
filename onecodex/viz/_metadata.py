@@ -72,7 +72,7 @@ def plot_metadata(analyses, category='classification_id', quantity='simpson',
                   field='readcount_w_children', rank='species', normalize=True):
     """Plot an arbitrary metadata field versus an arbitrary quantity as a boxplot.
 
-    analyses (list) -- list of Samples, Classifications, or Analyses objects to be PCA'd
+    analyses (list) -- list of Samples, Classifications, or Analyses objects to be plotted
     category (string) -- metadata field to be plotted on the horizontal axis
     quantity (metadata_field | 'taxid_N' | 'simpson' | 'chao1') -- vertical axis
         - metadata_field: a numerical metadata field
@@ -115,6 +115,7 @@ def plot_metadata(analyses, category='classification_id', quantity='simpson',
         if taxid not in df:
             raise OneCodexException('Tax ID {} not found in analyses'.format(taxid))
 
+        quantity = tax_info[taxid]['name']
         metadata[quantity] = df[taxid]
     elif quantity not in metadata:
         raise OneCodexException(

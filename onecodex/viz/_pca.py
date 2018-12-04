@@ -58,7 +58,15 @@ def plot_pca(analyses,
                 if taxid not in df:
                     raise OneCodexException('Tax ID {} not found in analyses'.format(taxid))
 
-                metadata[param] = df[taxid]
+                taxon_name = tax_info[taxid]['name']
+                metadata[taxon_name] = df[taxid]
+
+                if param == color:
+                    color = taxon_name
+                elif param == size:
+                    size = taxon_name
+                else:
+                    tooltip[tooltip.index(param)] = taxon_name
             else:
                 if param not in metadata and param != df.index.name:
                     raise OneCodexException('Column {} not found in metadata'.format(param))
