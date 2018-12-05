@@ -61,11 +61,11 @@ def box_plot(df, category, quantity, category_type='N',
     chart.interactive().display()
 
 
-def plot_metadata(analyses, x='Label', label=None,
+def plot_metadata(analyses, x='Label',
                   alphadiv=None, metadata=None, taxid=None, taxon=None,
-                  boxplot=None, scatter=None, title=None, xlabel=None, ylabel=None,
+                  label=None, title=None, xlabel=None, ylabel=None, boxplot=None, scatter=None,
                   field='readcount_w_children', rank=None, normalize=False):
-    """Plot an arbitrary metadata field versus an arbitrary quantity as a boxplot.
+    """Plot an arbitrary metadata field versus an arbitrary quantity as a boxplot or scatter plot.
 
     analyses (list) -- list of Samples, Classifications, or Analyses objects to be plotted
     x (string) -- metadata field to be plotted on the horizontal axis
@@ -84,6 +84,7 @@ def plot_metadata(analyses, x='Label', label=None,
             - 'readcount': total reads of this taxon
             - 'abundance': genome size-normalized relative abundances, from shotgun sequencing
         rank ('kingdom' | 'phylum' | 'class' | 'order' | 'family' | 'genus' | 'species')
+            - None: include all ranks
             - 'kingdom' or others: restrict analysis to taxa at this rank
         normalize (bool): convert from read counts to relative abundances (each sample sums to 1.0)
 
