@@ -5,7 +5,7 @@ from onecodex.exceptions import OneCodexException
 from onecodex.helpers import collate_classification_results, normalize_classifications
 
 
-def plot_heatmap(analyses, top_n=20, threshold=None,
+def plot_heatmap(analyses, top_n=20, threshold=None, label=None,
                  title=None, xlabel=None, ylabel=None, tooltip=None,
                  field='readcount_w_children', rank=None, normalize=True):
     """Plot heatmap of taxa abundance/count data for several samples.
@@ -23,6 +23,7 @@ def plot_heatmap(analyses, top_n=20, threshold=None,
         - 'kingdom' or others: restrict analysis to taxa at this rank
     normalize (bool): convert from read counts to relative abundances (each sample sums to 1.0)
 
+    label (string) -- metadata field to label samples with
     title (string) -- main title of the plot
     xlabel, ylabel (string) -- axes labels
     tooltip (list) -- display these metadata fields when points are hovered over
@@ -31,7 +32,7 @@ def plot_heatmap(analyses, top_n=20, threshold=None,
     if not (threshold or top_n):
         raise OneCodexException('Please set either "threshold" or "top_n"')
 
-    normed_classifications, metadata = normalize_classifications(analyses)
+    normed_classifications, metadata = normalize_classifications(analyses, label=label)
     df, tax_info = collate_classification_results(normed_classifications, field=field,
                                                   rank=rank, normalize=normalize)
 

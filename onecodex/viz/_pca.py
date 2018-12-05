@@ -7,7 +7,7 @@ from onecodex.exceptions import OneCodexException
 from onecodex.helpers import collate_classification_results, normalize_classifications
 
 
-def plot_pca(analyses,
+def plot_pca(analyses, label=None,
              title=None, xlabel=None, ylabel=None, color=None, size=None, tooltip=None,
              field='readcount_w_children', rank=None, normalize=True):
     """Perform principal component analysis and plot first two axes.
@@ -23,6 +23,7 @@ def plot_pca(analyses,
         - 'kingdom' or others: restrict analysis to taxa at this rank
     normalize (bool): convert from read counts to relative abundances (each sample sums to 1.0)
 
+    label (string) -- metadata field to label samples with
     title (string) -- main title of the plot
     xlabel, ylabel (string) -- axes labels
     color (string) -- metadata field to color points by
@@ -33,7 +34,7 @@ def plot_pca(analyses,
         - Use 'taxid_N' where N is an arbitrary taxid to display its abundance in a tooltip
     """
 
-    normed_classifications, metadata = normalize_classifications(analyses)
+    normed_classifications, metadata = normalize_classifications(analyses, label=label)
     df, tax_info = collate_classification_results(normed_classifications, field=field,
                                                   rank=rank, normalize=normalize)
 
@@ -75,13 +76,25 @@ def plot_pca(analyses,
     pca_vals = pca.fit(df.values).transform(df.values)
     pca_vals = pd.DataFrame(pca_vals, index=df.index)
     pca_vals.rename(columns=lambda x: "PCA{}".format(x + 1), inplace=True)
-    plot_data = pd.concat([pca_vals, metadata], axis=1).reset_index()
 
     # label the axes
     if xlabel is None:
         xlabel = 'PCA1 ({}%)'.format(round(pca.explained_variance_ratio_[0] * 100, 2))
     if ylabel is None:
         ylabel = 'PCA2 ({}%)'.format(round(pca.explained_variance_ratio_[1] * 100, 2))
+
+    # don't send all the data to vega, just what we're plotting
+    plot_data = pca_vals.ix[:, ('PCA1', 'PCA2')]
+
+    for param in [color, size] + tooltip:
+        if param:
+            plot_data[param] = metadata[param]
+
+    plot_data['Label'] = metadata['_display_name']
+    plot_data = plot_data.reset_index()
+
+    # put the sample label in tooltip by default
+    tooltip.insert(0, 'Label')
 
     alt_kwargs = dict(
         x=alt.X('PCA1', axis=alt.Axis(title=xlabel)),

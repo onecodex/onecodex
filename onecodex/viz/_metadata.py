@@ -1,5 +1,6 @@
 import pandas as pd
 import altair as alt
+import warnings
 
 from onecodex.exceptions import OneCodexException
 from onecodex.helpers import normalize_classifications, collate_classification_results
@@ -8,7 +9,6 @@ from onecodex.distance import alpha_diversity
 
 def boxplot(df, category, quantity, category_type='N',
             title=None, xlabel=None, ylabel=None):
-
     # must be one of Nominal, Ordinal, Time per altair
     if category_type not in ('N', 'O', 'T'):
         raise OneCodexException('If specifying category_type, must be N, O, or T')
@@ -48,14 +48,25 @@ def boxplot(df, category, quantity, category_type='N',
         x=x_format
     )
 
-    middle_tick = alt.Chart(df).mark_tick(
-        color='black',
-        size=15.0
-    ).encode(
-        y='median({}):Q'.format(quantity),
-        x=alt.X(x_format, axis=alt.Axis(title=xlabel)),
-        tooltip='median({}):Q'.format(quantity)
-    )
+    # if there is only one sample per category, only middle_tick will be visible. in that case,
+    # plot something that is more visible instead of a thin line
+    if len(df[category].unique()) == len(df[category]):
+        middle_tick = alt.Chart(df).mark_circle(
+            size=30.0
+        ).encode(
+            y='{}:Q'.format(quantity),
+            x=alt.X(x_format, axis=alt.Axis(title=xlabel)),
+            tooltip='{}:Q'.format(quantity)
+        )
+    else:
+        middle_tick = alt.Chart(df).mark_tick(
+            color='black',
+            size=15.0
+        ).encode(
+            y='median({}):Q'.format(quantity),
+            x=alt.X(x_format, axis=alt.Axis(title=xlabel)),
+            tooltip='median({}):Q'.format(quantity)
+        )
 
     alt.renderers.enable('notebook')
 
@@ -67,9 +78,9 @@ def boxplot(df, category, quantity, category_type='N',
     chart.interactive().display()
 
 
-def plot_metadata(analyses, category='classification_id', quantity='simpson',
+def plot_metadata(analyses, category='Label', quantity='simpson',
                   title=None, xlabel=None, ylabel=None,
-                  field='readcount_w_children', rank='species', normalize=True):
+                  field='readcount_w_children', rank=None, normalize=True):
     """Plot an arbitrary metadata field versus an arbitrary quantity as a boxplot.
 
     analyses (list) -- list of Samples, Classifications, or Analyses objects to be plotted
@@ -97,11 +108,13 @@ def plot_metadata(analyses, category='classification_id', quantity='simpson',
                                                   rank=rank, normalize=normalize)
 
     metadata.index = df.index
+    metadata['Label'] = metadata['_display_name']
 
     # figure out what quantity (vertical axis) we're plotting and calculate it
     if quantity in ('simpson', 'chao1'):
         if rank is None:
-            raise OneCodexException('When calculating alpha diversity, rank can not be None.')
+            rank = 'species'
+            warnings.warn('Rank not specified for alpha diversity calculation, using species.')
 
         metadata[quantity] = 0
 
