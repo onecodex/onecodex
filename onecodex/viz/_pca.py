@@ -1,3 +1,4 @@
+import warnings
 import pandas as pd
 import numpy as np
 from sklearn.decomposition import PCA
@@ -7,31 +8,31 @@ from onecodex.exceptions import OneCodexException
 from onecodex.helpers import collate_classification_results, normalize_classifications
 
 
-def plot_pca(analyses, label=None,
-             title=None, xlabel=None, ylabel=None, color=None, size=None, tooltip=None,
+def plot_pca(analyses,
+             label=None, title=None, xlabel=None, ylabel=None, color=None, size=None, tooltip=None,
              field='readcount_w_children', rank=None, normalize=False):
     """Perform principal component analysis and plot first two axes.
 
     analyses (list) -- list of Samples, Classifications, or Analyses objects to be PCA'd
 
-    field ('readcount_w_children' | 'readcount' | 'abundance')
-        - 'readcount_w_children': total reads of this taxon and all its descendants
-        - 'readcount': total reads of this taxon
-        - 'abundance': genome size-normalized relative abundances, from shotgun sequencing
-    rank (None | 'kingdom' | 'phylum' | 'class' | 'order' | 'family' | 'genus' | 'species')
-        - None: include all ranks
-        - 'kingdom' or others: restrict analysis to taxa at this rank
-    normalize (bool): convert from read counts to relative abundances (each sample sums to 1.0)
+    Options for tabulation of classification results:
+        field ('readcount_w_children' | 'readcount' | 'abundance')
+            - 'readcount_w_children': total reads of this taxon and all its descendants
+            - 'readcount': total reads of this taxon
+            - 'abundance': genome size-normalized relative abundances, from shotgun sequencing
+        rank (None | 'kingdom' | 'phylum' | 'class' | 'order' | 'family' | 'genus' | 'species')
+            - None: include all ranks
+            - 'kingdom' or others: restrict analysis to taxa at this rank
+        normalize (bool): convert from read counts to relative abundances (each sample sums to 1.0)
 
-    label (string) -- metadata field to label samples with
-    title (string) -- main title of the plot
-    xlabel, ylabel (string) -- axes labels
-    color (string) -- metadata field to color points by
-    size (string) -- metadata field to size points by
-        - For color and size, use 'taxid_N' where N is an arbitrary taxid to color or size
-          points based on the abundance of that taxid
-    tooltip (list) -- display these metadata fields when points are hovered over
-        - Use 'taxid_N' where N is an arbitrary taxid to display its abundance in a tooltip
+    Options for plotting:
+        label (string) -- metadata field to label samples with
+        title (string) -- main title of the plot
+        xlabel, ylabel (string) -- axes labels
+        size, color (string) -- metadata field to size or color points by
+        tooltip (list) -- display these metadata fields when points are hovered over
+            - For size, color, and tooltip: you can use 'taxid_N' where N is an arbitrary taxid
+              to size/color points by (or show the abundance of) that taxid
     """
 
     if normalize is True and rank is None:
