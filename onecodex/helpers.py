@@ -1,10 +1,7 @@
-import numpy as np
 import pandas as pd
 import warnings
 
 import six
-
-from collections import OrderedDict
 
 from onecodex.exceptions import OneCodexException
 from onecodex.models import Analyses, Classifications, Samples, Metadata
