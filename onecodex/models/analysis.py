@@ -30,9 +30,9 @@ class Analyses(OneCodexBase):
 
     def _results(self):
         try:
-            if not self._cached_result:
-                self._cached_result = self._resource.results()
-            return self._cached_result
+            if not getattr(self._resource, '_cached_result', None):
+                self._resource._cached_result = self._resource.results()
+            return self._resource._cached_result
         except AttributeError:
             raise NotImplementedError('.results() not implemented for this Analyses resource.')
 
