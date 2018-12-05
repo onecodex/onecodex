@@ -74,76 +74,77 @@ def normalize_classifications(analyses, label=None, skip_missing=True, warn=True
     return normed_classifications, metadata
 
 
-def collate_classification_results(classifications, field='readcount_w_children',
-                                   rank=None, remove_zeros=True, multi_index=False,
-                                   normalize=False):
+def collate_classification_results(classifications, remove_zeros=True,
+                                   field='readcount_w_children', rank=None, normalize=False):
     """For a set of classifications, return the results as a Pandas DataFrame and a dict of taxa info.
 
-    Note: The output format is not guaranteed to be stable at this time (i.e.,
-    column orderings, types, etc. may change).
+    Note: The output format is not guaranteed to be stable at this time (i.e., column orderings,
+    types, etc. may change).
+
+    classifications (list) -- list of Classifications to collate
+
+    Filtering options:
+        remove_zeros (bool) -- remove taxa that are zero in every classification
+
+    Output options:
+        table_format ('wide' | 'long')
+            - 'wide': rows are classifications, cols are taxa, elements are counts
+            - 'long': rows are observations with three cols: classification_id, tax_id, and count
+
+    Options for tabulation of classification results:
+        field ('readcount_w_children' | 'readcount' | 'abundance')
+            - 'readcount_w_children': total reads of this taxon and all its descendants
+            - 'readcount': total reads of this taxon
+            - 'abundance': genome size-normalized relative abundances, from shotgun sequencing
+        rank ('kingdom' | 'phylum' | 'class' | 'order' | 'family' | 'genus' | 'species')
+            - None: include all ranks
+            - 'kingdom' or others: restrict analysis to taxa at this rank
+        normalize (bool): convert from read counts to relative abundances (each sample sums to 1.0)
     """
-    assert field in ['abundance', 'readcount', 'readcount_w_children']
-    TYPE_MAPPING = {
-        'readcount': np.int64,
-        'readcount_w_children': np.int64,
-        'abundance': np.float64,
+
+    if field not in ('abundance', 'readcount', 'readcount_w_children'):
+        raise OneCodexException('Specified field ({}) not valid.'.format(field))
+
+    classifications = [c for c in classifications if c.success is True]
+
+    # we'll fill a dict that eventually turn into a pandas df
+    df = {
+        'classification_id': [c.id for c in classifications]
     }
 
-    # Keep track of all of the microbial abundances
-    titles = []
-    tax_id_info = OrderedDict()
-    column_ix = 0
-    for c in classifications:
-        if c.success is False:
-            continue
+    tax_info = {}
 
-        # Get the results in table format
+    for c_idx, c in enumerate(classifications):
+        # pulling results from mainline is the slowest part of the function
         result = c.results()['table']
 
-        # Record the information (name, parent) for each organism by  its tax ID
+        # d contains info about a taxon in result, including name, id, counts, rank, etc.
         for d in result:
-            if d['tax_id'] not in tax_id_info:
-                tax_id_info[d['tax_id']] = {k: d[k] for k in ['name', 'rank', 'parent_tax_id']}
-                tax_id_info[d['tax_id']]['column'] = column_ix
-                column_ix += 1
+            d_tax_id = d['tax_id']
 
-    arr = np.zeros((len(classifications), len(tax_id_info)), dtype=TYPE_MAPPING[field])
-    for ix, c in enumerate(classifications):
-        titles.append(c.id)
-        result = c.results()['table']
-        for d in result:
-            arr[ix, tax_id_info[d['tax_id']]['column']] = d[field]
+            if d_tax_id not in tax_info:
+                # only process this taxon if it's the correct rank
+                if rank is not None and d['rank'] != rank:
+                    continue
 
-    # Format as a Pandas DataFrame
-    df = pd.DataFrame(arr, columns=tax_id_info.keys())
-    df.index = titles
+                tax_info[d_tax_id] = {k: d[k] for k in ('name', 'rank', 'parent_tax_id')}
 
-    # fill in missing values
-    df = df.T.fillna(0)
+                # first time we've seen this taxon, so make a vector for it
+                df[d_tax_id] = [0] * len(classifications)
 
-    # add an index with the tax ids name
-    df.index.name = 'tax_id'
-    if multi_index:
-        df['tax_name'] = df.index.map(lambda tid: tax_id_info[tid]['name'])
-        df['tax_rank'] = df.index.map(lambda tid: tax_id_info[tid]['rank'])
-        df.set_index(['tax_name', 'tax_rank'], inplace=True, append=True)
-        df.sort_index(inplace=True)
+            df[d_tax_id][c_idx] = d[field]
 
-    # Subset to rank as appropriate
-    if rank is not None:
-        df = df.loc[[k for k, v in tax_id_info.items() if v['rank'] == rank], :]
+    # format as a Pandas DataFrame
+    df = pd.DataFrame(df) \
+           .set_index('classification_id') \
+           .fillna(0)
 
-    # Normalize
+    # normalize
     if normalize:
-        df = df.div(df.sum(axis=0), axis=1)
+        df = df.div(df.sum(axis=1), axis=0)
 
-    # Remove columns (tax_ids) with no values that are > 0
+    # remove columns (tax_ids) with no values that are > 0
     if remove_zeros:
-        df = df.T.loc[:, df.T.sum() > 0]
-    else:
-        df = df.T
+        df = df.loc[:, (df != 0).any(axis=0)]
 
-    # Set transposed index name
-    df.index.name = 'classification_id'
-
-    return df, tax_id_info
+    return df, tax_info
