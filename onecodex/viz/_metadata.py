@@ -80,7 +80,7 @@ def boxplot(df, category, quantity, category_type='N',
 
 def plot_metadata(analyses, category='Label', quantity='simpson',
                   title=None, xlabel=None, ylabel=None,
-                  field='readcount_w_children', rank=None, normalize=True):
+                  field='readcount_w_children', rank=None, normalize=False):
     """Plot an arbitrary metadata field versus an arbitrary quantity as a boxplot.
 
     analyses (list) -- list of Samples, Classifications, or Analyses objects to be plotted
@@ -102,6 +102,9 @@ def plot_metadata(analyses, category='Label', quantity='simpson',
     title (string) -- main title of the plot
     xlabel, ylabel (string) -- axes labels
     """
+
+    if normalize is True and rank is None:
+        warnings.warn('Results may be meaningless if rank is None and normalize is True.')
 
     normed_classifications, metadata = normalize_classifications(analyses)
     df, tax_info = collate_classification_results(normed_classifications, field=field,

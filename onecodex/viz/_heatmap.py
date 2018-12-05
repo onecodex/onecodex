@@ -7,7 +7,7 @@ from onecodex.helpers import collate_classification_results, normalize_classific
 
 def plot_heatmap(analyses, top_n=20, threshold=None, label=None,
                  title=None, xlabel=None, ylabel=None, tooltip=None,
-                 field='readcount_w_children', rank=None, normalize=True):
+                 field='readcount_w_children', rank=None, normalize=False):
     """Plot heatmap of taxa abundance/count data for several samples.
 
     analyses (list) -- list of Samples, Classifications, or Analyses objects to be plotted
@@ -28,6 +28,9 @@ def plot_heatmap(analyses, top_n=20, threshold=None, label=None,
     xlabel, ylabel (string) -- axes labels
     tooltip (list) -- display these metadata fields when points are hovered over
     """
+
+    if normalize is True and rank is None:
+        warnings.warn('Results may be meaningless if rank is None and normalize is True.')
 
     if not (threshold or top_n):
         raise OneCodexException('Please set either "threshold" or "top_n"')

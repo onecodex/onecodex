@@ -9,7 +9,7 @@ from onecodex.helpers import collate_classification_results, normalize_classific
 
 def plot_pca(analyses, label=None,
              title=None, xlabel=None, ylabel=None, color=None, size=None, tooltip=None,
-             field='readcount_w_children', rank=None, normalize=True):
+             field='readcount_w_children', rank=None, normalize=False):
     """Perform principal component analysis and plot first two axes.
 
     analyses (list) -- list of Samples, Classifications, or Analyses objects to be PCA'd
@@ -33,6 +33,9 @@ def plot_pca(analyses, label=None,
     tooltip (list) -- display these metadata fields when points are hovered over
         - Use 'taxid_N' where N is an arbitrary taxid to display its abundance in a tooltip
     """
+
+    if normalize is True and rank is None:
+        warnings.warn('Results may be meaningless if rank is None and normalize is True.')
 
     normed_classifications, metadata = normalize_classifications(analyses, label=label)
     df, tax_info = collate_classification_results(normed_classifications, field=field,
