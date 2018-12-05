@@ -60,7 +60,9 @@ class Api(object):
             else:
                 try:
                     api_key = json.load(open(creds_file, 'r'))['api_key']
-                except (KeyError, ValueError):
+                except KeyError:
+                    pass
+                except ValueError:
                     warnings.warn('Credentials file ({}) is corrupt'
                                   .format(collapse_user(creds_file)))
 
@@ -158,6 +160,10 @@ class ExtendedPotionClient(PotionClient):
                 creds = json.load(open(creds_file, 'r'))
             except ValueError:
                 warnings.warn('Credentials file ({}) is corrupt'.format(collapse_user(creds_file)))
+
+        # if schema is already cached, assume user meant to pass cache_schema=True
+        if 'schema' in creds:
+            cache_schema = True
 
         schema = None
         serialized_schema = None
