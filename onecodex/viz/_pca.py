@@ -1,4 +1,3 @@
-import warnings
 import pandas as pd
 import numpy as np
 from sklearn.decomposition import PCA
@@ -10,7 +9,7 @@ from onecodex.helpers import collate_classification_results, normalize_classific
 
 def plot_pca(analyses,
              label=None, title=None, xlabel=None, ylabel=None, color=None, size=None, tooltip=None,
-             field='readcount_w_children', rank=None, normalize=False):
+             field='readcount_w_children', rank='genus', normalize=True):
     """Perform principal component analysis and plot first two axes.
 
     analyses (list) -- list of Samples, Classifications, or Analyses objects to be PCA'd
@@ -20,8 +19,7 @@ def plot_pca(analyses,
             - 'readcount_w_children': total reads of this taxon and all its descendants
             - 'readcount': total reads of this taxon
             - 'abundance': genome size-normalized relative abundances, from shotgun sequencing
-        rank (None | 'kingdom' | 'phylum' | 'class' | 'order' | 'family' | 'genus' | 'species')
-            - None: include all ranks
+        rank ('kingdom' | 'phylum' | 'class' | 'order' | 'family' | 'genus' | 'species')
             - 'kingdom' or others: restrict analysis to taxa at this rank
         normalize (bool): convert from read counts to relative abundances (each sample sums to 1.0)
 
@@ -35,8 +33,8 @@ def plot_pca(analyses,
               to size/color points by (or show the abundance of) that taxid
     """
 
-    if normalize is True and rank is None:
-        warnings.warn('Results may be meaningless if rank is None and normalize is True.')
+    if rank is None:
+        raise OneCodexException('Please specify a taxonomic rank')
 
     normed_classifications, metadata = normalize_classifications(analyses, label=label)
     df, tax_info = collate_classification_results(normed_classifications, field=field,

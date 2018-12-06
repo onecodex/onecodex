@@ -64,7 +64,7 @@ def box_plot(df, category, quantity, category_type='N',
 def plot_metadata(analyses, x='Label',
                   alphadiv=None, metadata=None, taxid=None, taxon=None,
                   label=None, title=None, xlabel=None, ylabel=None, boxplot=None, scatter=None,
-                  field='readcount_w_children', rank=None, normalize=False):
+                  field='readcount_w_children', rank=None, normalize=True):
     """Plot an arbitrary metadata field versus an arbitrary quantity as a boxplot or scatter plot.
 
     analyses (list) -- list of Samples, Classifications, or Analyses objects to be plotted
@@ -95,9 +95,6 @@ def plot_metadata(analyses, x='Label',
         boxplot (bool) -- force output a box plot
         scatter (bool) -- force output a scatter plot
     """
-
-    if normalize is True and rank is None:
-        warnings.warn('Results may be meaningless if rank is None and normalize is True.')
 
     if sum(map(bool, [alphadiv, metadata, taxid, taxon])) in (0, 2, 3, 4):
         raise OneCodexException('Please specify exactly one of: alphadiv, metadata, taxid, taxon')
@@ -147,8 +144,26 @@ def plot_metadata(analyses, x='Label',
         vert_axis_field = metadata
 
     if taxid:
+        taxid = str(taxid)
+
         if taxid not in df:
-            raise OneCodexException('Tax ID {} not found in analyses'.format(taxid))
+            if rank:
+                raise OneCodexException(
+                    'Tax ID {} not found in analyses. Is it in rank={}?'.format(taxid, rank)
+                )
+            else:
+                raise OneCodexException(
+                    'Tax ID {} not found in analyses.'.format(taxid)
+                )
+
+        # if no rank was given, find the rank of this taxid and re-collate analyses to match
+        if rank is None:
+            df, tax_info = collate_classification_results(
+                normed_classifications,
+                field=field,
+                rank=tax_info[taxid]['rank'],
+                normalize=normalize
+            )
 
         vert_axis_field = tax_info[taxid]['name']
         metadata_df[vert_axis_field] = df[taxid]
@@ -161,13 +176,29 @@ def plot_metadata(analyses, x='Label',
             if taxon.lower() in tax_info[t]['name'].lower():
                 hits.append(int(t))
 
-        hits = sorted(hits)
+        hits = [str(t) for t in sorted(hits)]
 
         if not hits:
-            raise OneCodexException('Taxon {} not found in analyses'.format(taxon))
+            if rank:
+                raise OneCodexException(
+                    'Taxon {} not found in analyses. Is it in rank={}?'.format(taxid, rank)
+                )
+            else:
+                raise OneCodexException(
+                    'Taxon {} not found in analyses.'.format(taxid)
+                )
 
-        vert_axis_field = tax_info[str(hits[0])]['name']
-        metadata_df[vert_axis_field] = df[str(hits[0])]
+        # if no rank was given, find the rank of this taxid and re-collate analyses to match
+        if rank is None:
+            df, tax_info = collate_classification_results(
+                normed_classifications,
+                field=field,
+                rank=tax_info[hits[0]]['rank'],
+                normalize=normalize
+            )
+
+        vert_axis_field = tax_info[hits[0]]['name']
+        metadata_df[vert_axis_field] = df[hits[0]]
 
     # support combination of multiple categorical metadata to plot on x axis
     if isinstance(x, list):
