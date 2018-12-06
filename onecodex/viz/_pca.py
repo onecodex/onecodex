@@ -36,15 +36,20 @@ def plot_pca(analyses,
     if rank is None:
         raise OneCodexException('Please specify a taxonomic rank')
 
+    if not isinstance(analyses, list) or len(analyses) < 2:
+        raise OneCodexException('`plot_pca` requires 2 or more valid classification results.')
+
     normed_classifications, metadata = normalize_classifications(analyses, label=label)
     df, tax_info = collate_classification_results(normed_classifications, field=field,
                                                   rank=rank, normalize=normalize)
 
+    if len(tax_info) < 2:
+        raise OneCodexException(
+            'Two few cols (taxa) in classification results provided. Need at least 2 for PCA.'
+        )
+
     metadata.index = df.index
     metadata = metadata.fillna({field: 'N/A' for field in metadata.columns})
-
-    if len(df) < 2:
-        raise OneCodexException('`plot_pca` requires 2 or more valid classification results.')
 
     if tooltip:
         if not isinstance(tooltip, list):
@@ -89,7 +94,7 @@ def plot_pca(analyses,
     plot_data = pca_vals.ix[:, ('PCA1', 'PCA2')]
 
     for param in [color, size] + tooltip:
-        if param:
+        if param and param != df.index.name:
             plot_data[param] = metadata[param]
 
     plot_data['Label'] = metadata['_display_name']

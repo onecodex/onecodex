@@ -93,7 +93,7 @@ def collate_classification_results(classifications, remove_zeros=True, table_for
             - 'readcount_w_children': total reads of this taxon and all its descendants
             - 'readcount': total reads of this taxon
             - 'abundance': genome size-normalized relative abundances, from shotgun sequencing
-        rank ('kingdom' | 'phylum' | 'class' | 'order' | 'family' | 'genus' | 'species')
+        rank (None | 'kingdom' | 'phylum' | 'class' | 'order' | 'family' | 'genus' | 'species')
             - None: include all ranks
             - 'kingdom' or others: restrict analysis to taxa at this rank
         normalize (bool): convert from read counts to relative abundances (each sample sums to 1.0)
@@ -130,6 +130,10 @@ def collate_classification_results(classifications, remove_zeros=True, table_for
                 df[d_tax_id] = [0] * len(classifications)
 
             df[d_tax_id][c_idx] = d[field]
+
+    # no results collated--was an incorrect rank specified?
+    if len(tax_info) == 0:
+        raise OneCodexException('No results collated. Is taxonomic rank ({}) valid?'.format(rank))
 
     # format as a Pandas DataFrame
     df = pd.DataFrame(df) \

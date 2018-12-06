@@ -81,3 +81,33 @@ def test_collate_classifications(ocx, api_data, rank, field, remove_zeros,
         else:
             with pytest.raises(KeyError):
                 df.loc[SAMPLE_IDS[ix], TAX_IDS[ix]]
+
+
+def test_collate_classifications_formats(ocx, api_data):
+    classifications = [ocx.Classifications.get('45a573fb7833449a'),
+                       ocx.Classifications.get('593601a797914cbf')]
+
+    df, ti = collate_classification_results(classifications, table_format='wide')
+    assert df.index.tolist() == ['45a573fb7833449a', '593601a797914cbf']
+    assert df.keys().tolist() == ['1078083', '1279']
+
+    df, ti = collate_classification_results(classifications, table_format='long')
+    assert df['classification_id'].tolist() == [
+        '45a573fb7833449a', '593601a797914cbf', '45a573fb7833449a', '593601a797914cbf'
+    ]
+    assert df.keys().tolist() == ['classification_id', 'readcount_w_children', 'tax_id']
+    assert df['tax_id'].tolist() == ['1078083', '1078083', '1279', '1279']
+
+
+def test_collate_classifications_exceptions(ocx, api_data):
+    classifications = [ocx.Classifications.get('45a573fb7833449a'),
+                       ocx.Classifications.get('593601a797914cbf')]
+
+    # rank or field don't exist
+    with pytest.raises(OneCodexException) as e:
+        collate_classification_results(classifications, rank='does_not_exist')
+    assert 'No results collated' in str(e.value)
+
+    with pytest.raises(OneCodexException) as e:
+        collate_classification_results(classifications, field='does_not_exist')
+    assert 'not valid' in str(e.value)
