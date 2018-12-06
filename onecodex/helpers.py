@@ -71,7 +71,7 @@ def normalize_classifications(analyses, label=None, skip_missing=True, warn=True
     return normed_classifications, metadata
 
 
-def collate_classification_results(classifications, remove_zeros=True,
+def collate_classification_results(classifications, remove_zeros=True, table_format='wide',
                                    field='readcount_w_children', rank=None, normalize=False):
     """For a set of classifications, return the results as a Pandas DataFrame and a dict of taxa info.
 
@@ -143,5 +143,20 @@ def collate_classification_results(classifications, remove_zeros=True,
     # remove columns (tax_ids) with no values that are > 0
     if remove_zeros:
         df = df.loc[:, (df != 0).any(axis=0)]
+
+    if table_format == 'long':
+        long_df = {
+            'classification_id': [],
+            'tax_id': [],
+            field: []
+        }
+
+        for t_id in df:
+            for c_id, count in df[t_id].iteritems():
+                long_df['classification_id'].append(c_id)
+                long_df['tax_id'].append(t_id)
+                long_df[field].append(count)
+
+        df = pd.DataFrame(long_df)
 
     return df, tax_info
