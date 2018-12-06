@@ -36,16 +36,16 @@ def plot_heatmap(analyses, top_n=20, threshold=None,
         raise OneCodexException('Please specify a taxonomic rank')
 
     if not (threshold or top_n):
-        raise OneCodexException('Please set either "threshold" or "top_n"')
+        raise OneCodexException('Please specify one of: threshold, top_n')
+
+    if not isinstance(analyses, list) or len(analyses) < 2:
+        raise OneCodexException('`plot_heatmap` requires 2 or more valid classification results.')
 
     normed_classifications, metadata = normalize_classifications(analyses, label=label)
     df, tax_info = collate_classification_results(normed_classifications, field=field,
                                                   rank=rank, normalize=normalize)
 
     metadata.index = df.index
-
-    if len(df) < 2:
-        raise OneCodexException('`plot_heatmap` requires 2 or more valid classification results.')
 
     df.columns = ['{} ({})'.format(tax_info[tax_id]['name'], tax_id) for tax_id in df.columns.values]
 
@@ -66,7 +66,10 @@ def plot_heatmap(analyses, top_n=20, threshold=None,
 
     for param in tooltip:
         if param not in metadata and param != df.index.name:
-            raise OneCodexException('Column {} not found in metadata'.format(param))
+            if param.startswith('taxid_'):
+                raise NotImplementedError('Specifying taxids in tooltips not supported.')
+            else:
+                raise OneCodexException('Column {} not found in metadata'.format(param))
 
     # transfer data into something altair can handle
     plot_data = {

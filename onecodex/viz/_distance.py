@@ -1,6 +1,5 @@
-import matplotlib.pyplot as plt
+# flake8: noqa
 import pandas as pd
-import seaborn as sns
 import scipy
 import warnings
 

@@ -10,6 +10,7 @@ import pytest
 import re
 import requests
 import responses
+import gzip
 
 from onecodex import Api
 from onecodex.lib.inline_validator import BaseFASTXReader
@@ -238,6 +239,19 @@ API_DATA['GET::api/v1/classifications/bef0bc57dd7f4c43/results'] = \
     json.load(open(os.path.join('tests', 'data', 'api', 'bef0bc57dd7f4c43_table.json')))
 API_DATA['GET::api/v1/classifications/0f4ee4ecb3a3412f/results'] = \
     json.load(open(os.path.join('tests', 'data', 'api', '0f4ee4ecb3a3412f_table.json')))
+
+# load classification results for testing viz
+for c_id in ('6579e99943f84ad2', 'b50c176668234fe7', 'e0422602de41479f'):
+    # converting bytes (returned by gzip) to string is necessary is python 3.4
+    s = gzip.open(
+        os.path.join('tests', 'data', 'api', '{}_table.json.gz'.format(c_id))
+    ).read().decode('ascii')
+    API_DATA['GET::api/v1/classifications/{}/results'.format(c_id)] = json.loads(s)
+
+# and load the metadata that goes along with those samples
+for md_id in ('3e7119ee74954abd', '6b69295478de4f1f', '6be1bb8849644f7b'):
+    API_DATA['GET::api/v1/metadata/{}'.format(md_id)] = \
+        json.load(open(os.path.join('tests', 'data', 'api', '{}_metadata.json'.format(md_id))))
 
 for filename in os.listdir('tests/api_data'):
     if not filename.endswith('.json'):
