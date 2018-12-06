@@ -1,4 +1,3 @@
-import warnings
 import pandas as pd
 import altair as alt
 
@@ -8,7 +7,7 @@ from onecodex.helpers import collate_classification_results, normalize_classific
 
 def plot_heatmap(analyses, top_n=20, threshold=None,
                  label=None, title=None, xlabel=None, ylabel=None, tooltip=None,
-                 field='readcount_w_children', rank=None, normalize=False):
+                 field='readcount_w_children', rank='genus', normalize=True):
     """Plot heatmap of taxa abundance/count data for several samples.
 
     analyses (list) -- list of Samples, Classifications, or Analyses objects to be plotted
@@ -22,8 +21,7 @@ def plot_heatmap(analyses, top_n=20, threshold=None,
             - 'readcount_w_children': total reads of this taxon and all its descendants
             - 'readcount': total reads of this taxon
             - 'abundance': genome size-normalized relative abundances, from shotgun sequencing
-        rank (None | 'kingdom' | 'phylum' | 'class' | 'order' | 'family' | 'genus' | 'species')
-            - None: include all ranks
+        rank ('kingdom' | 'phylum' | 'class' | 'order' | 'family' | 'genus' | 'species')
             - 'kingdom' or others: restrict analysis to taxa at this rank
         normalize (bool): convert from read counts to relative abundances (each sample sums to 1.0)
 
@@ -34,8 +32,8 @@ def plot_heatmap(analyses, top_n=20, threshold=None,
         tooltip (list) -- display these metadata fields when points are hovered over
     """
 
-    if normalize is True and rank is None:
-        warnings.warn('Results may be meaningless if rank is None and normalize is True.')
+    if rank is None:
+        raise OneCodexException('Please specify a taxonomic rank')
 
     if not (threshold or top_n):
         raise OneCodexException('Please set either "threshold" or "top_n"')
