@@ -66,10 +66,7 @@ def plot_heatmap(analyses, top_n=20, threshold=None,
 
     for param in tooltip:
         if param not in metadata and param != df.index.name:
-            if param.startswith('taxid_'):
-                raise NotImplementedError('Specifying taxids in tooltips not supported.')
-            else:
-                raise OneCodexException('Column {} not found in metadata'.format(param))
+            raise OneCodexException('Column {} not found in metadata'.format(param))
 
     # transfer data into something altair can handle
     plot_data = {
