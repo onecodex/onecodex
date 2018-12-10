@@ -1,8 +1,9 @@
 import pytest
 import warnings
+import skbio
 
 from onecodex.exceptions import OneCodexException
-from onecodex.viz import plot_heatmap, plot_metadata, plot_pca
+from onecodex.viz import plot_heatmap, plot_metadata, plot_pca, plot_distance
 
 
 # TODO: somehow check the graphical output (JSON output to Vega?)
@@ -13,32 +14,32 @@ def test_plot_metadata(ocx, api_data):
 
     samples = [a.sample for a in analyses]
 
-    # expect a warning (issue only once) when specifying alphadiv without passing rank
+    # expect a warning (issue only once) when specifying statistic without passing rank
     with warnings.catch_warnings(record=True) as w:
-        plot_metadata(analyses, alphadiv='simpson')
+        plot_metadata(analyses, statistic='simpson')
         assert len(w) == 1
         assert 'using species' in str(w[-1].message)
 
     # should resolve samples to classifications via normalize_classifications()
-    plot_metadata(samples, alphadiv='simpson')
+    plot_metadata(samples, statistic='simpson')
 
     # try time, boolean, and numerical types for x-axis
-    plot_metadata(samples, x='date_sequenced', alphadiv='chao1')
-    plot_metadata(samples, x='starred', alphadiv='chao1')
-    plot_metadata(samples, x='totalige', alphadiv='chao1')
+    plot_metadata(samples, metadata='date_sequenced', statistic='chao1')
+    plot_metadata(samples, metadata='starred', statistic='chao1')
+    plot_metadata(samples, metadata='totalige', statistic='chao1')
 
     # taxid and taxon on vertical axis
-    plot_metadata(samples, taxid=1279)  # should coerce to string internally
-    plot_metadata(samples, taxid='1279')
-    plot_metadata(samples, taxon='Staphylococcus')
+    plot_metadata(samples, tax_id=1279)  # should coerce to string internally
+    plot_metadata(samples, tax_id='1279')
+    plot_metadata(samples, tax_name='Staphylococcus')
 
     # force a scatter to be a boxplot and vice versa
-    plot_metadata(samples, x='totalige', alphadiv='chao1', boxplot=True)
-    plot_metadata(samples, x='starred', alphadiv='chao1', scatter=True)
+    plot_metadata(samples, metadata='totalige', statistic='chao1', boxplot=True)
+    plot_metadata(samples, metadata='starred', statistic='chao1', scatter=True)
 
     # test plot labeling
     plot_metadata(
-        samples, alphadiv='simpson', title='my title', xlabel='my xlabel', ylabel='my ylabel'
+        samples, statistic='simpson', title='my title', xlabel='my xlabel', ylabel='my ylabel'
     )
 
 
@@ -49,58 +50,58 @@ def test_plot_metadata_exceptions(ocx, api_data):
 
     # cant specify more than one vert axis parameter simultaneously
     with pytest.raises(OneCodexException):
-        plot_metadata(analyses, alphadiv='simpson', metadata='_display_name')
+        plot_metadata(analyses, statistic='simpson', metadata2='_display_name')
 
     with pytest.raises(OneCodexException):
-        plot_metadata(analyses, taxid='1279', taxon='Staphylococcus')
+        plot_metadata(analyses, tax_id='1279', tax_name='Staphylococcus')
 
     # cant force boxplot and scatter plot simultaneously
     with pytest.raises(OneCodexException):
-        plot_metadata(analyses, taxid='1279', boxplot=True, scatter=True)
+        plot_metadata(analyses, tax_id='1279', boxplot=True, scatter=True)
 
     # alphadiv metric must be simpson or chao1
     with pytest.raises(OneCodexException):
-        plot_metadata(analyses, alphadiv='does_not_exist')
+        plot_metadata(analyses, statistic='does_not_exist')
 
     # vert axis metadata must exist and be numeric
     with pytest.raises(OneCodexException) as e:
-        plot_metadata(analyses, metadata='does_not_exist')
+        plot_metadata(analyses, metadata2='does_not_exist')
     assert 'not in metadata' in str(e.value)
 
     with pytest.raises(OneCodexException) as e:
-        plot_metadata(analyses, metadata='delivery')
+        plot_metadata(analyses, metadata2='delivery')
     assert 'must be numerical' in str(e.value)
 
     # taxid and taxon that don't exist
     with pytest.raises(OneCodexException) as e:
-        plot_metadata(analyses, taxid='does_not_exist')
+        plot_metadata(analyses, tax_id='does_not_exist')
     assert 'not found in analyses' in str(e.value)
 
     with pytest.raises(OneCodexException) as e:
-        plot_metadata(analyses, taxon='does_not_exist')
+        plot_metadata(analyses, tax_name='does_not_exist')
     assert 'not found in analyses' in str(e.value)
 
     # taxid and taxon that don't exist in the provided rank
     with pytest.raises(OneCodexException) as e:
-        plot_metadata(analyses, taxid='1279', rank='family')
+        plot_metadata(analyses, tax_id='1279', rank='family')
     assert 'not found in analyses' in str(e.value)
 
     with pytest.raises(OneCodexException) as e:
-        plot_metadata(analyses, taxon='Staphylococcus', rank='family')
+        plot_metadata(analyses, tax_name='Staphylococcus', rank='family')
     assert 'not found in analyses' in str(e.value)
 
     # single x-axis param must exist
     with pytest.raises(OneCodexException) as e:
-        plot_metadata(analyses, x='does_not_exist', alphadiv='simpson')
+        plot_metadata(analyses, metadata='does_not_exist', statistic='simpson')
     assert 'not in metadata' in str(e.value)
 
     # when multiple x-axis params, all must exist and be categorical
     with pytest.raises(OneCodexException) as e:
-        plot_metadata(analyses, x=['vegetables', 'does_not_exist'], alphadiv='simpson')
+        plot_metadata(analyses, metadata=['vegetables', 'does_not_exist'], statistic='simpson')
     assert 'not in metadata' in str(e.value)
 
     with pytest.raises(OneCodexException) as e:
-        plot_metadata(analyses, x=['eggs', 'totalige'], alphadiv='simpson')
+        plot_metadata(analyses, metadata=['eggs', 'totalige'], statistic='simpson')
     assert 'must be categorical' in str(e.value)
 
 
@@ -118,8 +119,15 @@ def test_plot_pca(ocx, api_data):
     # test changing size/colors by metadata
     plot_pca(analyses, color='geo_loc_name', size='totalige')
 
-    # test changing size/colors by taxid
-    plot_pca(analyses, color='taxid_1279', size='taxid_816')
+    # test changing size/colors by tax id
+    plot_pca(analyses, color='1279', size='816')
+    plot_pca(analyses, color=1279, size=816)
+
+    # test changing size/colors by taxon name
+    plot_pca(analyses, color='Bacteroides', size='Prevotella')
+
+    # test tooltips
+    plot_pca(analyses, tooltip=['totalige', 'vegetables', 'Prevotella', '816'])
 
 
 def test_plot_pca_exceptions(ocx, api_data):
@@ -158,15 +166,15 @@ def test_plot_pca_exceptions(ocx, api_data):
             plot_pca(analyses, **kwargs)
         assert 'not found in metadata' in str(e.value)
 
-        kwargs = {k: 'taxid_does_not_exist'}
+        kwargs = {k: '487527863'}
         with pytest.raises(OneCodexException) as e:
             plot_pca(analyses, **kwargs)
-        assert 'not found in analyses' in str(e.value)
+        assert 'not found in metadata' in str(e.value)
 
     # specifying taxid at incorrect rank relative to what's been specified
     with pytest.raises(OneCodexException) as e:
-        plot_pca(analyses, rank='family', color='taxid_1279', size='taxid_816')
-    assert 'not found in analyses' in str(e.value)
+        plot_pca(analyses, rank='family', color='1279', size='816')
+    assert 'not found in metadata' in str(e.value)
 
 
 def test_plot_heatmap(ocx, api_data):
@@ -209,6 +217,25 @@ def test_plot_heatmap_exceptions(ocx, api_data):
         plot_heatmap(analyses, tooltip='does_not_exist')
     assert 'not found in metadata' in str(e.value)
 
-    with pytest.raises(NotImplementedError) as e:
-        plot_heatmap(analyses, tooltip='taxid_does_not_exist')
-    assert 'not supported' in str(e.value)
+
+def test_plot_distances(ocx, api_data):
+    analyses = [ocx.Classifications.get('45a573fb7833449a'),
+                ocx.Classifications.get('593601a797914cbf')]
+
+    # Invalid distance
+    with pytest.raises(OneCodexException):
+        plot_distance(analyses, metric='simpson')
+
+    plot_distance(analyses, metric='jaccard', xlabel='X Axis', ylabel='Y Axis', title='Title')
+
+
+def test_plot_distances_exceptions(ocx, api_data):
+    analyses = [ocx.Classifications.get('45a573fb7833449a')]
+
+    with pytest.raises(OneCodexException):
+        plot_distance(analyses, metric='jaccard', xlabel='X Axis', ylabel='Y Axis', title='Title')
+
+    # Can't have just duplicate data, blows up skbio
+    analyses = analyses + analyses
+    with pytest.raises(skbio.stats.distance.DissimilarityMatrixError):
+        plot_distance(analyses, metric='jaccard', xlabel='X Axis', ylabel='Y Axis', title='Title')

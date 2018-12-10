@@ -2,12 +2,14 @@ import pandas as pd
 import numpy as np
 from sklearn.decomposition import PCA
 import altair as alt
+import warnings
 
 from onecodex.exceptions import OneCodexException
 from onecodex.helpers import collate_classification_results, normalize_classifications
 
 
-def plot_pca(analyses,
+def plot_pca(analyses, threshold=None, hue=None,  # TODO: remove threshold (unused), rename hue
+             org_vectors=0, org_vectors_scale=None,  # TODO: remove org_vectors (not implemented)
              label=None, title=None, xlabel=None, ylabel=None, color=None, size=None, tooltip=None,
              field='readcount_w_children', rank='genus', normalize=True):
     """Perform principal component analysis and plot first two axes.
@@ -29,9 +31,17 @@ def plot_pca(analyses,
         xlabel, ylabel (string) -- axes labels
         size, color (string) -- metadata field to size or color points by
         tooltip (list) -- display these metadata fields when points are hovered over
-            - For size, color, and tooltip: you can use 'taxid_N' where N is an arbitrary taxid
-              to size/color points by (or show the abundance of) that taxid
+            - For size, color, and tooltip: you can specify a tax_id or tax_name and its abundance
+              will be automatically inserted into the size/color/tooltip field
     """
+
+    # TODO: remove this code to rename hue to color
+    if hue:
+        color = hue
+
+    # TODO: remove this code when org_vectors kwargs are removed
+    if org_vectors or org_vectors_scale:
+        warnings.warn('`plot_pca` no longer supports organism vectors')
 
     if rank is None:
         raise OneCodexException('Please specify a taxonomic rank')
@@ -58,25 +68,35 @@ def plot_pca(analyses,
         tooltip = []
 
     # support point color/sizes and tooltips by taxid
+    renamed_fields = {}
+
     for param in [color, size] + tooltip:
         if param:
-            if param.startswith('taxid_'):
-                taxid = param[6:]
-
-                if taxid not in df:
-                    raise OneCodexException('Tax ID {} not found in analyses'.format(taxid))
-
-                taxon_name = tax_info[taxid]['name']
-                metadata[taxon_name] = df[taxid]
-
-                if param == color:
-                    color = taxon_name
-                elif param == size:
-                    size = taxon_name
-                else:
-                    tooltip[tooltip.index(param)] = taxon_name
+            if param in metadata or param == df.index.name:
+                # field is simply in the metadata dataframe
+                renamed_fields[param] = param
+                continue
+            elif str(param) in df.keys():
+                # it's a tax_id
+                new_field_name = '{} ({})'.format(tax_info[str(param)]['name'], param)
+                metadata[new_field_name] = df[str(param)]
+                renamed_fields[param] = new_field_name
             else:
-                if param not in metadata and param != df.index.name:
+                # it might be a tax_name
+                hits = []
+
+                for t in tax_info:
+                    if param.lower() in tax_info[t]['name'].lower():
+                        hits.append(t)
+
+                # take the lowest tax_id that maches the search query
+                hits = sorted(hits, key=int)
+
+                if hits:
+                    new_field_name = '{} ({})'.format(tax_info[hits[0]]['name'], hits[0])
+                    metadata[new_field_name] = df[hits[0]]
+                    renamed_fields[param] = new_field_name
+                else:
                     raise OneCodexException('Column {} not found in metadata'.format(param))
 
     pca = PCA()
@@ -95,20 +115,18 @@ def plot_pca(analyses,
 
     for param in [color, size] + tooltip:
         if param and param != df.index.name:
-            plot_data[param] = metadata[param]
+            plot_data[renamed_fields[param]] = metadata[renamed_fields[param]]
 
     plot_data['Label'] = metadata['_display_name']
     plot_data = plot_data.reset_index()
 
-    # put the sample label in tooltip by default
-    tooltip.insert(0, 'Label')
-
     alt_kwargs = dict(
         x=alt.X('PCA1', axis=alt.Axis(title=xlabel)),
         y=alt.Y('PCA2', axis=alt.Axis(title=ylabel)),
-        color=color,
-        size=size,
-        tooltip=tooltip,
+        color=renamed_fields[color] if color else None,
+        size=renamed_fields[size] if size else None,
+        # put the sample label in tooltip by default
+        tooltip=['Label'] + [renamed_fields[t] for t in tooltip if t],
         href='url:N',
         url='https://app.onecodex.com/classification/' + alt.datum.classification_id
     )
