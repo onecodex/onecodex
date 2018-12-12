@@ -218,24 +218,36 @@ def test_plot_heatmap_exceptions(ocx, api_data):
     assert 'not found in metadata' in str(e.value)
 
 
-def test_plot_distances(ocx, api_data):
-    analyses = [ocx.Classifications.get('45a573fb7833449a'),
-                ocx.Classifications.get('593601a797914cbf')]
+@pytest.mark.parametrize('metric', ('braycurtis', 'jaccard', 'unifrac', 'manhattan'))
+def test_plot_distances(ocx, api_data, metric):
+    analyses = [ocx.Classifications.get('6579e99943f84ad2'),
+                ocx.Classifications.get('b50c176668234fe7'),
+                ocx.Classifications.get('e0422602de41479f')]
 
-    # Invalid distance
-    with pytest.raises(OneCodexException):
-        plot_distance(analyses, metric='simpson')
-
-    plot_distance(analyses, metric='jaccard', xlabel='X Axis', ylabel='Y Axis', title='Title')
+    plot_distance(analyses, metric=metric, xlabel='my xlabel', ylabel='my ylabel', title='my title')
 
 
 def test_plot_distances_exceptions(ocx, api_data):
-    analyses = [ocx.Classifications.get('45a573fb7833449a')]
+    analyses = [ocx.Classifications.get('6579e99943f84ad2'),
+                ocx.Classifications.get('b50c176668234fe7'),
+                ocx.Classifications.get('e0422602de41479f')]
 
-    with pytest.raises(OneCodexException):
-        plot_distance(analyses, metric='jaccard', xlabel='X Axis', ylabel='Y Axis', title='Title')
+    # taxonomic rank must be specified
+    with pytest.raises(OneCodexException) as e:
+        plot_distance(analyses, rank=None)
+    assert 'specify a taxonomic rank' in str(e.value)
 
-    # Can't have just duplicate data, blows up skbio
+    # only some metrics allowed
+    with pytest.raises(OneCodexException) as e:
+        plot_distance(analyses, metric='simpson')
+    assert 'must be one of' in str(e.value)
+
+    # need more than one analysis
+    with pytest.raises(OneCodexException) as e:
+        plot_distance(analyses[0], metric='jaccard', xlabel='my xlabel', ylabel='my ylabel', title='my title')
+    assert 'requires 2 or more' in str(e.value)
+
+    # duplicated data blows up skbio
     analyses = analyses + analyses
     with pytest.raises(skbio.stats.distance.DissimilarityMatrixError):
-        plot_distance(analyses, metric='jaccard', xlabel='X Axis', ylabel='Y Axis', title='Title')
+        plot_distance(analyses, metric='jaccard', xlabel='my xlabel', ylabel='my ylabel', title='my title')

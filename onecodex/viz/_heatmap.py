@@ -102,7 +102,9 @@ def plot_heatmap(analyses, top_n=20, threshold=None,
 
     alt.renderers.enable('notebook')
 
-    chart = alt.Chart(plot_data) \
+    chart = alt.Chart(plot_data,
+                      width=15 * len(df.index),
+                      height=15 * len(df.keys())) \
                .transform_calculate(url=alt_kwargs.pop('url')) \
                .mark_rect() \
                .encode(**alt_kwargs)

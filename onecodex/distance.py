@@ -1,4 +1,5 @@
 import skbio.diversity
+import warnings
 
 from skbio.tree import TreeNode
 
@@ -92,6 +93,28 @@ def unifrac(classifications, weighted=True,
 
     # prune low-level nodes off the tree so the tips are what we're comparing
     prune_to_rank(new_tree, rank=rank)
+
+    # find nodes that aren't tips, prune, and warn--they may be errors in taxonomy
+    counts_to_remove = []
+
+    for t_id in tax_ids:
+        node = tree.find(t_id)
+
+        if not node.is_tip():
+            warnings.warn('Found tax_id={} as an internal node (children={}), expected a tip'.format(t_id, ', '.join([x.name for x in node.children])))
+        else:
+            continue
+
+        # remove its children, keep the original node
+        for child in node.children:
+            counts_to_remove.append(tax_ids.index(child.name))
+            tax_ids.remove(child.name)
+
+        node.children = []
+
+    for count_idx in counts_to_remove:
+        for sample_idx in range(len(counts)):
+            del counts[sample_idx][count_idx]
 
     if weighted:
         return skbio.diversity.beta_diversity('weighted_unifrac', counts, ids,

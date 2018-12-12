@@ -1,21 +1,19 @@
-import matplotlib.pyplot as plt
-import seaborn as sns
+import numpy as np
 import pandas as pd
-import scipy
-import warnings
+import altair as alt
+from scipy.cluster import hierarchy
+from scipy.spatial.distance import squareform
 
 from onecodex.exceptions import OneCodexException
-from onecodex.helpers import normalize_classifications
+from onecodex.helpers import normalize_classifications, collate_classification_results
 from onecodex.distance import braycurtis, cityblock, jaccard, unifrac
 
 
 def plot_distance(analyses, metric='braycurtis',
-                  title=None, label=None, xlabel=None, ylabel=None,
-                  field='readcount_w_children', rank='species', **kwargs):
-    """Plot beta diversity distance matrix.
+                  label=None, title=None, xlabel=None, ylabel=None,
+                  field='readcount_w_children', rank='species', normalize=True):
+    """Plot beta diversity distance matrix."""
 
-    Additional **kwargs are passed to Seaborn's `sns.clustermap`.
-    """
     # if taxonomy trees are inconsistent, unifrac will not work
     if metric in ['braycurtis', 'bray-curtis', 'bray curtis']:
         f = braycurtis
@@ -29,43 +27,94 @@ def plot_distance(analyses, metric='braycurtis',
         raise OneCodexException("'metric' must be one of "
                                 "braycurtis, manhattan, jaccard, or unifrac")
 
-    normed_classifications, metadata = normalize_classifications(analyses, label=label)
-    if len(normed_classifications) < 2:
+    if rank is None:
+        raise OneCodexException('Please specify a taxonomic rank')
+
+    if not isinstance(analyses, list) or len(analyses) < 2:
         raise OneCodexException('`plot_distance` requires 2 or more valid classification results.')
 
-    sns.set(style=kwargs.pop('style', 'darkgrid'))
+    normed_classifications, metadata = normalize_classifications(analyses, label=label)
+    df, tax_info = collate_classification_results(normed_classifications, field=field,
+                                                  rank=rank, normalize=normalize)
 
-    # there is no uniqueness constraint on metadata names
-    # so plot by uuid, then replace the labels in the dataframe with their names
-    uuids = {}
-    sample_names = {}
-    for idx, analysis in enumerate(normed_classifications):
-        uuids[analysis.id] = analysis.id
-        sample_names[analysis.id] = metadata.loc[idx, '_display_name']
-
+    metadata.index = df.index
     distances = f(normed_classifications, field=field, rank=rank)
-    ids = distances.ids
-    distance_matrix = distances.data
+
+    plot_data = {
+        'label1': [],
+        'label2': [],
+        'distance': []
+    }
+
     dists = {}
-    for idx1, id1 in enumerate(ids):
-        dists[uuids[id1]] = {}
-        for idx2, id2 in enumerate(ids):
-            dists[uuids[id1]][uuids[id2]] = distance_matrix[idx1][idx2]
-    dists = pd.DataFrame(dists).rename(index=sample_names, columns=sample_names)
 
-    # Plot cluster map; ignore new SciPy cluster warnings
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore', scipy.cluster.hierarchy.ClusterWarning)
-        g = sns.clustermap(dists, **kwargs)
+    for idx1, id1 in enumerate(distances.ids):
+        dists[id1] = {}
 
-    plt.setp(g.ax_heatmap.yaxis.get_majorticklabels(), rotation=0)
+        for idx2, id2 in enumerate(distances.ids):
+            if idx1 == idx2:
+                plot_data['distance'].append(np.nan)
+            else:
+                plot_data['distance'].append(distances.data[idx1][idx2])
 
-    # Labels
-    if xlabel is not None:
-        plt.gca().set_xlabel(xlabel)
-    if ylabel is not None:
-        plt.gca().set_ylabel(ylabel)
+            plot_data['label1'].append(metadata['_display_name'][id1])
+            plot_data['label2'].append(metadata['_display_name'][id2])
+
+            dists[id1][id2] = distances.data[idx1][idx2]
+
+    plot_data = pd.DataFrame(data=plot_data)
+
+    dists = pd.DataFrame(dists)
+    dists.index.name = 'classification_id'
+
+    clustering = hierarchy.linkage(squareform(dists), method='average')
+    tree = hierarchy.dendrogram(clustering, no_plot=True)
+    class_ids_in_order = [dists.index[int(x)] for x in tree['ivl']]
+    names_in_order = metadata['_display_name'][class_ids_in_order].tolist()
+
+    alt_kwargs = dict(
+        x=alt.X('label1:N', axis=alt.Axis(title=xlabel), sort=names_in_order),
+        y=alt.Y('label2:N', axis=alt.Axis(title=ylabel, orient='right'), sort=names_in_order),
+        color='distance:Q',
+        tooltip=['label1', 'label2', 'distance:Q'],
+    )
+
+    alt.renderers.enable('notebook')
+
+    chart = alt.Chart(plot_data,
+                      width=15 * len(distances.ids),
+                      height=15 * len(distances.ids)) \
+               .mark_rect() \
+               .encode(**alt_kwargs)
 
     if title:
-        g.fig.suptitle(title)
-    plt.show()
+        chart = chart.properties(title=title)
+
+    plot_data = {
+        'x': [],
+        'y': [],
+        'o': [],  # order these points should be connected in
+        'b': []   # one number per branch
+    }
+
+    for idx, (i, d) in enumerate(zip(tree['icoord'], tree['dcoord'])):
+        plot_data['x'].extend(map(lambda x: -x, d))
+        plot_data['y'].extend(map(lambda x: -x, i))
+        plot_data['o'].extend([0, 1, 2, 3])
+        plot_data['b'].extend([idx] * 4)
+
+    plot_data = pd.DataFrame(plot_data)
+
+    dendro_chart = alt.Chart(plot_data,
+                             width=100,
+                             height=15 * len(distances.ids)) \
+                      .mark_line(point=False, opacity=0.5) \
+                      .encode(x=alt.X('x', axis=None),
+                              y=alt.Y('y', axis=None),
+                              order='o',
+                              color=alt.Color('b:N',
+                                              scale=alt.Scale(domain=list(range(100)),
+                                                              range=['black'] * 100),
+                                              legend=None))
+
+    (dendro_chart | chart).display()
