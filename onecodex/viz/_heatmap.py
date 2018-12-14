@@ -4,7 +4,7 @@ from onecodex.exceptions import OneCodexException
 
 
 class VizHeatmapMixin():
-    def plot_heatmap(self, rank='auto', normalize='auto',
+    def plot_heatmap(self, rank='auto', normalize='auto', return_chart=False,
                      top_n=20, threshold=None,
                      title=None, xlabel=None, ylabel=None, tooltip=None):
         """Plot heatmap of taxa abundance/count data for several samples.
@@ -87,4 +87,7 @@ class VizHeatmapMixin():
         if title:
             chart = chart.properties(title=title)
 
-        chart.interactive().display()
+        if return_chart:
+            return chart
+        else:
+            chart.interactive().display()

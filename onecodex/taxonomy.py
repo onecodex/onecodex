@@ -2,7 +2,7 @@ import warnings
 
 
 class TaxonomyMixin():
-    def skbio_tree_build(self):
+    def tree_build(self):
         from skbio.tree import TreeNode
 
         # build all the nodes
@@ -31,7 +31,23 @@ class TaxonomyMixin():
 
         return nodes['1']
 
-    def skbio_tree_prune(self, tree, rank='species'):
+    def tree_prune_tax_ids(self, tree, tax_ids=[]):
+        """
+        Prunes a tree back to contain only the tax_ids in the list and their parents.
+        """
+
+        tax_ids_to_keep = []
+
+        for tax_id in tax_ids:
+            tax_ids_to_keep.append(tax_id)
+            tax_ids_to_keep.extend([x.name for x in tree.find(tax_id).ancestors()])
+
+        tree = tree.copy()
+        tree.remove_deleted(lambda n: n.name not in tax_ids_to_keep)
+
+        return tree
+
+    def tree_prune_rank(self, tree, rank='species'):
         """
         Takes a TreeNode tree and prunes off any tips not at the specified rank
         and backwards up until all of the tips are at the specified rank.

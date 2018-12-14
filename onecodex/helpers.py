@@ -6,7 +6,6 @@ import six
 from onecodex.exceptions import OneCodexException
 from onecodex.models import Analyses, Classifications, Samples, Metadata
 from onecodex.viz import VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceMixin
-from onecodex.distance import DistanceMixin
 
 
 # force persistence of our additional taxonomy and metadata dataframe properties
@@ -52,8 +51,8 @@ class ResultsSeries(pd.Series):
         return ResultsDataFrame
 
 
-class SampleCollection(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, DistanceMixin, VizDistanceMixin):
-    _immutable = ['_immutable', 'field', '_analyses', '_results', '_metadata', '_taxonomy', '_classifications']
+class SampleCollection(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceMixin):
+    _immutable = ['_immutable', 'field', '_analyses', '_classifications', '_results', '_metadata', '_taxonomy', ]
 
     def __init__(self, analyses, **kwargs):
         self.__setattr__('_analyses', analyses, force=True)
@@ -70,6 +69,11 @@ class SampleCollection(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, DistanceM
 
     def _get_auto_rank(self, rank):
         if rank == 'auto':
+            # if we're an accessor for a ResultsDataFrame, we have no idea what ranks are present
+            # and so we must set rank to None
+            if isinstance(self, OneCodexAccessor):
+                return None
+
             if self.field == 'abundance':
                 return 'species'
             else:
@@ -411,7 +415,24 @@ class SampleCollection(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, DistanceM
 @pd.api.extensions.register_dataframe_accessor('ocx')
 class OneCodexAccessor(SampleCollection):
     def __init__(self, pandas_obj):
+        # copy data from the ResultsDataFrame to a new instance of SampleCollection
         super(OneCodexAccessor, self).__setattr__('_results', pandas_obj, force=True)
         super(OneCodexAccessor, self).__setattr__('field', pandas_obj.ocx_field, force=True)
         super(OneCodexAccessor, self).__setattr__('_taxonomy', pandas_obj.ocx_taxonomy, force=True)
         super(OneCodexAccessor, self).__setattr__('_metadata', pandas_obj.ocx_metadata, force=True)
+
+        # prune back _taxonomy df to contain only taxa present in the ResultsDataFrame (and parents)
+        tree = self.tree_build()
+        tree = self.tree_prune_tax_ids(tree, self._results.keys())
+
+        tax_ids_to_keep = [x.name for x in tree.traverse()]
+
+        super(OneCodexAccessor, self).__setattr__('_taxonomy', self._taxonomy.loc[tax_ids_to_keep], force=True)
+
+        # similarly restrict _metadata df to contain only data relevant to samples currently in ResultsDataFrame
+        super(OneCodexAccessor, self).__setattr__('_metadata', self._metadata.loc[self._results.index], force=True)
+
+        # these methods are not available in this context
+        del self.magic_classification_fetch
+        del self.collate_metadata
+        del self.collate_results
