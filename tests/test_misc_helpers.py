@@ -1,5 +1,6 @@
-from onecodex.lib.auth import check_version
 import pytest
+
+from onecodex.lib.auth import check_version
 from tests.conftest import mock_requests
 
 

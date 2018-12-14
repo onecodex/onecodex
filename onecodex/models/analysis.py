@@ -1,6 +1,6 @@
+from collections import defaultdict, OrderedDict
 import datetime
 import json
-from collections import defaultdict, OrderedDict
 
 from onecodex.models import OneCodexBase
 

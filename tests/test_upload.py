@@ -1,9 +1,8 @@
 from collections import OrderedDict
 from io import BytesIO
-from requests_toolbelt import MultipartEncoder
-
 from mock import patch
 import pytest
+from requests_toolbelt import MultipartEncoder
 
 from onecodex.lib.inline_validator import FASTXTranslator
 from onecodex.lib.upload import upload, upload_file, upload_large_file, interleaved_filename

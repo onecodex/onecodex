@@ -2,11 +2,6 @@ from __future__ import print_function
 import datetime
 import json
 import pandas as pd
-
-import onecodex
-from onecodex import Api
-from onecodex.exceptions import MethodNotSupported
-
 import pytest
 import responses
 
@@ -14,6 +9,10 @@ try:
     from urllib.parse import unquote_plus  # Py3
 except ImportError:
     from urllib import unquote_plus
+
+import onecodex
+from onecodex import Api
+from onecodex.exceptions import MethodNotSupported
 
 
 def test_api_creation(api_data):

@@ -1,19 +1,18 @@
 from datetime import datetime
+from dateutil.parser import parse
 import inspect
 import itertools
 import json
-import sys
-
-from dateutil.parser import parse
 import pytz
 from requests.exceptions import HTTPError
 import six
+import sys
 
-from onecodex.vendored.potion_client.converter import PotionJSONEncoder
-from onecodex.vendored.potion_client.resource import Resource
 from onecodex.exceptions import MethodNotSupported, PermissionDenied, ServerError
 from onecodex.models.helpers import (check_bind, generate_potion_sort_clause,
                                      generate_potion_keyword_where)
+from onecodex.vendored.potion_client.converter import PotionJSONEncoder
+from onecodex.vendored.potion_client.resource import Resource
 
 
 DEFAULT_PAGE_SIZE = 200

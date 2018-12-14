@@ -1,11 +1,11 @@
 import bz2
 import gzip
 from io import BytesIO
+import pytest
 import random
 import sys
 import warnings
 
-import pytest
 
 from onecodex.exceptions import ValidationError, ValidationWarning
 from onecodex.lib.inline_validator import FASTXNuclIterator, FASTXReader, FASTXTranslator

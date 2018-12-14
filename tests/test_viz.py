@@ -1,6 +1,6 @@
 import pytest
-import warnings
 import skbio
+import warnings
 
 from onecodex.exceptions import OneCodexException
 from onecodex.viz import plot_heatmap, plot_metadata, plot_pca, plot_distance

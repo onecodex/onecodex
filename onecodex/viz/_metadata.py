@@ -30,7 +30,7 @@ def box_plot(df, category, quantity, category_type='N',
         x=x_format
     )
 
-    middle_plot = alt.Chart(df).mark_bar(size=15.0).encode(
+    middle_plot = alt.Chart(df).mark_bar(size=35.0).encode(
         y=lower_box,
         y2=upper_box,
         x=x_format
@@ -44,14 +44,12 @@ def box_plot(df, category, quantity, category_type='N',
 
     middle_tick = alt.Chart(df).mark_tick(
         color='black',
-        size=15.0
+        size=35.0
     ).encode(
         y='median({}):Q'.format(quantity),
-        x=alt.X(x_format, axis=alt.Axis(title=xlabel)),
+        x=alt.X(x_format, axis=alt.Axis(title=xlabel), scale=alt.Scale(rangeStep=45)),
         tooltip='median({}):Q'.format(quantity)
     )
-
-    alt.renderers.enable('notebook')
 
     chart = (lower_plot + middle_plot + upper_plot + middle_tick)
 
@@ -61,10 +59,10 @@ def box_plot(df, category, quantity, category_type='N',
     chart.interactive().display()
 
 
-def plot_metadata(analyses, metadata='Label',
-                  statistic=None, metadata2=None, tax_id=None, tax_name=None,
-                  label=None, title=None, xlabel=None, ylabel=None, boxplot=None, scatter=None,
-                  field='readcount_w_children', rank=None, normalize=True):
+def plot_metadata(analyses, metadata='Label', statistic=None, tax_id=None,
+                  title=None, label=None, xlabel=None, ylabel=None,
+                  field='readcount_w_children', rank=None, normalize=True,
+                  metadata2=None, tax_name=None, boxplot=None, scatter=None):
     """Plot an arbitrary metadata field versus an arbitrary quantity as a boxplot or scatter plot.
 
     analyses (list) -- list of Samples, Classifications, or Analyses objects to be plotted
@@ -96,7 +94,7 @@ def plot_metadata(analyses, metadata='Label',
         scatter (bool) -- force output a scatter plot
     """
 
-    if sum(map(bool, [statistic, metadata2, tax_id, tax_name])) in (0, 2, 3, 4):
+    if sum(map(bool, [statistic, metadata2, tax_id, tax_name])) != 1:
         raise OneCodexException(
             'Please specify exactly one of: statistic, metadata2, tax_id, tax_name'
         )
@@ -285,8 +283,6 @@ def plot_metadata(analyses, metadata='Label',
     # we can't really tell the difference between data in column 'x' that should be displayed as
     # ordinal or quantitative. should the default behavior for numerical data be scatter?
     if scatter:
-        alt.renderers.enable('notebook')
-
         plot_data['Label'] = metadata_df['Label']
 
         alt_kwargs = dict(

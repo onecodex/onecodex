@@ -1,6 +1,5 @@
-import os
-
 import mock
+import os
 import pytest
 from raven import Client as RavenClient
 

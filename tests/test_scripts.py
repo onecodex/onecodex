@@ -1,8 +1,7 @@
 import hashlib
 import os
-import shutil
-
 import pytest
+import shutil
 
 from onecodex import Cli
 from tests.test_cli import make_creds_file

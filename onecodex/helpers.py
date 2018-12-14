@@ -1,7 +1,6 @@
 import pandas as pd
-import warnings
-
 import six
+import warnings
 
 from onecodex.exceptions import OneCodexException
 from onecodex.models import Analyses, Classifications, Samples, Metadata
@@ -71,8 +70,9 @@ def normalize_classifications(analyses, label=None, skip_missing=True, warn=True
     return normed_classifications, metadata
 
 
-def collate_classification_results(classifications, remove_zeros=True, table_format='wide',
-                                   field='readcount_w_children', rank=None, normalize=False):
+def collate_classification_results(classifications, field='readcount_w_children', rank=None,
+                                   remove_zeros=True, table_format='wide', multi_index=False,
+                                   normalize=False):
     """For a set of classifications, return the results as a Pandas DataFrame and a dict of taxa info.
 
     Note: The output format is not guaranteed to be stable at this time (i.e., column orderings,
@@ -98,6 +98,9 @@ def collate_classification_results(classifications, remove_zeros=True, table_for
             - 'kingdom' or others: restrict analysis to taxa at this rank
         normalize (bool): convert from read counts to relative abundances (each sample sums to 1.0)
     """
+
+    if multi_index:
+        warnings.warn('multi_index has been removed--do not use!')
 
     if field not in ('abundance', 'readcount', 'readcount_w_children'):
         raise OneCodexException('Specified field ({}) not valid.'.format(field))

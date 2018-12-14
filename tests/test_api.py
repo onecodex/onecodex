@@ -3,9 +3,9 @@ test_api.py
 author: @mbiokyle29
 """
 import json
+from pkg_resources import resource_string
 import responses
 import unittest
-from pkg_resources import resource_string
 
 from onecodex import Api
 
