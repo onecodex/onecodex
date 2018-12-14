@@ -10,7 +10,7 @@ from onecodex.distance import braycurtis, cityblock, jaccard, unifrac
 
 
 def plot_distance(analyses, metric='braycurtis',
-                  label=None, title=None, xlabel=None, ylabel=None,
+                  title=None, label=None, xlabel=None, ylabel=None,
                   field='readcount_w_children', rank='species', normalize=True):
     """Plot beta diversity distance matrix."""
 
@@ -78,8 +78,6 @@ def plot_distance(analyses, metric='braycurtis',
         color='distance:Q',
         tooltip=['label1', 'label2', 'distance:Q'],
     )
-
-    alt.renderers.enable('notebook')
 
     chart = alt.Chart(plot_data,
                       width=15 * len(distances.ids),

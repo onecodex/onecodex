@@ -8,10 +8,11 @@ from onecodex.exceptions import OneCodexException
 from onecodex.helpers import collate_classification_results, normalize_classifications
 
 
-def plot_pca(analyses, threshold=None, hue=None,  # TODO: remove threshold (unused), rename hue
-             org_vectors=0, org_vectors_scale=None,  # TODO: remove org_vectors (not implemented)
-             label=None, title=None, xlabel=None, ylabel=None, color=None, size=None, tooltip=None,
-             field='readcount_w_children', rank='genus', normalize=True):
+def plot_pca(analyses, threshold=None,
+             title=None, hue=None, xlabel=None, ylabel=None,
+             org_vectors=0, org_vectors_scale=None,
+             field='readcount_w_children', rank='genus', normalize=True,
+             label=None, color=None, size=None, tooltip=None):
     """Perform principal component analysis and plot first two axes.
 
     analyses (list) -- list of Samples, Classifications, or Analyses objects to be PCA'd
@@ -132,7 +133,7 @@ def plot_pca(analyses, threshold=None, hue=None,  # TODO: remove threshold (unus
     )
 
     # remove unused kwargs, altair doesn't like them
-    for param in ('color', 'size', 'tooltip'):
+    for param in ['color', 'size', 'tooltip']:
         if not alt_kwargs[param]:
             alt_kwargs.pop(param)
 

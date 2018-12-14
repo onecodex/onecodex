@@ -6,7 +6,7 @@ from onecodex.helpers import collate_classification_results, normalize_classific
 
 
 def plot_heatmap(analyses, top_n=20, threshold=None,
-                 label=None, title=None, xlabel=None, ylabel=None, tooltip=None,
+                 title=None, label=None, xlabel=None, ylabel=None, tooltip=None,
                  field='readcount_w_children', rank='genus', normalize=True):
     """Plot heatmap of taxa abundance/count data for several samples.
 
@@ -99,8 +99,6 @@ def plot_heatmap(analyses, top_n=20, threshold=None,
         href='url:N',
         url='https://app.onecodex.com/classification/' + alt.datum.classification_id
     )
-
-    alt.renderers.enable('notebook')
 
     chart = alt.Chart(plot_data,
                       width=15 * len(df.index),

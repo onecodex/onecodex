@@ -4,21 +4,19 @@ author: @mbiokyle29 / @boydgreenfield
 - Adapted from v0 auth.py
 """
 from __future__ import print_function
+import click
 import datetime
+import errno
+from functools import wraps
 import json
 import logging
 import os
 import sys
-import errno
-
-import click
-
-from functools import wraps
 
 from onecodex.api import Api
+from onecodex.lib.auth import check_version, fetch_api_key_from_uname
 from onecodex.utils import collapse_user
 from onecodex.version import __version__
-from onecodex.lib.auth import check_version, fetch_api_key_from_uname
 
 
 log = logging.getLogger(__name__)

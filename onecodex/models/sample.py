@@ -1,15 +1,14 @@
 import os
-import sys
-import warnings
-
 import requests
 from requests.exceptions import HTTPError
 from six import string_types
+import sys
+import warnings
 
 from onecodex.exceptions import OneCodexException
+from onecodex.lib.upload import upload  # upload_file
 from onecodex.models import OneCodexBase, Projects
 from onecodex.models.helpers import truncate_string
-from onecodex.lib.upload import upload  # upload_file
 from onecodex.utils import snake_case
 
 

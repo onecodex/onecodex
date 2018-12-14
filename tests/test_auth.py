@@ -1,6 +1,7 @@
+from requests.auth import HTTPBasicAuth
+
 from onecodex import Api
 from onecodex.lib.auth import BearerTokenAuth
-from requests.auth import HTTPBasicAuth
 
 
 def test_bearer_auth_from_env(api_data, monkeypatch):

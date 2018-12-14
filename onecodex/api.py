@@ -6,20 +6,20 @@ One Codex API
 """
 from __future__ import print_function
 from datetime import datetime
+import errno
 import json
 import logging
 import os
-import warnings
-import errno
-
 from requests.auth import HTTPBasicAuth
+import warnings
 
-from onecodex.vendored.potion_client import Client as PotionClient
-from onecodex.vendored.potion_client.converter import PotionJSONSchemaDecoder, PotionJSONDecoder, PotionJSONEncoder
-from onecodex.vendored.potion_client.utils import upper_camel_case
 from onecodex.lib.auth import BearerTokenAuth
 from onecodex.models import _model_lookup
 from onecodex.utils import ModuleAlias, get_raven_client, collapse_user
+from onecodex.vendored.potion_client import Client as PotionClient
+from onecodex.vendored.potion_client.converter import PotionJSONSchemaDecoder, PotionJSONDecoder, PotionJSONEncoder
+from onecodex.vendored.potion_client.utils import upper_camel_case
+
 
 log = logging.getLogger(__name__)
 
@@ -61,6 +61,8 @@ class Api(object):
                 try:
                     api_key = json.load(open(creds_file, 'r'))['api_key']
                 except KeyError:
+                    # lacking an api_key doesn't mean the file is corrupt--it can just be that the
+                    # schema was cached after logging in anonymously
                     pass
                 except ValueError:
                     warnings.warn('Credentials file ({}) is corrupt'

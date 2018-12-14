@@ -3,13 +3,16 @@ utils.py
 author: @mbiokyle29
 """
 import base64
+from click import BadParameter, Context, echo
+from functools import wraps
 import importlib
 import json
 import logging
 import os
-import sys
 import platform
 import re
+import requests
+import sys
 
 try:
     from StringIO import StringIO
@@ -20,11 +23,6 @@ try:
     from urlparse import urlparse
 except ImportError:
     from urllib.parse import urlparse
-
-from functools import wraps
-
-import requests
-from click import BadParameter, Context, echo
 
 from onecodex.vendored.potion_client.converter import PotionJSONEncoder
 from onecodex.exceptions import OneCodexException, UploadException

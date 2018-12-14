@@ -4,14 +4,9 @@ author: @mbiokyle29
 """
 from click import BadParameter
 from functools import partial
-from onecodex.utils import snake_case
 import pytest
 
-
-from onecodex.utils import (
-    check_for_allowed_file,
-    valid_api_key
-)
+from onecodex.utils import snake_case, check_for_allowed_file, valid_api_key
 
 
 def test_check_allowed_file():

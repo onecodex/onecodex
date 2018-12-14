@@ -1,8 +1,13 @@
-from onecodex.exceptions import ValidationError
-from tests.conftest import ocx
-import pytest
 import mock
-from onecodex.metadata_upload import validate_appendables, validate_tags, validate_metadata, validate_metadata_against_schema, validate_number, validate_enum, validate_boolean, validate_datetime, is_blacklisted, coerce_custom_value
+import pytest
+
+from onecodex.exceptions import ValidationError
+from onecodex.metadata_upload import (
+    validate_appendables, validate_tags, validate_metadata, validate_metadata_against_schema,
+    validate_number, validate_enum, validate_boolean, validate_datetime, is_blacklisted,
+    coerce_custom_value
+)
+from tests.conftest import ocx
 
 
 def schema_rules(value):

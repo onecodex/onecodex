@@ -1,16 +1,12 @@
-# General imports
+from click.testing import CliRunner
 import datetime
 import json
 import os
-
-# Testing imports
-from click.testing import CliRunner
 import pytest
 from testfixtures import Replace
 
-# Module imports
-from tests.conftest import API_DATA
 from onecodex import Cli
+from tests.conftest import API_DATA
 
 DATE_FORMAT = '%Y-%m-%d %H:%M'
 

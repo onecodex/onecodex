@@ -4,23 +4,24 @@ cli.py
 author: @mbiokyle29
 """
 from __future__ import print_function
+import click
 import logging
 import os
 import re
 import sys
 import warnings
-import click
 
+from onecodex.api import Api
+from onecodex.auth import _login, _logout, _remove_creds, login_required
+from onecodex.exceptions import (ValidationWarning,
+                                 ValidationError, UploadException)
+from onecodex.metadata_upload import validate_appendables
+from onecodex.scripts import filter_reads
 from onecodex.utils import (cli_resource_fetcher, download_file_helper,
                             valid_api_key, OPTION_HELP, pprint, pretty_errors,
                             warn_if_insecure_platform, telemetry)
-from onecodex.api import Api
-from onecodex.exceptions import (ValidationWarning,
-                                 ValidationError, UploadException)
-from onecodex.auth import _login, _logout, _remove_creds, login_required
-from onecodex.scripts import filter_reads
 from onecodex.version import __version__
-from onecodex.metadata_upload import validate_appendables
+
 
 # set the context for getting -h also
 CONTEXT_SETTINGS = dict(

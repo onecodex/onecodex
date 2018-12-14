@@ -2,6 +2,7 @@ from __future__ import print_function
 from click.testing import CliRunner
 from contextlib import contextmanager
 import datetime
+import gzip
 import json
 import mock
 import os
@@ -10,7 +11,6 @@ import pytest
 import re
 import requests
 import responses
-import gzip
 
 from onecodex import Api
 from onecodex.lib.inline_validator import BaseFASTXReader

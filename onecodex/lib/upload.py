@@ -9,14 +9,13 @@ from math import floor
 from multiprocessing import Value
 import os
 import re
-from threading import BoundedSemaphore, Thread
-
-import warnings
 import requests
 from requests_toolbelt import MultipartEncoder
+from threading import BoundedSemaphore, Thread
+import warnings
 
-from onecodex.lib.inline_validator import FASTXReader, FASTXTranslator
 from onecodex.exceptions import OneCodexException, UploadException, process_api_error
+from onecodex.lib.inline_validator import FASTXReader, FASTXTranslator
 
 
 MULTIPART_SIZE = 5 * 1000 * 1000 * 1000

@@ -48,3 +48,4 @@ def onecodex_theme():
 
 alt.themes.register('onecodex', onecodex_theme)
 alt.themes.enable('onecodex')
+alt.renderers.enable('notebook')
