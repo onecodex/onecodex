@@ -11,29 +11,34 @@ from onecodex.distance import DistanceMixin
 
 class VizDistanceMixin(DistanceMixin):
     def plot_distance(self, rank='auto', metric='braycurtis',
-                      label=None, title=None, xlabel=None, ylabel=None, tooltip=None):
+                      title=None, xlabel=None, ylabel=None, tooltip=None):
         """Plot beta diversity distance matrix as a heatmap and dendrogram.
 
-        metric -- one of: braycurtis, manhattan, jaccard, unifrac, unweighted_unifrac
+        Parameters
+        ----------
+        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+            Analysis will be restricted to abundances of taxa at the specified level.
+        metric : {'braycurtis', 'manhattan', 'jaccard', 'unifrac', 'unweighted_unifrac}, optional
+            Function to use when calculating the distance between two samples.
+        title : `string`, optional
+            Text label at the top of the plot.
+        xlabel : `string`, optional
+            Text label along the horizontal axis.
+        ylabel : `string`, optional
+            Text label along the vertical axis.
+        tooltip : `string` or `list`, optional
+            A string or list containing strings representing metadata fields. When a point in the
+            plot is hovered over, the value of the metadata associated with that sample will be
+            displayed in a modal.
 
-        Options for tabulation of classification results:
-            rank ('auto' | kingdom' | 'phylum' | 'class' | 'order' | 'family' | 'genus' | 'species')
-                - 'auto': choose automatically based on fields
-                - 'kingdom' or others: restrict analysis to taxa at this rank
-            normalize ('auto' | True | False):
-                - 'auto': normalize data if readcount or readcount_w_children
-                -  True: convert from read counts to relative abundances (each sample sums to 1.0)
+        Examples
+        --------
+        Plot the weighted UniFrac distance between all our samples, using counts at the genus level.
 
-        Options for plotting:
-            title (string) -- main title of the plot
-            xlabel, ylabel (string) -- axes labels
-            tooltip (list) -- display these metadata fields when points are hovered over
+        >>> plot_distance(rank='genus', metric='unifrac')
         """
-
         if rank is None:
             raise OneCodexException('Please specify a rank or \'auto\' to choose automatically')
-        else:
-            rank = self._get_auto_rank(rank)
 
         if len(self._results) < 2:
             raise OneCodexException('`plot_distance` requires 2 or more valid classification results.')

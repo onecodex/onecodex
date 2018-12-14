@@ -10,15 +10,13 @@ from onecodex.viz import VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDist
 
 # force persistence of our additional taxonomy and metadata dataframe properties
 class ResultsDataFrame(pd.DataFrame):
-    _metadata = ['ocx_field', 'ocx_taxonomy', 'ocx_metadata']
+    _metadata = ['ocx_rank', 'ocx_field', 'ocx_taxonomy', 'ocx_metadata']
 
     def __init__(self, data=None, index=None, columns=None, dtype=None, copy=False, ocx_data={}):
-        try:
-            self.ocx_field = ocx_data['ocx_field']
-            self.ocx_taxonomy = ocx_data['ocx_taxonomy']
-            self.ocx_metadata = ocx_data['ocx_metadata']
-        except KeyError:
-            pass
+        self.ocx_rank = ocx_data.get('ocx_rank', None)
+        self.ocx_field = ocx_data.get('ocx_field', None)
+        self.ocx_taxonomy = ocx_data.get('ocx_taxonomy', None)
+        self.ocx_metadata = ocx_data.get('ocx_metadata', None)
 
         pd.DataFrame.__init__(self, data=data, index=index, columns=columns, dtype=dtype, copy=copy)
 
@@ -26,7 +24,10 @@ class ResultsDataFrame(pd.DataFrame):
     def _constructor(self):
         from functools import partial
 
+        # we explicitly do *not* pass rank on to manipulated ResultsDataFrames. we don't know
+        # how the data has been manipulated, and it may no longer be accurate
         ocx_data = {
+            'ocx_rank': None,
             'ocx_field': self.ocx_field,
             'ocx_taxonomy': self.ocx_taxonomy,
             'ocx_metadata': self.ocx_metadata
@@ -36,19 +37,60 @@ class ResultsDataFrame(pd.DataFrame):
 
     @property
     def _constructor_sliced(self):
-        return ResultsSeries
+        from functools import partial
+
+        # we explicitly do *not* pass rank on to manipulated ResultsDataFrames. we don't know
+        # how the data has been manipulated, and it may no longer be accurate
+        ocx_data = {
+            'ocx_rank': None,
+            'ocx_field': self.ocx_field,
+            'ocx_taxonomy': self.ocx_taxonomy,
+            'ocx_metadata': self.ocx_metadata
+        }
+
+        return partial(ResultsSeries, ocx_data=ocx_data)
 
 
 class ResultsSeries(pd.Series):
-    _metadata = ['ocx_field', 'ocx_taxonomy', 'ocx_metadata']
+    _metadata = ['name', 'ocx_rank', 'ocx_field', 'ocx_taxonomy', 'ocx_metadata']
+
+    def __init__(self, data=None, index=None, dtype=None, name=None, copy=False, fastpath=False, ocx_data={}):
+        self.ocx_rank = ocx_data.get('ocx_rank', None)
+        self.ocx_field = ocx_data.get('ocx_field', None)
+        self.ocx_taxonomy = ocx_data.get('ocx_taxonomy', None)
+        self.ocx_metadata = ocx_data.get('ocx_metadata', None)
+
+        pd.Series.__init__(self, data=data, index=index, dtype=dtype, name=name, copy=copy, fastpath=fastpath)
 
     @property
     def _constructor(self):
-        return ResultsSeries
+        from functools import partial
+
+        # we explicitly do *not* pass rank on to manipulated ResultsDataFrames. we don't know
+        # how the data has been manipulated, and it may no longer be accurate
+        ocx_data = {
+            'ocx_rank': None,
+            'ocx_field': self.ocx_field,
+            'ocx_taxonomy': self.ocx_taxonomy,
+            'ocx_metadata': self.ocx_metadata
+        }
+
+        return partial(ResultsSeries, ocx_data=ocx_data)
 
     @property
     def _constructor_expanddim(self):
-        return ResultsDataFrame
+        from functools import partial
+
+        # we explicitly do *not* pass rank on to manipulated ResultsDataFrames. we don't know
+        # how the data has been manipulated, and it may no longer be accurate
+        ocx_data = {
+            'ocx_rank': None,
+            'ocx_field': self.ocx_field,
+            'ocx_taxonomy': self.ocx_taxonomy,
+            'ocx_metadata': self.ocx_metadata
+        }
+
+        return partial(ResultsDataFrame, ocx_data=ocx_data)
 
 
 class SampleAnalysis(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceMixin):
@@ -67,11 +109,12 @@ class SampleAnalysis(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistance
         super(SampleAnalysis, self).__setattr__(name, value)
 
     def _get_auto_rank(self, rank):
+        """Tries to figure out what rank we should use for analyses, mainly called by results()"""
+
         if rank == 'auto':
-            # if we're an accessor for a ResultsDataFrame, we have no idea what ranks are present
-            # and so we must set rank to None
+            # if we're an accessor for a ResultsDataFrame, use its ocx_rank property
             if isinstance(self, OneCodexAccessor):
-                return None
+                return self._results.ocx_rank
 
             if self.field == 'abundance':
                 return 'species'
@@ -79,6 +122,12 @@ class SampleAnalysis(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistance
                 return 'genus'
         else:
             return rank
+
+    def _guess_normalized(self):
+        # it's possible that the _results df has already been normalized, which can cause some
+        # methods to fail. we must guess whether this is the case
+
+        return (self._results.sum(axis=1).round(4) == 1.0).all()
 
     def magic_metadata_fetch(self, metadata_fields):
         """Takes a list of metadata fields, some of which can contain taxon names or taxon IDs, and
@@ -108,6 +157,7 @@ class SampleAnalysis(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistance
                             'When specifying multiple metadata fields, all must be categorical'
                         )
 
+                # concatenate the columns together with underscores
                 composite_field = '_'.join(f)
                 magic_metadata[composite_field] = ''
                 magic_metadata[composite_field] = magic_metadata[composite_field].str.cat(
@@ -166,13 +216,14 @@ class SampleAnalysis(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistance
 
         return magic_metadata, magic_fields
 
-    def results(self, rank=None, top_n=None, threshold=None,
+    def results(self, rank='auto', top_n=None, threshold=None,
                 remove_zeros=True, normalize='auto',
                 table_format='wide', **kwargs):
         """
         Filtering options (performed consecutively in the order given below):
-            rank (None | 'kingdom' | 'phylum' | 'class' | 'order' | 'family' | 'genus' | 'species')
+            rank (None | 'auto' | 'kingdom' | 'phylum' | 'class' | 'order' | 'family' | 'genus' | 'species')
                 - None: include all ranks
+                - 'auto': choose automatically based on fields
                 - 'kingdom' or others: only return taxa at this rank
             remove_zeros (bool) -- remove taxa that are zero in every classification
             threshold (float) -- only return taxa more abundant than this threshold
@@ -185,6 +236,7 @@ class SampleAnalysis(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistance
             normalize (bool): convert read counts to relative abundances (each sample sums to 1.0)
         """
 
+        rank = self._get_auto_rank(rank)
         df = self._results.copy()
 
         # subset by taxa
@@ -201,6 +253,9 @@ class SampleAnalysis(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistance
             df = df.loc[:, tax_ids_to_keep]
 
         # normalize
+        if normalize is False and self._guess_normalized():
+            raise OneCodexException('Data has already been normalized and this can not be undone.')
+
         if normalize is True or (normalize == 'auto' and rank is not None and self.field != 'abundance'):
             df = df.div(df.sum(axis=1), axis=0)
 
@@ -237,6 +292,7 @@ class SampleAnalysis(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistance
         else:
             raise OneCodexException('table_format must be one of: long, wide')
 
+        results_df.ocx_rank = rank
         results_df.ocx_field = self.field
         results_df.ocx_taxonomy = self.taxonomy()
         results_df.ocx_metadata = self.metadata()
@@ -393,7 +449,7 @@ class SampleCollection(SampleAnalysis):
                .fillna(0)
 
         tax_info = pd.DataFrame(tax_info) \
-                     .set_index('tax_id') \
+                     .set_index('tax_id')
 
         self.__setattr__('_results', df, force=True)
         self.__setattr__('_taxonomy', tax_info, force=True)
@@ -402,7 +458,7 @@ class SampleCollection(SampleAnalysis):
 @pd.api.extensions.register_dataframe_accessor('ocx')
 class OneCodexAccessor(SampleAnalysis):
     def __init__(self, pandas_obj):
-        # copy data from the ResultsDataFrame to a new instance of SampleCollection
+        # copy data from the ResultsDataFrame to a new instance of SampleAnalysis
         super(OneCodexAccessor, self).__init__(
             pandas_obj,
             pandas_obj.ocx_metadata,

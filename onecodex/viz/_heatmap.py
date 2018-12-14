@@ -9,40 +9,45 @@ class VizHeatmapMixin():
                      title=None, xlabel=None, ylabel=None, tooltip=None):
         """Plot heatmap of taxa abundance/count data for several samples.
 
-        Specify at least one of the following options:
-            top_n (int) -- display the top N most abundant taxa
-            threshold (float) -- display taxa more abundant than this threshold in 1 or more sample
+        Parameters
+        ----------
+        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+            Analysis will be restricted to abundances of taxa at the specified level.
+        normalize : 'auto' or `bool`, optional
+            Convert read counts to relative abundances such that each sample sums to 1.0. Setting
+            'auto' will choose automatically based on the data.
+        return_chart : `bool`, optional
+            When True, return an `altair.Chart` object instead of displaying the resulting plot in
+            the current notebook.
+        top_n : `int`, optional
+            Display the top N most abundant taxa in the entire cohort of samples.
+        threshold : `float`
+            Display only taxa that are more abundant that this threshold in one or more samples.
+        title : `string`, optional
+            Text label at the top of the plot.
+        xlabel : `string`, optional
+            Text label along the horizontal axis.
+        ylabel : `string`, optional
+            Text label along the vertical axis.
+        tooltip : `string` or `list`, optional
+            A string or list containing strings representing metadata fields. When a point in the
+            plot is hovered over, the value of the metadata associated with that sample will be
+            displayed in a modal.
 
-        Options for tabulation of classification results:
-            rank ('auto' | kingdom' | 'phylum' | 'class' | 'order' | 'family' | 'genus' | 'species')
-                - 'auto': choose automatically based on fields
-                - 'kingdom' or others: restrict analysis to taxa at this rank
-            normalize ('auto' | True | False):
-                - 'auto': normalize data if readcount or readcount_w_children
-                -  True: convert from read counts to relative abundances (each sample sums to 1.0)
+        Examples
+        --------
+        Plot a heatmap of the relative abundances of the top 10 most abundant families.
 
-        Options for plotting:
-            title (string) -- main title of the plot
-            xlabel, ylabel (string) -- axes labels
-            tooltip (list) -- display these metadata fields when points are hovered over
+        >>> plot_heatmap(rank='family', top_n=10)
         """
-
         if rank is None:
             raise OneCodexException('Please specify a rank or \'auto\' to choose automatically')
-        else:
-            rank = self._get_auto_rank(rank)
 
         if not (threshold or top_n):
             raise OneCodexException('Please specify at least one of: threshold, top_n')
 
         if len(self._results) < 2:
             raise OneCodexException('`plot_heatmap` requires 2 or more valid classification results.')
-
-        if rank == 'auto':
-            if self.field == 'abundance':
-                rank = 'species'
-            else:
-                rank = 'genus'
 
         df = self.results(
             rank=rank,
