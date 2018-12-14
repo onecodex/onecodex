@@ -46,7 +46,7 @@ class VizMetadataMixin():
             size=35
         ).encode(
             y='median({}):Q'.format(quantity),
-            x=alt.X(x_format, axis=alt.Axis(title=xlabel)),
+            x=alt.X(x_format, axis=alt.Axis(title=xlabel), scale=alt.Scale(rangeStep=45)),
             tooltip='median({}):Q'.format(quantity)
         )
 
@@ -62,31 +62,45 @@ class VizMetadataMixin():
                       title=None, xlabel=None, ylabel=None, plot_type='auto'):
         """Plot an arbitrary metadata field versus an arbitrary quantity as a boxplot or scatter plot.
 
-        Specify one of the following for 'haxis' (horizontal axis):
-            metadata (string) -- a categorical or numerical metadata field
-            tax_id (string) -- taxonomic identifier to be pulled from results
-            tax_name (string) -- taxon name to be searched for in results
+        Parameters
+        ----------
+        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+            Analysis will be restricted to abundances of taxa at the specified level.
 
-        In addition to those above, these options are available for 'vaxis' (vertical axis):
-            alpha_diversity ('simpson' | 'chao1')
-                - 'simpson': calculate alpha diversity using Simpson's Index
-                - 'chao1': calculate alpha diversity using Chao1 estimator
+        haxis : `string`, optional
+            The metadata field (or tuple containing multiple categorical fields) to be plotted on
+            the horizontal axis.
 
-        Options for tabulation of classification results:
-            rank ('auto' | kingdom' | 'phylum' | 'class' | 'order' | 'family' | 'genus' | 'species')
-                - 'auto': choose automatically based on fields
-                - 'kingdom' or others: restrict analysis to taxa at this rank
+        vaxis : `string`, optional
+            Data to be plotted on the vertical axis. Can be any one of the following:
 
-        Options for plotting:
-            title (string) -- main title of the plot
-            xlabel, ylabel (string) -- axes labels
-            plot_type ('auto' | 'boxplot' | 'scatter') -- force a plot type or choose based on data
+            - A metadata field: the name of a metadata field containing numerical data
+            - {'simpson', 'chao1'}: an alpha diversity statistic to calculate for each sample
+            - A taxon name: the name of a taxon in the analysis
+            - A taxon ID: the ID of a taxon in the analysis
+
+        title : `string`, optional
+            Text label at the top of the plot.
+
+        xlabel : `string`, optional
+            Text label along the horizontal axis.
+
+        ylabel : `string`, optional
+            Text label along the vertical axis.
+
+        plot_type : {'auto', 'boxplot', 'scatter'}
+            By default, will determine plot type automatically based on the data. Otherwise, specify
+            one of 'boxplot' or 'scatter' to set the type of plot manually.
+
+        Examples
+        --------
+        Generate a boxplot of the abundance of Bacteroides (genus) of samples grouped by whether the
+        individuals are allergy to dogs, cats, both, or neither.
+
+        >>> plot_metadata(haxis=('allergy_dogs', 'allergy_cats'), vaxis='Bacteroides')
         """
-
         if rank is None:
             raise OneCodexException('Please specify a rank or \'auto\' to choose automatically')
-        else:
-            rank = self._get_auto_rank(rank)
 
         if plot_type not in ('auto', 'boxplot', 'scatter'):
             raise OneCodexException('Plot type must be one of: auto, boxplot, scatter')

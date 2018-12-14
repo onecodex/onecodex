@@ -53,13 +53,15 @@ class TaxonomyMixin():
         and backwards up until all of the tips are at the specified rank.
         """
 
+        if rank is None:
+            return tree.copy()
+
         tree = tree.copy()
 
         for node in tree.postorder():
             if node.rank == rank:
                 node._above_rank = True
             elif any([getattr(n, '_above_rank', False) for n in node.children]):
-                # TODO: should this ever happen?
                 node._above_rank = True
             else:
                 node._above_rank = False

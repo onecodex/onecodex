@@ -41,10 +41,7 @@ def onecodex_theme():
                 'height': 400,
                 'strokeWidth': 0
             },
-            'background': 'white',
-            'scale': {
-                'rangeStep': 45
-            }
+            'background': 'white'
         }
     }
 
