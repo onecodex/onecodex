@@ -7,11 +7,15 @@ from onecodex.taxonomy import TaxonomyMixin
 
 
 class DistanceMixin(TaxonomyMixin):
-    def alpha_diversity(self, metric='simpson', rank='species'):
+    def alpha_diversity(self, metric='simpson', rank='auto'):
         """Caculate the diversity within a community"""
 
         if metric not in ('simpson', 'chao1'):
             raise OneCodexException('For alpha diversity, metric must be one of: simpson, chao1')
+
+        # needs read counts, not relative abundances
+        if self._guess_normalized():
+            raise OneCodexException('Alpha diversity requires unnormalized read counts.')
 
         df = self.results(rank=rank, normalize=False)
 
@@ -30,15 +34,15 @@ class DistanceMixin(TaxonomyMixin):
 
         return pd.DataFrame(output).set_index('classification_id')
 
-    def beta_diversity(self, metric='braycurtis', rank='species'):
+    def beta_diversity(self, metric='braycurtis', rank='auto'):
         """Calculate the diversity between two communities"""
 
         if metric not in ('jaccard', 'braycurtis', 'cityblock'):
             raise OneCodexException('For beta diversity, metric must be one of: jaccard, braycurtis, cityblock')
 
-        # unifrac needs read counts, not relative abundances
-        if self.field == 'abundance':
-            raise OneCodexException('Beta diversity requires unnormalized read counts. Use field=readcount_w_children')
+        # needs read counts, not relative abundances
+        if self._guess_normalized():
+            raise OneCodexException('Beta diversity requires unnormalized read counts.')
 
         df = self.results(rank=rank, normalize=False)
 
@@ -48,15 +52,15 @@ class DistanceMixin(TaxonomyMixin):
 
         return skbio.diversity.beta_diversity(metric, counts, df.index.tolist())
 
-    def unifrac(self, weighted=True, strict=False, rank='species'):
+    def unifrac(self, weighted=True, strict=False, rank='auto'):
         """
         A beta diversity metric that takes into account the relative relatedness of community members.
         Weighted UniFrac looks at abundances, unweighted UniFrac looks at presence
         """
 
-        # unifrac needs read counts, not relative abundances
-        if self.field == 'abundance':
-            raise OneCodexException('UniFrac requires unnormalized read counts. Use field=readcount_w_children')
+        # needs read counts, not relative abundances
+        if self._guess_normalized():
+            raise OneCodexException('UniFrac requires unnormalized read counts.')
 
         df = self.results(rank=rank, normalize=False)
 
@@ -67,7 +71,7 @@ class DistanceMixin(TaxonomyMixin):
         tax_ids = df.keys().tolist()
 
         tree = self.tree_build()
-        tree = self.tree_prune_rank(tree, rank=rank)
+        tree = self.tree_prune_rank(tree, rank=df.ocx_rank)
 
         # there's a bug (?) in skbio where it expects the root to only have
         # one child, so we do a little faking here

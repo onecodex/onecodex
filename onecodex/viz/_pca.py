@@ -11,27 +11,52 @@ class VizPCAMixin():
                  title=None, xlabel=None, ylabel=None, color=None, size=None, tooltip=None):
         """Perform principal component analysis and plot first two axes.
 
-        Options for tabulation of classification results:
-            rank ('auto' | kingdom' | 'phylum' | 'class' | 'order' | 'family' | 'genus' | 'species')
-                - 'auto': choose automatically based on fields
-                - 'kingdom' or others: restrict analysis to taxa at this rank
-            normalize ('auto' | True | False):
-                - 'auto': normalize data if readcount or readcount_w_children
-                -  True: convert from read counts to relative abundances (each sample sums to 1.0)
+        Parameters
+        ----------
+        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+            Analysis will be restricted to abundances of taxa at the specified level. 
+        normalize : 'auto' or `bool`, optional
+            Convert read counts to relative abundances such that each sample sums to 1.0. Setting
+            'auto' will choose automatically based on the data.
+        org_vectors : `int`, optional
+            Plot this many of the top-contributing eigenvectors from the PCA results.
+        org_vectors_scale : `float`, optional
+            Multiply the length of the lines representing the eigenvectors by this constant.
+        title : `string`, optional
+            Text label at the top of the plot.
+        xlabel : `string`, optional
+            Text label along the horizontal axis.
+        ylabel : `string`, optional
+            Text label along the vertical axis.
+        size : `string` or `tuple`, optional
+            A string or a tuple containing strings representing metadata fields. The size of points
+            in the resulting plot will change based on the metadata associated with each sample.
+        color : `string` or `tuple`, optional
+            A string or a tuple containing strings representing metadata fields. The color of points
+            in the resulting plot will change based on the metadata associated with each sample.
+        tooltip : `string` or `list`, optional
+            A string or list containing strings representing metadata fields. When a point in the
+            plot is hovered over, the value of the metadata associated with that sample will be
+            displayed in a modal.
 
-        Options for plotting:
-            title (string) -- main title of the plot
-            xlabel, ylabel (string) -- axes labels
-            size, color (string) -- metadata field to size or color points by
-            tooltip (list) -- display these metadata fields when points are hovered over
-                - For size, color, and tooltip: you can specify a tax_id or tax_name and its abundance
-                  will be automatically inserted into the size/color/tooltip field
+        Examples
+        --------
+        Perform PCA on relative abundances at the species-level and color the resulting points by
+        'geo_loc_name', a metadata field representing the geographical origin of each sample.
+
+        >>> plot_pca(rank='species', normalize=True, color='geo_loc_name')
+
+        Change the size of each point in the plot based on the abundance of Bacteroides.
+
+        >>> plot_pca(size='Bacteroides')
+
+        Display the abundances of Bacteroides, Prevotella, and Bifidobacterium in each sample when
+        hovering over points in the plot.
+
+        >>> plot_pca(tooltip=['Bacteroides', 'Prevotella', 'Bifidobacterium'])
         """
-
         if rank is None:
             raise OneCodexException('Please specify a rank or \'auto\' to choose automatically')
-        else:
-            rank = self._get_auto_rank(rank)
 
         if len(self._results) < 2:
             raise OneCodexException('`plot_pca` requires 2 or more valid classification results.')
