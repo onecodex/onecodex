@@ -66,8 +66,8 @@ class DistanceMixin(TaxonomyMixin):
 
         tax_ids = df.keys().tolist()
 
-        tree = self.skbio_tree_build()
-        tree = self.skbio_tree_prune(tree, rank=rank)
+        tree = self.tree_build()
+        tree = self.tree_prune_rank(tree, rank=rank)
 
         # there's a bug (?) in skbio where it expects the root to only have
         # one child, so we do a little faking here

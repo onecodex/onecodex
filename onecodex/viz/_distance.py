@@ -6,9 +6,10 @@ from scipy.spatial.distance import squareform
 from itertools import chain
 
 from onecodex.exceptions import OneCodexException
+from onecodex.distance import DistanceMixin
 
 
-class VizDistanceMixin():
+class VizDistanceMixin(DistanceMixin):
     def plot_distance(self, rank='auto', metric='braycurtis',
                       label=None, title=None, xlabel=None, ylabel=None, tooltip=None):
         """Plot beta diversity distance matrix as a heatmap and dendrogram.
