@@ -31,7 +31,7 @@ class Api(object):
     """
 
     def __init__(self, api_key=None,
-                 bearer_token=None, cache_schema=False,
+                 bearer_token=None, cache_schema=True,
                  base_url=None, telemetry=None,
                  schema_path='/api/v1/schema'):
 
@@ -148,7 +148,7 @@ class ExtendedPotionClient(PotionClient):
             return self._cached_schema[uri]
         return super(ExtendedPotionClient, self).fetch(uri, cls=cls, **kwargs)
 
-    def _fetch_schema(self, cache_schema=False, creds_file=None):
+    def _fetch_schema(self, cache_schema=True, creds_file=None):
         self._cached_schema = {}
         creds_file = os.path.expanduser('~/.onecodex') if creds_file is None else creds_file
         creds = {}
@@ -162,10 +162,6 @@ class ExtendedPotionClient(PotionClient):
                 creds = json.load(open(creds_file, 'r'))
             except ValueError:
                 warnings.warn('Credentials file ({}) is corrupt'.format(collapse_user(creds_file)))
-
-        # if schema is already cached, assume user meant to pass cache_schema=True
-        if 'schema' in creds:
-            cache_schema = True
 
         schema = None
         serialized_schema = None
