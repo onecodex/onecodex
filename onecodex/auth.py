@@ -181,13 +181,12 @@ def login_required(fn):
     @wraps(fn)
     def login_wrapper(ctx, *args, **kwargs):
         if 'API_KEY' in ctx.obj and ctx.obj['API_KEY'] is not None:
-            ctx.obj['API'] = Api(cache_schema=True,
-                                 api_key=ctx.obj['API_KEY'], telemetry=ctx.obj['TELEMETRY'])
+            ctx.obj['API'] = Api(api_key=ctx.obj['API_KEY'], telemetry=ctx.obj['TELEMETRY'])
         else:
             # try and find it
             api_key = _login(silent=True)
             if api_key is not None:
-                ctx.obj['API'] = Api(cache_schema=True, api_key=api_key, telemetry=ctx.obj['TELEMETRY'])
+                ctx.obj['API'] = Api(api_key=api_key, telemetry=ctx.obj['TELEMETRY'])
             else:
                 click.echo('The command you specified requires authentication. Please login first.\n', err=True)
                 ctx.exit()

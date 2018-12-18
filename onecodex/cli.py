@@ -292,7 +292,7 @@ def login(ctx):
         _login(server=base_url)
     else:
         email = _login(server=base_url, api_key=ctx.obj['API_KEY'])
-        ocx = Api(cache_schema=True, api_key=ctx.obj['API_KEY'], telemetry=ctx.obj['TELEMETRY'])
+        ocx = Api(api_key=ctx.obj['API_KEY'], telemetry=ctx.obj['TELEMETRY'])
 
         # TODO: This should be protected or built in as a first class resource
         # with, e.g., connection error catching (it's not part of our formally documeted API at the moment)
