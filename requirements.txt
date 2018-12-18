@@ -11,7 +11,7 @@ unidecode==1.0.23
 altair==2.3.0
 networkx>=1.11,<2.0
 numpy>=1.11.0
-pandas>=0.20.0,<0.21.0
+pandas==0.23.0
 pytz>=2014.1
 raven>=6.1.0
 scikit-bio==0.4.2

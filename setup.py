@@ -69,7 +69,7 @@ setup(
             'altair==2.3.0',
             'networkx>=1.11,<2.0',
             'numpy>=1.11.0',
-            'pandas>=0.20.0,<0.21.0',
+            'pandas==0.23.0',
             'scikit-bio==0.4.2',
             'scikit-learn>=0.19.0',
             'vega==1.4.0',
