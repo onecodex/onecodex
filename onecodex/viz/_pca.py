@@ -137,8 +137,6 @@ def plot_pca(analyses, threshold=None,
         if not alt_kwargs[param]:
             alt_kwargs.pop(param)
 
-    alt.renderers.enable('notebook')
-
     chart = alt.Chart(plot_data) \
                .transform_calculate(url=alt_kwargs.pop('url')) \
                .mark_circle() \
