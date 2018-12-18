@@ -1,11 +1,12 @@
 import altair as alt
+import os
 
-from onecodex.viz._heatmap import plot_heatmap
-from onecodex.viz._pca import plot_pca
-from onecodex.viz._distance import plot_distance
-from onecodex.viz._metadata import plot_metadata
+from onecodex.viz._heatmap import VizHeatmapMixin
+from onecodex.viz._pca import VizPCAMixin
+from onecodex.viz._metadata import VizMetadataMixin
+from onecodex.viz._distance import VizDistanceMixin
 
-__all__ = ['plot_heatmap', 'plot_pca', 'plot_distance', 'plot_metadata']
+__all__ = ['VizPCAMixin', 'VizHeatmapMixin', 'VizMetadataMixin', 'VizDistanceMixin']
 
 
 def onecodex_theme():
@@ -48,4 +49,23 @@ def onecodex_theme():
 
 alt.themes.register('onecodex', onecodex_theme)
 alt.themes.enable('onecodex')
-alt.renderers.enable('notebook')
+
+
+def onecodex_renderer(spec, **metadata):
+    metadata['scale_factor'] = 1.5
+    return alt.vegalite.v2.display.png_renderer(spec, **metadata)
+
+
+alt.renderers.register('onecodex', onecodex_renderer)
+
+if os.getenv('OCX_NBCONVERT', False):
+    # if run from notebook service nbconvert, render as a high-res PNG
+    alt.renderers.enable('onecodex')
+else:
+    try:
+        # if inside ipython, enable the notebook renderer
+        get_ipython()
+        alt.renderers.enable('notebook')
+    except NameError:
+        # otherwise, use altair's default renderer
+        alt.renderers.enable('default')

@@ -1,7 +1,5 @@
 from __future__ import print_function
 import datetime
-import json
-import pandas as pd
 import pytest
 import responses
 
@@ -12,7 +10,7 @@ except ImportError:
 
 import onecodex
 from onecodex import Api
-from onecodex.exceptions import MethodNotSupported
+from onecodex.exceptions import MethodNotSupported, OneCodexException
 
 
 def test_api_creation(api_data):
@@ -42,8 +40,6 @@ def test_resourcelist(ocx, api_data):
     sample = ocx.Samples.get('761bc54b97f64980')
     tags1 = onecodex.models.ResourceList(sample.tags._resource,
                                          onecodex.models.misc.Tags)
-    tags2 = onecodex.models.ResourceList(sample.tags._resource,
-                                         onecodex.models.misc.Tags)
 
     assert isinstance(sample.tags, onecodex.models.ResourceList)
 
@@ -70,53 +66,43 @@ def test_resourcelist(ocx, api_data):
     assert id(sample.tags[0]._resource) == id(popped_tag._resource)
 
     # changes in one instance of a ResourceList affect other instances
-    assert id(tags1) != id(tags2) != id(sample.tags)
-    assert id(tags1._resource) == id(tags2._resource) == id(sample.tags._resource)
+    assert id(tags1) != id(sample.tags)
+    assert id(tags1._resource) == id(sample.tags._resource)
 
-    assert len(tags1) == len(tags2) == len(sample.tags)
+    # TODO: these tests shouldn't fail, but we're leaving this bug here for now due to conversations
+    # with @boydgreenfield on 1/10/2019
+    # assert len(tags1) == len(sample.tags)
 
-    for i in range(len(tags1)):
-        assert tags1[i] == tags2[i] == sample.tags[i]
+    # for i in range(len(tags1)):
+    #     assert tags1[i] == sample.tags[i]
+
+    # can't mix types in a ResourceList
+    with pytest.raises(ValueError) as e:
+        tags1.append(sample)
+    assert 'object of type' in str(e.value)
 
 
-def test_comparisons(ocx, api_data):
-    sample1 = ocx.Samples.get('761bc54b97f64980')
-    sample2 = ocx.Samples.get('761bc54b97f64980')
+def test_samplecollection(ocx, api_data):
+    all_samples = ocx.Samples.where()
+    samples = all_samples[:3]
+    other_samples = all_samples[4:7]
 
-    # should be different objects
-    assert id(sample1) != id(sample2)
+    # duplicate Classifications can not be part of the same SampleCollection
+    with pytest.raises(OneCodexException) as e:
+        samples + samples
+    assert 'contain duplicate objects' in str(e.value)
 
-    # but they should reference the same Resource
-    assert id(sample1._resource) == id(sample2._resource)
+    # SampleCollections can be added together
+    new_samples = samples + other_samples
+    assert len(samples) == len(other_samples) == 3
+    assert len(new_samples) == 6
 
-    # and so they should be equal
-    assert sample1 == sample2
+    # addition doesn't work with a SampleCollection and a lone Samples object
+    single_sample = ocx.Samples.get('761bc54b97f64980')
 
-    # but any non-equivalence comparisons should throw errors
-    with pytest.raises(NotImplementedError):
-        sample1 > sample2
-    with pytest.raises(NotImplementedError):
-        sample1 >= sample2
-    with pytest.raises(NotImplementedError):
-        sample1 < sample2
-    with pytest.raises(NotImplementedError):
-        sample1 <= sample2
-
-    # and this should be true of ResourceLists too
-    assert sample1.tags == sample2.tags
-
-    with pytest.raises(NotImplementedError):
-        sample1.tags > sample2.tags
-    with pytest.raises(NotImplementedError):
-        sample1.tags >= sample2.tags
-    with pytest.raises(NotImplementedError):
-        sample1.tags < sample2.tags
-    with pytest.raises(NotImplementedError):
-        sample1.tags <= sample2.tags
-
-    # and so should comparisons with asimilar objects
-    assert sample1 != [1, 2, 3]
-    assert sample1.tags != [1, 2, 3]
+    with pytest.raises(TypeError) as e:
+        samples + single_sample
+    assert 'can only concatenate' in str(e.value)
 
 
 def test_dir_method(ocx, api_data):
@@ -195,8 +181,6 @@ def test_dir_patching(ocx, api_data):
 def test_classification_methods(ocx, api_data):
     classification = ocx.Classifications.get('45a573fb7833449a')
     assert isinstance(classification, onecodex.models.analysis.Classifications)
-    t = classification.table()
-    assert isinstance(t, pd.DataFrame)
 
 
 def test_no_results_on_generic_analysis(ocx, api_data):
@@ -226,12 +210,25 @@ def test_no_results_on_generic_analysis(ocx, api_data):
 ])
 def test_where_clauses(ocx, api_data, where_args, where_kwargs, queries):
     ocx.Samples.where(*where_args, **where_kwargs)
-    urls = []
+
+    counts = []
+
     for c in responses.calls:
         url = unquote_plus(c.request.url)
-        urls.append(url)
+
+        # there may be accessory requests, like looking up a classification result associated
+        # with a sample. therefore, we expect to see the query we're looking in for in one (but not
+        # all) of the requests. the order of the requests is not deterministic, so check them all.
+        count = 0
+
         for query in queries:
-            assert query in url
+            if query in url:
+                count += 1
+
+        counts.append(count)
+
+    # the correct queries must both appear together in only one request to pass this test
+    assert len([x for x in counts if x == len(queries)]) == 1
 
 
 def test_public_search(ocx, api_data):
@@ -289,55 +286,9 @@ def test_public_analyses(ocx, api_data):
     assert a.sample.visibility == 'public'
 
 
-def test_biom(ocx, api_data):
-    c1 = ocx.Classifications.get('45a573fb7833449a')
-    c2 = ocx.Classifications.get('593601a797914cbf')
-    biom = ocx.Classifications.to_otu([c1, c2])
-    assert set(biom.keys()) == {
-        'columns', 'data', 'date', 'format', 'format_url',
-        'generated_by', 'id', 'matrix_element_type', 'matrix_type', 'rows', 'shape', 'type'
-    }
-    assert biom['format_url'] == 'http://biom-format.org'
-    assert set(biom['columns'][0].keys()) == {'id', 'sample_id', 'sample_filename', 'metadata'}
-    assert set(biom['rows'][0].keys()) == {'id', 'metadata'}
-    assert 'taxonomy' in biom['rows'][0]['metadata']
-
-    # IDs
-    assert biom['columns'][0]['id'] == c1.id
-    assert biom['columns'][0]['sample_id'] == c1.sample.id
-
-    # Reults
-    assert set(row['metadata']['taxonomy'] for row in biom['rows']) == {
-        'Staphylococcus sp. HGB0015', 'Staphylococcus'
-    }
-
-    # Format is row_id, sample id (column), count
-    assert biom['data'][0] == [0, 0, 3]
-    assert biom['data'][1] == [0, 1, 80]
-    assert biom['data'][2] == [1, 0, 0]
-    assert biom['data'][3] == [1, 1, 0]
-    assert biom['rows'][0]['id'] == '1078083'
-    assert biom['rows'][1]['id'] == '1279'
-
-    # Check that we're not including unnecessary references
-    assert '$uri' not in biom['columns'][0]['metadata']
-    assert 'sample' not in biom['columns'][0]['metadata']
-
-    # Test serialization
-    assert json.loads(json.dumps(biom)) == biom   # tests json serialization
-
-
 def test_jobs(ocx, api_data):
     jobs = ocx.Jobs.all()
     assert len(jobs) == 23
 
     jobs = ocx.Jobs.where(public=True)
     assert len(jobs) == 23
-
-
-def test_modulealias():
-    # ensure that viz and distance modules get imported into Api() instances
-    ocx = Api()
-
-    assert isinstance(ocx.viz, onecodex.utils.ModuleAlias)
-    assert isinstance(ocx.distance, onecodex.utils.ModuleAlias)

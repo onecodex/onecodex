@@ -1,77 +1,104 @@
-from collections import defaultdict
+import warnings
 
 
-def _merge_unlinked(tax_id, unlinked):
-    # we might have to scan unlinked to see if any of the children have
-    # unlinked nodes too (and so on recursively)
-    children = unlinked.pop(tax_id, [])
-    for child in children:
-        child.extend(_merge_unlinked(child.name, unlinked))
-    return children
+class TaxonomyMixin(object):
+    def tree_build(self):
+        """Build a tree from the taxonomy data present in this `ClassificationsDataFrame` or
+        `SampleCollection`.
 
+        Returns
+        -------
+        `skbio.tree.TreeNode`, the root node of a tree that contains all the taxa in the current
+        analysis and their parents leading back to the root node.
+        """
+        from skbio.tree import TreeNode
 
-def generate_skbio_tree(classification, existing_tree=None):
-    from skbio.tree import MissingNodeError, TreeNode
+        # build all the nodes
+        nodes = {}
 
-    otus = classification.results()['table']
-    if existing_tree is None:
-        tree = TreeNode(name='1', length=1)
-        tree.tax_name = 'Root'
-        tree.rank = 'no rank'
-    else:
-        tree = existing_tree
+        for tax_id in self.taxonomy.index:
+            node = TreeNode(name=tax_id, length=1)
+            node.tax_name = self.taxonomy['name'][tax_id]
+            node.rank = self.taxonomy['rank'][tax_id]
+            node.parent_tax_id = self.taxonomy['parent_tax_id'][tax_id]
 
-    # we use this to keep track of nodes that haven't had their parent added yet
-    unlinked = defaultdict(list)
+            nodes[tax_id] = node
 
-    for otu in otus:
-        tax_id = otu['tax_id']
-        # skip nodes already in the tree
-        try:
-            tree.find(tax_id)
-            continue
-        except MissingNodeError:
-            pass
+        # generate all the links
+        for tax_id in self.taxonomy.index:
+            try:
+                parent = nodes[nodes[tax_id].parent_tax_id]
+            except KeyError:
+                if tax_id != '1':
+                    warnings.warn('tax_id={} has parent_tax_id={} which is not in tree'
+                                  ''.format(tax_id, nodes[tax_id].parent_tax_id))
 
-        # try to find a parent (if it exists)
-        parent_id = otu['parent_tax_id']
-        try:
-            parent = tree.find(parent_id)
-            # the children are merged out here (only if we have a parent) to
-            # make sure we're not creating trees inside unlinked itself
-            children = _merge_unlinked(tax_id, unlinked)
-        except MissingNodeError:
-            parent = None
-            children = None
+                continue
 
-        # create the node
-        node = TreeNode(name=tax_id, length=1, children=children)
-        node.tax_name = otu.get('name', '')
-        node.rank = otu.get('rank', 'no rank')
+            parent.append(nodes[tax_id])
 
-        # either add the node to its parent or keep track of it until its
-        # parent is "in tree" too
-        if parent is not None:
-            parent.append(node)
-        else:
-            unlinked[parent_id].append(node)
+        return nodes['1']
 
-    assert len(unlinked) == 0, 'some unlinked nodes were not included in the tree'
+    def tree_prune_tax_ids(self, tree, tax_ids):
+        """Prunes a tree back to contain only the tax_ids in the list and their parents.
 
-    return tree
+        Parameters
+        ----------
+        tree : `skbio.tree.TreeNode`
+            The root node of the tree to perform this operation on.
+        tax_ids : `list`
+            A `list` of taxonomic IDs to keep in the tree.
 
+        Returns
+        -------
+        `skbio.tree.TreeNode`, the root of a tree containing the given taxonomic IDs and their
+        parents, leading back to the root node.
+        """
+        tax_ids_to_keep = []
 
-def prune_to_rank(tree, rank='species'):
-    """
-    Takes a TreeNode tree and prunes off any tips not at the specified rank
-    (and backwards up until all of the tips are at the specified rank.
-    """
-    for node in tree.postorder():
-        if node.rank == rank:
-            node._above_rank = True
-        elif any([getattr(n, '_above_rank', False) for n in node.children]):
-            node._above_rank = True
-        else:
-            node._above_rank = False
+        for tax_id in tax_ids:
+            tax_ids_to_keep.append(tax_id)
+            tax_ids_to_keep.extend([x.name for x in tree.find(tax_id).ancestors()])
 
-    tree.remove_deleted(lambda n: not getattr(n, '_above_rank', False))
+        tree = tree.copy()
+        tree.remove_deleted(lambda n: n.name not in tax_ids_to_keep)
+
+        return tree
+
+    def tree_prune_rank(self, tree, rank='species'):
+        """Takes a TreeNode tree and prunes off any tips not at the specified rank and backwards up
+        until all of the tips are at the specified rank.
+
+        Parameters
+        ----------
+        tree : `skbio.tree.TreeNode`
+            The root node of the tree to perform this operation on.
+        rank : {kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+            Analysis will be restricted to abundances of taxa at the specified level.
+
+        Returns
+        -------
+        `skbio.tree.TreeNode`, the root of the tree where all tips are at the given rank, and all
+        tips have a path back to the root node.
+
+        Examples
+        --------
+        tree_prune_rank(tree, 'species') will remove all subspecies/strain nodes and return a tree
+        containing all genus-level nodes and higher.
+        """
+        if rank is None:
+            return tree.copy()
+
+        tree = tree.copy()
+
+        for node in tree.postorder():
+            if node.rank == rank:
+                node._above_rank = True
+            elif any([getattr(n, '_above_rank', False) for n in node.children]):
+                node._above_rank = True
+            else:
+                node._above_rank = False
+
+        tree.remove_deleted(lambda n: not getattr(n, '_above_rank', False))
+
+        return tree

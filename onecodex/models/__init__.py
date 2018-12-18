@@ -1,14 +1,22 @@
+from collections import defaultdict, OrderedDict
 from datetime import datetime
 from dateutil.parser import parse
 import inspect
 import itertools
 import json
 import pytz
+import re
 from requests.exceptions import HTTPError
 import six
 import sys
+import warnings
 
-from onecodex.exceptions import MethodNotSupported, PermissionDenied, ServerError
+from onecodex.exceptions import MethodNotSupported, OneCodexException, PermissionDenied, ServerError
+try:
+    from onecodex.helpers import AnalysisMixin
+except ImportError:
+    class AnalysisMixin(object):
+        pass
 from onecodex.models.helpers import (check_bind, generate_potion_sort_clause,
                                      generate_potion_keyword_where)
 from onecodex.vendored.potion_client.converter import PotionJSONEncoder
@@ -18,33 +26,59 @@ from onecodex.vendored.potion_client.resource import Resource
 DEFAULT_PAGE_SIZE = 200
 
 
-class ResourceList:
-    """
-    In OneCodexBase, when attributes are lists, actions performed on the returned lists are not
-    passed through to the underlying resource list. This class passes those actions through, and
-    will generally act like a list.
+class ResourceList(object):
+    """Wrapper around lists of onecodex-wrapped potion objects.
+
+    Parameters
+    ----------
+    _resource : `list`
+        A list of potion objects, which are generally stored in `OneCodexBase._resource`.
+    oc_model : `OneCodexBase`
+        A class which inherits from `OneCodexBase`, for example, `models.Tags`.
+
+    Notes
+    -----
+    In OneCodexBase, when attributes are lists (e.g., `Samples.tags`), actions performed on the
+    returned lists are not passed through to the underlying potion object's list. This class passes
+    those actions through, and will generally act like a list.
+
+    See https://github.com/onecodex/onecodex/issues/40
     """
 
     def _update(self):
-        self._res_list = [self.oc_model(x) for x in self._resource]
+        self._res_list = [self._oc_model(x) for x in self._resource]
+
+    def _check_valid_resource(self, other, check_for_dupes=True):
+        try:
+            other = iter(other)
+        except TypeError:
+            other = [other]
+
+        other_ids = []
+
+        for o in other:
+            if not isinstance(o, self._oc_model):
+                raise ValueError("Expected object of type '{}', got '{}'"
+                                 .format(self._oc_model.__name__, type(o).__name__))
+
+            other_ids.append(o.id)
+
+        if check_for_dupes:
+            # duplicates are not allowed
+            self_ids = [s.id for s in self._resource]
+
+            if len(set(self_ids + other_ids)) != len(self_ids + other_ids):
+                raise OneCodexException('{} cannot contain duplicate objects'.format(self.__class__.__name__))
 
     def __init__(self, _resource, oc_model):
+        if not issubclass(oc_model, OneCodexBase):
+            raise ValueError("Expected object of type '{}', got '{}'"
+                             .format(OneCodexBase.__name__, oc_model.__name__))
+
         # turn potion Resource objects into OneCodex objects
         self._resource = _resource
-        self.oc_model = oc_model
+        self._oc_model = oc_model
         self._update()
-
-    def __lt__(self, other):
-        raise NotImplementedError
-
-    def __le__(self, other):
-        raise NotImplementedError
-
-    def __gt__(self, other):
-        raise NotImplementedError
-
-    def __ge__(self, other):
-        raise NotImplementedError
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
@@ -53,92 +87,394 @@ class ResourceList:
         # two ResourceLists are equal if they refer to the same underlying Resource
         return id(self._resource) == id(other._resource)
 
+    @property
     def __repr__(self):
-        self._update()
-        return self._res_list.__repr__()
+        return self._res_list.__repr__
 
+    @property
     def __len__(self):
-        self._update()
-        return len(self._res_list)
+        return self._res_list.__len__
 
     def __getitem__(self, x):
-        self._update()
-        return self._res_list[x]
+        wrapped = self._res_list[x]
+        if isinstance(wrapped, list):
+            return self.__class__(self._resource[x], self._oc_model)
+        else:
+            return wrapped
 
     def __setitem__(self, k, v):
-        if isinstance(v, self.oc_model) and \
-           isinstance(v._resource, Resource):
-            self._resource[k] = v._resource
-        else:
-            raise ValueError("Expected object of type '{}', got '{}'"
-                             .format(self.oc_model.__name__, type(v).__name__))
+        self._check_valid_resource(v)
+        self._resource[k] = v._resource
+        self._update()
 
     def __delitem__(self, x):
         del self._resource[x]
+        self._update()
 
+    @property
     def __iter__(self):
-        self._update()
-        return self._res_list.__iter__()
+        return self._res_list.__iter__
 
+    @property
     def __reversed__(self):
-        self._update()
-        return reversed(self._res_list)
+        return self._res_list.__reversed__
 
-    def count(self, x):
-        # assume that ResourceList objects are identical if they share the same underlying resource
-        if isinstance(x, self.oc_model) and \
-           isinstance(x._resource, Resource):
-            n = 0
-            for res_obj in self._resource:
-                if res_obj == x._resource:
-                    n += 1
-            return n
-        else:
-            raise ValueError("Expected object of type '{}', got '{}'"
-                             .format(self.oc_model.__name__, type(x).__name__))
-
-    def index(self, x):
-        # assume that ResourceList objects are identical if they share the same underlying resource
-        if isinstance(x, self.oc_model) and isinstance(x._resource, Resource):
-            for res_obj_idx, res_obj in enumerate(self._resource):
-                if res_obj == x._resource:
-                    return res_obj_idx
-            raise ValueError('{} is not in list'.format(x))
-
-        raise ValueError("Expected object of type '{}', got '{}'"
-                         .format(self.oc_model.__name__, type(x).__name__))
-
-    def remove(self, x):
-        del self._resource[self.index(x)]
-
-    def insert(self, idx, x):
-        if isinstance(x, self.oc_model) and \
-           isinstance(x._resource, Resource):
-            self._resource.insert(idx, x._resource)
-        else:
-            raise ValueError("Expected object of type '{}', got '{}'"
-                             .format(self.oc_model.__name__, type(x).__name__))
+    def __add__(self, other):
+        if not isinstance(other, self.__class__):
+            raise TypeError('can only concatenate {} (not "{}") to {}'.format(
+                self.__class__.__name__, type(other), self.__class__.__name__)
+            )
+        new_obj = self.copy()
+        new_obj.extend(other._res_list)
+        return new_obj
 
     def append(self, x):
-        if isinstance(x, self.oc_model) and \
-           isinstance(x._resource, Resource):
-            self._resource.append(x._resource)
-        else:
-            raise ValueError("Expected object of type '{}', got '{}'"
-                             .format(self.oc_model.__name__, type(x).__name__))
-
-    def extend(self, iterable):
-        for x in iterable:
-            self.append(x)
-
-    def pop(self):
+        self._check_valid_resource(x)
+        self._resource.append(x._resource)
         self._update()
-        self._resource.pop()
-        return self._res_list.pop()
 
     def clear(self):
         self._resource.clear()
         self._res_list.clear()
+
+    def copy(self):
+        new_obj = self.__class__(self._resource[:], self._oc_model)
+        return new_obj
+
+    def count(self, x):
+        # assume that ResourceList objects are identical if they share the same underlying resource
+        self._check_valid_resource(x, check_for_dupes=False)
+        n = 0
+        for res_obj in self._resource:
+            if res_obj == x._resource:
+                n += 1
+        return n
+
+    def extend(self, iterable):
+        self._check_valid_resource(iterable)
+        self._resource.extend([x._resource for x in iterable])
+        self._update()
+
+    def index(self, x):
+        # assume that ResourceList objects are identical if they share the same underlying resource
+        self._check_valid_resource(x, check_for_dupes=False)
+        for res_obj_idx, res_obj in enumerate(self._resource):
+            if res_obj == x._resource:
+                return res_obj_idx
+        raise ValueError('{} is not in list'.format(x))
+
+    def insert(self, idx, x):
+        self._check_valid_resource(x)
+        self._resource.insert(idx, x._resource)
+        self._update()
+
+    def pop(self):
+        self._resource.pop()
+        return self._res_list.pop()
+
+    def remove(self, x):
+        del self._resource[self.index(x)]
+        self._update()
+
+
+class SampleCollection(ResourceList, AnalysisMixin):
+    """A collection of `Samples` or `Classifications` objects with many methods are analysis of
+    classifications results.
+
+    Notes
+    -----
+    Inherits from `ResourceList` to provide a list-like API, and `AnalysisMixin` to provide relevant
+    analysis methods.
+    """
+
+    def __init__(self, _resource, oc_model, skip_missing=True, label=None, field='auto'):
+        self._kwargs = {'skip_missing': skip_missing,
+                        'label': label,
+                        'field': field}
+
+        super(SampleCollection, self).__init__(_resource, oc_model)
+
+    def _update(self):
+        self._cached = {}
+        super(SampleCollection, self)._update()
+
+    def _classification_fetch(self, skip_missing=None):
+        """Turns a list of objects associated with a classification result into a list of
+        Classifications objects.
+
+        Parameters
+        ----------
+        skip_missing : `bool`
+            If an analysis was not successful, exclude it, warn, and keep going
+
+        Returns
+        -------
+        None, but stores a result in self._cached.
+        """
+        skip_missing = skip_missing if skip_missing else self._kwargs['skip_missing']
+
+        new_classifications = []
+
+        for a in self._res_list:
+            if isinstance(a, Samples):
+                c = a.primary_classification
+            elif isinstance(a, Classifications):
+                c = a
+            elif isinstance(a, Analyses):
+                if a.analysis_type != 'classification':
+                    raise OneCodexException('{} is not a classification'.format(a.id))
+                c = Classifications(a._resource._client.Classifications.fetch(a.id))
+
+            if skip_missing and not c.success:
+                warnings.warn('Classification {} not successful. Skipping.'.format(c.id))
+                continue
+
+            new_classifications.append(c)
+
+        self._cached['classifications'] = new_classifications
+
+    @property
+    def primary_classifications(self):
+        if 'classifications' not in self._cached:
+            self._classification_fetch()
+
+        return self._cached['classifications']
+
+    def _collate_metadata(self, label=None):
+        """Turns a list of objects associated with a classification result into a DataFrame of
+        metadata.
+
+        Parameters
+        ----------
+        label : `string` or `callable`
+            A metadata field (or function) used to label each analysis. If passing a function, a
+            dict containing the metadata for each analysis is passed as the first and only
+            positional argument.
+
+        Returns
+        -------
+        None, but stores a result in self._cached.
+        """
+        import pandas as pd
+
+        label = label if label else self._kwargs['label']
+
+        metadata = []
+
+        DEFAULT_FIELDS = list(Metadata._resource._schema['properties'].keys())
+        DEFAULT_FIELDS.remove('$uri')
+        DEFAULT_FIELDS.remove('sample')
+
+        for c in self.primary_classifications:
+            m = c.sample.metadata
+
+            metadatum = {f: getattr(m, f) for f in DEFAULT_FIELDS}
+            metadatum['classification_id'] = c.id
+            metadatum['sample_id'] = m.sample.id
+            metadatum['metadata_id'] = m.id
+            metadatum['created_at'] = m.sample.created_at
+
+            if label is None:
+                metadatum['_display_name'] = (
+                    metadatum['name'] if metadatum['name'] is not None else c.sample.filename
+                )
+            elif isinstance(label, six.string_types):
+                if label in metadatum:
+                    metadatum['_display_name'] = metadatum[label]
+                elif label in m.custom:
+                    metadatum['_display_name'] = m.custom[label]
+                else:
+                    metadatum['_display_name'] = None
+            elif callable(label):
+                metadatum['_display_name'] = label(m)
+            else:
+                raise NotImplementedError('Must pass a string or function to `label`.')
+
+            metadatum.update(m.custom)
+            metadata.append(metadatum)
+
+        if metadata:
+            metadata = pd.DataFrame(metadata).set_index('classification_id')
+
+            if all(pd.isnull(metadata['_display_name'])):
+                raise OneCodexException('Could not find any labels for `{}`'.format(label))
+        else:
+            metadata = pd.DataFrame(columns=['classification_id', 'sample_id', 'metadata_id', 'created_at'])
+
+        self._cached['metadata'] = metadata
+
+    @property
+    def metadata(self):
+        if 'metadata' not in self._cached:
+            self._collate_metadata()
+
+        return self._cached['metadata']
+
+    def _collate_results(self, field=None):
+        """For a list of objects associated with a classification result, return the results as a
+        DataFrame and dict of taxa info.
+
+        Parameters
+        ----------
+        field : {'readcount_w_children', 'readcount', 'abundance'}
+            Which field to use for the abundance/count of a particular taxon in a sample.
+
+            - 'readcount_w_children': total reads of this taxon and all its descendants
+            - 'readcount': total reads of this taxon
+            - 'abundance': genome size-normalized relative abundances, from shotgun sequencing
+
+        Returns
+        -------
+        None, but stores a result in self._cached.
+        """
+        import pandas as pd
+
+        field = field if field else self._kwargs['field']
+
+        if field not in ('auto', 'abundance', 'readcount', 'readcount_w_children'):
+            raise OneCodexException('Specified field ({}) not valid.'.format(field))
+
+        # we'll fill these dicts that eventually turn into DataFrames
+        df = {
+            'classification_id': [c.id for c in self.primary_classifications]
+        }
+
+        tax_info = {
+            'tax_id': [],
+            'name': [],
+            'rank': [],
+            'parent_tax_id': []
+        }
+
+        if field == 'auto':
+            field = 'readcount_w_children'
+
+        self._cached['field'] = field
+
+        for c_idx, c in enumerate(self.primary_classifications):
+            # pulling results from mainline is the slowest part of the function
+            result = c.results()['table']
+
+            # d contains info about a taxon in result, including name, id, counts, rank, etc.
+            for d in result:
+                d_tax_id = d['tax_id']
+
+                if d_tax_id not in tax_info['tax_id']:
+                    for k in ('tax_id', 'name', 'rank', 'parent_tax_id'):
+                        tax_info[k].append(d[k])
+
+                    # first time we've seen this taxon, so make a vector for it
+                    df[d_tax_id] = [0] * len(self.primary_classifications)
+
+                df[d_tax_id][c_idx] = d[field]
+
+        # format as a Pandas DataFrame
+        df = pd.DataFrame(df) \
+               .set_index('classification_id') \
+               .fillna(0)
+
+        tax_info = pd.DataFrame(tax_info) \
+                     .set_index('tax_id')
+
+        self._cached['results'] = df
+        self._cached['taxonomy'] = tax_info
+
+    @property
+    def _field(self):
+        if 'field' not in self._cached:
+            self._collate_results()
+
+        return self._cached['field']
+
+    @property
+    def _results(self):
+        if 'results' not in self._cached:
+            self._collate_results()
+
+        return self._cached['results']
+
+    @property
+    def taxonomy(self):
+        if 'taxonomy' not in self._cached:
+            self._collate_results()
+
+        return self._cached['taxonomy']
+
+    def to_otu(self, biom_id=None):
+        """Converts a list of objects associated with a classification result into a `dict` resembling
+        an OTU table.
+
+        Parameters
+        ----------
+        biom_id : `string`, optional
+            Optionally specify an `id` field for the generated v1 BIOM file.
+
+        Returns
+        -------
+        otu_table : `OrderedDict`
+            A BIOM OTU table, returned as a Python OrderedDict (can be dumped to JSON)
+        """
+        otu_format = 'Biological Observation Matrix 1.0.0'
+
+        # Note: This is exact format URL is required by https://github.com/biocore/biom-format
+        otu_url = 'http://biom-format.org'
+
+        otu = OrderedDict({'id': biom_id,
+                           'format': otu_format,
+                           'format_url': otu_url,
+                           'type': 'OTU table',
+                           'generated_by': 'One Codex API V1',
+                           'date': datetime.now().isoformat(),
+                           'rows': [],
+                           'columns': [],
+                           'matrix_type': 'sparse',
+                           'matrix_element_type': 'int'})
+
+        rows = defaultdict(dict)
+
+        tax_ids_to_names = {}
+        for classification in self.primary_classifications:
+            col_id = len(otu['columns'])  # 0 index
+
+            # Re-encoding the JSON is a bit of a hack, but
+            # we need a ._to_dict() method that properly
+            # resolves references and don't have one at the moment
+            columns_entry = {
+                'id': str(classification.id),
+                'sample_id': str(classification.sample.id),
+                'sample_filename': classification.sample.filename,
+                'metadata': json.loads(classification.sample.metadata._to_json(include_references=False)),
+            }
+
+            otu['columns'].append(columns_entry)
+            sample_df = classification.table()
+
+            for row in sample_df.iterrows():
+                tax_id = row[1]['tax_id']
+                tax_ids_to_names[tax_id] = row[1]['name']
+                rows[tax_id][col_id] = int(row[1]['readcount'])
+
+        num_rows = len(rows)
+        num_cols = len(otu['columns'])
+
+        otu['shape'] = [num_rows, num_cols]
+        otu['data'] = []
+
+        for present_taxa in sorted(rows):
+            # add the row entry
+            row_id = len(otu['rows'])
+            otu['rows'].append({
+                'id': present_taxa,
+                'metadata': {
+                    'taxonomy': tax_ids_to_names[present_taxa],
+                }
+            })
+
+            for sample_with_hit in rows[present_taxa]:
+                counts = rows[present_taxa][sample_with_hit]
+                otu['data'].append([row_id, sample_with_hit, counts])
+
+        return otu
 
 
 class OneCodexBase(object):
@@ -146,6 +482,7 @@ class OneCodexBase(object):
     A parent object for all the One Codex objects that wraps the Potion-Client API and makes
     access and usage easier.
     """
+
     def __init__(self, _resource=None, **kwargs):
         # FIXME: allow setting properties via kwargs?
         # FIXME: get a resource from somewhere instead of setting to None (lots of stuff assumes
@@ -161,18 +498,6 @@ class OneCodexBase(object):
                 if isinstance(val, OneCodexBase):
                     kwargs[key] = val._resource
             self._resource = self.__class__._resource(**kwargs)
-
-    def __lt__(self, other):
-        raise NotImplementedError
-
-    def __le__(self, other):
-        raise NotImplementedError
-
-    def __gt__(self, other):
-        raise NotImplementedError
-
-    def __ge__(self, other):
-        raise NotImplementedError
 
     def __repr__(self):
         return '<{} {}>'.format(self.__class__.__name__, self.id)
@@ -207,10 +532,22 @@ class OneCodexBase(object):
                     # convert potion resources into wrapped ones
                     resource_path = value._uri.rsplit('/', 1)[0]
                     return _model_lookup[resource_path](_resource=value)
-                elif isinstance(value, list) and len(value) > 0 and isinstance(value[0], Resource):
-                    # convert lists of potion resources into wrapped ones
-                    resource_path = value[0]._uri.rsplit('/', 1)[0]
-                    return ResourceList(value, _model_lookup[resource_path])
+                elif isinstance(value, list):
+                    if schema['items']['type'] == 'object':
+                        # convert lists of potion resources into wrapped ones
+                        compiled_re = re.compile(schema['items']['properties']['$ref']['pattern'])
+
+                        # if the list we're returning is empty, we can't just infer what type of
+                        # object belongs in this list from its contents. to account for this, we'll
+                        # instead try to match the object's URI to those in our lookup table
+                        for route, obj in _model_lookup.items():
+                            if compiled_re.match('{}/dummy_lookup'.format(route)):
+                                return ResourceList(value, obj)
+
+                        raise OneCodexException('No object found for {}'.format(compiled_re.pattern))
+                    else:
+                        # otherwise, just return a regular list
+                        return value
                 else:
                     if key == 'id':
                         # undo the bad coercion from potion_client/resource.py#L111
@@ -240,7 +577,7 @@ class OneCodexBase(object):
             return
         elif key == 'id':
             raise AttributeError('can\'t set attribute')
-        elif isinstance(value, OneCodexBase):
+        elif isinstance(value, OneCodexBase) or isinstance(value, ResourceList):
             self._resource[key] = value._resource
             return
         elif isinstance(value, (list, tuple)):

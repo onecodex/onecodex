@@ -15,7 +15,7 @@ import warnings
 
 from onecodex.lib.auth import BearerTokenAuth
 from onecodex.models import _model_lookup
-from onecodex.utils import ModuleAlias, get_raven_client, collapse_user
+from onecodex.utils import get_raven_client, collapse_user
 from onecodex.vendored.potion_client import Client as PotionClient
 from onecodex.vendored.potion_client.converter import PotionJSONSchemaDecoder, PotionJSONDecoder, PotionJSONEncoder
 from onecodex.vendored.potion_client.utils import upper_camel_case
@@ -92,12 +92,6 @@ class Api(object):
         else:
             self._raven_client = None
             self._telemetry = False
-
-        # Try to import and copy key modules onto the Api object
-        for module_name in ['onecodex.viz', 'onecodex.distance']:
-            module = ModuleAlias(module_name)
-            if module._imported:
-                setattr(self, module._name, module)
 
     def _fetch_account_email(self):
         creds_file = os.path.expanduser('~/.onecodex')
