@@ -1,11 +1,11 @@
 import altair as alt
 
-from onecodex.viz._heatmap import plot_heatmap
-from onecodex.viz._pca import plot_pca
-from onecodex.viz._distance import plot_distance
-from onecodex.viz._metadata import plot_metadata
+from onecodex.viz._heatmap import VizHeatmapMixin
+from onecodex.viz._pca import VizPCAMixin
+from onecodex.viz._metadata import VizMetadataMixin
+from onecodex.viz._distance import VizDistanceMixin
 
-__all__ = ['plot_heatmap', 'plot_pca', 'plot_distance', 'plot_metadata']
+__all__ = ['VizPCAMixin', 'VizHeatmapMixin', 'VizMetadataMixin', 'VizDistanceMixin']
 
 
 def onecodex_theme():
@@ -41,7 +41,10 @@ def onecodex_theme():
                 'height': 400,
                 'strokeWidth': 0
             },
-            'background': 'white'
+            'background': 'white',
+            'scale': {
+                'rangeStep': 45
+            }
         }
     }
 
