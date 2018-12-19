@@ -8,7 +8,8 @@ from onecodex.exceptions import OneCodexException
 
 class VizPCAMixin():
     def plot_pca(self, rank='auto', normalize='auto', org_vectors=0, org_vectors_scale=None,
-                 title=None, xlabel=None, ylabel=None, color=None, size=None, tooltip=None):
+                 title=None, xlabel=None, ylabel=None, color=None, size=None, tooltip=None,
+                 return_chart=False):
         """Perform principal component analysis and plot first two axes.
 
         Parameters
@@ -149,6 +150,9 @@ class VizPCAMixin():
                                       order='o',
                                       color='Eigenvectors')
 
-            (chart + vector_chart).interactive().display()
+            chart += vector_chart
+
+        if return_chart:
+            return chart
         else:
             chart.interactive().display()
