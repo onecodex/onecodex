@@ -55,11 +55,11 @@ class VizMetadataMixin():
         if title:
             chart = chart.properties(title=title)
 
-        chart.interactive().display()
+        return chart
 
     def plot_metadata(self, rank='auto',
                       haxis='Label', vaxis='simpson',
-                      title=None, xlabel=None, ylabel=None, plot_type='auto'):
+                      title=None, xlabel=None, ylabel=None, return_chart=False, plot_type='auto'):
         """Plot an arbitrary metadata field versus an arbitrary quantity as a boxplot or scatter plot.
 
         Parameters
@@ -169,8 +169,6 @@ class VizMetadataMixin():
             ylabel = magic_fields[vaxis]
 
         if plot_type == 'scatter':
-            alt.renderers.enable('notebook')
-
             df = df.reset_index()
 
             alt_kwargs = dict(
@@ -188,10 +186,8 @@ class VizMetadataMixin():
 
             if title:
                 chart = chart.properties(title=title)
-
-            chart.interactive().display()
         elif plot_type == 'boxplot':
-            self._box_plot(
+            chart = self._box_plot(
                 df,
                 magic_fields[haxis],
                 magic_fields[vaxis],
@@ -200,3 +196,8 @@ class VizMetadataMixin():
                 xlabel=xlabel,
                 ylabel=ylabel
             )
+
+        if return_chart:
+            return chart
+        else:
+            chart.interactive().display()
