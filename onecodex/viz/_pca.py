@@ -15,7 +15,7 @@ class VizPCAMixin():
         Parameters
         ----------
         rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
-            Analysis will be restricted to abundances of taxa at the specified level. 
+            Analysis will be restricted to abundances of taxa at the specified level.
         normalize : 'auto' or `bool`, optional
             Convert read counts to relative abundances such that each sample sums to 1.0. Setting
             'auto' will choose automatically based on the data.
@@ -80,20 +80,20 @@ class VizPCAMixin():
         pca = PCA()
         pca_vals = pca.fit(df.values).transform(df.values)
         pca_vals = pd.DataFrame(pca_vals, index=df.index)
-        pca_vals.rename(columns=lambda x: "PCA{}".format(x + 1), inplace=True)
+        pca_vals.rename(columns=lambda x: "PC{}".format(x + 1), inplace=True)
 
         # label the axes
         if xlabel is None:
-            xlabel = 'PCA1 ({}%)'.format(round(pca.explained_variance_ratio_[0] * 100, 2))
+            xlabel = 'PC1 ({}%)'.format(round(pca.explained_variance_ratio_[0] * 100, 2))
         if ylabel is None:
-            ylabel = 'PCA2 ({}%)'.format(round(pca.explained_variance_ratio_[1] * 100, 2))
+            ylabel = 'PC2 ({}%)'.format(round(pca.explained_variance_ratio_[1] * 100, 2))
 
         # don't send all the data to vega, just what we're plotting
-        plot_data = pd.concat([pca_vals.ix[:, ('PCA1', 'PCA2')], magic_metadata], axis=1).reset_index()
+        plot_data = pd.concat([pca_vals.ix[:, ('PC1', 'PC2')], magic_metadata], axis=1).reset_index()
 
         alt_kwargs = dict(
-            x=alt.X('PCA1', axis=alt.Axis(title=xlabel)),
-            y=alt.Y('PCA2', axis=alt.Axis(title=ylabel)),
+            x=alt.X('PC1', axis=alt.Axis(title=xlabel)),
+            y=alt.Y('PC2', axis=alt.Axis(title=ylabel)),
             tooltip=[magic_fields[t] for t in tooltip if t],
             href='url:N',
             url='https://app.onecodex.com/classification/' + alt.datum.classification_id

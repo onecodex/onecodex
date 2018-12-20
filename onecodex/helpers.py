@@ -189,17 +189,19 @@ class SampleAnalysis(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistance
                     # try to match it up with a taxon name
                     hits = []
 
-                    for tax_id, tax_name in zip(self._taxonomy.index, self._taxonomy['name']):
-                        # if it's an exact match, use that and skip the rest
-                        if f.lower() == tax_name.lower():
-                            hits = [(tax_id, tax_name)]
-                            break
-                        # otherwise, keep trying to match
-                        elif f.lower() in tax_name.lower():
-                            hits.append((tax_id, tax_name))
+                    # don't both searching if the query is really short
+                    if len(f) > 4:
+                        for tax_id, tax_name in zip(self._taxonomy.index, self._taxonomy['name']):
+                            # if it's an exact match, use that and skip the rest
+                            if f.lower() == tax_name.lower():
+                                hits = [(tax_id, tax_name)]
+                                break
+                            # otherwise, keep trying to match
+                            elif f.lower() in tax_name.lower():
+                                hits.append((tax_id, tax_name))
 
-                    # take the hit with the lowest tax_id
-                    hits = sorted(hits, key=lambda x: int(x[0]))
+                        # take the hit with the lowest tax_id
+                        hits = sorted(hits, key=lambda x: int(x[0]))
 
                     if hits:
                         # report within-rank abundance
