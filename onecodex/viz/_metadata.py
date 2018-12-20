@@ -153,7 +153,7 @@ class VizMetadataMixin():
                 else:
                     plot_type = 'boxplot'
         elif pd.api.types.is_numeric_dtype(df[magic_fields[haxis]]):
-            df = df.dropna(subset=[vaxis])
+            df = df.dropna(subset=[magic_fields[vaxis]])
 
             category_type = 'O'
 

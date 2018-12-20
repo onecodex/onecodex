@@ -15,7 +15,7 @@ pandas==0.23.0
 pytz>=2014.1
 raven>=6.1.0
 scikit-bio==0.4.2
-sklearn>=0.19.0
+scikit-learn>=0.19.0
 vega==1.4.0
 
 # testing
