@@ -8,7 +8,8 @@ from onecodex.exceptions import OneCodexException
 
 class VizHeatmapMixin():
     def plot_heatmap(self, rank='auto', normalize='auto', top_n=20, threshold=None,
-                     title=None, xlabel=None, ylabel=None, tooltip=None, return_chart=False):
+                     title=None, xlabel=None, ylabel=None, tooltip=None, return_chart=False,
+                     linkage='average'):
         """Plot heatmap of taxa abundance/count data for several samples.
 
         Parameters
@@ -21,6 +22,8 @@ class VizHeatmapMixin():
         return_chart : `bool`, optional
             When True, return an `altair.Chart` object instead of displaying the resulting plot in
             the current notebook.
+        linkage : {'average', 'single', 'complete', 'weighted', 'centroid', 'median'}
+            The type of linkage to use when clustering axes.
         top_n : `int`, optional
             Display the top N most abundant taxa in the entire cohort of samples.
         threshold : `float`
@@ -83,7 +86,7 @@ class VizHeatmapMixin():
             threshold=threshold
         ).T
         taxa_dist = euclidean_distances(df_for_clustering).round(6)
-        clustering = hierarchy.linkage(squareform(taxa_dist), method='average')
+        clustering = hierarchy.linkage(squareform(taxa_dist), method=linkage)
         tree = hierarchy.dendrogram(clustering, no_plot=True)
         tax_ids_in_order = [df_for_clustering.index[int(x)] for x in tree['ivl']]
         tax_names_in_order = ['{} ({})'.format(self._taxonomy['name'][t], t) for t in tax_ids_in_order]
@@ -91,7 +94,7 @@ class VizHeatmapMixin():
         # use scipy to perform average-linkage clustering on euclidean distances (by sample)
         df_for_clustering = df_for_clustering.T
         sample_dist = euclidean_distances(df_for_clustering).round(6)
-        clustering = hierarchy.linkage(squareform(sample_dist), method='average')
+        clustering = hierarchy.linkage(squareform(sample_dist), method=linkage)
         tree = hierarchy.dendrogram(clustering, no_plot=True)
         c_ids_in_order = [df_for_clustering.index[int(x)] for x in tree['ivl']]
         labels_in_order = [self._metadata['_display_name'][t] for t in c_ids_in_order]
