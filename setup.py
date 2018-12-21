@@ -39,6 +39,7 @@ setup(
         'requests>=2.9',
         'requests_toolbelt==0.7.0',
         'six>=1.10.0',
+        'unidecode==1.0.23',
     ],
     include_package_data=True,
     zip_safe=False,

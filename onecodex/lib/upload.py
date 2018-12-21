@@ -12,6 +12,7 @@ import re
 import requests
 from requests_toolbelt import MultipartEncoder
 from threading import BoundedSemaphore, Thread
+from unidecode import unidecode
 import warnings
 
 from onecodex.exceptions import OneCodexException, UploadException, process_api_error
@@ -76,7 +77,7 @@ def _wrap_files(filename, logger=None, validate=True):
 
 
 def upload(files, session, samples_resource, server_url, threads=DEFAULT_UPLOAD_THREADS,
-           validate=True, log_to=None, metadata=None, tags=None, project=None):
+           validate=True, log_to=None, metadata=None, tags=None, project=None, coerce_ascii=None):
     """
     Uploads several files to the One Codex server, auto-detecting sizes and using the appropriate
     downstream upload functions. Also, wraps the files with a streaming validator to ensure they
@@ -91,6 +92,21 @@ def upload(files, session, samples_resource, server_url, threads=DEFAULT_UPLOAD_
         normalized_filename, file_size = _file_stats(file_path, validate=validate)
         filenames.append(normalized_filename)
         file_sizes.append(file_size)
+
+    # if filename cannot be represented as ascii, raise and suggest renaming
+    for idx, fname in enumerate(filenames):
+        ascii_fname = unidecode(fname)
+
+        if fname != ascii_fname:
+            if coerce_ascii:
+                if log_to is not None:
+                    log_to.write('Renaming {} to {}, must be ASCII\n'.format(
+                        fname.encode('utf-8'), ascii_fname
+                    ))
+                    log_to.flush()
+                filenames[idx] = ascii_fname
+            else:
+                raise OneCodexException('Filenames must be ascii. Try using --coerce-ascii')
 
     # set up the logging
     bar_length = 20

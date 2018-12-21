@@ -162,6 +162,8 @@ def samples(ctx, samples):
 @click.option('--max-threads', default=4,
               help=OPTION_HELP['max_threads'], metavar='<int:threads>')
 @click.argument('files', nargs=-1, required=False, type=click.Path(exists=True))
+@click.option('--coerce-ascii', is_flag=True, default=False,
+              help='automatically rename unicode filenames to ASCII')
 @click.option('--forward', type=click.Path(exists=True),
               help=OPTION_HELP['forward'])
 @click.option('--reverse', type=click.Path(exists=True),
@@ -180,7 +182,7 @@ def samples(ctx, samples):
 @telemetry
 @login_required
 def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
-           forward, reverse, tags, metadata, project_id):
+           forward, reverse, tags, metadata, project_id, coerce_ascii):
     """Upload a FASTA or FASTQ (optionally gzip'd) to One Codex"""
 
     appendables = {}
@@ -262,6 +264,7 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
         'metadata': appendables['valid_metadata'],
         'tags': appendables['valid_tags'],
         'project': project_id,
+        'coerce_ascii': coerce_ascii,
     }
 
     try:
