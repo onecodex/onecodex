@@ -1,4 +1,7 @@
 import altair as alt
+from scipy.cluster import hierarchy
+from scipy.spatial.distance import squareform
+from sklearn.metrics.pairwise import euclidean_distances
 
 from onecodex.exceptions import OneCodexException
 
@@ -72,9 +75,30 @@ class VizHeatmapMixin():
         for f in tooltip:
             df[magic_fields[f]] = magic_metadata[magic_fields[f]][df['classification_id']].tolist()
 
+        # use scipy to perform average-linkage clustering on euclidean distances (by taxa)
+        df_for_clustering = self.results(
+            rank=rank,
+            normalize=normalize,
+            top_n=top_n,
+            threshold=threshold
+        ).T
+        taxa_dist = euclidean_distances(df_for_clustering).round(6)
+        clustering = hierarchy.linkage(squareform(taxa_dist), method='average')
+        tree = hierarchy.dendrogram(clustering, no_plot=True)
+        tax_ids_in_order = [df_for_clustering.index[int(x)] for x in tree['ivl']]
+        tax_names_in_order = ['{} ({})'.format(self._taxonomy['name'][t], t) for t in tax_ids_in_order]
+
+        # use scipy to perform average-linkage clustering on euclidean distances (by sample)
+        df_for_clustering = df_for_clustering.T
+        sample_dist = euclidean_distances(df_for_clustering).round(6)
+        clustering = hierarchy.linkage(squareform(sample_dist), method='average')
+        tree = hierarchy.dendrogram(clustering, no_plot=True)
+        c_ids_in_order = [df_for_clustering.index[int(x)] for x in tree['ivl']]
+        labels_in_order = [self._metadata['_display_name'][t] for t in c_ids_in_order]
+
         alt_kwargs = dict(
-            x=alt.X('display_name:N', axis=alt.Axis(title=xlabel)),
-            y=alt.Y('tax_name:N', axis=alt.Axis(title=ylabel)),
+            x=alt.X('display_name:N', axis=alt.Axis(title=xlabel), sort=labels_in_order),
+            y=alt.Y('tax_name:N', axis=alt.Axis(title=ylabel), sort=tax_names_in_order),
             color='{}:Q'.format(self.field),
             tooltip=['{}:Q'.format(self.field)] + tooltip,
             href='url:N',
