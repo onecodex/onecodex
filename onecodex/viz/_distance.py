@@ -42,7 +42,8 @@ class VizDistanceMixin(DistanceMixin):
         return distances
 
     def plot_distance(self, rank='auto', metric='braycurtis',
-                      title=None, xlabel=None, ylabel=None, tooltip=None, return_chart=False):
+                      title=None, xlabel=None, ylabel=None, tooltip=None, return_chart=False,
+                      linkage='average'):
         """Plot beta diversity distance matrix as a heatmap and dendrogram.
 
         Parameters
@@ -51,6 +52,8 @@ class VizDistanceMixin(DistanceMixin):
             Analysis will be restricted to abundances of taxa at the specified level.
         metric : {'braycurtis', 'manhattan', 'jaccard', 'unifrac', 'unweighted_unifrac}, optional
             Function to use when calculating the distance between two samples.
+        linkage : {'average', 'single', 'complete', 'weighted', 'centroid', 'median'}
+            The type of linkage to use when clustering axes.
         title : `string`, optional
             Text label at the top of the plot.
         xlabel : `string`, optional
@@ -120,7 +123,7 @@ class VizDistanceMixin(DistanceMixin):
         dists = distances.to_data_frame()
 
         # here we use scipy to perform average-linkage clustering on the distance matrix
-        clustering = hierarchy.linkage(squareform(dists), method='average')
+        clustering = hierarchy.linkage(squareform(dists), method=linkage)
         tree = hierarchy.dendrogram(clustering, no_plot=True)
         class_ids_in_order = [dists.index[int(x)] for x in tree['ivl']]
         names_in_order = self._metadata['_display_name'][class_ids_in_order].tolist()
