@@ -95,7 +95,7 @@ class Samples(OneCodexBase):
 
     @classmethod
     def upload(cls, filename, threads=None, validate=True, metadata=None, tags=None,
-               project=None, metadata_snake_case=True):
+               project=None, metadata_snake_case=True, coerce_ascii=False):
         """
         Uploads a series of files to the One Codex server. These files are automatically
         validated during upload.
@@ -140,7 +140,8 @@ class Samples(OneCodexBase):
                 project = project_search[0]
 
         samples = upload(filename, res._client.session, res, res._client._root_url + '/', threads=threads,
-                         validate=validate, log_to=sys.stderr, metadata=metadata, tags=tags, project=project)
+                         validate=validate, log_to=sys.stderr, metadata=metadata, tags=tags, project=project,
+                         coerce_ascii=coerce_ascii)
         return samples
         # FIXME: pass the auth into this so we can authenticate the callback?
 

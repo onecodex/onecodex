@@ -1,9 +1,15 @@
+# -*- coding: utf-8 -*-
 from collections import OrderedDict
 from io import BytesIO
 from mock import patch
 import pytest
 from requests_toolbelt import MultipartEncoder
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 
+from onecodex.exceptions import OneCodexException
 from onecodex.lib.inline_validator import FASTXTranslator
 from onecodex.lib.upload import upload, upload_file, upload_large_file, interleaved_filename
 
@@ -71,6 +77,31 @@ class FakeSession():
         resp = lambda: None  # noqa
         resp.status_code = 201 if 'auth' in kwargs else 200
         return resp
+
+
+def test_unicode_filenames():
+    file_list = [
+        (u'tests/data/files/François.fq', 'Francois.fq.gz'),
+        (u'tests/data/files/Málaga.fasta', 'Malaga.fasta.gz'),
+        (u'tests/data/files/Röö.fastq', 'Roo.fastq.gz')
+    ]
+
+    # should raise if --coerce-ascii not passed
+    for before, after in file_list:
+        with pytest.raises(OneCodexException) as e:
+            upload([before], FakeSession(), FakeSamplesResource(), '')
+        assert 'must be ascii' in str(e.value)
+
+    # just make sure passing log_to=None doesn't fail
+    upload([x[0] for x in file_list], FakeSession(), FakeSamplesResource(),
+           '', log_to=None, coerce_ascii=True)
+
+    # and finally, make sure log_to gets warnings when we rename files
+    for before, after in file_list:
+        log_to = StringIO()
+        upload([before], FakeSession(), FakeSamplesResource(), '', log_to=log_to, coerce_ascii=True)
+        log_to.seek(0)
+        assert after in log_to.read()
 
 
 def test_upload_big_file():
