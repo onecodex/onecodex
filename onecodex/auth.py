@@ -68,17 +68,14 @@ def _login(server=None, creds_file=None, api_key=None, silent=False):
         with open(creds_file, 'r') as fp:
             try:
                 creds = json.load(fp)
-
-                # this is just so the exception is triggered if api_key and e-mail aren't there
-                creds_email = creds['email']
-                creds_api_key = creds['api_key']
-            except (KeyError, ValueError):
+            except ValueError:
                 click.echo('Your ~/.onecodex credentials file appears to be corrupted. '  # noqa
                            'Please delete it and re-authorize.', err=True)
                 sys.exit(1)
 
         # check for updates if logged in more than one day ago
-        last_update = creds['updated_at'] if creds.get('updated_at') else creds['saved_at']
+        last_update = creds.get('updated_at', creds.get('saved_at'))
+        last_update = last_update if last_update else datetime.datetime.now().strftime(DATE_FORMAT)
         diff = datetime.datetime.now() - datetime.datetime.strptime(last_update,
                                                                     DATE_FORMAT)
         if diff.days >= 1:
@@ -102,11 +99,11 @@ def _login(server=None, creds_file=None, api_key=None, silent=False):
 
         # finally, give the user back what they want (whether silent or not)
         if silent:
-            return creds_api_key
+            return creds.get('api_key', None)
 
-        click.echo('Credentials file already exists ({})'.format(collapse_user(creds_file)),
+        click.echo('Credentials file already exists ({}). Logout first.'.format(collapse_user(creds_file)),
                    err=True)
-        return creds_email
+        return creds.get('email', None)
 
     # creds_file was not found and we're not silent, so prompt user to login
     email, api_key = login_uname_pwd(server, api_key=api_key)
