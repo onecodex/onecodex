@@ -107,9 +107,10 @@ jobs:
           command: |
             virtualenv venv
             . venv/bin/activate
+            pip install numpy
             pip install .[all,testing]
       - run:
-          name: Run flake8
+          name: Run tests
           command: |
             . venv/bin/activate
             py.test --cov-report=html --cov=onecodex --ignore tests/test_minimal.py tests/
