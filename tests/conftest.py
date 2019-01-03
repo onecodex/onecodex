@@ -22,6 +22,9 @@ try:
 except ImportError:
     pass  # May not be incl. in minimal environment
 
+# do not load EnhancedSampleCollection for tests unless explicitly needed
+os.environ['ONE_CODEX_NO_ENHANCED'] = 'True'
+
 
 def intercept(func, log=False, dump=None):
     """

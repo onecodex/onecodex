@@ -62,10 +62,10 @@ class VizPCAMixin():
         if len(self._results) < 2:
             raise OneCodexException('`plot_pca` requires 2 or more valid classification results.')
 
-        if len(self._taxonomy) < 2:
-            raise OneCodexException('Too few taxa in results. Need at least 2 for PCA.')
-
         df = self.results(rank=rank, normalize=normalize)
+
+        if len(df.columns) < 2:
+            raise OneCodexException('Too few taxa in results. Need at least 2 for PCA.')
 
         if tooltip:
             if not isinstance(tooltip, list):
