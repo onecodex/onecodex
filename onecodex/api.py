@@ -15,7 +15,7 @@ import warnings
 
 from onecodex.lib.auth import BearerTokenAuth
 from onecodex.models import _model_lookup, ResourceList
-from onecodex.utils import ModuleAlias, get_raven_client, collapse_user
+from onecodex.utils import get_raven_client, collapse_user
 from onecodex.vendored.potion_client import Client as PotionClient
 from onecodex.vendored.potion_client.converter import PotionJSONSchemaDecoder, PotionJSONDecoder, PotionJSONEncoder
 from onecodex.vendored.potion_client.utils import upper_camel_case
@@ -93,14 +93,16 @@ class Api(object):
             self._raven_client = None
             self._telemetry = False
 
-        # enable additional analysis functionality on returned samples/classifications/analyses if this
-        # is a full install by extending the SampleCollection class
-        try:
-            from onecodex.helpers import SampleCollectionAnalyses
-            import onecodex
-            onecodex.models.SampleCollection.__bases__ = (SampleCollectionAnalyses, ResourceList,)
-        except ImportError:
-            pass
+        # enable additional analysis functionality on returned Samples/Classifications/Analyses if this
+        # is a full install by extending the SampleCollection class. allow us to bypass this with an
+        # environment variable for testing
+        if not os.environ.get('ONE_CODEX_NO_ENHANCED', False):
+            try:
+                from onecodex.helpers import EnhancedSampleCollection
+                import onecodex
+                onecodex.models.SampleCollection.__bases__ = (EnhancedSampleCollection, ResourceList,)
+            except ImportError:
+                pass
 
     def _fetch_account_email(self):
         creds_file = os.path.expanduser('~/.onecodex')

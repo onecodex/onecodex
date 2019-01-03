@@ -1,3 +1,4 @@
+from functools import partial
 import pandas as pd
 import warnings
 
@@ -22,8 +23,6 @@ class ResultsDataFrame(pd.DataFrame):
 
     @property
     def _constructor(self):
-        from functools import partial
-
         # we explicitly do *not* pass rank on to manipulated ResultsDataFrames. we don't know
         # how the data has been manipulated, and it may no longer be accurate
         ocx_data = {
@@ -37,8 +36,6 @@ class ResultsDataFrame(pd.DataFrame):
 
     @property
     def _constructor_sliced(self):
-        from functools import partial
-
         # we explicitly do *not* pass rank on to manipulated ResultsDataFrames. we don't know
         # how the data has been manipulated, and it may no longer be accurate
         ocx_data = {
@@ -64,8 +61,6 @@ class ResultsSeries(pd.Series):
 
     @property
     def _constructor(self):
-        from functools import partial
-
         # we explicitly do *not* pass rank on to manipulated ResultsDataFrames. we don't know
         # how the data has been manipulated, and it may no longer be accurate
         ocx_data = {
@@ -79,8 +74,6 @@ class ResultsSeries(pd.Series):
 
     @property
     def _constructor_expanddim(self):
-        from functools import partial
-
         # we explicitly do *not* pass rank on to manipulated ResultsDataFrames. we don't know
         # how the data has been manipulated, and it may no longer be accurate
         ocx_data = {
@@ -93,7 +86,7 @@ class ResultsSeries(pd.Series):
         return partial(ResultsDataFrame, ocx_data=ocx_data)
 
 
-class SampleAnalysis(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceMixin):
+class AnalysisMethods(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceMixin):
     _immutable = ['field', '_results', '_metadata', '_taxonomy']
 
     def __init__(self, results, metadata, taxonomy, field):
@@ -106,7 +99,7 @@ class SampleAnalysis(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistance
         if name in self._immutable and not force:
             raise OneCodexException('{} is an immutable property and can not be changed'.format(name))
 
-        super(SampleAnalysis, self).__setattr__(name, value)
+        super(AnalysisMethods, self).__setattr__(name, value)
 
     def _get_auto_rank(self, rank):
         """Tries to figure out what rank we should use for analyses, mainly called by results()"""
@@ -165,39 +158,39 @@ class SampleAnalysis(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistance
                 ).str.lstrip('_')
                 magic_fields[f] = composite_field
             else:
-                f = str(f)
+                str_f = str(f)
 
-                if f == 'Label':
+                if str_f == 'Label':
                     # it's our magic keyword that means _display_name
                     magic_metadata[f] = self._metadata['_display_name']
-                    magic_fields[f] = f
-                elif f in self._metadata:
+                    magic_fields[f] = str_f
+                elif str_f in self._metadata:
                     # exactly matches existing metadata field
-                    magic_metadata[f] = self._metadata[f]
-                    magic_fields[f] = f
-                elif f in self._results.keys():
+                    magic_metadata[f] = self._metadata[str_f]
+                    magic_fields[f] = str_f
+                elif str_f in self._results.keys():
                     # is a tax_id
-                    tax_name = self._taxonomy['name'][f]
+                    tax_name = self._taxonomy['name'][str_f]
 
                     # report within-rank abundance
-                    df = self.results(rank=self._taxonomy['rank'][f])
+                    df = self.results(rank=self._taxonomy['rank'][str_f])
 
-                    renamed_field = '{} ({})'.format(tax_name, f)
-                    magic_metadata[renamed_field] = df[f]
+                    renamed_field = '{} ({})'.format(tax_name, str_f)
+                    magic_metadata[renamed_field] = df[str_f]
                     magic_fields[f] = renamed_field
                 else:
                     # try to match it up with a taxon name
                     hits = []
 
                     # don't both searching if the query is really short
-                    if len(f) > 4:
+                    if len(str_f) > 4:
                         for tax_id, tax_name in zip(self._taxonomy.index, self._taxonomy['name']):
                             # if it's an exact match, use that and skip the rest
-                            if f.lower() == tax_name.lower():
+                            if str_f.lower() == tax_name.lower():
                                 hits = [(tax_id, tax_name)]
                                 break
                             # otherwise, keep trying to match
-                            elif f.lower() in tax_name.lower():
+                            elif str_f.lower() in tax_name.lower():
                                 hits.append((tax_id, tax_name))
 
                         # take the hit with the lowest tax_id
@@ -213,7 +206,7 @@ class SampleAnalysis(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistance
                     else:
                         # matched nothing
                         raise OneCodexException(
-                            'Field or taxon {} not found. Choose from: {}'.format(f, help_metadata)
+                            'Field or taxon {} not found. Choose from: {}'.format(str_f, help_metadata)
                         )
 
         return magic_metadata, magic_fields
@@ -308,7 +301,7 @@ class SampleAnalysis(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistance
         return self._taxonomy.copy()
 
 
-class SampleCollectionAnalyses(SampleAnalysis):
+class EnhancedSampleCollection(AnalysisMethods):
     def __init__(self, _resource, oc_model, **kwargs):
         self._kwargs = kwargs
         self._immutable.extend(['_classifications'])
@@ -320,7 +313,7 @@ class SampleCollectionAnalyses(SampleAnalysis):
         # whenever a change is made to the samples in this list (i.e., removing some of them), we must update
         # the metadata and results dataframes we're saving in this class. use the kwargs that were originally
         # passed when this object was instantiated.
-        ResourceList._update(self)
+        super(EnhancedSampleCollection, self)._update()
 
         if self._resource:
             self.magic_classification_fetch(**self._kwargs)
@@ -469,9 +462,9 @@ class SampleCollectionAnalyses(SampleAnalysis):
 
 
 @pd.api.extensions.register_dataframe_accessor('ocx')
-class OneCodexAccessor(SampleAnalysis):
+class OneCodexAccessor(AnalysisMethods):
     def __init__(self, pandas_obj):
-        # copy data from the ResultsDataFrame to a new instance of SampleAnalysis
+        # copy data from the ResultsDataFrame to a new instance of AnalysisMethods
         super(OneCodexAccessor, self).__init__(
             pandas_obj,
             pandas_obj.ocx_metadata,
