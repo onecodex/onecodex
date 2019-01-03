@@ -50,9 +50,11 @@ def onecodex_theme():
 alt.themes.register('onecodex', onecodex_theme)
 alt.themes.enable('onecodex')
 
+
 def onecodex_renderer(spec, **metadata):
     metadata['scale_factor'] = 1.5
     return alt.vegalite.v2.display.png_renderer(spec, **metadata)
+
 
 alt.renderers.register('onecodex', onecodex_renderer)
 

@@ -28,6 +28,10 @@ class ResourceList:
     def _update(self):
         self._res_list = [self.oc_model(x) for x in self._resource]
 
+    @property
+    def _constructor(self):
+        return ResourceList
+
     def __init__(self, _resource, oc_model):
         # turn potion Resource objects into OneCodex objects
         self._resource = _resource
@@ -63,7 +67,11 @@ class ResourceList:
 
     def __getitem__(self, x):
         self._update()
-        return self._res_list[x]
+        wrapped = self._res_list[x]
+        if isinstance(wrapped, list):
+            return self._constructor(self._resource[x], self.oc_model)
+        else:
+            return wrapped
 
     def __setitem__(self, k, v):
         if isinstance(v, self.oc_model) and \
@@ -240,7 +248,7 @@ class OneCodexBase(object):
             return
         elif key == 'id':
             raise AttributeError('can\'t set attribute')
-        elif isinstance(value, OneCodexBase):
+        elif isinstance(value, OneCodexBase) or isinstance(value, ResourceList):
             self._resource[key] = value._resource
             return
         elif isinstance(value, (list, tuple)):
