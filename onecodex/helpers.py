@@ -4,7 +4,7 @@ import warnings
 import six
 
 from onecodex.exceptions import OneCodexException
-from onecodex.models import Analyses, Classifications, Samples, Metadata
+from onecodex.models import Analyses, Classifications, Samples, Metadata, ResourceList
 from onecodex.viz import VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceMixin
 
 
@@ -308,15 +308,26 @@ class SampleAnalysis(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistance
         return self._taxonomy.copy()
 
 
-class SampleCollection(SampleAnalysis):
-    def __init__(self, analyses, **kwargs):
-        self._immutable.extend(['_analyses', '_classifications'])
+class SampleCollectionAnalyses(SampleAnalysis):
+    def __init__(self, _resource, oc_model, **kwargs):
+        self._kwargs = kwargs
+        self._immutable.extend(['_classifications'])
 
-        self.__setattr__('_analyses', analyses, force=True)
+        # this will call _update, which will load the dataframes
+        ResourceList.__init__(self, _resource, oc_model)
 
-        self.magic_classification_fetch(**kwargs)
-        self.collate_metadata(**kwargs)
-        self.collate_results(**kwargs)
+    def _update(self):
+        # whenever a change is made to the samples in this list (i.e., removing some of them), we must update
+        # the metadata and results dataframes we're saving in this class. use the kwargs that were originally
+        # passed when this object was instantiated.
+        ResourceList._update(self)
+
+        if self._resource:
+            self.magic_classification_fetch(**self._kwargs)
+            self.collate_metadata(**self._kwargs)
+            self.collate_results(**self._kwargs)
+        else:
+            self.__setattr__('_classifications', [], force=True)
 
     def magic_classification_fetch(self, skip_missing=True, **kwargs):
         """Turns a list of objects associated with a classification results into a list of
@@ -329,7 +340,7 @@ class SampleCollection(SampleAnalysis):
 
         fetched = []
 
-        for a in self._analyses:
+        for a in self._res_list:
             if isinstance(a, Samples):
                 c = a.primary_classification
             elif isinstance(a, Classifications):

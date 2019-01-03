@@ -14,7 +14,7 @@ from requests.auth import HTTPBasicAuth
 import warnings
 
 from onecodex.lib.auth import BearerTokenAuth
-from onecodex.models import _model_lookup
+from onecodex.models import _model_lookup, ResourceList
 from onecodex.utils import ModuleAlias, get_raven_client, collapse_user
 from onecodex.vendored.potion_client import Client as PotionClient
 from onecodex.vendored.potion_client.converter import PotionJSONSchemaDecoder, PotionJSONDecoder, PotionJSONEncoder
@@ -93,11 +93,14 @@ class Api(object):
             self._raven_client = None
             self._telemetry = False
 
-        # Try to import and copy key modules onto the Api object
-        for module_name in ['onecodex.viz', 'onecodex.distance']:
-            module = ModuleAlias(module_name)
-            if module._imported:
-                setattr(self, module._name, module)
+        # enable additional analysis functionality on returned samples/classifications/analyses if this
+        # is a full install by extending the SampleCollection class
+        try:
+            from onecodex.helpers import SampleCollectionAnalyses
+            import onecodex
+            onecodex.models.SampleCollection.__bases__ = (SampleCollectionAnalyses, ResourceList,)
+        except ImportError:
+            pass
 
     def _fetch_account_email(self):
         creds_file = os.path.expanduser('~/.onecodex')
