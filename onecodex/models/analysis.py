@@ -2,7 +2,7 @@ from collections import defaultdict, OrderedDict
 import datetime
 import json
 
-from onecodex.models import OneCodexBase
+from onecodex.models import OneCodexBase, SampleCollection
 
 
 class Analyses(OneCodexBase):
@@ -183,6 +183,12 @@ class Classifications(Analyses):
         else:
             res = self.table()
             return res[res['tax_id'].isin(ids)]
+
+    @classmethod
+    def where(cls, *filters, **keyword_filters):
+        wrapped = super(Classifications, cls).where(*filters, **keyword_filters)
+
+        return SampleCollection([w._resource for w in wrapped], Classifications)
 
 
 class Panels(Analyses):

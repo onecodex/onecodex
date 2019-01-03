@@ -7,7 +7,7 @@ import warnings
 
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.upload import upload  # upload_file
-from onecodex.models import OneCodexBase, Projects
+from onecodex.models import OneCodexBase, Projects, SampleCollection
 from onecodex.models.helpers import truncate_string
 from onecodex.utils import snake_case
 
@@ -75,7 +75,7 @@ class Samples(OneCodexBase):
             # TODO: implement this (see above block)
             samples = metadata_samples
 
-        return samples[:limit]
+        return SampleCollection([w._resource for w in samples[:limit]], Samples)
 
     @classmethod
     def search_public(cls, *filters, **keyword_filters):
