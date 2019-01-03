@@ -10,6 +10,7 @@ import warnings
 from onecodex.exceptions import ValidationError, ValidationWarning
 
 GZIP_COMPRESSION_LEVEL = 5
+MIN_LENGTH_FOR_ANALYSIS = 70
 
 
 # buffer code from
@@ -168,7 +169,7 @@ class FASTXNuclIterator(object):
         else:
             try:
                 self.total_size = os.fstat(self.file_obj.fileno()).st_size
-                if self.total_size < 70:
+                if self.total_size < MIN_LENGTH_FOR_ANALYSIS:
                     raise ValidationError('{} is too small to be analyzed: {} bytes'.format(
                         self.name, self.total_size
                     ))
@@ -231,6 +232,7 @@ class FASTXNuclIterator(object):
 
     def __iter__(self):
         eof = False
+        waiting_for_data = False
         while not eof:
             new_data = self.file_obj.read(self.buffer_read_size)
             # if we're at the end of the file
@@ -249,7 +251,15 @@ class FASTXNuclIterator(object):
             while True:
                 match = self.seq_reader.match(self.unchecked_buffer, end)
                 if match is None:
+                    if (waiting_for_data or eof) and len(self.unchecked_buffer) - end > 0:
+                        raise ValidationError('Sequence in buffer does not match expected format.')
+
+                    if not eof:
+                        waiting_for_data = True
+
                     break
+                else:
+                    waiting_for_data = False
                 rec = match.groupdict()
                 seq_id, seq, seq_id2, qual = self._validate_record(rec)
                 if self.as_raw:

@@ -21,6 +21,10 @@ SAMPLE_FILES = {
     'INVALID_FASTQ':
         (b'@Header1\nACGTACGTACGT\n+\nAAAAAAAAAAAA\n'
          b'@Header2\nACGTACGTAQGT\n+\nAAAAAAAAAAAA\n'),
+    'INVALID_FASTQ2':
+        (b'@Header1\nGCGGAATCGCCTT\n+\nJJJJJJJJJJJJ\n'
+         b'--\n'
+         b'@Header2\nGCGGAATCGCCTT\n+\nJJJJJJJJJJJJ\n'),
     'MODIFIABLE_FASTQ':
         (b'@Header1\nACGTACGTACGT\n+\nAAAAAAAAAAAA\n'
          b'@Header2\nACGTACGTAXGT\n+\nAAAAAAAAAAAA\n'),
@@ -131,6 +135,7 @@ def test_translator_to_reader(runner):
 @pytest.mark.parametrize('file_id,filename,validates,allow_iupac,modified', [
     ('VALID_FASTQ', 'my.fq', True, False, False),
     ('INVALID_FASTQ', 'my.fq', False, False, False),
+    ('INVALID_FASTQ2', 'my.fq', False, False, False),
     ('MODIFIABLE_FASTQ', 'my.fq', True, True, True),
     ('TABBED_FASTQ', 'my.fq', True, False, True),
     ('VALID_FASTQ', 'my.fastz', False, False, False),  # Bad name
