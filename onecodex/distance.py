@@ -52,7 +52,7 @@ class DistanceMixin(TaxonomyMixin):
 
         return skbio.diversity.beta_diversity(metric, counts, df.index.tolist())
 
-    def unifrac(self, weighted=True, strict=False, rank='auto'):
+    def unifrac(self, weighted=True, rank='auto'):
         """
         A beta diversity metric that takes into account the relative relatedness of community members.
         Weighted UniFrac looks at abundances, unweighted UniFrac looks at presence
@@ -79,29 +79,6 @@ class DistanceMixin(TaxonomyMixin):
         new_tree = TreeNode(name='fake root')
         new_tree.rank = 'no rank'
         new_tree.append(tree)
-
-        # find nodes that aren't tips, prune, and warn--they may be errors in taxonomy
-        counts_to_remove = []
-
-        for t_id in tax_ids:
-            node = tree.find(t_id)
-
-            if not node.is_tip():
-                warnings.warn('Found tax_id={} as an internal node (children={}), expected a tip'
-                              ''.format(t_id, ', '.join([x.name for x in node.children])))
-            else:
-                continue
-
-            # remove its children, keep the original node
-            for child in node.children:
-                counts_to_remove.append(tax_ids.index(child.name))
-                tax_ids.remove(child.name)
-
-            node.children = []
-
-        for count_idx in counts_to_remove:
-            for sample_idx in range(len(counts)):
-                del counts[sample_idx][count_idx]
 
         # then finally run the calculation and return
         if weighted:

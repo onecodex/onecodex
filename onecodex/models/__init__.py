@@ -8,7 +8,7 @@ from requests.exceptions import HTTPError
 import six
 import sys
 
-from onecodex.exceptions import MethodNotSupported, PermissionDenied, ServerError
+from onecodex.exceptions import MethodNotSupported, OneCodexException, PermissionDenied, ServerError
 from onecodex.models.helpers import (check_bind, generate_potion_sort_clause,
                                      generate_potion_keyword_where)
 from onecodex.vendored.potion_client.converter import PotionJSONEncoder
@@ -27,6 +27,17 @@ class ResourceList:
 
     def _update(self):
         self._res_list = [self._oc_model(x) for x in self._resource]
+
+    def _check_valid_resource(self, other):
+        try:
+            other = iter(other)
+        except TypeError:
+            other = [other]
+
+        for o in other:
+            if not isinstance(o, self._oc_model):
+                raise ValueError("Expected object of type '{}', got '{}'"
+                                 .format(self._oc_model.__name__, type(o).__name__))
 
     @property
     def _constructor(self):
@@ -57,13 +68,15 @@ class ResourceList:
         # two ResourceLists are equal if they refer to the same underlying Resource
         return id(self._resource) == id(other._resource)
 
+    @property
     def __repr__(self):
         self._update()
-        return self._res_list.__repr__()
+        return self._res_list.__repr__
 
+    @property
     def __len__(self):
         self._update()
-        return len(self._res_list)
+        return self._res_list.__len__
 
     def __getitem__(self, x):
         self._update()
@@ -74,75 +87,58 @@ class ResourceList:
             return wrapped
 
     def __setitem__(self, k, v):
-        if isinstance(v, self._oc_model) and \
-           isinstance(v._resource, Resource):
-            self._resource[k] = v._resource
-        else:
-            raise ValueError("Expected object of type '{}', got '{}'"
-                             .format(self._oc_model.__name__, type(v).__name__))
+        self._check_valid_resource(v)
+        self._resource[k] = v._resource
         self._update()
 
     def __delitem__(self, x):
         del self._resource[x]
         self._update()
 
+    @property
     def __iter__(self):
         self._update()
-        return self._res_list.__iter__()
+        return self._res_list.__iter__
 
+    @property
     def __reversed__(self):
         self._update()
-        return reversed(self._res_list)
+        return self._res_list.__reversed__
+
+    def append(self, x):
+        self._check_valid_resource(x)
+        self._resource.append(x._resource)
+        self._update()
+
+    def clear(self):
+        self._resource.clear()
+        self._res_list.clear()
 
     def count(self, x):
         # assume that ResourceList objects are identical if they share the same underlying resource
-        if isinstance(x, self._oc_model) and \
-           isinstance(x._resource, Resource):
-            n = 0
-            for res_obj in self._resource:
-                if res_obj == x._resource:
-                    n += 1
-            return n
-        else:
-            raise ValueError("Expected object of type '{}', got '{}'"
-                             .format(self._oc_model.__name__, type(x).__name__))
+        self._check_valid_resource(x)
+        n = 0
+        for res_obj in self._resource:
+            if res_obj == x._resource:
+                n += 1
+        return n
+
+    def extend(self, iterable):
+        self._check_valid_resource(iterable)
+        self._resource.extend([x._resource for x in iterable])
+        self._update()
 
     def index(self, x):
         # assume that ResourceList objects are identical if they share the same underlying resource
-        if isinstance(x, self._oc_model) and isinstance(x._resource, Resource):
-            for res_obj_idx, res_obj in enumerate(self._resource):
-                if res_obj == x._resource:
-                    return res_obj_idx
-            raise ValueError('{} is not in list'.format(x))
-
-        raise ValueError("Expected object of type '{}', got '{}'"
-                         .format(self._oc_model.__name__, type(x).__name__))
-
-    def remove(self, x):
-        del self._resource[self.index(x)]
-        self._update()
+        self._check_valid_resource(x)
+        for res_obj_idx, res_obj in enumerate(self._resource):
+            if res_obj == x._resource:
+                return res_obj_idx
+        raise ValueError('{} is not in list'.format(x))
 
     def insert(self, idx, x):
-        if isinstance(x, self._oc_model) and \
-           isinstance(x._resource, Resource):
-            self._resource.insert(idx, x._resource)
-        else:
-            raise ValueError("Expected object of type '{}', got '{}'"
-                             .format(self._oc_model.__name__, type(x).__name__))
-        self._update()
-
-    def append(self, x):
-        if isinstance(x, self._oc_model) and \
-           isinstance(x._resource, Resource):
-            self._resource.append(x._resource)
-        else:
-            raise ValueError("Expected object of type '{}', got '{}'"
-                             .format(self._oc_model.__name__, type(x).__name__))
-        self._update()
-
-    def extend(self, iterable):
-        for x in iterable:
-            self.append(x)
+        self._check_valid_resource(x)
+        self._resource.insert(idx, x._resource)
         self._update()
 
     def pop(self):
@@ -150,15 +146,62 @@ class ResourceList:
         self._resource.pop()
         return self._res_list.pop()
 
-    def clear(self):
-        self._resource.clear()
-        self._res_list.clear()
+    def remove(self, x):
+        del self._resource[self.index(x)]
+        self._update()
 
 
 class SampleCollection(ResourceList):
     @property
     def _constructor(self):
         return SampleCollection
+
+    def _check_dupes(self, other):
+        self_ids = [s.id for s in self._resource]
+
+        # works only with wrapped objects that inherit from OneCodexBase, or a SampleCollection
+        if isinstance(other, OneCodexBase):
+            other = [Resource]
+
+        if isinstance(other, list):
+            other_ids = [getattr(o, 'id', None) for o in other]
+        elif isinstance(other, SampleCollection):
+            other_ids = [getattr(o, 'id', None) for o in other._res_list]
+        else:
+            other_ids = [None]
+
+        if None in other_ids:
+            raise OneCodexException('Can only add Analyses/Classifications/Samples to a SampleCollection')
+
+        if len(set(self_ids + other_ids)) != len(self_ids + other_ids):
+            raise OneCodexException('SampleCollection cannot contain duplicate objects')
+
+    def __add__(self, other):
+        if not isinstance(other, SampleCollection):
+            raise TypeError('can only concatenate SampleCollection (not "{}") to SampleCollection'.format(type(other)))
+        new_obj = self.copy()
+        new_obj.extend(other._res_list)
+        return new_obj
+
+    def __setitem__(self, k, v):
+        self._check_dupes(v)
+        super(SampleCollection).__setitem__(k, v)
+
+    def append(self, x):
+        self._check_dupes(x)
+        super(SampleCollection, self).append(x)
+
+    def copy(self):
+        new_obj = self._constructor(self._resource.copy(), self._oc_model)
+        return new_obj
+
+    def extend(self, iterable):
+        self._check_dupes(iterable)
+        super(SampleCollection, self).extend(iterable)
+
+    def insert(self, idx, x):
+        self._check_dupes(x)
+        super(SampleCollection, self).insert(idx, x)
 
 
 class OneCodexBase(object):

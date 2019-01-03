@@ -333,11 +333,3 @@ def test_jobs(ocx, api_data):
 
     jobs = ocx.Jobs.where(public=True)
     assert len(jobs) == 23
-
-
-def test_modulealias():
-    # ensure that viz and distance modules get imported into Api() instances
-    ocx = Api()
-
-    assert isinstance(ocx.viz, onecodex.utils.ModuleAlias)
-    assert isinstance(ocx.distance, onecodex.utils.ModuleAlias)
