@@ -6,7 +6,7 @@ import altair as alt
 from onecodex.exceptions import OneCodexException
 
 
-class VizPCAMixin():
+class VizPCAMixin(object):
     def plot_pca(self, rank='auto', normalize='auto', org_vectors=0, org_vectors_scale=None,
                  title=None, xlabel=None, ylabel=None, color=None, size=None, tooltip=None,
                  return_chart=False):

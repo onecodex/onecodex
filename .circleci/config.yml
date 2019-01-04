@@ -13,7 +13,7 @@ version: 2
 jobs:
   test-py3:
     docker:
-      - image: circleci/python:3.4-stretch
+      - image: circleci/python:3.6-stretch
     steps:
       - checkout
       - run:
@@ -47,7 +47,7 @@ jobs:
             py.test --ignore tests/test_minimal.py tests/
   test-minimal:
     docker:
-      - image: circleci/python:3.4-stretch
+      - image: circleci/python:3.6-stretch
     steps:
       - checkout
       - run:
@@ -64,7 +64,7 @@ jobs:
             py.test tests/test_cli.py tests/test_minimal.py tests/test_raven.py
   test-simplejson:
     docker:
-      - image: circleci/python:3.4-stretch
+      - image: circleci/python:3.6-stretch
     steps:
       - checkout
       - run:
@@ -82,7 +82,7 @@ jobs:
             py.test --ignore tests/test_minimal.py tests/
   lint:
     docker:
-      - image: circleci/python:2.7-stretch
+      - image: circleci/python:3.6-stretch
     steps:
       - checkout
       - run:
@@ -99,7 +99,7 @@ jobs:
             flake8 --ignore E501 --exclude onecodex/schemas/* tests/
   coverage:
     docker:
-      - image: circleci/python:3.4-stretch
+      - image: circleci/python:3.6-stretch
     steps:
       - checkout
       - run:

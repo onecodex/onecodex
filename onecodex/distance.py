@@ -1,6 +1,5 @@
 import pandas as pd
 import skbio.diversity
-import warnings
 
 from onecodex.exceptions import OneCodexException
 from onecodex.taxonomy import TaxonomyMixin

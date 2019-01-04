@@ -1,7 +1,7 @@
 import warnings
 
 
-class TaxonomyMixin():
+class TaxonomyMixin(object):
     def tree_build(self):
         from skbio.tree import TreeNode
 

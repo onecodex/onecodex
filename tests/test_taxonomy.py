@@ -1,30 +1,35 @@
 import pytest
+from skbio.tree import MissingNodeError
 
-from onecodex.taxonomy import generate_skbio_tree, prune_to_rank
 
-
-def test_tree_generation(ocx, api_data):
-    classification = ocx.Classifications.get('45a573fb7833449a')
-    tree = generate_skbio_tree(classification)
+def test_tree_generation(ocx_w_enhanced, api_data):
+    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+    tree = samples.tree_build()
     assert tree.has_children()
     assert tree.is_root()
     staph = tree.find('1279')
     assert staph.tax_name == 'Staphylococcus'
 
 
-def test_tree_pruning(ocx, api_data):
-    from skbio.tree import MissingNodeError
-    classification = ocx.Classifications.get('45a573fb7833449a')
-    tree = generate_skbio_tree(classification)
+def test_tree_pruning(ocx_w_enhanced, api_data):
+    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+
+    tree = samples.tree_build()
 
     # the species and genus nodes exist
     tree.find('1279')
-    tree.find('1078083')
+    tree.find('1280')
 
     # prune back to genus
-    prune_to_rank(tree, 'genus')
+    pruned_tree = samples.tree_prune_rank(tree, 'genus')
 
     # the species node no longer exists, but the genus still does
     with pytest.raises(MissingNodeError):
-        tree.find('1078083')
-    tree.find('1279')
+        pruned_tree.find('1280')
+    pruned_tree.find('1279')
+
+    # prune back to only 1279 and its parents
+    pruned_tree = samples.tree_prune_tax_ids(tree, ['1279'])
+
+    for tax_id in ['1', '131567', '2', '1783272', '1239', '91061', '1385', '90964', '1279']:
+        pruned_tree.find(tax_id)

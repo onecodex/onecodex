@@ -120,7 +120,7 @@ class AnalysisMethods(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanc
         # it's possible that the _results df has already been normalized, which can cause some
         # methods to fail. we must guess whether this is the case
 
-        return (self._results.sum(axis=1).round(4) == 1.0).all()
+        return bool((self._results.sum(axis=1).round(4) == 1.0).all())
 
     def magic_metadata_fetch(self, metadata_fields):
         """Takes a list of metadata fields, some of which can contain taxon names or taxon IDs, and

@@ -1,72 +1,76 @@
+import pandas as pd
 import pytest
 import skbio
 
-from onecodex.distance import (alpha_counts, beta_counts, beta_diversity,
-                               chao1, simpson, unifrac, jaccard, braycurtis, cityblock)
+from onecodex.exceptions import OneCodexException
 
 
-def test_alpha_counts(ocx, api_data):
-    analysis = ocx.Classifications.get('45a573fb7833449a')
-    counts, ids = alpha_counts(analysis)
-    assert counts == [3]
-    assert ids == [analysis.sample.metadata.name]
-
-    counts, ids = alpha_counts(analysis, rank='genus')
-    assert counts == [3]
-    counts, ids = alpha_counts(analysis, rank='genus', field='readcount')
-    assert counts == [0]
-
-    counts, ids = alpha_counts(ocx.Classifications.get('593601a797914cbf'))
-    assert counts == [80]
-
-
-def test_beta_counts(ocx, api_data):
-    analyses = [ocx.Classifications.get('45a573fb7833449a'),
-                ocx.Classifications.get('593601a797914cbf')]
-
-    vectors, tax_ids, ids = beta_counts(analyses)
-    assert vectors == [[3], [80]]
-    assert tax_ids == ['1078083']
-
-    vectors, tax_ids, ids = beta_counts(analyses, rank='genus')
-    assert vectors == [[3], [80]]
-    assert tax_ids == ['1279']
-
-    vectors, tax_ids, ids = beta_counts(analyses, rank='genus', field='readcount')
-    assert vectors == [[], []]
-    assert tax_ids == []
-    assert list(ids) == [analyses[0].id, analyses[1].id]
-
-
-def test_beta_diversity(ocx, api_data):
-    analyses = [ocx.Classifications.get('45a573fb7833449a'),
-                ocx.Classifications.get('593601a797914cbf')]
-    dm = beta_diversity(analyses, 'braycurtis')
-    assert isinstance(dm, skbio.stats.distance._base.DistanceMatrix)
-    assert list(dm.data[0, :]) == [0.0, 0.92771084337349397]
-
-    with pytest.raises(ValueError):
-        beta_diversity(analyses, 'invalid_metric')
-
-
-@pytest.mark.parametrize('f,value', [
-    (chao1, 1.0),
-    (simpson, 0.0)
+@pytest.mark.parametrize('metric,value,kwargs', [
+    ('simpson', [0.7887047744107811, 0.8459005545543041, 0.3722838525151998], {}),
+    ('chao1', [402.5833333333333, 374.2830188679245, 308.10714285714283], {}),
 ])
-def test_alphas(ocx, api_data, f, value):
-    analysis = ocx.Classifications.get('45a573fb7833449a')
-    assert f(analysis) == value
+def test_alpha_diversity(ocx_w_enhanced, api_data, metric, value, kwargs):
+    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+    divs = samples.alpha_diversity(metric=metric, **kwargs)
+    assert isinstance(divs, pd.DataFrame)
+    assert divs[metric].tolist() == value
 
 
-@pytest.mark.parametrize('f,value,kwargs', [
-    (braycurtis, [0.0, 0.92771084337349397], {}),
-    (cityblock, [0.0, 77.0], {}),
-    (jaccard, [0.0, 1.0], {}),
-    (unifrac, [0.0, 0.0], {'strict': False}),
+def test_alpha_diversity_exceptions(ocx_w_enhanced, api_data):
+    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+
+    # should fail if data has been normalized
+    with pytest.raises(OneCodexException) as e:
+        samples.results(normalize=True).ocx.alpha_diversity('simpson')
+    assert 'requires unnormalized' in str(e.value)
+
+    # must be a metric that exists
+    with pytest.raises(OneCodexException) as e:
+        samples.alpha_diversity('does_not_exist')
+    assert 'metric must be one of' in str(e.value)
+
+
+@pytest.mark.parametrize('metric,value,kwargs', [
+    ('braycurtis', [0.758579937018798, 0.46261493509445945, 0.7603369765359447], {}),
+    ('cityblock', [18680367.0, 13918888.0, 16237777.0], {}),
+    ('jaccard', [0.9823788546255506, 0.9638242894056848, 0.9678217821782178], {}),
 ])
-def test_unifrac(ocx, api_data, f, value, kwargs):
-    analyses = [ocx.Classifications.get('45a573fb7833449a'),
-                ocx.Classifications.get('593601a797914cbf')]
-    dm = f(analyses, **kwargs)
+def test_beta_diversity(ocx_w_enhanced, api_data, metric, value, kwargs):
+    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+    dm = samples.beta_diversity(metric=metric, **kwargs)
     assert isinstance(dm, skbio.stats.distance._base.DistanceMatrix)
-    assert list(dm._data[0, :]) == value
+    assert dm.condensed_form().tolist() == value
+
+
+def test_beta_diversity_exceptions(ocx_w_enhanced, api_data):
+    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+
+    # should fail if data has been normalized
+    with pytest.raises(OneCodexException) as e:
+        samples.results(normalize=True).ocx.beta_diversity('braycurtis')
+    assert 'requires unnormalized' in str(e.value)
+
+    # must be a metric that exists
+    with pytest.raises(OneCodexException) as e:
+        samples.beta_diversity('does_not_exist')
+    assert 'metric must be one of' in str(e.value)
+
+
+@pytest.mark.parametrize('weighted,value', [
+    (False, [0.380050505050505, 0.3538011695906433, 0.4122448979591837]),
+    (True, [6.418015325847228, 5.209385639879688, 8.104451028880142]),
+])
+def test_unifrac(ocx_w_enhanced, api_data, value, weighted):
+    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+    dm = samples.unifrac(weighted=weighted)
+    assert isinstance(dm, skbio.stats.distance._base.DistanceMatrix)
+    assert dm.condensed_form().tolist() == value
+
+
+def test_unifrac_exceptions(ocx_w_enhanced, api_data):
+    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+
+    # should fail if data has been normalized
+    with pytest.raises(OneCodexException) as e:
+        samples.results(normalize=True).ocx.unifrac()
+    assert 'requires unnormalized' in str(e.value)
