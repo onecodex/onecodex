@@ -78,12 +78,16 @@ def mock_requests(mock_json):
             method, content_type, url = mock_url.split(':', 2)
             if not content_type:
                 content_type = 'application/json'
+            if '?' in url:
+                compiled_url = re.compile('http://[^/]+/' + url)
+            else:
+                compiled_url = re.compile('http://[^/]+/' + url + '(\\?.*)?$')
             if callable(mock_data):
-                rsps.add_callback(method, re.compile('http://[^/]+/' + url + '(\\?.*)?$'),
+                rsps.add_callback(method, compiled_url,
                                   callback=mock_data,
                                   content_type=content_type)
             else:
-                rsps.add(method, re.compile('http://[^/]+/' + url + '(\\?.*)?$'),
+                rsps.add(method, compiled_url,
                          body=json.dumps(mock_data),
                          content_type=content_type)
         yield
@@ -256,6 +260,11 @@ for md_id in ('3e7119ee74954abd', '6b69295478de4f1f', '6be1bb8849644f7b'):
     API_DATA['GET::api/v1/metadata/{}'.format(md_id)] = \
         json.load(open(os.path.join('tests', 'data', 'api', '{}_metadata.json'.format(md_id))))
 
+# add route to search for project that has complete classification results. others won't
+# load any associated metadata or classification results
+API_DATA['GET::api/v1/samples\\?.*where=%7B%22project%22%3A\\+%224b53797444f846c4%22%7D.*'] = \
+    json.load(open(os.path.join('tests', 'data', 'api', 'where_224b53797444f846c4.json')))
+
 for filename in os.listdir('tests/api_data'):
     if not filename.endswith('.json'):
         continue
@@ -273,7 +282,6 @@ for filename in os.listdir('tests/api_data'):
         for instance in resource:
             instance_uri = "GET::{}".format(instance['$uri'].lstrip('/'))
             API_DATA[instance_uri] = instance
-
 
 SCHEMA_ROUTES = {}
 
@@ -362,6 +370,17 @@ def ocx_w_raven():
     with mock.patch.object(os, 'environ', patched_env):
         with mock_requests(SCHEMA_ROUTES):
             return Api(cache_schema=False, telemetry=True)
+
+
+@pytest.fixture(scope='session')
+def ocx_w_enhanced():
+    # unset variable that disables EnhancedSampleCollection
+    new_env = os.environ.copy()
+    del new_env['ONE_CODEX_NO_ENHANCED']
+    with mock.patch.object(os, 'environ', new_env):
+        with mock_requests(SCHEMA_ROUTES):
+            return Api(api_key='1eab4217d30d42849dbde0cd1bb94e39',
+                       base_url='http://localhost:3000', cache_schema=False)
 
 
 @pytest.fixture(scope='session')

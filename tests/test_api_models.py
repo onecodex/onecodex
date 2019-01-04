@@ -12,7 +12,7 @@ except ImportError:
 
 import onecodex
 from onecodex import Api
-from onecodex.exceptions import MethodNotSupported
+from onecodex.exceptions import MethodNotSupported, OneCodexException
 
 
 def test_api_creation(api_data):
@@ -77,6 +77,36 @@ def test_resourcelist(ocx, api_data):
 
     for i in range(len(tags1)):
         assert tags1[i] == tags2[i] == sample.tags[i]
+
+    # can't mix types in a ResourceList
+    with pytest.raises(ValueError) as e:
+        tags1.append(sample)
+    assert 'object of type' in str(e.value)
+
+
+def test_samplecollection(ocx, api_data):
+    samples = ocx.Samples.where(project='4b53797444f846c4')
+
+    # this is specific to SampleCollection and is not available on ResourceList
+    samples.copy()
+
+    # duplicate Classifications can not be part of the same SampleCollection
+    with pytest.raises(OneCodexException) as e:
+        samples + samples
+    assert 'contain duplicate objects' in str(e.value)
+
+    # SampleCollections can be added together
+    other_samples = ocx.Samples.where()[:3]
+    new_samples = samples + other_samples
+    assert len(samples) == 3
+    assert len(new_samples) == 6
+
+    # addition doesn't work with a SampleCollection and a lone Samples object
+    sample1 = ocx.Samples.get('761bc54b97f64980')
+
+    with pytest.raises(TypeError) as e:
+        samples + sample1
+    assert 'can only concatenate' in str(e.value)
 
 
 def test_comparisons(ocx, api_data):

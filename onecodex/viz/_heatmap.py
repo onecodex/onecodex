@@ -6,7 +6,7 @@ from sklearn.metrics.pairwise import euclidean_distances
 from onecodex.exceptions import OneCodexException
 
 
-class VizHeatmapMixin():
+class VizHeatmapMixin(object):
     def plot_heatmap(self, rank='auto', normalize='auto', top_n=20, threshold=None,
                      title=None, xlabel=None, ylabel=None, tooltip=None, return_chart=False,
                      linkage='average'):

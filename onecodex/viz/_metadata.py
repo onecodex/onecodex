@@ -4,7 +4,7 @@ import altair as alt
 from onecodex.exceptions import OneCodexException
 
 
-class VizMetadataMixin():
+class VizMetadataMixin(object):
     @staticmethod
     def _box_plot(df, category, quantity, category_type='N',
                   title=None, xlabel=None, ylabel=None):

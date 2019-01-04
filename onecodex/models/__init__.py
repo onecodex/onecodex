@@ -18,7 +18,7 @@ from onecodex.vendored.potion_client.resource import Resource
 DEFAULT_PAGE_SIZE = 200
 
 
-class ResourceList:
+class ResourceList(object):
     """
     In OneCodexBase, when attributes are lists, actions performed on the returned lists are not
     passed through to the underlying resource list. This class passes those actions through, and
@@ -192,7 +192,7 @@ class SampleCollection(ResourceList):
         super(SampleCollection, self).append(x)
 
     def copy(self):
-        new_obj = self._constructor(self._resource.copy(), self._oc_model)
+        new_obj = self._constructor(self._resource[:], self._oc_model)
         return new_obj
 
     def extend(self, iterable):
