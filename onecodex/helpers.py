@@ -1,10 +1,7 @@
 from functools import partial
 import pandas as pd
 
-import six
-
 from onecodex.exceptions import OneCodexException
-from onecodex.models import Metadata
 from onecodex.viz import VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceMixin
 
 
@@ -86,19 +83,11 @@ class ResultsSeries(pd.Series):
 
 
 class AnalysisMethods(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceMixin):
-    _immutable = ['field', '_results', '_metadata', '_taxonomy']
-
     def __init__(self, results, metadata, taxonomy, field):
-        self.__setattr__('_results', results, force=True)
-        self.__setattr__('_metadata', metadata, force=True)
-        self.__setattr__('_taxonomy', taxonomy, force=True)
-        self.__setattr__('field', field, force=True)
-
-    def __setattr__(self, name, value, force=False):
-        if name in self._immutable and not force:
-            raise OneCodexException('{} is an immutable property and can not be changed'.format(name))
-
-        super(AnalysisMethods, self).__setattr__(name, value)
+        self._cached = {'results': results,
+                        'metadata': metadata,
+                        'taxonomy': taxonomy,
+                        'field': field}
 
     def _get_auto_rank(self, rank):
         """Tries to figure out what rank we should use for analyses, mainly called by results()"""
@@ -121,12 +110,11 @@ class AnalysisMethods(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanc
 
         return bool((self._results.sum(axis=1).round(4) == 1.0).all())
 
-    def magic_metadata_fetch(self, metadata_fields):
+    def _metadata_fetch(self, metadata_fields):
         """Takes a list of metadata fields, some of which can contain taxon names or taxon IDs, and
         returns a DataFrame with magically transformed data that can be used for plotting.
         """
-
-        help_metadata = ', '.join(self._metadata.keys())
+        help_metadata = ', '.join(self.metadata.keys())
         magic_metadata = pd.DataFrame({'classification_id': self._results.index}) \
                            .set_index('classification_id')
 
@@ -137,14 +125,14 @@ class AnalysisMethods(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanc
             if isinstance(f, tuple):
                 # joined categorical metadata
                 for field in f:
-                    if field not in self._metadata:
+                    if field not in self.metadata:
                         raise OneCodexException(
                             'Field {} not found. Choose from: {}'.format(field, help_metadata)
                         )
 
-                    if not (pd.api.types.is_bool_dtype(self._metadata[field]) or  # noqa
-                            pd.api.types.is_categorical_dtype(self._metadata[field]) or  # noqa
-                            pd.api.types.is_object_dtype(self._metadata[field])):
+                    if not (pd.api.types.is_bool_dtype(self.metadata[field]) or  # noqa
+                            pd.api.types.is_categorical_dtype(self.metadata[field]) or  # noqa
+                            pd.api.types.is_object_dtype(self.metadata[field])):
                         raise OneCodexException(
                             'When specifying multiple metadata fields, all must be categorical'
                         )
@@ -153,7 +141,7 @@ class AnalysisMethods(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanc
                 composite_field = '_'.join(f)
                 magic_metadata[composite_field] = ''
                 magic_metadata[composite_field] = magic_metadata[composite_field].str.cat(
-                    [self._metadata[field].astype(str) for field in f], sep='_'
+                    [self.metadata[field].astype(str) for field in f], sep='_'
                 ).str.lstrip('_')
                 magic_fields[f] = composite_field
             else:
@@ -161,18 +149,18 @@ class AnalysisMethods(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanc
 
                 if str_f == 'Label':
                     # it's our magic keyword that means _display_name
-                    magic_metadata[f] = self._metadata['_display_name']
+                    magic_metadata[f] = self.metadata['_display_name']
                     magic_fields[f] = str_f
-                elif str_f in self._metadata:
+                elif str_f in self.metadata:
                     # exactly matches existing metadata field
-                    magic_metadata[f] = self._metadata[str_f]
+                    magic_metadata[f] = self.metadata[str_f]
                     magic_fields[f] = str_f
                 elif str_f in self._results.keys():
                     # is a tax_id
-                    tax_name = self._taxonomy['name'][str_f]
+                    tax_name = self.taxonomy['name'][str_f]
 
                     # report within-rank abundance
-                    df = self.results(rank=self._taxonomy['rank'][str_f])
+                    df = self.results(rank=self.taxonomy['rank'][str_f])
 
                     renamed_field = '{} ({})'.format(tax_name, str_f)
                     magic_metadata[renamed_field] = df[str_f]
@@ -183,7 +171,7 @@ class AnalysisMethods(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanc
 
                     # don't both searching if the query is really short
                     if len(str_f) > 4:
-                        for tax_id, tax_name in zip(self._taxonomy.index, self._taxonomy['name']):
+                        for tax_id, tax_name in zip(self.taxonomy.index, self.taxonomy['name']):
                             # if it's an exact match, use that and skip the rest
                             if str_f.lower() == tax_name.lower():
                                 hits = [(tax_id, tax_name)]
@@ -197,7 +185,7 @@ class AnalysisMethods(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanc
 
                     if hits:
                         # report within-rank abundance
-                        df = self.results(rank=self._taxonomy['rank'][hits[0][0]])
+                        df = self.results(rank=self.taxonomy['rank'][hits[0][0]])
 
                         renamed_field = '{} ({})'.format(hits[0][1], hits[0][0])
                         magic_metadata[renamed_field] = df[hits[0][0]]
@@ -212,7 +200,7 @@ class AnalysisMethods(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanc
 
     def results(self, rank='auto', top_n=None, threshold=None,
                 remove_zeros=True, normalize='auto',
-                table_format='wide', **kwargs):
+                table_format='wide'):
         """
         Filtering options (performed consecutively in the order given below):
             rank (None | 'auto' | 'kingdom' | 'phylum' | 'class' | 'order' | 'family' | 'genus' | 'species')
@@ -238,7 +226,7 @@ class AnalysisMethods(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanc
             tax_ids_to_keep = []
 
             for tax_id in df.keys():
-                if self._taxonomy['rank'][tax_id] == rank:
+                if self.taxonomy['rank'][tax_id] == rank:
                     tax_ids_to_keep.append(tax_id)
 
             if len(tax_ids_to_keep) == 0:
@@ -288,137 +276,26 @@ class AnalysisMethods(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanc
 
         results_df.ocx_rank = rank
         results_df.ocx_field = self.field
-        results_df.ocx_taxonomy = self.taxonomy()
-        results_df.ocx_metadata = self.metadata()
+        results_df.ocx_taxonomy = self.taxonomy.copy()
+        results_df.ocx_metadata = self.metadata.copy()
 
         return results_df
 
+    @property
+    def field(self):
+        return self._cached['field']
+
+    @property
     def metadata(self):
-        return self._metadata.copy()
+        return self._cached['metadata']
 
+    @property
+    def _results(self):
+        return self._cached['results']
+
+    @property
     def taxonomy(self):
-        return self._taxonomy.copy()
-
-
-class EnhancedSampleCollection(AnalysisMethods):
-    def _update(self):
-        # whenever a change is made to the samples in this list (i.e., removing some of them), we must update
-        # the metadata and results dataframes we're saving in this class. use the kwargs that were originally
-        # passed when this object was instantiated.
-        super(EnhancedSampleCollection, self)._update()
-
-        if self._resource:
-            self.collate_metadata(**{'label': self._kwargs['label']} if 'label' in self._kwargs else {})
-            self.collate_results(**{'field': self._kwargs['field']} if 'field' in self._kwargs else {})
-
-    def collate_metadata(self, label=None):
-        """Turns a list of objects associated with a classification result into a DataFrame of
-        metadata.
-
-        analyses (list) -- list of Samples, Classifications, or Analyses objects
-        label (string | function) -- metadata field (or function) used to label each analysis. if
-            passing a function, a dict containing the metadata for each analysis is passed as the
-            first and only positional argument.
-        """
-
-        metadata = []
-
-        DEFAULT_FIELDS = list(Metadata._resource._schema['properties'].keys())
-        DEFAULT_FIELDS.remove('$uri')
-        DEFAULT_FIELDS.remove('sample')
-
-        for c in self._classifications:
-            m = c.sample.metadata
-
-            metadatum = {f: getattr(m, f) for f in DEFAULT_FIELDS}
-            metadatum['classification_id'] = c.id
-            metadatum['sample_id'] = m.sample.id
-            metadatum['metadata_id'] = m.id
-            metadatum['created_at'] = m.sample.created_at
-
-            if label is None:
-                metadatum['_display_name'] = (
-                    metadatum['name'] if metadatum['name'] is not None else c.sample.filename
-                )
-            elif isinstance(label, six.string_types):
-                if label in metadatum:
-                    metadatum['_display_name'] = metadatum[label]
-                elif label in m.custom:
-                    metadatum['_display_name'] = m.custom[label]
-                else:
-                    metadatum['_display_name'] = None
-            elif callable(label):
-                metadatum['_display_name'] = label(m)
-            else:
-                raise NotImplementedError('Must pass a string or function to `label`.')
-
-            metadatum.update(m.custom)
-            metadata.append(metadatum)
-
-        metadata = pd.DataFrame(metadata).set_index('classification_id')
-
-        if all(pd.isnull(metadata['_display_name'])):
-            raise OneCodexException('Could not find any labels for `{}`'.format(label))
-
-        self.__setattr__('_metadata', metadata, force=True)
-
-    def collate_results(self, field='auto'):
-        """For a list of objects associated with a classification result, return the results as a
-        DataFrame and dict of taxa info.
-
-        field ('readcount_w_children' | 'readcount' | 'abundance')
-            - 'readcount_w_children': total reads of this taxon and all its descendants
-            - 'readcount': total reads of this taxon
-            - 'abundance': genome size-normalized relative abundances, from shotgun sequencing
-        """
-
-        if field not in ('auto', 'abundance', 'readcount', 'readcount_w_children'):
-            raise OneCodexException('Specified field ({}) not valid.'.format(field))
-
-        # we'll fill these dicts that eventually turn into DataFrames
-        df = {
-            'classification_id': [c.id for c in self._classifications]
-        }
-
-        tax_info = {
-            'tax_id': [],
-            'name': [],
-            'rank': [],
-            'parent_tax_id': []
-        }
-
-        if field == 'auto':
-            field = 'readcount_w_children'
-
-        self.__setattr__('field', field, force=True)
-
-        for c_idx, c in enumerate(self._classifications):
-            # pulling results from mainline is the slowest part of the function
-            result = c.results()['table']
-
-            # d contains info about a taxon in result, including name, id, counts, rank, etc.
-            for d in result:
-                d_tax_id = d['tax_id']
-
-                if d_tax_id not in tax_info['tax_id']:
-                    for k in ('tax_id', 'name', 'rank', 'parent_tax_id'):
-                        tax_info[k].append(d[k])
-
-                    # first time we've seen this taxon, so make a vector for it
-                    df[d_tax_id] = [0] * len(self._classifications)
-
-                df[d_tax_id][c_idx] = d[field]
-
-        # format as a Pandas DataFrame
-        df = pd.DataFrame(df) \
-               .set_index('classification_id') \
-               .fillna(0)
-
-        tax_info = pd.DataFrame(tax_info) \
-                     .set_index('tax_id')
-
-        self.__setattr__('_results', df, force=True)
-        self.__setattr__('_taxonomy', tax_info, force=True)
+        return self._cached['taxonomy']
 
 
 @pd.api.extensions.register_dataframe_accessor('ocx')
@@ -438,7 +315,7 @@ class OneCodexAccessor(AnalysisMethods):
 
         tax_ids_to_keep = [x.name for x in tree.traverse()]
 
-        super(OneCodexAccessor, self).__setattr__('_taxonomy', self._taxonomy.loc[tax_ids_to_keep], force=True)
+        self._cached['taxonomy'] = self.taxonomy.loc[tax_ids_to_keep]
 
         # similarly restrict _metadata df to contain only data relevant to samples currently in ResultsDataFrame
-        super(OneCodexAccessor, self).__setattr__('_metadata', self._metadata.loc[self._results.index], force=True)
+        self._cached['metadata'] = self.metadata.loc[self._results.index]

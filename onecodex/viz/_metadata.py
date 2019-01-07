@@ -106,14 +106,14 @@ class VizMetadataMixin(object):
             raise OneCodexException('Plot type must be one of: auto, boxplot, scatter')
 
         # alpha diversity is only allowed on vertical axis--horizontal can be magically mapped
-        df, magic_fields = self.magic_metadata_fetch([haxis, 'Label'])
+        df, magic_fields = self._metadata_fetch([haxis, 'Label'])
 
         if vaxis in ('simpson', 'chao1'):
             df.loc[:, vaxis] = self.alpha_diversity(vaxis, rank=rank)
             magic_fields[vaxis] = vaxis
         else:
             # if it's not alpha diversity, vertical axis can also be magically mapped
-            vert_df, vert_magic_fields = self.magic_metadata_fetch([vaxis])
+            vert_df, vert_magic_fields = self._metadata_fetch([vaxis])
 
             # we require the vertical axis to be numerical otherwise plots get weird
             if pd.api.types.is_bool_dtype(vert_df[vert_magic_fields[vaxis]]) or \

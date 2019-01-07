@@ -89,7 +89,7 @@ class VizDistanceMixin(DistanceMixin):
         else:
             tooltip = []
 
-        magic_metadata, magic_fields = self.magic_metadata_fetch(tooltip)
+        magic_metadata, magic_fields = self._metadata_fetch(tooltip)
         formatted_fields = []
 
         for tip, magic_field in magic_fields.items():
@@ -110,8 +110,8 @@ class VizDistanceMixin(DistanceMixin):
                 else:
                     plot_data['Distance'].append(distances.data[idx1][idx2])
 
-                plot_data['1) Label'].append(self._metadata['_display_name'][id1])
-                plot_data['2) Label'].append(self._metadata['_display_name'][id2])
+                plot_data['1) Label'].append(self.metadata['_display_name'][id1])
+                plot_data['2) Label'].append(self.metadata['_display_name'][id2])
                 plot_data['classification_id'].append(id1)
 
                 for field_group, magic_field in zip(formatted_fields, magic_fields.values()):
@@ -127,7 +127,7 @@ class VizDistanceMixin(DistanceMixin):
         clustering = hierarchy.linkage(squareform(dists), method=linkage)
         tree = hierarchy.dendrogram(clustering, no_plot=True)
         class_ids_in_order = [dists.index[int(x)] for x in tree['ivl']]
-        names_in_order = self._metadata['_display_name'][class_ids_in_order].tolist()
+        names_in_order = self.metadata['_display_name'][class_ids_in_order].tolist()
 
         # it's important to tell altair to order the cells in the heatmap according to the clustering
         # obtained from scipy
@@ -242,7 +242,7 @@ class VizDistanceMixin(DistanceMixin):
 
         tooltip = list(set(['Label', color, size] + tooltip))
 
-        magic_metadata, magic_fields = self.magic_metadata_fetch(tooltip)
+        magic_metadata, magic_fields = self._metadata_fetch(tooltip)
 
         if method == 'smacof':
             # adapted from https://scikit-learn.org/stable/auto_examples/manifold/plot_mds.html
