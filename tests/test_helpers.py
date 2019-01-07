@@ -45,7 +45,7 @@ def test_auto_rank(ocx_w_enhanced, api_data):
     samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
 
     # if we re-collate the results using the abundance field, auto rank should choose species
-    samples.collate_results(field='abundance')
+    samples._collate_results(field='abundance')
     assert samples._get_auto_rank('auto') == 'species'
 
     # inside the pandas extension, auto rank should choose that of the ResultsDataFrame
@@ -63,41 +63,41 @@ def test_guess_normalization(ocx_w_enhanced, api_data):
     assert unnorm_results.ocx._guess_normalized() is False
 
 
-def test_magic_metadata_fetch(ocx_w_enhanced, api_data):
+def test_metadata_fetch(ocx_w_enhanced, api_data):
     samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
 
     # tuple with invalid field
     with pytest.raises(OneCodexException) as e:
-        samples.magic_metadata_fetch([('does_not_exist', 'vegetables')])
+        samples._metadata_fetch([('does_not_exist', 'vegetables')])
     assert 'not found' in str(e.value)
 
     # tuple where one field is not categorical
     with pytest.raises(OneCodexException) as e:
-        samples.magic_metadata_fetch([('totalige', 'vegetables')])
+        samples._metadata_fetch([('totalige', 'vegetables')])
     assert 'must be categorical' in str(e.value)
 
     # proper tuple of categorical metadata fields
-    df, fields = samples.magic_metadata_fetch([('eggs', 'vegetables')])
+    df, fields = samples._metadata_fetch([('eggs', 'vegetables')])
     assert fields[('eggs', 'vegetables')] == 'eggs_vegetables'
     assert df['eggs_vegetables'].tolist() == ['True_True', 'True_True', 'True_True']
 
     # Label reserved field name
-    df, fields = samples.magic_metadata_fetch(['Label'])
+    df, fields = samples._metadata_fetch(['Label'])
     assert fields['Label'] == 'Label'
     assert df['Label'].tolist() == ['SRR4408293.fastq', 'SRR4305031.fastq', 'SRR4408292.fastq']
 
     # exact match of single metadata field
-    df, fields = samples.magic_metadata_fetch(['totalige'])
+    df, fields = samples._metadata_fetch(['totalige'])
     assert fields['totalige'] == 'totalige'
     assert df['totalige'].tolist() == [62.9, 91.5, 112.0]
 
     # tax_id coerced to string from integer
-    df, fields = samples.magic_metadata_fetch([1279])
+    df, fields = samples._metadata_fetch([1279])
     assert fields[1279] == 'Staphylococcus (1279)'
     assert df['Staphylococcus (1279)'].round(10).tolist() == [4.0172e-06, 4.89491e-05, 2.0881e-06]
 
     # tax_name, should take lowest matching tax_id, be case-insensitive, and report within-rank abundance
-    df, fields = samples.magic_metadata_fetch(['bacteroid'])
+    df, fields = samples._metadata_fetch(['bacteroid'])
     assert fields['bacteroid'] == 'Bacteroidaceae (815)'
     assert df['Bacteroidaceae (815)'].round(10).tolist() == [0.344903898, 0.1656058794, 0.7776093433]
 
@@ -119,12 +119,12 @@ def test_results_filtering_rank(ocx_w_enhanced, api_data):
 
     # the resulting taxonomy dicts should have taxa at rank specified and their parents,
     # but no children, and no higher rank nodes not connected to taxa at the specified rank
-    assert len(genus_results.ocx._taxonomy.loc[genus_results.ocx._taxonomy['rank'] == 'species']) == 0
-    assert len(genus_results.ocx._taxonomy.loc[genus_results.ocx._taxonomy['rank'] == 'genus']) == 474
-    assert len(genus_results.ocx._taxonomy.loc[genus_results.ocx._taxonomy['rank'] == 'family']) == 163
-    assert len(family_results.ocx._taxonomy.loc[family_results.ocx._taxonomy['rank'] == 'species']) == 0
-    assert len(family_results.ocx._taxonomy.loc[family_results.ocx._taxonomy['rank'] == 'genus']) == 0
-    assert len(family_results.ocx._taxonomy.loc[family_results.ocx._taxonomy['rank'] == 'family']) == 177
+    assert len(genus_results.ocx.taxonomy.loc[genus_results.ocx.taxonomy['rank'] == 'species']) == 0
+    assert len(genus_results.ocx.taxonomy.loc[genus_results.ocx.taxonomy['rank'] == 'genus']) == 474
+    assert len(genus_results.ocx.taxonomy.loc[genus_results.ocx.taxonomy['rank'] == 'family']) == 163
+    assert len(family_results.ocx.taxonomy.loc[family_results.ocx.taxonomy['rank'] == 'species']) == 0
+    assert len(family_results.ocx.taxonomy.loc[family_results.ocx.taxonomy['rank'] == 'genus']) == 0
+    assert len(family_results.ocx.taxonomy.loc[family_results.ocx.taxonomy['rank'] == 'family']) == 177
 
     # catch invalid ranks
     with pytest.raises(OneCodexException) as e:
@@ -183,25 +183,25 @@ def test_enhanced_sample_collection(ocx_w_enhanced, api_data):
 
     assert len(samples) == 2
     assert len(samples.results()) == 2
-    assert len(samples.metadata()) == 2
+    assert len(samples.metadata) == 2
     assert class_id not in samples._results.index
-    assert class_id not in samples._metadata.index
+    assert class_id not in samples.metadata.index
 
 
-def test_magic_classification_fetch(ocx_w_enhanced, api_data):
+def test_classification_fetch(ocx_w_enhanced, api_data):
     samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
 
     # should work with a list of classifications as input, not just samples
     samples._oc_model = ocx_w_enhanced.Classifications
-    samples._res_list = samples._classifications
-    samples._resource = [x._resource for x in samples._classifications]
-    samples.magic_classification_fetch()
+    samples._res_list = samples.primary_classifications
+    samples._resource = [x._resource for x in samples.primary_classifications]
+    samples._classification_fetch()
 
     # should issue a warning if a classification did not succeed
     with warnings.catch_warnings(record=True) as w:
         samples._resource[0].success = False
         samples._update()
-        samples.magic_classification_fetch()
+        samples._classification_fetch()
         assert len(w) == 1
         assert 'not successful' in str(w[-1].message)
 
@@ -214,7 +214,7 @@ def test_collate_metadata(ocx_w_enhanced, api_data):
     samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
 
     # check contents of metadata df--at least that which can easily be coerced to strings
-    metadata = samples.metadata()
+    metadata = samples.metadata
     string_to_hash = ""
     for col in sorted(metadata.columns.tolist()):
         for row in sorted(metadata.index.tolist()):
@@ -228,12 +228,12 @@ def test_collate_metadata(ocx_w_enhanced, api_data):
 
     # label must be a string or callable
     with pytest.raises(NotImplementedError) as e:
-        samples.collate_metadata(label=123)
+        samples._collate_metadata(label=123)
     assert 'string or function' in str(e.value)
 
     # label is a field not in the table
     with pytest.raises(OneCodexException) as e:
-        samples.collate_metadata(label='does_not_exist')
+        samples._collate_metadata(label='does_not_exist')
     assert 'not find any labels' in str(e.value)
 
 
@@ -254,10 +254,10 @@ def test_collate_results(ocx_w_enhanced, api_data):
 
     # check contents of taxonomy df
     string_to_hash = ""
-    for col in sorted(samples._taxonomy.columns.tolist()):
-        for row in sorted(samples._taxonomy.index.tolist()):
+    for col in sorted(samples.taxonomy.columns.tolist()):
+        for row in sorted(samples.taxonomy.index.tolist()):
             try:
-                string_to_hash += samples._taxonomy.loc[row, col].astype(str)
+                string_to_hash += samples.taxonomy.loc[row, col].astype(str)
             except AttributeError:
                 pass
 
@@ -266,7 +266,7 @@ def test_collate_results(ocx_w_enhanced, api_data):
 
     # invalid field name
     with pytest.raises(OneCodexException) as e:
-        samples.collate_results(field='does_not_exist')
+        samples._collate_results(field='does_not_exist')
     assert 'not valid' in str(e.value)
 
 
@@ -282,6 +282,6 @@ def test_pandas_extension(ocx_w_enhanced, api_data):
     # changes to contents of results df should affect contents of taxonomy df, by keeping only
     # tax_ids in the results df and their parents
     results = samples.results(top_n=2)
-    assert sorted(results.ocx._taxonomy.index.tolist(), key=int) == \
+    assert sorted(results.ocx.taxonomy.index.tolist(), key=int) == \
         ['1', '2', '191', '815', '816', '976', '1224', '28211', '41295',
          '68336', '131567', '171549', '200643', '204441', '1783270']

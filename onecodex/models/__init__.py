@@ -11,6 +11,7 @@ import sys
 import warnings
 
 from onecodex.exceptions import MethodNotSupported, OneCodexException, PermissionDenied, ServerError
+from onecodex.helpers import AnalysisMethods
 from onecodex.models.helpers import (check_bind, generate_potion_sort_clause,
                                      generate_potion_keyword_where)
 from onecodex.vendored.potion_client.converter import PotionJSONEncoder
@@ -30,16 +31,27 @@ class ResourceList(object):
     def _update(self):
         self._res_list = [self._oc_model(x) for x in self._resource]
 
-    def _check_valid_resource(self, other):
+    def _check_valid_resource(self, other, check_for_dupes=True):
         try:
             other = iter(other)
         except TypeError:
             other = [other]
 
+        other_ids = []
+
         for o in other:
             if not isinstance(o, self._oc_model):
                 raise ValueError("Expected object of type '{}', got '{}'"
                                  .format(self._oc_model.__name__, type(o).__name__))
+
+            other_ids.append(o.id)
+
+        if check_for_dupes:
+            # duplicates are not allowed
+            self_ids = [s.id for s in self._resource]
+
+            if len(set(self_ids + other_ids)) != len(self_ids + other_ids):
+                raise OneCodexException('{} cannot contain duplicate objects'.format(self.__class__.__name__))
 
     @property
     def _constructor(self):
@@ -107,6 +119,15 @@ class ResourceList(object):
         self._update()
         return self._res_list.__reversed__
 
+    def __add__(self, other):
+        if not isinstance(other, self.__class__):
+            raise TypeError('can only concatenate {} (not "{}") to {}'.format(
+                self.__class__.__name__, type(other), self.__class__.__name__)
+            )
+        new_obj = self.copy()
+        new_obj.extend(other._res_list)
+        return new_obj
+
     def append(self, x):
         self._check_valid_resource(x)
         self._resource.append(x._resource)
@@ -116,9 +137,13 @@ class ResourceList(object):
         self._resource.clear()
         self._res_list.clear()
 
+    def copy(self):
+        new_obj = self._constructor(self._resource[:], self._oc_model)
+        return new_obj
+
     def count(self, x):
         # assume that ResourceList objects are identical if they share the same underlying resource
-        self._check_valid_resource(x)
+        self._check_valid_resource(x, check_for_dupes=False)
         n = 0
         for res_obj in self._resource:
             if res_obj == x._resource:
@@ -132,7 +157,7 @@ class ResourceList(object):
 
     def index(self, x):
         # assume that ResourceList objects are identical if they share the same underlying resource
-        self._check_valid_resource(x)
+        self._check_valid_resource(x, check_for_dupes=False)
         for res_obj_idx, res_obj in enumerate(self._resource):
             if res_obj == x._resource:
                 return res_obj_idx
@@ -153,84 +178,34 @@ class ResourceList(object):
         self._update()
 
 
-class SampleCollection(ResourceList):
-    def __init__(self, _resource, oc_model, **kwargs):
-        self._kwargs = kwargs
+class SampleCollection(ResourceList, AnalysisMethods):
+    _cached = {}
 
-        # this will call _update
-        ResourceList.__init__(self, _resource, oc_model)
+    def __init__(self, _resource, oc_model, skip_missing=True, label=None, field='auto'):
+        self._kwargs = {'skip_missing': skip_missing,
+                        'label': label,
+                        'field': field}
+
+        super(SampleCollection, self).__init__(_resource, oc_model)
+
+    def _update(self):
+        self._cached = {}
+        super(SampleCollection, self)._update()
 
     @property
     def _constructor(self):
         return SampleCollection
 
-    def _update(self):
-        ResourceList._update(self)
-
-        if self._resource:
-            self.magic_classification_fetch(
-                **{'skip_missing': self._kwargs['skip_missing']} if 'skip_missing' in self._kwargs else {}
-            )
-        else:
-            self._classifications = []
-
-        super(SampleCollection, self)._update()
-
-    def _check_dupes(self, other):
-        self_ids = [s.id for s in self._resource]
-
-        # works only with wrapped objects that inherit from OneCodexBase, or a SampleCollection
-        if isinstance(other, OneCodexBase):
-            other = [Resource]
-
-        if isinstance(other, list):
-            other_ids = [getattr(o, 'id', None) for o in other]
-        elif isinstance(other, SampleCollection):
-            other_ids = [getattr(o, 'id', None) for o in other._res_list]
-        else:
-            other_ids = [None]
-
-        if None in other_ids:
-            raise OneCodexException('Can only add Analyses/Classifications/Samples to a SampleCollection')
-
-        if len(set(self_ids + other_ids)) != len(self_ids + other_ids):
-            raise OneCodexException('SampleCollection cannot contain duplicate objects')
-
-    def __add__(self, other):
-        if not isinstance(other, SampleCollection):
-            raise TypeError('can only concatenate SampleCollection (not "{}") to SampleCollection'.format(type(other)))
-        new_obj = self.copy()
-        new_obj.extend(other._res_list)
-        return new_obj
-
-    def __setitem__(self, k, v):
-        self._check_dupes(v)
-        ResourceList.__setitem__(self, k, v)
-
-    def append(self, x):
-        self._check_dupes(x)
-        ResourceList.append(self, x)
-
-    def copy(self):
-        new_obj = self._constructor(self._resource[:], self._oc_model)
-        return new_obj
-
-    def extend(self, iterable):
-        self._check_dupes(iterable)
-        ResourceList.extend(self, iterable)
-
-    def insert(self, idx, x):
-        self._check_dupes(x)
-        ResourceList.insert(self, idx, x)
-
-    def magic_classification_fetch(self, skip_missing=True):
+    def _classification_fetch(self, skip_missing=None):
         """Turns a list of objects associated with a classification results into a list of
         Classifications objects.
 
         skip_missing (bool) -- if an analysis was not successful, exclude it and keep going
         """
 
-        fetched = []
+        skip_missing = skip_missing if skip_missing else self._kwargs['skip_missing']
+
+        self._cached['classifications'] = []
 
         for a in self._res_list:
             if isinstance(a, Samples):
@@ -246,9 +221,163 @@ class SampleCollection(ResourceList):
                 warnings.warn('Classification {} not successful. Skipping.'.format(c.id))
                 continue
 
-            fetched.append(c)
+            self._cached['classifications'].append(c)
 
-        self._classifications = fetched
+    @property
+    def primary_classifications(self):
+        if 'classifications' not in self._cached:
+            self._classification_fetch()
+
+        return self._cached['classifications']
+
+    def _collate_metadata(self, label=None):
+        """Turns a list of objects associated with a classification result into a DataFrame of
+        metadata.
+
+        analyses (list) -- list of Samples, Classifications, or Analyses objects
+        label (string | function) -- metadata field (or function) used to label each analysis. if
+            passing a function, a dict containing the metadata for each analysis is passed as the
+            first and only positional argument.
+        """
+        try:
+            import pandas as pd
+        except ImportError:
+            raise ImportError('This functionality requires installation of pandas')
+
+        label = label if label else self._kwargs['label']
+
+        metadata = []
+
+        DEFAULT_FIELDS = list(Metadata._resource._schema['properties'].keys())
+        DEFAULT_FIELDS.remove('$uri')
+        DEFAULT_FIELDS.remove('sample')
+
+        for c in self.primary_classifications:
+            m = c.sample.metadata
+
+            metadatum = {f: getattr(m, f) for f in DEFAULT_FIELDS}
+            metadatum['classification_id'] = c.id
+            metadatum['sample_id'] = m.sample.id
+            metadatum['metadata_id'] = m.id
+            metadatum['created_at'] = m.sample.created_at
+
+            if label is None:
+                metadatum['_display_name'] = (
+                    metadatum['name'] if metadatum['name'] is not None else c.sample.filename
+                )
+            elif isinstance(label, six.string_types):
+                if label in metadatum:
+                    metadatum['_display_name'] = metadatum[label]
+                elif label in m.custom:
+                    metadatum['_display_name'] = m.custom[label]
+                else:
+                    metadatum['_display_name'] = None
+            elif callable(label):
+                metadatum['_display_name'] = label(m)
+            else:
+                raise NotImplementedError('Must pass a string or function to `label`.')
+
+            metadatum.update(m.custom)
+            metadata.append(metadatum)
+
+        metadata = pd.DataFrame(metadata).set_index('classification_id')
+
+        if all(pd.isnull(metadata['_display_name'])):
+            raise OneCodexException('Could not find any labels for `{}`'.format(label))
+
+        self._cached['metadata'] = metadata
+
+    @property
+    def metadata(self):
+        if 'metadata' not in self._cached:
+            self._collate_metadata()
+
+        return self._cached['metadata']
+
+    def _collate_results(self, field=None):
+        """For a list of objects associated with a classification result, return the results as a
+        DataFrame and dict of taxa info.
+
+        field ('readcount_w_children' | 'readcount' | 'abundance')
+            - 'readcount_w_children': total reads of this taxon and all its descendants
+            - 'readcount': total reads of this taxon
+            - 'abundance': genome size-normalized relative abundances, from shotgun sequencing
+        """
+        try:
+            import pandas as pd
+        except ImportError:
+            raise ImportError('This functionality requires installation of pandas')
+
+        field = field if field else self._kwargs['field']
+
+        if field not in ('auto', 'abundance', 'readcount', 'readcount_w_children'):
+            raise OneCodexException('Specified field ({}) not valid.'.format(field))
+
+        # we'll fill these dicts that eventually turn into DataFrames
+        df = {
+            'classification_id': [c.id for c in self.primary_classifications]
+        }
+
+        tax_info = {
+            'tax_id': [],
+            'name': [],
+            'rank': [],
+            'parent_tax_id': []
+        }
+
+        if field == 'auto':
+            field = 'readcount_w_children'
+
+        self._cached['field'] = field
+
+        for c_idx, c in enumerate(self.primary_classifications):
+            # pulling results from mainline is the slowest part of the function
+            result = c.results()['table']
+
+            # d contains info about a taxon in result, including name, id, counts, rank, etc.
+            for d in result:
+                d_tax_id = d['tax_id']
+
+                if d_tax_id not in tax_info['tax_id']:
+                    for k in ('tax_id', 'name', 'rank', 'parent_tax_id'):
+                        tax_info[k].append(d[k])
+
+                    # first time we've seen this taxon, so make a vector for it
+                    df[d_tax_id] = [0] * len(self.primary_classifications)
+
+                df[d_tax_id][c_idx] = d[field]
+
+        # format as a Pandas DataFrame
+        df = pd.DataFrame(df) \
+               .set_index('classification_id') \
+               .fillna(0)
+
+        tax_info = pd.DataFrame(tax_info) \
+                     .set_index('tax_id')
+
+        self._cached['results'] = df
+        self._cached['taxonomy'] = tax_info
+
+    @property
+    def field(self):
+        if 'field' not in self._cached:
+            self._collate_results()
+
+        return self._cached['field']
+
+    @property
+    def _results(self):
+        if 'results' not in self._cached:
+            self._collate_results()
+
+        return self._cached['results']
+
+    @property
+    def taxonomy(self):
+        if 'taxonomy' not in self._cached:
+            self._collate_results()
+
+        return self._cached['taxonomy']
 
     def to_otu(self, biom_id=None):
         """
@@ -284,7 +413,7 @@ class SampleCollection(ResourceList):
         rows = defaultdict(dict)
 
         tax_ids_to_names = {}
-        for classification in self._classifications:
+        for classification in self.primary_classifications:
             col_id = len(otu['columns'])  # 0 index
 
             # Re-encoding the JSON is a bit of a hack, but
@@ -672,7 +801,7 @@ class OneCodexBase(object):
                 raise MethodNotSupported('{} do not support {}.'.format(self.__class__.__name__,
                                                                         action))
             elif e.response.status_code == 409:
-                raise ServerError('This {} object already exists'.format(self.__class__.__name__))
+                raise ServerError('This {} object already eexists'.format(self.__class__.__name__))
             else:
                 raise e
 

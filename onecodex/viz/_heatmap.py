@@ -68,11 +68,11 @@ class VizHeatmapMixin(object):
         else:
             tooltip = []
 
-        magic_metadata, magic_fields = self.magic_metadata_fetch(tooltip)
+        magic_metadata, magic_fields = self._metadata_fetch(tooltip)
 
         # add columns for prettier display
-        df['display_name'] = self._metadata['_display_name'][df['classification_id']].tolist()
-        df['tax_name'] = ['{} ({})'.format(self._taxonomy['name'][t], t) for t in df['tax_id']]
+        df['display_name'] = self.metadata['_display_name'][df['classification_id']].tolist()
+        df['tax_name'] = ['{} ({})'.format(self.taxonomy['name'][t], t) for t in df['tax_id']]
 
         # and for metadata
         for f in tooltip:
@@ -89,7 +89,7 @@ class VizHeatmapMixin(object):
         clustering = hierarchy.linkage(squareform(taxa_dist), method=linkage)
         tree = hierarchy.dendrogram(clustering, no_plot=True)
         tax_ids_in_order = [df_for_clustering.index[int(x)] for x in tree['ivl']]
-        tax_names_in_order = ['{} ({})'.format(self._taxonomy['name'][t], t) for t in tax_ids_in_order]
+        tax_names_in_order = ['{} ({})'.format(self.taxonomy['name'][t], t) for t in tax_ids_in_order]
 
         # use scipy to perform average-linkage clustering on euclidean distances (by sample)
         df_for_clustering = df_for_clustering.T
@@ -97,7 +97,7 @@ class VizHeatmapMixin(object):
         clustering = hierarchy.linkage(squareform(sample_dist), method=linkage)
         tree = hierarchy.dendrogram(clustering, no_plot=True)
         c_ids_in_order = [df_for_clustering.index[int(x)] for x in tree['ivl']]
-        labels_in_order = [self._metadata['_display_name'][t] for t in c_ids_in_order]
+        labels_in_order = [self.metadata['_display_name'][t] for t in c_ids_in_order]
 
         alt_kwargs = dict(
             x=alt.X('display_name:N', axis=alt.Axis(title=xlabel), sort=labels_in_order),

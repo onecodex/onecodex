@@ -8,16 +8,16 @@ class TaxonomyMixin(object):
         # build all the nodes
         nodes = {}
 
-        for tax_id in self._taxonomy.index:
+        for tax_id in self.taxonomy.index:
             node = TreeNode(name=tax_id, length=1)
-            node.tax_name = self._taxonomy['name'][tax_id]
-            node.rank = self._taxonomy['rank'][tax_id]
-            node.parent_tax_id = self._taxonomy['parent_tax_id'][tax_id]
+            node.tax_name = self.taxonomy['name'][tax_id]
+            node.rank = self.taxonomy['rank'][tax_id]
+            node.parent_tax_id = self.taxonomy['parent_tax_id'][tax_id]
 
             nodes[tax_id] = node
 
         # generate all the links
-        for tax_id in self._taxonomy.index:
+        for tax_id in self.taxonomy.index:
             try:
                 parent = nodes[nodes[tax_id].parent_tax_id]
             except KeyError:
