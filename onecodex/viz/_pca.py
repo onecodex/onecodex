@@ -75,7 +75,7 @@ class VizPCAMixin(object):
 
         tooltip = list(set(['Label', color, size] + tooltip))
 
-        magic_metadata, magic_fields = self.magic_metadata_fetch(tooltip)
+        magic_metadata, magic_fields = self._metadata_fetch(tooltip)
 
         pca = PCA()
         pca_vals = pca.fit(df.values).transform(df.values)
@@ -134,7 +134,7 @@ class VizPCAMixin(object):
                     plot_data['x'].extend([0, var1 * float(org_vectors_scale)])
                     plot_data['y'].extend([0, var2 * float(org_vectors_scale)])
                     plot_data['o'].extend([0, 1])
-                    plot_data['Eigenvectors'].extend([self._taxonomy['name'][tax_id]] * 2)
+                    plot_data['Eigenvectors'].extend([self.taxonomy['name'][tax_id]] * 2)
 
                     org_vectors -= 1
 
