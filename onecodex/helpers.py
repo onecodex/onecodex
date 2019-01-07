@@ -1,11 +1,10 @@
 from functools import partial
 import pandas as pd
-import warnings
 
 import six
 
 from onecodex.exceptions import OneCodexException
-from onecodex.models import Analyses, Classifications, Samples, Metadata, ResourceList
+from onecodex.models import Metadata
 from onecodex.viz import VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceMixin
 
 
@@ -302,13 +301,6 @@ class AnalysisMethods(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanc
 
 
 class EnhancedSampleCollection(AnalysisMethods):
-    def __init__(self, _resource, oc_model, **kwargs):
-        self._kwargs = kwargs
-        self._immutable.extend(['_classifications'])
-
-        # this will call _update, which will load the dataframes
-        ResourceList.__init__(self, _resource, oc_model)
-
     def _update(self):
         # whenever a change is made to the samples in this list (i.e., removing some of them), we must update
         # the metadata and results dataframes we're saving in this class. use the kwargs that were originally
@@ -316,42 +308,10 @@ class EnhancedSampleCollection(AnalysisMethods):
         super(EnhancedSampleCollection, self)._update()
 
         if self._resource:
-            self.magic_classification_fetch(**self._kwargs)
-            self.collate_metadata(**self._kwargs)
-            self.collate_results(**self._kwargs)
-        else:
-            self.__setattr__('_classifications', [], force=True)
+            self.collate_metadata(**{'label': self._kwargs['label']} if 'label' in self._kwargs else {})
+            self.collate_results(**{'field': self._kwargs['field']} if 'field' in self._kwargs else {})
 
-    def magic_classification_fetch(self, skip_missing=True, **kwargs):
-        """Turns a list of objects associated with a classification results into a list of
-        Classifications objects.
-
-        analyses (list) -- list of Samples, Classifications, or Analyses objects
-        skip_missing (bool) -- if an analysis was not successful, exclude it and keep going
-        warn (bool) -- issue warnings
-        """
-
-        fetched = []
-
-        for a in self._res_list:
-            if isinstance(a, Samples):
-                c = a.primary_classification
-            elif isinstance(a, Classifications):
-                c = a
-            elif isinstance(a, Analyses):
-                if a.analysis_type != 'classification':
-                    raise OneCodexException('{} is not a classification'.format(a.id))
-                c = Classifications(a._resource._client.Classifications.fetch(a.id))
-
-            if skip_missing and not c.success:
-                warnings.warn('Classification {} not successful. Skipping.'.format(c.id))
-                continue
-
-            fetched.append(c)
-
-        self.__setattr__('_classifications', fetched, force=True)
-
-    def collate_metadata(self, label=None, **kwargs):
+    def collate_metadata(self, label=None):
         """Turns a list of objects associated with a classification result into a DataFrame of
         metadata.
 
@@ -402,7 +362,7 @@ class EnhancedSampleCollection(AnalysisMethods):
 
         self.__setattr__('_metadata', metadata, force=True)
 
-    def collate_results(self, field='auto', **kwargs):
+    def collate_results(self, field='auto'):
         """For a list of objects associated with a classification result, return the results as a
         DataFrame and dict of taxa info.
 

@@ -13,6 +13,7 @@ except ImportError:
 import onecodex
 from onecodex import Api
 from onecodex.exceptions import MethodNotSupported, OneCodexException
+from onecodex.models import SampleCollection
 
 
 def test_api_creation(api_data):
@@ -256,12 +257,25 @@ def test_no_results_on_generic_analysis(ocx, api_data):
 ])
 def test_where_clauses(ocx, api_data, where_args, where_kwargs, queries):
     ocx.Samples.where(*where_args, **where_kwargs)
-    urls = []
+
+    counts = []
+
     for c in responses.calls:
         url = unquote_plus(c.request.url)
-        urls.append(url)
+
+        # there may be accessory requests, like looking up a classification result associated
+        # with a sample. therefore, we expect to see the query we're looking in for in one (but not
+        # all) of the requests. the order of the requests is not deterministic, so check them all.
+        count = 0
+
         for query in queries:
-            assert query in url
+            if query in url:
+                count += 1
+
+        counts.append(count)
+
+    # the correct queries must both appear together in only one request to pass this test
+    assert len([x for x in counts if x == len(queries)]) == 1
 
 
 def test_public_search(ocx, api_data):
@@ -320,9 +334,9 @@ def test_public_analyses(ocx, api_data):
 
 
 def test_biom(ocx, api_data):
-    c1 = ocx.Classifications.get('45a573fb7833449a')
-    c2 = ocx.Classifications.get('593601a797914cbf')
-    biom = ocx.Classifications.to_otu([c1, c2])
+    c1 = ocx.Classifications.get('45a573fb7833449a')._resource
+    c2 = ocx.Classifications.get('593601a797914cbf')._resource
+    biom = SampleCollection([c1, c2], ocx.Classifications).to_otu()
     assert set(biom.keys()) == {
         'columns', 'data', 'date', 'format', 'format_url',
         'generated_by', 'id', 'matrix_element_type', 'matrix_type', 'rows', 'shape', 'type'
