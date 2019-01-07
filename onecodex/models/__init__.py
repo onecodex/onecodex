@@ -1,3 +1,4 @@
+from collections import defaultdict, OrderedDict
 from datetime import datetime
 from dateutil.parser import parse
 import inspect
@@ -7,6 +8,7 @@ import pytz
 from requests.exceptions import HTTPError
 import six
 import sys
+import warnings
 
 from onecodex.exceptions import MethodNotSupported, OneCodexException, PermissionDenied, ServerError
 from onecodex.models.helpers import (check_bind, generate_potion_sort_clause,
@@ -152,9 +154,27 @@ class ResourceList(object):
 
 
 class SampleCollection(ResourceList):
+    def __init__(self, _resource, oc_model, **kwargs):
+        self._kwargs = kwargs
+
+        # this will call _update
+        ResourceList.__init__(self, _resource, oc_model)
+
     @property
     def _constructor(self):
         return SampleCollection
+
+    def _update(self):
+        ResourceList._update(self)
+
+        if self._resource:
+            self.magic_classification_fetch(
+                **{'skip_missing': self._kwargs['skip_missing']} if 'skip_missing' in self._kwargs else {}
+            )
+        else:
+            self._classifications = []
+
+        super(SampleCollection, self)._update()
 
     def _check_dupes(self, other):
         self_ids = [s.id for s in self._resource]
@@ -185,11 +205,11 @@ class SampleCollection(ResourceList):
 
     def __setitem__(self, k, v):
         self._check_dupes(v)
-        super(SampleCollection).__setitem__(k, v)
+        ResourceList.__setitem__(self, k, v)
 
     def append(self, x):
         self._check_dupes(x)
-        super(SampleCollection, self).append(x)
+        ResourceList.append(self, x)
 
     def copy(self):
         new_obj = self._constructor(self._resource[:], self._oc_model)
@@ -197,11 +217,115 @@ class SampleCollection(ResourceList):
 
     def extend(self, iterable):
         self._check_dupes(iterable)
-        super(SampleCollection, self).extend(iterable)
+        ResourceList.extend(self, iterable)
 
     def insert(self, idx, x):
         self._check_dupes(x)
-        super(SampleCollection, self).insert(idx, x)
+        ResourceList.insert(self, idx, x)
+
+    def magic_classification_fetch(self, skip_missing=True):
+        """Turns a list of objects associated with a classification results into a list of
+        Classifications objects.
+
+        skip_missing (bool) -- if an analysis was not successful, exclude it and keep going
+        """
+
+        fetched = []
+
+        for a in self._res_list:
+            if isinstance(a, Samples):
+                c = a.primary_classification
+            elif isinstance(a, Classifications):
+                c = a
+            elif isinstance(a, Analyses):
+                if a.analysis_type != 'classification':
+                    raise OneCodexException('{} is not a classification'.format(a.id))
+                c = Classifications(a._resource._client.Classifications.fetch(a.id))
+
+            if skip_missing and not c.success:
+                warnings.warn('Classification {} not successful. Skipping.'.format(c.id))
+                continue
+
+            fetched.append(c)
+
+        self._classifications = fetched
+
+    def to_otu(self, biom_id=None):
+        """
+        Converts a list of classifications (or samples) into a dictionary resembling
+        an OTU table.
+
+        Parameters
+        ----------
+        biom_id : str, optional
+            Optionally specify an `id` field for the generated v1 BIOM file.
+
+        Returns
+        -------
+        otu_table : OrderedDcit
+            A BIOM OTU table, returned as a Python OrderedDict (can be dumped to JSON)
+        """
+        otu_format = 'Biological Observation Matrix 1.0.0'
+
+        # Note: This is exact format URL is required by https://github.com/biocore/biom-format
+        otu_url = 'http://biom-format.org'
+
+        otu = OrderedDict({'id': biom_id,
+                           'format': otu_format,
+                           'format_url': otu_url,
+                           'type': 'OTU table',
+                           'generated_by': 'One Codex API V1',
+                           'date': datetime.now().isoformat(),
+                           'rows': [],
+                           'columns': [],
+                           'matrix_type': 'sparse',
+                           'matrix_element_type': 'int'})
+
+        rows = defaultdict(dict)
+
+        tax_ids_to_names = {}
+        for classification in self._classifications:
+            col_id = len(otu['columns'])  # 0 index
+
+            # Re-encoding the JSON is a bit of a hack, but
+            # we need a ._to_dict() method that properly
+            # resolves references and don't have one at the moment
+            columns_entry = {
+                'id': str(classification.id),
+                'sample_id': str(classification.sample.id),
+                'sample_filename': classification.sample.filename,
+                'metadata': json.loads(classification.sample.metadata._to_json(include_references=False)),
+            }
+
+            otu['columns'].append(columns_entry)
+            sample_df = classification.table()
+
+            for row in sample_df.iterrows():
+                tax_id = row[1]['tax_id']
+                tax_ids_to_names[tax_id] = row[1]['name']
+                rows[tax_id][col_id] = int(row[1]['readcount'])
+
+        num_rows = len(rows)
+        num_cols = len(otu['columns'])
+
+        otu['shape'] = [num_rows, num_cols]
+        otu['data'] = []
+
+        for present_taxa in sorted(rows):
+            # add the row entry
+            row_id = len(otu['rows'])
+            otu['rows'].append({
+                'id': present_taxa,
+                'metadata': {
+                    'taxonomy': tax_ids_to_names[present_taxa],
+                }
+            })
+
+            for sample_with_hit in rows[present_taxa]:
+                counts = rows[present_taxa][sample_with_hit]
+                otu['data'].append([row_id, sample_with_hit, counts])
+
+        return otu
 
 
 class OneCodexBase(object):
