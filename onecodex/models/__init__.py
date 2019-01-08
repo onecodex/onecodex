@@ -5,6 +5,7 @@ import inspect
 import itertools
 import json
 import pytz
+import re
 from requests.exceptions import HTTPError
 import six
 import sys
@@ -296,10 +297,13 @@ class SampleCollection(ResourceList, AnalysisMethods):
             metadatum.update(m.custom)
             metadata.append(metadatum)
 
-        metadata = pd.DataFrame(metadata).set_index('classification_id')
+        if metadata:
+            metadata = pd.DataFrame(metadata).set_index('classification_id')
 
-        if all(pd.isnull(metadata['_display_name'])):
-            raise OneCodexException('Could not find any labels for `{}`'.format(label))
+            if all(pd.isnull(metadata['_display_name'])):
+                raise OneCodexException('Could not find any labels for `{}`'.format(label))
+        else:
+            metadata = pd.DataFrame(columns=['classification_id', 'sample_id', 'metadata_id', 'created_at'])
 
         self._cached['metadata'] = metadata
 
@@ -548,10 +552,22 @@ class OneCodexBase(object):
                     # convert potion resources into wrapped ones
                     resource_path = value._uri.rsplit('/', 1)[0]
                     return _model_lookup[resource_path](_resource=value)
-                elif isinstance(value, list) and len(value) > 0 and isinstance(value[0], Resource):
-                    # convert lists of potion resources into wrapped ones
-                    resource_path = value[0]._uri.rsplit('/', 1)[0]
-                    return ResourceList(value, _model_lookup[resource_path])
+                elif isinstance(value, list):
+                    if schema['items']['type'] == 'object':
+                        # convert lists of potion resources into wrapped ones
+                        compiled_re = re.compile(schema['items']['properties']['$ref']['pattern'])
+
+                        # if the list we're returning is empty, we can't just infer what type of
+                        # object belongs in this list from its contents. to account for this, we'll
+                        # instead try to match the object's URI to those in our lookup table
+                        for route, obj in _model_lookup.items():
+                            if compiled_re.match('{}/dummy_lookup'.format(route)):
+                                return ResourceList(value, obj)
+
+                        raise OneCodexException('No object found for {}'.format(compiled_re.pattern))
+                    else:
+                        # otherwise, just return a regular list
+                        return value
                 else:
                     if key == 'id':
                         # undo the bad coercion from potion_client/resource.py#L111
@@ -826,7 +842,7 @@ class OneCodexBase(object):
                 raise MethodNotSupported('{} do not support {}.'.format(self.__class__.__name__,
                                                                         action))
             elif e.response.status_code == 409:
-                raise ServerError('This {} object already eexists'.format(self.__class__.__name__))
+                raise ServerError('This {} object already exists'.format(self.__class__.__name__))
             else:
                 raise e
 
