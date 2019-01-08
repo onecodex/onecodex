@@ -201,21 +201,28 @@ class AnalysisMethods(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanc
     def results(self, rank='auto', top_n=None, threshold=None,
                 remove_zeros=True, normalize='auto',
                 table_format='wide'):
-        """
-        Filtering options (performed consecutively in the order given below):
-            rank (None | 'auto' | 'kingdom' | 'phylum' | 'class' | 'order' | 'family' | 'genus' | 'species')
-                - None: include all ranks
-                - 'auto': choose automatically based on fields
-                - 'kingdom' or others: only return taxa at this rank
-            remove_zeros (bool) -- remove taxa that are zero in every classification
-            threshold (float) -- only return taxa more abundant than this threshold
-            top_n (int) -- return the top N most abundant taxa
+        """Takes the ResultsDataFrame associated with these samples, or SampleCollection, does some
+        filtering, and returns a ResultsDataFrame.
 
-        Output options:
-            table_format ('wide' | 'long')
-                - 'wide': rows are classifications, cols are taxa, elements are counts
-                - 'long': rows are observations with 3 cols: classification_id, tax_id, and count
-            normalize (bool): convert read counts to relative abundances (each sample sums to 1.0)
+        Parameters
+        ----------
+        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+            Analysis will be restricted to abundances of taxa at the specified level.
+        top_n : `integer`, optional
+            Return only the top N most abundant taxa.
+        threshold : `float`, optional
+            Return only taxa more abundant than this threshold in one or more samples.
+        remove_zeros : `bool`, optional
+            Do not return taxa that have zero abundance in every sample.
+        normalize : {'auto', True, False}
+            Convert read counts to relative abundances (each sample sums to 1.0).
+        table_format : {'long', 'wide'}
+            If wide, rows are classifications, cols are taxa, elements are counts. If long, rows are
+            observations with three cols each: classification_id, tax_id, and count.
+
+        Returns
+        -------
+        ResultsDataFrame
         """
 
         rank = self._get_auto_rank(rank)
