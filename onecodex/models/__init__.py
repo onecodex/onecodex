@@ -201,12 +201,18 @@ class SampleCollection(ResourceList, AnalysisMethods):
         return SampleCollection
 
     def _classification_fetch(self, skip_missing=None):
-        """Turns a list of objects associated with a classification results into a list of
+        """Turns a list of objects associated with a classification result into a list of
         Classifications objects.
 
-        skip_missing (bool) -- if an analysis was not successful, exclude it and keep going
-        """
+        Parameters
+        ----------
+        skip_missing : `bool`
+            If an analysis was not successful, exclude it, warn, and keep going
 
+        Returns
+        -------
+        None, but stores a result in self._cached.
+        """
         skip_missing = skip_missing if skip_missing else self._kwargs['skip_missing']
 
         self._cached['classifications'] = []
@@ -238,10 +244,16 @@ class SampleCollection(ResourceList, AnalysisMethods):
         """Turns a list of objects associated with a classification result into a DataFrame of
         metadata.
 
-        analyses (list) -- list of Samples, Classifications, or Analyses objects
-        label (string | function) -- metadata field (or function) used to label each analysis. if
-            passing a function, a dict containing the metadata for each analysis is passed as the
-            first and only positional argument.
+        Parameters
+        ----------
+        label : `string` or `callable`
+            A metadata field (or function) used to label each analysis. If passing a function, a
+            dict containing the metadata for each analysis is passed as the first and only
+            positional argument.
+
+        Returns
+        -------
+        None, but stores a result in self._cached.
         """
         try:
             import pandas as pd
@@ -302,10 +314,18 @@ class SampleCollection(ResourceList, AnalysisMethods):
         """For a list of objects associated with a classification result, return the results as a
         DataFrame and dict of taxa info.
 
-        field ('readcount_w_children' | 'readcount' | 'abundance')
+        Parameters
+        ----------
+        field : {'readcount_w_children', 'readcount', 'abundance'}
+            Which field to use for the abundance/count of a particular taxon in a sample.
+
             - 'readcount_w_children': total reads of this taxon and all its descendants
             - 'readcount': total reads of this taxon
             - 'abundance': genome size-normalized relative abundances, from shotgun sequencing
+
+        Returns
+        -------
+        None, but stores a result in self._cached.
         """
         try:
             import pandas as pd
@@ -385,17 +405,17 @@ class SampleCollection(ResourceList, AnalysisMethods):
 
     def to_otu(self, biom_id=None):
         """
-        Converts a list of classifications (or samples) into a dictionary resembling
+        Converts a list of objects associated with a classification result into a `dict` resembling
         an OTU table.
 
         Parameters
         ----------
-        biom_id : str, optional
+        biom_id : `string`, optional
             Optionally specify an `id` field for the generated v1 BIOM file.
 
         Returns
         -------
-        otu_table : OrderedDcit
+        otu_table : `OrderedDict`
             A BIOM OTU table, returned as a Python OrderedDict (can be dumped to JSON)
         """
         otu_format = 'Biological Observation Matrix 1.0.0'
@@ -466,6 +486,7 @@ class OneCodexBase(object):
     A parent object for all the One Codex objects that wraps the Potion-Client API and makes
     access and usage easier.
     """
+
     def __init__(self, _resource=None, **kwargs):
         # FIXME: allow setting properties via kwargs?
         # FIXME: get a resource from somewhere instead of setting to None (lots of stuff assumes
