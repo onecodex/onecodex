@@ -7,8 +7,19 @@ from onecodex.taxonomy import TaxonomyMixin
 
 class DistanceMixin(TaxonomyMixin):
     def alpha_diversity(self, metric='simpson', rank='auto'):
-        """Caculate the diversity within a community"""
+        """Caculate the diversity within a community.
 
+        Parameters
+        ----------
+        metric : {'simpson', 'chao1'}
+            The diversity metric to calculate.
+        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+            Analysis will be restricted to abundances of taxa at the specified level.
+
+        Returns
+        -------
+        pandas.DataFrame, a distance matrix.
+        """
         if metric not in ('simpson', 'chao1'):
             raise OneCodexException('For alpha diversity, metric must be one of: simpson, chao1')
 
@@ -34,8 +45,19 @@ class DistanceMixin(TaxonomyMixin):
         return pd.DataFrame(output).set_index('classification_id')
 
     def beta_diversity(self, metric='braycurtis', rank='auto'):
-        """Calculate the diversity between two communities"""
+        """Calculate the diversity between two communities.
 
+        Parameters
+        ----------
+        metric : {'jaccard', 'braycurtis', 'cityblock'}
+            The distance metric to calculate.
+        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+            Analysis will be restricted to abundances of taxa at the specified level.
+
+        Returns
+        -------
+        skbio.stats.distance.DistanceMatrix, a distance matrix.
+        """
         if metric not in ('jaccard', 'braycurtis', 'cityblock'):
             raise OneCodexException('For beta diversity, metric must be one of: jaccard, braycurtis, cityblock')
 
@@ -52,11 +74,20 @@ class DistanceMixin(TaxonomyMixin):
         return skbio.diversity.beta_diversity(metric, counts, df.index.tolist())
 
     def unifrac(self, weighted=True, rank='auto'):
-        """
-        A beta diversity metric that takes into account the relative relatedness of community members.
-        Weighted UniFrac looks at abundances, unweighted UniFrac looks at presence
-        """
+        """A beta diversity metric that takes into account the relative relatedness of community
+        members. Weighted UniFrac looks at abundances, unweighted UniFrac looks at presence.
 
+        Parameters
+        ----------
+        weighted : `bool`
+            Calculate the weighted (True) or unweighted (False) distance metric.
+        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+            Analysis will be restricted to abundances of taxa at the specified level.
+
+        Returns
+        -------
+        skbio.stats.distance.DistanceMatrix, a distance matrix.
+        """
         # needs read counts, not relative abundances
         if self._guess_normalized():
             raise OneCodexException('UniFrac requires unnormalized read counts.')
