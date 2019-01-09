@@ -333,12 +333,6 @@ def telemetry(fn):
 
         try:
             return fn(*args, **kwargs)
-        except SystemExit as e:
-            if client:
-                client.captureException()
-                client.context.clear()
-                sys.stdout = StringIO()  # See: https://github.com/getsentry/raven-python/issues/904
-            sys.exit(e.code)  # make sure we still exit with the proper code
         except Exception as e:
             if client:
                 client.captureException()
