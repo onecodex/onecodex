@@ -252,7 +252,9 @@ class FASTXNuclIterator(object):
                 match = self.seq_reader.match(self.unchecked_buffer, end)
                 if match is None:
                     if (waiting_for_data or eof) and len(self.unchecked_buffer) - end > 0:
-                        raise ValidationError('Sequence in buffer does not match expected format.')
+                        raise ValidationError(
+                            'Your FASTA/Q file terminates abruptly or is otherwise malformed.'
+                        )
 
                     if not eof:
                         waiting_for_data = True
