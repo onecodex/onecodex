@@ -1,6 +1,7 @@
 from click.testing import CliRunner
 import datetime
 import json
+import mock
 import os
 import pytest
 from testfixtures import Replace
@@ -166,6 +167,26 @@ def test_logout_creds_dne(runner, mocked_creds_path):
     result = runner.invoke(Cli, ["logout"])
     assert result.exit_code == 1
     assert expected_message in result.output
+
+
+def test_auth_from_env(runner, api_data):
+    # no authentication method, no stored login
+    result = runner.invoke(Cli, ['samples'], catch_exceptions=False)
+    assert 'requires authentication' in result.output
+
+    # bearer token in environment
+    with mock.patch.dict(os.environ, {'ONE_CODEX_BEARER_TOKEN': '00000000000000000000000000000000'}):
+        assert 'ONE_CODEX_BEARER_TOKEN' in os.environ
+        assert 'ONE_CODEX_API_KEY' not in os.environ
+        result = runner.invoke(Cli, ['samples'], catch_exceptions=False)
+    assert 'requires authentication' not in result.output
+
+    # bearer token in environment
+    with mock.patch.dict(os.environ, {'ONE_CODEX_API_KEY': '00000000000000000000000000000000'}):
+        assert 'ONE_CODEX_BEARER_TOKEN' not in os.environ
+        assert 'ONE_CODEX_API_KEY' in os.environ
+        result = runner.invoke(Cli, ['samples'], catch_exceptions=False)
+    assert 'requires authentication' not in result.output
 
 
 # Uploads
