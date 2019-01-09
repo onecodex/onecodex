@@ -15,6 +15,27 @@ Links
 
 """
 from setuptools import setup, find_packages
+from setuptools.command.install import install
+
+
+class PostInstallCommand(install):
+    def run(self):
+        install.run(self)
+
+        # try to enable bash completion, if possible
+        import os
+
+        paths_to_try = ['/etc/bash_completion.d', '/usr/local/etc/bash_completion.d']
+
+        for path in paths_to_try:
+            if os.access(path, os.W_OK):
+                try:
+                    with open(os.path.join(path, 'onecodex'), 'w') as f:
+                        f.write('eval "$(_ONECODEX_COMPLETE=source onecodex)"')
+                    print('Enabled bash auto-completion for onecodex')
+                    return
+                except Exception:
+                    print('Unable to enable bash auto-completion for onecodex')
 
 
 with open('onecodex/version.py') as import_file:
@@ -30,10 +51,10 @@ setup(
     version=__version__,  # noqa
     packages=find_packages(exclude=['*test*']),
     install_requires=[
-        'boto3>=1.4.2', 
+        'boto3>=1.4.2',
         'click>=6.6',
         'jsonschema>=2.4'
-        'python-dateutil>=2.5.3', 
+        'python-dateutil>=2.5.3',
         'pytz>=2014.1',
         'raven>=6.1.0',
         'requests>=2.9',
@@ -46,7 +67,7 @@ setup(
     extras_require={
         'all': [
             'altair==2.3.0',
-            'networkx>=1.11,<2.0', 
+            'networkx>=1.11,<2.0',
             'numpy>=1.11.0',
             'pandas>=0.20.0,<0.21.0',
             'scikit-bio==0.4.2',
@@ -68,6 +89,7 @@ setup(
     dependency_links=[],
     author='Kyle McChesney & Nick Greenfield & Roderick Bovee',
     author_email='opensource@onecodex.com',
+    cmdclass={'install': PostInstallCommand},
     description='One Codex API client and Python library',
     long_description=README,
     long_description_content_type='text/markdown',
