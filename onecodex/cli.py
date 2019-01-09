@@ -13,8 +13,7 @@ import warnings
 
 from onecodex.api import Api
 from onecodex.auth import _login, _logout, _remove_creds, login_required
-from onecodex.exceptions import (ValidationWarning,
-                                 ValidationError, UploadException)
+from onecodex.exceptions import (ValidationWarning, ValidationError)
 from onecodex.metadata_upload import validate_appendables
 from onecodex.scripts import filter_reads
 from onecodex.utils import (cli_resource_fetcher, download_file_helper,
@@ -203,12 +202,12 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
 
     if (forward or reverse) and not (forward and reverse):
         click.echo('You must specify both forward and reverse files', err=True)
-        sys.exit(1)
+        ctx.exit(1)
     if forward and reverse:
         if len(files) > 0:
             click.echo('You may not pass a FILES argument when using the '
                        ' --forward and --reverse options.', err=True)
-            sys.exit(1)
+            ctx.exit(1)
         files = [(forward, reverse)]
         no_interleave = True
     if len(files) == 0:
@@ -277,12 +276,12 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
         sys.stderr.write('\nERROR: {}. {}'.format(
             e, 'Running with the --clean flag will suppress this error.'
         ))
-        sys.exit(1)
-    except (ValidationError, UploadException, Exception) as e:
+        ctx.exit(1)
+    except ValidationError as e:
         # TODO: Some day improve specific other exception error messages, e.g., gzip CRC IOError
         sys.stderr.write('\nERROR: {}'.format(e))
         sys.stderr.write('\nPlease feel free to contact us for help at help@onecodex.com\n\n')
-        sys.exit(1)
+        ctx.exit(1)
 
 
 @onecodex.command('login')
@@ -302,7 +301,7 @@ def login(ctx):
         if ocx._client.Account.instances()['email'] != email:
             click.echo('Your login credentials do not match the provided email!', err=True)
             _remove_creds()
-            sys.exit(1)
+            ctx.exit(1)
 
 
 @onecodex.command('logout')

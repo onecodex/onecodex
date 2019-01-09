@@ -42,8 +42,13 @@ def test_ocx_with_raven(ocx_w_raven, mocked_creds_file):
 
 
 def test_good_sentry_dsn():
-    raven = get_raven_client()
-    assert isinstance(raven, RavenClient)
+    patched_env = os.environ.copy()
+    patch = {'ONE_CODEX_NO_TELEMETRY': None}
+    patched_env.update(patch)
+
+    with mock.patch.object(os, 'environ', patched_env):
+        raven = get_raven_client()
+        assert isinstance(raven, RavenClient)
 
 
 def test_bad_sentry_dsn():
