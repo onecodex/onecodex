@@ -171,22 +171,40 @@ def _logout(creds_file=None):
 
 
 def login_required(fn):
-    """
-    Decorator for the CLI for requiring login before proceeding.
+    """Requires login before proceeding, but does not prompt the user to login. Decorator should
+    be used only on Click CLI commands.
+
+    Notes
+    -----
+    Different means of authentication will be attempted in this order:
+        1. An API key present in the Click context object from a previous successful authentication.
+        2. A bearer token (ONE_CODEX_BEARER_TOKEN) in the environment.
+        3. An API key (ONE_CODEX_API_KEY) in the environment.
+        4. An API key in the credentials file (~/.onecodex).
     """
 
     @wraps(fn)
     def login_wrapper(ctx, *args, **kwargs):
-        if 'API_KEY' in ctx.obj and ctx.obj['API_KEY'] is not None:
-            ctx.obj['API'] = Api(api_key=ctx.obj['API_KEY'], telemetry=ctx.obj['TELEMETRY'])
+        api_kwargs = {'telemetry': ctx.obj['TELEMETRY']}
+
+        api_key_prior_login = ctx.obj.get('API_KEY')
+        bearer_token_env = os.environ.get('ONE_CODEX_BEARER_TOKEN')
+        api_key_env = os.environ.get('ONE_CODEX_API_KEY')
+        api_key_creds_file = _login(silent=True)
+
+        if api_key_prior_login is not None:
+            api_kwargs['api_key'] = api_key_prior_login
+        elif bearer_token_env is not None:
+            api_kwargs['bearer_token'] = bearer_token_env
+        elif api_key_env is not None:
+            api_kwargs['api_key'] = api_key_env
+        elif api_key_creds_file is not None:
+            api_kwargs['api_key'] = api_key_creds_file
         else:
-            # try and find it
-            api_key = _login(silent=True)
-            if api_key is not None:
-                ctx.obj['API'] = Api(api_key=api_key, telemetry=ctx.obj['TELEMETRY'])
-            else:
-                click.echo('The command you specified requires authentication. Please login first.\n', err=True)
-                ctx.exit()
+            click.echo('The command you specified requires authentication. Please login first.\n', err=True)
+            ctx.exit()
+
+        ctx.obj['API'] = Api(**api_kwargs)
 
         return fn(ctx, *args, **kwargs)
 
