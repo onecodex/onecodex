@@ -15,7 +15,7 @@ from onecodex.exceptions import MethodNotSupported, OneCodexException
 
 def test_api_creation(api_data):
     ocx = Api(api_key='1eab4217d30d42849dbde0cd1bb94e39',
-              base_url='http://localhost:3005', cache_schema=False)
+              base_url='http://localhost:3000', cache_schema=False)
     assert isinstance(ocx, Api)
     assert True
 
@@ -181,12 +181,6 @@ def test_dir_patching(ocx, api_data):
 def test_classification_methods(ocx, api_data):
     classification = ocx.Classifications.get('45a573fb7833449a')
     assert isinstance(classification, onecodex.models.analysis.Classifications)
-
-
-def test_no_results_on_generic_analysis(ocx, api_data):
-    analysis = ocx.Analyses.get('45a573fb7833449a')
-    with pytest.raises(NotImplementedError):
-        analysis.results()
 
 
 # Sorting and where clauses
