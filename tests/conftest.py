@@ -281,7 +281,9 @@ for filename in os.listdir('tests/api_data'):
 
     resource = json.load(open(os.path.join('tests/api_data', filename)))
     if filename == 'schema.json':
-        resource_uri = 'GET::api/v1/schema'
+        resource_uri = 'GET::api/v1/schema$'
+    elif filename == 'schema_all.json':
+        resource_uri = 'GET::api/v1/schema\\?expand=all'
     else:
         resource_name = filename.replace('.json', '').split('_')[1]
         resource_uri = 'GET::api/v1/{}/schema'.format(resource_name)

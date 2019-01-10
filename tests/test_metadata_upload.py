@@ -120,7 +120,7 @@ def test_validate_enum_invalid():
     schema_props = schema_rules('platform')
     with pytest.raises(ValidationError) as exception_info:
         validate_enum('Foo', schema_props)
-    assert "Foo is not a valid value for this key. Value must be one of the following options: ['Illumina MiSeq', 'Illumina HiSeq', 'Illumina NextSeq 500', 'Illumina Genome Analyzer II', 'PacBio', 'Oxford Nanopore MinION', 'Ion Torrent', 'Ion Proton', 'SOLiD', '454 sequencing', 'Sanger', None]" in str(exception_info)
+    assert "Foo is not a valid value for this key." in str(exception_info)
 
 
 def test_validate_boolean_truthy():

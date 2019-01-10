@@ -645,7 +645,7 @@ class OneCodexBase(object):
 
     @classmethod
     def _convert_id_to_uri(cls, uuid):
-        base_uri = cls._resource._schema._uri.replace('/schema#', '')
+        base_uri = cls._resource._schema['_base_uri']
         if not uuid.startswith(base_uri):
             uuid = '{}/{}'.format(base_uri, uuid)
         return uuid

@@ -144,6 +144,7 @@ class ExtendedPotionClient(PotionClient):
 
     def _fetch_schema(self, cache_schema=True, creds_file=None):
         self._cached_schema = {}
+
         creds_file = os.path.expanduser('~/.onecodex') if creds_file is None else creds_file
         creds = {}
 
@@ -157,12 +158,13 @@ class ExtendedPotionClient(PotionClient):
             except ValueError:
                 warnings.warn('Credentials file ({}) is corrupt'.format(collapse_user(creds_file)))
 
-        schema = None
         serialized_schema = None
+
         if cache_schema:
-            # Determine if we need to update
+            # determine if we need to update
             schema_update_needed = True
             last_update = creds.get('schema_saved_at')
+
             if last_update is not None:
                 last_update = datetime.strptime(last_update, self.DATE_FORMAT)
                 time_diff = datetime.now() - last_update
@@ -172,60 +174,67 @@ class ExtendedPotionClient(PotionClient):
                 # get the schema from the credentials file (as a string)
                 serialized_schema = creds.get('schema')
 
-        if serialized_schema is not None:
-            # Catch schema caching issues and fall back to remote URL
-            try:
-                base_schema = serialized_schema.pop(self._schema_url)
-                schema = json.loads(base_schema, cls=PotionJSONSchemaDecoder,
-                                    referrer=self._schema_url, client=self)
-
-                for route, route_schema in serialized_schema.items():
-                    object_schema = json.loads(route_schema, cls=PotionJSONSchemaDecoder,
-                                               referrer=self._schema_url, client=self)
-                    self._cached_schema[route] = object_schema
-            except KeyError:  # Caches issue with schema_url not existing
-                pass
-
-        if schema is None:
+        if serialized_schema is None:
             # if the schema wasn't cached or if it was expired, get it anew
             schema = self.session.get(self._schema_url).json(cls=PotionJSONSchemaDecoder,
                                                              referrer=self._schema_url,
                                                              client=self)
-            if cache_schema:
-                # serialize the schemas back out
-                creds['schema_saved_at'] = datetime.strftime(datetime.now(), self.DATE_FORMAT)
 
-                # serialize the main schema
-                serialized_schema = {}
-                serialized_schema[self._schema_url] = json.dumps(schema, cls=PotionJSONEncoder)
+            expanded_schema = self.session.get(self._schema_url + '?expand=all').json()
 
-                # serialize the object schemas
-                for schema_ref in schema['properties'].values():
-                    serialized_schema[schema_ref._uri] = json.dumps(schema_ref._properties,
-                                                                    cls=PotionJSONEncoder)
+            # serialize the main schema
+            serialized_schema = {}
+            serialized_schema[self._schema_url] = json.dumps(schema, cls=PotionJSONEncoder)
 
-                creds['schema'] = serialized_schema
+            # serialize the object schemas
+            for schema_name, schema_ref in schema['properties'].items():
+                cur_schema = expanded_schema['properties'][schema_name]
+                serialized_schema[schema_ref._uri] = json.dumps(
+                    cur_schema, cls=PotionJSONEncoder
+                )
+
+        # save schema if we're going to, otherwise delete it from creds file
+        if cache_schema:
+            creds['schema_saved_at'] = datetime.strftime(datetime.now(), self.DATE_FORMAT)
+            creds['schema'] = serialized_schema
+        else:
+            if 'schema_saved_at' in creds:
+                del creds['schema_saved_at']
+            if 'schema' in creds:
+                del creds['schema']
+
+        # always resave the creds (to make sure we're removing or saving the cached schema)
+        try:
+            if creds:
+                json.dump(creds, open(creds_file, 'w'))
             else:
-                if 'schema_saved_at' in creds:
-                    del creds['schema_saved_at']
-                if 'schema' in creds:
-                    del creds['schema']
+                os.remove(creds_file)
+        except Exception as e:
+            if e.errno == errno.ENOENT:
+                pass
+            elif e.errno == errno.EACCES:
+                warnings.warn('Check permissions on {}'.format(collapse_user(creds_file)))
+            else:
+                raise
 
-            # always resave the creds (to make sure we're removing schema if we need to be or
-            # saving if we need to do that instead)
-            try:
-                if creds:
-                    json.dump(creds, open(creds_file, 'w'))
-                else:
-                    os.remove(creds_file)
-            except Exception as e:
-                if e.errno == errno.ENOENT:
-                    pass
-                elif e.errno == errno.EACCES:
-                    warnings.warn('Check permissions on {}'.format(collapse_user(creds_file)))
-                else:
-                    raise
+        # by the time we get here, we should have loaded the serialized schema from creds_file or
+        # pulled it from the API and serialized it. now, we unserialize it and put it where it
+        # needs to be.
+        base_schema = serialized_schema.pop(self._schema_url, None)
+        base_schema = json.loads(base_schema, cls=PotionJSONSchemaDecoder,
+                                 referrer=self._schema_url, client=self)
 
-        for name, resource_schema in schema['properties'].items():
+        for name, schema_ref in base_schema['properties'].items():
+            object_schema = json.loads(
+                serialized_schema[schema_ref._uri],
+                cls=PotionJSONSchemaDecoder,
+                referrer=self._schema_url,
+                client=self
+            )
+
+            object_schema['_base_uri'] = schema_ref._uri.replace('/schema#', '')
+
+            self._cached_schema[schema_ref._uri] = object_schema
+
             class_name = upper_camel_case(name)
-            setattr(self, class_name, self.resource_factory(name, resource_schema))
+            setattr(self, class_name, self.resource_factory(name, object_schema))
