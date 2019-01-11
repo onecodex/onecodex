@@ -3,7 +3,8 @@ import warnings
 
 class TaxonomyMixin(object):
     def tree_build(self):
-        """Build a tree from the taxonomy data present in this ResultsDataFrame or SampleCollection.
+        """Build a tree from the taxonomy data present in this `ClassificationsDataFrame` or
+        `SampleCollection`.
 
         Returns
         -------
@@ -79,6 +80,11 @@ class TaxonomyMixin(object):
         -------
         `skbio.tree.TreeNode`, the root of the tree where all tips are at the given rank, and all
         tips have a path back to the root node.
+
+        Examples
+        --------
+        tree_prune_rank(tree, 'species') will remove all subspecies/strain nodes and return a tree
+        containing all genus-level nodes and higher.
         """
         if rank is None:
             return tree.copy()

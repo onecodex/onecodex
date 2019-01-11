@@ -7,6 +7,35 @@ from onecodex.viz import VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDist
 
 # force persistence of our additional taxonomy and metadata dataframe properties
 class ClassificationsDataFrame(pd.DataFrame):
+    """A subclassed `pandas.DataFrame` containing additional metadata pertinent to analysis of
+    One Codex Classifications results. These fields, once part of the DataFrame, will no longer be
+    updated when the contents of the associated `SampleCollection` change. In comparison, the
+    corresponding attributes `_rank`, `_field`, `taxonomy` and `metadata` in a `SampleCollection`
+    are re-generated whenever members of the `SampleCollection` are added or removed.
+
+    Methods from `AnalysisMixin`, such as `to_df`, are available via the `ocx` namespace. For
+    example, `ClassificationsDataFrame().ocx.to_df()`.
+
+    Parameters
+    ----------
+        ocx_rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+            Analysis was restricted to abundances of taxa at the specified level.
+
+        ocx_field : {'readcount_w_children', 'readcount', 'abundance'}
+            Which field was used for the abundance/count of a particular taxon in a sample.
+
+            - 'readcount_w_children': total reads of this taxon and all its descendants
+            - 'readcount': total reads of this taxon
+            - 'abundance': genome size-normalized relative abundances, from shotgun sequencing
+
+        ocx_metadata : `pandas.DataFrame`
+            A DataFrame containing collated metadata fields for all samples in this analysis.
+
+        ocx_taxonomy : `pandas.DataFrame`
+            A DataFrame containing taxonomy information (i.e., id, name, rank, parent) for all taxa
+            referenced in this analysis.
+    """
+
     _metadata = ['ocx_rank', 'ocx_field', 'ocx_taxonomy', 'ocx_metadata']
 
     def __init__(self, data=None, index=None, columns=None, dtype=None, copy=False, ocx_rank=None,
@@ -34,6 +63,10 @@ class ClassificationsDataFrame(pd.DataFrame):
 
 
 class ClassificationsSeries(pd.Series):
+    """A subclassed `pandas.Series` containing additional metadata pertinent to analysis of
+    One Codex Classifications results. See the docstring for `ClassificationsDataFrame`.
+    """
+
     # 'name' is a piece of metadata specified by pd.Series--it's not ours
     _metadata = ['name', 'ocx_rank', 'ocx_field', 'ocx_taxonomy', 'ocx_metadata']
 
@@ -62,8 +95,18 @@ class ClassificationsSeries(pd.Series):
 
 
 class AnalysisMixin(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceMixin):
+    """Contains methods for analyzing Classifications results.
+
+    Notes
+    -----
+    Three DataFrames are required by most methods: collated counts, collated metadata, and taxonomy.
+    This data is obtained from either a `ClassificationsDataFrame` or a `SampleCollection`. Both
+    classes use this mixin. `AnalysisMixin` pulls additional methods in from `onecodex.distance`,
+    `onecodex.taxonomy`, and `onecodex.viz`.
+    """
+
     def _get_auto_rank(self, rank):
-        """Tries to figure out what rank we should use for analyses, mainly called by results()"""
+        """Tries to figure out what rank we should use for analyses"""
 
         if rank == 'auto':
             # if we're an accessor for a ClassificationsDataFrame, use its _rank property
@@ -78,14 +121,45 @@ class AnalysisMixin(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceM
             return rank
 
     def _guess_normalized(self):
-        # it's possible that the _results df has already been normalized, which can cause some
-        # methods to fail. we must guess whether this is the case
+        """Returns true if the collated counts in `self._results` appear to be normalized.
 
+        Notes
+        -----
+        It's possible that the _results df has already been normalized, which can cause some
+        methods to fail. This method lets us guess whether that's true and act accordingly.
+        """
         return bool((self._results.sum(axis=1).round(4) == 1.0).all())
 
     def _metadata_fetch(self, metadata_fields):
         """Takes a list of metadata fields, some of which can contain taxon names or taxon IDs, and
-        returns a DataFrame with magically transformed data that can be used for plotting.
+        returns a DataFrame with transformed data that can be used for plotting.
+
+        Notes
+        -----
+        Taxon names and IDs are transformed into the relative abundances of those taxa within their
+        own rank. For example, 'Bacteroides' will return the relative abundances of 'Bacteroides'
+        among all taxa of rank genus. Taxon IDs are stored as strings in `ClassificationsDataFrame`
+        and are coerced to strings if integers are given.
+
+        Metadata fields are returned as is, from the `self.metadata` DataFrame. If multiple metadata
+        fields are specified in a tuple, their values are joined as strings separated by underscore.
+        Multiple metadata fields in tuple must both be categorical. That is, a numerical field and
+        boolean can not be joined, or the result would be something like '87.4_True'.
+
+        The 'Label' field name is transformed to '_display_name'. This lets us label points in plots
+        by the name generated for each sample in `SampleCollection._collate_metadata`.
+
+        Returns
+        -------
+        `pandas.DataFrame`
+            Columns are renamed (if applicable) metadata fields and rows are `Classifications.id`.
+            Elements are transformed values. Not all metadata fields will have been renamed, but will
+            be present in the below `dict` nonetheless.
+        `dict`
+            Keys are metadata fields and values are renamed metadata fields. This can be used to map
+            metadata fields which were passed to this function, to prettier names. For example, if
+            'bacteroid' is passed, it will be matched with the Bacteroides genus and renamed to
+            'Bacteroides (816)', which includes its taxon ID.
         """
         help_metadata = ', '.join(self.metadata.keys())
         magic_metadata = pd.DataFrame({'classification_id': self._results.index}) \
@@ -173,8 +247,8 @@ class AnalysisMixin(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceM
 
     def to_df(self, rank='auto', top_n=None, threshold=None, remove_zeros=True, normalize='auto',
               table_format='wide'):
-        """Takes the ClassificationsDataFrame associated with these samples, or SampleCollection, does some
-        filtering, and returns a ClassificationsDataFrame.
+        """Takes the ClassificationsDataFrame associated with these samples, or SampleCollection,
+        does some filtering, and returns a ClassificationsDataFrame copy.
 
         Parameters
         ----------
@@ -194,7 +268,7 @@ class AnalysisMixin(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceM
 
         Returns
         -------
-        ClassificationsDataFrame
+        `ClassificationsDataFrame`
         """
 
         rank = self._get_auto_rank(rank)
@@ -266,6 +340,18 @@ class AnalysisMixin(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceM
 
 @pd.api.extensions.register_dataframe_accessor('ocx')
 class OneCodexAccessor(AnalysisMixin):
+    """Accessor object alllowing access of `AnalysisMixin` methods from the 'ocx' namespace of a
+    `ClassificationsDataFrame`.
+
+    Notes
+    -----
+    When instantiated, the accessor will prune the taxonomic tree back to contain only taxa
+    referenced in the classification results (i.e., self._results). Similarly, metadata is sliced
+    such that it contains only those `Classifications.id` in the results. This is because users may
+    filter or modify the classification results to remove classification results (i.e., rows) or
+    taxa (i.e., cols) from the `ClassificationsDataFrame` before accessing this namespace.
+    """
+
     def __init__(self, pandas_obj):
         # copy data from the ClassificationsDataFrame to a new instance of AnalysisMethods
         self.metadata = pandas_obj.ocx_metadata

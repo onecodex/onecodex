@@ -27,10 +27,22 @@ DEFAULT_PAGE_SIZE = 200
 
 
 class ResourceList(object):
-    """
-    In OneCodexBase, when attributes are lists, actions performed on the returned lists are not
-    passed through to the underlying resource list. This class passes those actions through, and
-    will generally act like a list.
+    """Wrapper around lists of onecodex-wrapped potion objects.
+
+    Parameters
+    ----------
+    _resource : `list`
+        A list of potion objects, which are generally stored in `OneCodexBase._resource`.
+    oc_model : `OneCodexBase`
+        A class which inherits from `OneCodexBase`, for example, `models.Tags`.
+
+    Notes
+    -----
+    In OneCodexBase, when attributes are lists (e.g., `Samples.tags`), actions performed on the
+    returned lists are not passed through to the underlying potion object's list. This class passes
+    those actions through, and will generally act like a list.
+
+    See https://github.com/onecodex/onecodex/issues/40
     """
 
     def _update(self):
@@ -59,6 +71,10 @@ class ResourceList(object):
                 raise OneCodexException('{} cannot contain duplicate objects'.format(self.__class__.__name__))
 
     def __init__(self, _resource, oc_model):
+        if not issubclass(oc_model, OneCodexBase):
+            raise ValueError("Expected object of type '{}', got '{}'"
+                             .format(OneCodexBase.__name__, oc_model.__name__))
+
         # turn potion Resource objects into OneCodex objects
         self._resource = _resource
         self._oc_model = oc_model
@@ -162,6 +178,15 @@ class ResourceList(object):
 
 
 class SampleCollection(ResourceList, AnalysisMixin):
+    """A collection of `Samples` or `Classifications` objects with many methods are analysis of
+    classifications results.
+
+    Notes
+    -----
+    Inherits from `ResourceList` to provide a list-like API, and `AnalysisMixin` to provide relevant
+    analysis methods.
+    """
+
     def __init__(self, _resource, oc_model, skip_missing=True, label=None, field='auto'):
         self._kwargs = {'skip_missing': skip_missing,
                         'label': label,
@@ -376,8 +401,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         return self._cached['taxonomy']
 
     def to_otu(self, biom_id=None):
-        """
-        Converts a list of objects associated with a classification result into a `dict` resembling
+        """Converts a list of objects associated with a classification result into a `dict` resembling
         an OTU table.
 
         Parameters
