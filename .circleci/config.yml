@@ -21,13 +21,13 @@ jobs:
           command: |
             python3 -m venv venv
             . venv/bin/activate
-            pip install numpy
-            pip install .[all,testing]
+            pip install --progress-bar=off numpy
+            pip install --progress-bar=off .[all,testing]
       - run:
           name: Run tests
           command: |
             . venv/bin/activate
-            py.test --ignore tests/test_minimal.py tests/
+            py.test -v tests/
   test-py2:
     docker:
       - image: circleci/python:2.7-stretch
@@ -38,13 +38,13 @@ jobs:
           command: |
             virtualenv venv
             . venv/bin/activate
-            pip install numpy
-            pip install .[all,testing]
+            pip install --progress-bar=off numpy
+            pip install --progress-bar=off .[all,testing]
       - run:
           name: Run tests
           command: |
             . venv/bin/activate
-            py.test --ignore tests/test_minimal.py tests/
+            py.test -v tests/
   test-minimal:
     docker:
       - image: circleci/python:3.6-stretch
@@ -55,13 +55,12 @@ jobs:
           command: |
             virtualenv venv
             . venv/bin/activate
-            pip install numpy
-            pip install .[testing]
+            pip install --progress-bar=off .[testing]
       - run:
           name: Run tests
           command: |
             . venv/bin/activate
-            py.test tests/test_cli.py tests/test_minimal.py tests/test_raven.py
+            py.test -v tests/
   test-simplejson:
     docker:
       - image: circleci/python:3.6-stretch
@@ -72,14 +71,14 @@ jobs:
           command: |
             virtualenv venv
             . venv/bin/activate
-            pip install numpy
-            pip install simplejson
-            pip install .[all,testing]
+            pip install --progress-bar=off numpy
+            pip install --progress-bar=off simplejson
+            pip install --progress-bar=off .[all,testing]
       - run:
           name: Run tests
           command: |
             . venv/bin/activate
-            py.test --ignore tests/test_minimal.py tests/
+            py.test -v tests/
   lint:
     docker:
       - image: circleci/python:3.6-stretch
@@ -90,7 +89,7 @@ jobs:
           command: |
             virtualenv venv
             . venv/bin/activate
-            pip install .[testing]
+            pip install --progress-bar=off .[testing]
       - run:
           name: Run flake8
           command: |
@@ -107,12 +106,12 @@ jobs:
           command: |
             virtualenv venv
             . venv/bin/activate
-            pip install numpy
-            pip install .[all,testing]
+            pip install --progress-bar=off numpy
+            pip install --progress-bar=off .[all,testing]
       - run:
           name: Run tests
           command: |
             . venv/bin/activate
-            py.test --cov-report=html --cov=onecodex --ignore tests/test_minimal.py tests/
+            py.test -v --cov-report=html --cov=onecodex tests/
             coveralls
 

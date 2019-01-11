@@ -1,17 +1,14 @@
 from hashlib import sha256
+import json
+import pytest; pytest.importorskip('pandas')  # noqa
 import pandas as pd
-import pytest
 import warnings
 
 import onecodex
 from onecodex.exceptions import OneCodexException
 from onecodex.helpers import ResultsDataFrame, ResultsSeries
+from onecodex.models import SampleCollection
 
-
-# test ResultsDataFrame
-# test ResultsSeries -is metadata transferred between DataFrame, Series, and back?
-# a few tests for AnalysisMethods--magic_metadata_fetch, results filtering, guessing normalization
-# a few tests for EnhancedSampleCollection--magic_classification_fetch, collate_metadata, collate_results
 
 def test_pandas_subclass():
     inner_df = pd.DataFrame({'datum1': [7, 4, 21], 'datum2': [8, 16, 24]})
@@ -41,8 +38,8 @@ def test_pandas_subclass():
     assert (new_df.ocx_metadata == inner_df).all().all()
 
 
-def test_auto_rank(ocx_w_enhanced, api_data):
-    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+def test_auto_rank(ocx, api_data):
+    samples = ocx.Samples.where(project='4b53797444f846c4')
 
     # if we re-collate the results using the abundance field, auto rank should choose species
     samples._collate_results(field='abundance')
@@ -53,8 +50,8 @@ def test_auto_rank(ocx_w_enhanced, api_data):
     assert results.ocx._get_auto_rank('auto') == 'phylum'
 
 
-def test_guess_normalization(ocx_w_enhanced, api_data):
-    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+def test_guess_normalization(ocx, api_data):
+    samples = ocx.Samples.where(project='4b53797444f846c4')
 
     norm_results = samples.results(normalize=True)
     assert norm_results.ocx._guess_normalized() is True
@@ -63,8 +60,8 @@ def test_guess_normalization(ocx_w_enhanced, api_data):
     assert unnorm_results.ocx._guess_normalized() is False
 
 
-def test_metadata_fetch(ocx_w_enhanced, api_data):
-    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+def test_metadata_fetch(ocx, api_data):
+    samples = ocx.Samples.where(project='4b53797444f846c4')
 
     # tuple with invalid field
     with pytest.raises(OneCodexException) as e:
@@ -102,8 +99,8 @@ def test_metadata_fetch(ocx_w_enhanced, api_data):
     assert df['Bacteroidaceae (815)'].round(10).tolist() == [0.344903898, 0.1656058794, 0.7776093433]
 
 
-def test_results_filtering_rank(ocx_w_enhanced, api_data):
-    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+def test_results_filtering_rank(ocx, api_data):
+    samples = ocx.Samples.where(project='4b53797444f846c4')
 
     tree = samples.tree_build()
     tree = samples.tree_prune_tax_ids(tree, ['1279'])
@@ -132,8 +129,8 @@ def test_results_filtering_rank(ocx_w_enhanced, api_data):
     assert 'No taxa kept' in str(e.value)
 
 
-def test_results_filtering_other(ocx_w_enhanced, api_data):
-    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+def test_results_filtering_other(ocx, api_data):
+    samples = ocx.Samples.where(project='4b53797444f846c4')
 
     # normalize the data
     norm_results = samples.results(normalize=True)
@@ -174,8 +171,8 @@ def test_results_filtering_other(ocx_w_enhanced, api_data):
     assert 'must be one of' in str(e.value)
 
 
-def test_enhanced_sample_collection(ocx_w_enhanced, api_data):
-    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+def test_sample_collection_pandas(ocx, api_data):
+    samples = ocx.Samples.where(project='4b53797444f846c4')
 
     # manipulations of samples in the collection ought to update the stored dfs
     class_id = samples[2].primary_classification.id
@@ -188,11 +185,49 @@ def test_enhanced_sample_collection(ocx_w_enhanced, api_data):
     assert class_id not in samples.metadata.index
 
 
-def test_classification_fetch(ocx_w_enhanced, api_data):
-    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+def test_biom(ocx, api_data):
+    c1 = ocx.Classifications.get('45a573fb7833449a')._resource
+    c2 = ocx.Classifications.get('593601a797914cbf')._resource
+    biom = SampleCollection([c1, c2], ocx.Classifications).to_otu()
+    assert set(biom.keys()) == {
+        'columns', 'data', 'date', 'format', 'format_url',
+        'generated_by', 'id', 'matrix_element_type', 'matrix_type', 'rows', 'shape', 'type'
+    }
+    assert biom['format_url'] == 'http://biom-format.org'
+    assert set(biom['columns'][0].keys()) == {'id', 'sample_id', 'sample_filename', 'metadata'}
+    assert set(biom['rows'][0].keys()) == {'id', 'metadata'}
+    assert 'taxonomy' in biom['rows'][0]['metadata']
+
+    # IDs
+    assert biom['columns'][0]['id'] == c1.id
+    assert biom['columns'][0]['sample_id'] == c1.sample.id
+
+    # Reults
+    assert set(row['metadata']['taxonomy'] for row in biom['rows']) == {
+        'Staphylococcus sp. HGB0015', 'Staphylococcus'
+    }
+
+    # Format is row_id, sample id (column), count
+    assert biom['data'][0] == [0, 0, 3]
+    assert biom['data'][1] == [0, 1, 80]
+    assert biom['data'][2] == [1, 0, 0]
+    assert biom['data'][3] == [1, 1, 0]
+    assert biom['rows'][0]['id'] == '1078083'
+    assert biom['rows'][1]['id'] == '1279'
+
+    # Check that we're not including unnecessary references
+    assert '$uri' not in biom['columns'][0]['metadata']
+    assert 'sample' not in biom['columns'][0]['metadata']
+
+    # Test serialization
+    assert json.loads(json.dumps(biom)) == biom   # tests json serialization
+
+
+def test_classification_fetch(ocx, api_data):
+    samples = ocx.Samples.where(project='4b53797444f846c4')
 
     # should work with a list of classifications as input, not just samples
-    samples._oc_model = ocx_w_enhanced.Classifications
+    samples._oc_model = ocx.Classifications
     samples._res_list = samples.primary_classifications
     samples._resource = [x._resource for x in samples.primary_classifications]
     samples._classification_fetch()
@@ -210,8 +245,8 @@ def test_classification_fetch(ocx_w_enhanced, api_data):
     samples._resource[0].success = True
 
 
-def test_collate_metadata(ocx_w_enhanced, api_data):
-    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+def test_collate_metadata(ocx, api_data):
+    samples = ocx.Samples.where(project='4b53797444f846c4')
 
     # check contents of metadata df--at least that which can easily be coerced to strings
     metadata = samples.metadata
@@ -237,8 +272,8 @@ def test_collate_metadata(ocx_w_enhanced, api_data):
     assert 'not find any labels' in str(e.value)
 
 
-def test_collate_results(ocx_w_enhanced, api_data):
-    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+def test_collate_results(ocx, api_data):
+    samples = ocx.Samples.where(project='4b53797444f846c4')
 
     # check contents of results df
     string_to_hash = ""
@@ -270,8 +305,8 @@ def test_collate_results(ocx_w_enhanced, api_data):
     assert 'not valid' in str(e.value)
 
 
-def test_pandas_extension(ocx_w_enhanced, api_data):
-    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+def test_pandas_extension(ocx, api_data):
+    samples = ocx.Samples.where(project='4b53797444f846c4')
     results = samples.results()
 
     # extension should be in ocx namespace of ResultsDataFrame

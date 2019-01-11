@@ -1,9 +1,9 @@
-import pytest
+import pytest; pytest.importorskip('pandas')  # noqa
 from skbio.tree import MissingNodeError
 
 
-def test_tree_generation(ocx_w_enhanced, api_data):
-    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+def test_tree_generation(ocx, api_data):
+    samples = ocx.Samples.where(project='4b53797444f846c4')
     tree = samples.tree_build()
     assert tree.has_children()
     assert tree.is_root()
@@ -11,8 +11,8 @@ def test_tree_generation(ocx_w_enhanced, api_data):
     assert staph.tax_name == 'Staphylococcus'
 
 
-def test_tree_pruning(ocx_w_enhanced, api_data):
-    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+def test_tree_pruning(ocx, api_data):
+    samples = ocx.Samples.where(project='4b53797444f846c4')
 
     tree = samples.tree_build()
 
