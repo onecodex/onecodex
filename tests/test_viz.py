@@ -1,11 +1,11 @@
-import pytest
+import pytest; pytest.importorskip('pandas')  # noqa
 
 from onecodex.exceptions import OneCodexException
 
 
 # TODO: somehow check the graphical output (JSON output to Vega?)
-def test_plot_metadata(ocx_w_enhanced, api_data):
-    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+def test_plot_metadata(ocx, api_data):
+    samples = ocx.Samples.where(project='4b53797444f846c4')
 
     # should resolve samples to classifications via normalize_classifications()
     samples.plot_metadata(vaxis='simpson')
@@ -30,8 +30,8 @@ def test_plot_metadata(ocx_w_enhanced, api_data):
     )
 
 
-def test_plot_metadata_exceptions(ocx_w_enhanced, api_data):
-    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+def test_plot_metadata_exceptions(ocx, api_data):
+    samples = ocx.Samples.where(project='4b53797444f846c4')
 
     # expect error if rank is None, since that could lead to weird results
     with pytest.raises(OneCodexException) as e:
@@ -47,8 +47,8 @@ def test_plot_metadata_exceptions(ocx_w_enhanced, api_data):
         samples.plot_metadata(haxis='does_not_exist')
 
 
-def test_plot_pca(ocx_w_enhanced, api_data):
-    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+def test_plot_pca(ocx, api_data):
+    samples = ocx.Samples.where(project='4b53797444f846c4')
 
     samples.plot_pca()
 
@@ -69,8 +69,8 @@ def test_plot_pca(ocx_w_enhanced, api_data):
     samples.plot_pca(tooltip=['totalige', 'vegetables', 'Prevotella', '816'])
 
 
-def test_plot_pca_exceptions(ocx_w_enhanced, api_data):
-    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+def test_plot_pca_exceptions(ocx, api_data):
+    samples = ocx.Samples.where(project='4b53797444f846c4')
 
     # expect error if rank is None, since that could lead to weird results
     with pytest.raises(OneCodexException) as e:
@@ -100,8 +100,8 @@ def test_plot_pca_exceptions(ocx_w_enhanced, api_data):
         assert 'not found' in str(e.value)
 
 
-def test_plot_heatmap(ocx_w_enhanced, api_data):
-    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+def test_plot_heatmap(ocx, api_data):
+    samples = ocx.Samples.where(project='4b53797444f846c4')
 
     samples.plot_heatmap(top_n=10, threshold=None)
     samples.plot_heatmap(top_n=None, threshold=0.1)
@@ -109,8 +109,8 @@ def test_plot_heatmap(ocx_w_enhanced, api_data):
     samples.plot_heatmap(title='my title', xlabel='my xlabel', ylabel='my ylabel')
 
 
-def test_plot_heatmap_exceptions(ocx_w_enhanced, api_data):
-    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+def test_plot_heatmap_exceptions(ocx, api_data):
+    samples = ocx.Samples.where(project='4b53797444f846c4')
 
     # expect error if rank is None, since that could lead to weird results
     with pytest.raises(OneCodexException) as e:
@@ -134,14 +134,14 @@ def test_plot_heatmap_exceptions(ocx_w_enhanced, api_data):
 
 
 @pytest.mark.parametrize('metric', ('braycurtis', 'jaccard', 'unifrac', 'manhattan'))
-def test_plot_distance(ocx_w_enhanced, api_data, metric):
-    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+def test_plot_distance(ocx, api_data, metric):
+    samples = ocx.Samples.where(project='4b53797444f846c4')
 
     samples.plot_distance(metric=metric, xlabel='my xlabel', ylabel='my ylabel', title='my title')
 
 
-def test_plot_distance_exceptions(ocx_w_enhanced, api_data):
-    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+def test_plot_distance_exceptions(ocx, api_data):
+    samples = ocx.Samples.where(project='4b53797444f846c4')
 
     # expect error if rank is None, since that could lead to weird results
     with pytest.raises(OneCodexException) as e:
@@ -165,15 +165,15 @@ def test_plot_distance_exceptions(ocx_w_enhanced, api_data):
 
 
 @pytest.mark.parametrize('metric', ('braycurtis', 'jaccard', 'unifrac', 'manhattan'))
-def test_plot_mds(ocx_w_enhanced, api_data, metric):
-    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+def test_plot_mds(ocx, api_data, metric):
+    samples = ocx.Samples.where(project='4b53797444f846c4')
 
     samples.plot_mds(method='pcoa', metric=metric, xlabel='my xlabel', ylabel='my ylabel', title='my title')
     samples.plot_mds(method='smacof', metric=metric, xlabel='my xlabel', ylabel='my ylabel', title='my title')
 
 
-def test_plot_mds_exceptions(ocx_w_enhanced, api_data):
-    samples = ocx_w_enhanced.Samples.where(project='4b53797444f846c4')
+def test_plot_mds_exceptions(ocx, api_data):
+    samples = ocx.Samples.where(project='4b53797444f846c4')
 
     # expect error if rank is None, since that could lead to weird results
     with pytest.raises(OneCodexException) as e:
