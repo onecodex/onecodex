@@ -4,9 +4,8 @@ import pytest; pytest.importorskip('pandas')  # noqa
 import pandas as pd
 import warnings
 
-import onecodex
 from onecodex.exceptions import OneCodexException
-from onecodex.helpers import ResultsDataFrame, ResultsSeries
+from onecodex.helpers import AnalysisMixin, ClassificationsDataFrame, ClassificationsSeries, OneCodexAccessor
 from onecodex.models import SampleCollection
 
 
@@ -20,10 +19,10 @@ def test_pandas_subclass():
         'ocx_metadata': inner_df.copy()
     }
 
-    df = ResultsDataFrame({'1279': [1, 2, 3], '1280': [4, 5, 6]}, ocx_data=ocx_data)
+    df = ClassificationsDataFrame({'1279': [1, 2, 3], '1280': [4, 5, 6]}, **ocx_data)
 
     # we want to be sure that slices of our df are returned as ResultsSeries
-    assert type(df['1279']) is ResultsSeries
+    assert type(df['1279']) is ClassificationsSeries
 
     # we're mostly interested in whether our metadata is transferred between copies. some operations
     # split the df into series and concat back to df, so by doing all this stuff to it we're actually
@@ -46,17 +45,17 @@ def test_auto_rank(ocx, api_data):
     assert samples._get_auto_rank('auto') == 'species'
 
     # inside the pandas extension, auto rank should choose that of the ResultsDataFrame
-    results = samples.results(rank='phylum')
+    results = samples.to_df(rank='phylum')
     assert results.ocx._get_auto_rank('auto') == 'phylum'
 
 
 def test_guess_normalization(ocx, api_data):
     samples = ocx.Samples.where(project='4b53797444f846c4')
 
-    norm_results = samples.results(normalize=True)
+    norm_results = samples.to_df(normalize=True)
     assert norm_results.ocx._guess_normalized() is True
 
-    unnorm_results = samples.results(normalize=False)
+    unnorm_results = samples.to_df(normalize=False)
     assert unnorm_results.ocx._guess_normalized() is False
 
 
@@ -106,8 +105,8 @@ def test_results_filtering_rank(ocx, api_data):
     tree = samples.tree_prune_tax_ids(tree, ['1279'])
 
     # test filtering by rank
-    genus_results = samples.results(rank='genus')
-    family_results = samples.results(rank='family')
+    genus_results = samples.to_df(rank='genus')
+    family_results = samples.to_df(rank='family')
 
     assert '1279' in genus_results
     assert '1279' not in family_results
@@ -125,7 +124,7 @@ def test_results_filtering_rank(ocx, api_data):
 
     # catch invalid ranks
     with pytest.raises(OneCodexException) as e:
-        samples.results(rank='does_not_exist')
+        samples.to_df(rank='does_not_exist')
     assert 'No taxa kept' in str(e.value)
 
 
@@ -133,41 +132,41 @@ def test_results_filtering_other(ocx, api_data):
     samples = ocx.Samples.where(project='4b53797444f846c4')
 
     # normalize the data
-    norm_results = samples.results(normalize=True)
+    norm_results = samples.to_df(normalize=True)
     assert norm_results.sum(axis=1).round(6).tolist() == [1.0, 1.0, 1.0]
 
     # trying to 'unnormalize' data fails
     with pytest.raises(OneCodexException) as e:
-        norm_results.ocx.results(normalize=False)
+        norm_results.ocx.to_df(normalize=False)
     assert 'already been normalized' in str(e.value)
 
     # remove columns where every value is zero
-    results = samples.results(rank=None, normalize=False, remove_zeros=False)
+    results = samples.to_df(rank=None, normalize=False, remove_zeros=False)
     assert len(results.columns) == 3157
     results['1279'] = 0
     results['1280'] = 0
-    results = results.ocx.results(rank=None, normalize=False, remove_zeros=True)
+    results = results.ocx.to_df(rank=None, normalize=False, remove_zeros=True)
     assert len(results.columns) == 3155
 
     # return only taxa with at least 100 reads in one or more samples
-    assert ((samples.results(rank=None, normalize=False, remove_zeros=False, threshold=100) >= 100).any(axis=0)).all()
+    assert ((samples.to_df(rank=None, normalize=False, remove_zeros=False, threshold=100) >= 100).any(axis=0)).all()
 
     # top N most abundant taxa
-    assert sha256(samples.results(top_n=10).round(6).to_json().encode()).hexdigest() == \
+    assert sha256(samples.to_df(top_n=10).round(6).to_json().encode()).hexdigest() == \
         '437fcf282b885440571f552bf322056b6633154b247a9382ca074eee4b1ebf59'
 
     # check entire contents of long and wide format tables
-    wide_tbl = samples.results(table_format='wide', normalize=False)
+    wide_tbl = samples.to_df(table_format='wide', normalize=False)
     assert wide_tbl.sum().sum() == 38034443
     assert sum(wide_tbl.columns.astype(int).tolist()) == 109170075
 
-    long_tbl = samples.results(table_format='long', normalize=False)
+    long_tbl = samples.to_df(table_format='long', normalize=False)
     assert long_tbl['readcount_w_children'].sum() == 38034443
     assert long_tbl['tax_id'].astype(int).sum() / 3 == 109170075
 
     # should fail if format is not wide or long
     with pytest.raises(OneCodexException) as e:
-        samples.results(table_format='does_not_exist')
+        samples.to_df(table_format='does_not_exist')
     assert 'must be one of' in str(e.value)
 
 
@@ -179,7 +178,7 @@ def test_sample_collection_pandas(ocx, api_data):
     del samples[2]
 
     assert len(samples) == 2
-    assert len(samples.results()) == 2
+    assert len(samples.to_df()) == 2
     assert len(samples.metadata) == 2
     assert class_id not in samples._results.index
     assert class_id not in samples.metadata.index
@@ -307,16 +306,16 @@ def test_collate_results(ocx, api_data):
 
 def test_pandas_extension(ocx, api_data):
     samples = ocx.Samples.where(project='4b53797444f846c4')
-    results = samples.results()
+    results = samples.to_df()
 
-    # extension should be in ocx namespace of ResultsDataFrame
+    # extension should be in ocx namespace of ClassificationsDataFrame
     assert getattr(results, 'ocx', False)
-    assert isinstance(results.ocx, onecodex.helpers.OneCodexAccessor)
-    assert type(results.ocx).__base__ == onecodex.helpers.AnalysisMethods
+    assert isinstance(results.ocx, OneCodexAccessor)
+    assert type(results.ocx).__base__ == AnalysisMixin
 
     # changes to contents of results df should affect contents of taxonomy df, by keeping only
     # tax_ids in the results df and their parents
-    results = samples.results(top_n=2)
+    results = samples.to_df(top_n=2)
     assert sorted(results.ocx.taxonomy.index.tolist(), key=int) == \
         ['1', '2', '191', '815', '816', '976', '1224', '28211', '41295',
          '68336', '131567', '171549', '200643', '204441', '1783270']

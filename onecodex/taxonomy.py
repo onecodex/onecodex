@@ -38,7 +38,7 @@ class TaxonomyMixin(object):
 
         return nodes['1']
 
-    def tree_prune_tax_ids(self, tree, tax_ids=[]):
+    def tree_prune_tax_ids(self, tree, tax_ids):
         """Prunes a tree back to contain only the tax_ids in the list and their parents.
 
         Parameters

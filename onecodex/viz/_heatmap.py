@@ -54,7 +54,7 @@ class VizHeatmapMixin(object):
         if len(self._results) < 2:
             raise OneCodexException('`plot_heatmap` requires 2 or more valid classification results.')
 
-        df = self.results(
+        df = self.to_df(
             rank=rank,
             normalize=normalize,
             top_n=top_n,
@@ -79,7 +79,7 @@ class VizHeatmapMixin(object):
             df[magic_fields[f]] = magic_metadata[magic_fields[f]][df['classification_id']].tolist()
 
         # use scipy to perform average-linkage clustering on euclidean distances (by taxa)
-        df_for_clustering = self.results(
+        df_for_clustering = self.to_df(
             rank=rank,
             normalize=normalize,
             top_n=top_n,
@@ -102,8 +102,8 @@ class VizHeatmapMixin(object):
         alt_kwargs = dict(
             x=alt.X('display_name:N', axis=alt.Axis(title=xlabel), sort=labels_in_order),
             y=alt.Y('tax_name:N', axis=alt.Axis(title=ylabel), sort=tax_names_in_order),
-            color='{}:Q'.format(self.field),
-            tooltip=['{}:Q'.format(self.field)] + tooltip,
+            color='{}:Q'.format(self._field),
+            tooltip=['{}:Q'.format(self._field)] + tooltip,
             href='url:N',
             url='https://app.onecodex.com/classification/' + alt.datum.classification_id
         )
