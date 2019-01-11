@@ -83,10 +83,9 @@ def test_resourcelist(ocx, api_data):
 
 
 def test_samplecollection(ocx, api_data):
-    samples = ocx.Samples.where(project='4b53797444f846c4')
-
-    # this is specific to SampleCollection and is not available on ResourceList
-    samples.copy()
+    all_samples = ocx.Samples.where()
+    samples = all_samples[:3]
+    other_samples = all_samples[4:7]
 
     # duplicate Classifications can not be part of the same SampleCollection
     with pytest.raises(OneCodexException) as e:
@@ -94,16 +93,15 @@ def test_samplecollection(ocx, api_data):
     assert 'contain duplicate objects' in str(e.value)
 
     # SampleCollections can be added together
-    other_samples = ocx.Samples.where()[:3]
     new_samples = samples + other_samples
-    assert len(samples) == 3
+    assert len(samples) == len(other_samples) == 3
     assert len(new_samples) == 6
 
     # addition doesn't work with a SampleCollection and a lone Samples object
-    sample1 = ocx.Samples.get('761bc54b97f64980')
+    single_sample = ocx.Samples.get('761bc54b97f64980')
 
     with pytest.raises(TypeError) as e:
-        samples + sample1
+        samples + single_sample
     assert 'can only concatenate' in str(e.value)
 
 
