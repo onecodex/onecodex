@@ -84,7 +84,7 @@ def test_plot_pca_exceptions(ocx, api_data):
 
     # samples must have at least two taxa at this rank
     with pytest.raises(OneCodexException) as e:
-        samples.results(top_n=1).ocx.plot_pca()
+        samples.to_df(top_n=1).ocx.plot_pca()
     assert 'at least 2 for PCA' in str(e.value)
 
     # color/size/tooltips with invalid metadata fields or taxids

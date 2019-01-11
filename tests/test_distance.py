@@ -21,7 +21,7 @@ def test_alpha_diversity_exceptions(ocx, api_data):
 
     # should fail if data has been normalized
     with pytest.raises(OneCodexException) as e:
-        samples.results(normalize=True).ocx.alpha_diversity('simpson')
+        samples.to_df(normalize=True).ocx.alpha_diversity('simpson')
     assert 'requires unnormalized' in str(e.value)
 
     # must be a metric that exists
@@ -47,7 +47,7 @@ def test_beta_diversity_exceptions(ocx, api_data):
 
     # should fail if data has been normalized
     with pytest.raises(OneCodexException) as e:
-        samples.results(normalize=True).ocx.beta_diversity('braycurtis')
+        samples.to_df(normalize=True).ocx.beta_diversity('braycurtis')
     assert 'requires unnormalized' in str(e.value)
 
     # must be a metric that exists
@@ -72,5 +72,5 @@ def test_unifrac_exceptions(ocx, api_data):
 
     # should fail if data has been normalized
     with pytest.raises(OneCodexException) as e:
-        samples.results(normalize=True).ocx.unifrac()
+        samples.to_df(normalize=True).ocx.unifrac()
     assert 'requires unnormalized' in str(e.value)

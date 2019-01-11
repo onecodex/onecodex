@@ -27,7 +27,7 @@ class DistanceMixin(TaxonomyMixin):
         if self._guess_normalized():
             raise OneCodexException('Alpha diversity requires unnormalized read counts.')
 
-        df = self.results(rank=rank, normalize=False)
+        df = self.to_df(rank=rank, normalize=False)
 
         output = {
             'classification_id': [],
@@ -65,7 +65,7 @@ class DistanceMixin(TaxonomyMixin):
         if self._guess_normalized():
             raise OneCodexException('Beta diversity requires unnormalized read counts.')
 
-        df = self.results(rank=rank, normalize=False)
+        df = self.to_df(rank=rank, normalize=False)
 
         counts = []
         for c_id in df.index:
@@ -92,7 +92,7 @@ class DistanceMixin(TaxonomyMixin):
         if self._guess_normalized():
             raise OneCodexException('UniFrac requires unnormalized read counts.')
 
-        df = self.results(rank=rank, normalize=False)
+        df = self.to_df(rank=rank, normalize=False)
 
         counts = []
         for c_id in df.index:
