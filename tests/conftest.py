@@ -373,17 +373,6 @@ def ocx_w_raven():
 
 
 @pytest.fixture(scope='session')
-def ocx_w_enhanced():
-    # unset variable that disables EnhancedSampleCollection
-    new_env = os.environ.copy()
-    del new_env['ONE_CODEX_NO_ENHANCED']
-    with mock.patch.object(os, 'environ', new_env):
-        with mock_requests(SCHEMA_ROUTES):
-            return Api(api_key='1eab4217d30d42849dbde0cd1bb94e39',
-                       base_url='http://localhost:3000', cache_schema=False)
-
-
-@pytest.fixture(scope='session')
 def ocx():
     """Instantiated API client
     """

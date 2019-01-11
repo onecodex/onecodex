@@ -11,7 +11,11 @@ import sys
 import warnings
 
 from onecodex.exceptions import MethodNotSupported, OneCodexException, PermissionDenied, ServerError
-from onecodex.helpers import AnalysisMethods
+try:
+    from onecodex.helpers import AnalysisMethods
+except ImportError:
+    class AnalysisMethods(object):
+        pass
 from onecodex.models.helpers import (check_bind, generate_potion_sort_clause,
                                      generate_potion_keyword_where)
 from onecodex.vendored.potion_client.converter import PotionJSONEncoder
