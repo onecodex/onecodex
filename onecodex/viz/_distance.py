@@ -92,7 +92,7 @@ class VizDistanceMixin(DistanceMixin):
         magic_metadata, magic_fields = self._metadata_fetch(tooltip)
         formatted_fields = []
 
-        for tip, magic_field in magic_fields.items():
+        for _, magic_field in magic_fields.items():
             field_group = []
 
             for i in (1, 2):

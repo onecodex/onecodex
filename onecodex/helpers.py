@@ -6,98 +6,71 @@ from onecodex.viz import VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDist
 
 
 # force persistence of our additional taxonomy and metadata dataframe properties
-class ResultsDataFrame(pd.DataFrame):
+class ClassificationsDataFrame(pd.DataFrame):
     _metadata = ['ocx_rank', 'ocx_field', 'ocx_taxonomy', 'ocx_metadata']
 
-    def __init__(self, data=None, index=None, columns=None, dtype=None, copy=False, ocx_data={}):
-        self.ocx_rank = ocx_data.get('ocx_rank', None)
-        self.ocx_field = ocx_data.get('ocx_field', None)
-        self.ocx_taxonomy = ocx_data.get('ocx_taxonomy', None)
-        self.ocx_metadata = ocx_data.get('ocx_metadata', None)
+    def __init__(self, data=None, index=None, columns=None, dtype=None, copy=False, ocx_rank=None,
+                 ocx_field=None, ocx_taxonomy=None, ocx_metadata=None):
+        self.ocx_rank = ocx_rank
+        self.ocx_field = ocx_field
+        self.ocx_taxonomy = ocx_taxonomy
+        self.ocx_metadata = ocx_metadata
 
         pd.DataFrame.__init__(self, data=data, index=index, columns=columns, dtype=dtype, copy=copy)
 
     @property
     def _constructor(self):
-        # we explicitly do *not* pass rank on to manipulated ResultsDataFrames. we don't know
+        # we explicitly do *not* pass rank on to manipulated ClassificationsDataFrame. we don't know
         # how the data has been manipulated, and it may no longer be accurate
-        ocx_data = {
-            'ocx_rank': None,
-            'ocx_field': self.ocx_field,
-            'ocx_taxonomy': self.ocx_taxonomy,
-            'ocx_metadata': self.ocx_metadata
-        }
-
-        return partial(ResultsDataFrame, ocx_data=ocx_data)
+        return partial(ClassificationsDataFrame, ocx_rank=None, ocx_field=self.ocx_field,
+                       ocx_taxonomy=self.ocx_taxonomy, ocx_metadata=self.ocx_metadata)
 
     @property
     def _constructor_sliced(self):
-        # we explicitly do *not* pass rank on to manipulated ResultsDataFrames. we don't know
+        # we explicitly do *not* pass rank on to manipulated ClassificationsDataFrame. we don't know
         # how the data has been manipulated, and it may no longer be accurate
-        ocx_data = {
-            'ocx_rank': None,
-            'ocx_field': self.ocx_field,
-            'ocx_taxonomy': self.ocx_taxonomy,
-            'ocx_metadata': self.ocx_metadata
-        }
-
-        return partial(ResultsSeries, ocx_data=ocx_data)
+        return partial(ClassificationsSeries, ocx_rank=None, ocx_field=self.ocx_field,
+                       ocx_taxonomy=self.ocx_taxonomy, ocx_metadata=self.ocx_metadata)
 
 
-class ResultsSeries(pd.Series):
+class ClassificationsSeries(pd.Series):
+    # 'name' is a piece of metadata specified by pd.Series--it's not ours
     _metadata = ['name', 'ocx_rank', 'ocx_field', 'ocx_taxonomy', 'ocx_metadata']
 
-    def __init__(self, data=None, index=None, dtype=None, name=None, copy=False, fastpath=False, ocx_data={}):
-        self.ocx_rank = ocx_data.get('ocx_rank', None)
-        self.ocx_field = ocx_data.get('ocx_field', None)
-        self.ocx_taxonomy = ocx_data.get('ocx_taxonomy', None)
-        self.ocx_metadata = ocx_data.get('ocx_metadata', None)
+    def __init__(self, data=None, index=None, dtype=None, name=None, copy=False, fastpath=False,
+                 ocx_rank=None, ocx_field=None, ocx_taxonomy=None, ocx_metadata=None):
+        self.ocx_rank = ocx_rank
+        self.ocx_field = ocx_field
+        self.ocx_taxonomy = ocx_taxonomy
+        self.ocx_metadata = ocx_metadata
 
         pd.Series.__init__(self, data=data, index=index, dtype=dtype, name=name, copy=copy, fastpath=fastpath)
 
     @property
     def _constructor(self):
-        # we explicitly do *not* pass rank on to manipulated ResultsDataFrames. we don't know
+        # we explicitly do *not* pass rank on to manipulated ClassificationsDataFrames. we don't know
         # how the data has been manipulated, and it may no longer be accurate
-        ocx_data = {
-            'ocx_rank': None,
-            'ocx_field': self.ocx_field,
-            'ocx_taxonomy': self.ocx_taxonomy,
-            'ocx_metadata': self.ocx_metadata
-        }
-
-        return partial(ResultsSeries, ocx_data=ocx_data)
+        return partial(ClassificationsSeries, ocx_rank=None, ocx_field=self.ocx_field,
+                       ocx_taxonomy=self.ocx_taxonomy, ocx_metadata=self.ocx_metadata)
 
     @property
     def _constructor_expanddim(self):
-        # we explicitly do *not* pass rank on to manipulated ResultsDataFrames. we don't know
+        # we explicitly do *not* pass rank on to manipulated ClassificationsDataFrame. we don't know
         # how the data has been manipulated, and it may no longer be accurate
-        ocx_data = {
-            'ocx_rank': None,
-            'ocx_field': self.ocx_field,
-            'ocx_taxonomy': self.ocx_taxonomy,
-            'ocx_metadata': self.ocx_metadata
-        }
-
-        return partial(ResultsDataFrame, ocx_data=ocx_data)
+        return partial(ClassificationsDataFrame, ocx_rank=None, ocx_field=self.ocx_field,
+                       ocx_taxonomy=self.ocx_taxonomy, ocx_metadata=self.ocx_metadata)
 
 
-class AnalysisMethods(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceMixin):
-    def __init__(self, results, metadata, taxonomy, field):
-        self._cached = {'results': results,
-                        'metadata': metadata,
-                        'taxonomy': taxonomy,
-                        'field': field}
-
+class AnalysisMixin(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceMixin):
     def _get_auto_rank(self, rank):
         """Tries to figure out what rank we should use for analyses, mainly called by results()"""
 
         if rank == 'auto':
-            # if we're an accessor for a ResultsDataFrame, use its ocx_rank property
+            # if we're an accessor for a ClassificationsDataFrame, use its _rank property
             if isinstance(self, OneCodexAccessor):
-                return self._results.ocx_rank
+                return self._rank
 
-            if self.field == 'abundance':
+            if self._field == 'abundance':
                 return 'species'
             else:
                 return 'genus'
@@ -160,7 +133,7 @@ class AnalysisMethods(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanc
                     tax_name = self.taxonomy['name'][str_f]
 
                     # report within-rank abundance
-                    df = self.results(rank=self.taxonomy['rank'][str_f])
+                    df = self.to_df(rank=self.taxonomy['rank'][str_f])
 
                     renamed_field = '{} ({})'.format(tax_name, str_f)
                     magic_metadata[renamed_field] = df[str_f]
@@ -185,7 +158,7 @@ class AnalysisMethods(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanc
 
                     if hits:
                         # report within-rank abundance
-                        df = self.results(rank=self.taxonomy['rank'][hits[0][0]])
+                        df = self.to_df(rank=self.taxonomy['rank'][hits[0][0]])
 
                         renamed_field = '{} ({})'.format(hits[0][1], hits[0][0])
                         magic_metadata[renamed_field] = df[hits[0][0]]
@@ -198,11 +171,10 @@ class AnalysisMethods(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanc
 
         return magic_metadata, magic_fields
 
-    def results(self, rank='auto', top_n=None, threshold=None,
-                remove_zeros=True, normalize='auto',
-                table_format='wide'):
-        """Takes the ResultsDataFrame associated with these samples, or SampleCollection, does some
-        filtering, and returns a ResultsDataFrame.
+    def to_df(self, rank='auto', top_n=None, threshold=None, remove_zeros=True, normalize='auto',
+              table_format='wide'):
+        """Takes the ClassificationsDataFrame associated with these samples, or SampleCollection, does some
+        filtering, and returns a ClassificationsDataFrame.
 
         Parameters
         ----------
@@ -222,7 +194,7 @@ class AnalysisMethods(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanc
 
         Returns
         -------
-        ResultsDataFrame
+        ClassificationsDataFrame
         """
 
         rank = self._get_auto_rank(rank)
@@ -245,7 +217,7 @@ class AnalysisMethods(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanc
         if normalize is False and self._guess_normalized():
             raise OneCodexException('Data has already been normalized and this can not be undone.')
 
-        if normalize is True or (normalize == 'auto' and rank is not None and self.field != 'abundance'):
+        if normalize is True or (normalize == 'auto' and rank is not None and self._field != 'abundance'):
             df = df.div(df.sum(axis=1), axis=0)
 
         # remove columns (tax_ids) with no values that are > 0
@@ -261,68 +233,54 @@ class AnalysisMethods(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanc
             idx = df.sum(axis=0).sort_values(ascending=False).head(top_n).index
             df = df.loc[:, idx]
 
+        # additional data to copy into the ClassificationsDataFrame
+        ocx_data = {
+            'ocx_metadata': self.metadata.copy(),
+            'ocx_rank': rank,
+            'ocx_field': self._field,
+            'ocx_taxonomy': self.taxonomy.copy(),
+        }
+
         # generate long-format table
         if table_format == 'long':
             long_df = {
                 'classification_id': [],
                 'tax_id': [],
-                self.field: []
+                self._field: []
             }
 
             for t_id in df:
                 for c_id, count in df[t_id].iteritems():
                     long_df['classification_id'].append(c_id)
                     long_df['tax_id'].append(t_id)
-                    long_df[self.field].append(count)
+                    long_df[self._field].append(count)
 
-            results_df = ResultsDataFrame(long_df)
+            results_df = ClassificationsDataFrame(long_df, **ocx_data)
         elif table_format == 'wide':
-            results_df = ResultsDataFrame(df)
+            results_df = ClassificationsDataFrame(df, **ocx_data)
         else:
             raise OneCodexException('table_format must be one of: long, wide')
 
-        results_df.ocx_rank = rank
-        results_df.ocx_field = self.field
-        results_df.ocx_taxonomy = self.taxonomy.copy()
-        results_df.ocx_metadata = self.metadata.copy()
-
         return results_df
-
-    @property
-    def field(self):
-        return self._cached['field']
-
-    @property
-    def metadata(self):
-        return self._cached['metadata']
-
-    @property
-    def _results(self):
-        return self._cached['results']
-
-    @property
-    def taxonomy(self):
-        return self._cached['taxonomy']
 
 
 @pd.api.extensions.register_dataframe_accessor('ocx')
-class OneCodexAccessor(AnalysisMethods):
+class OneCodexAccessor(AnalysisMixin):
     def __init__(self, pandas_obj):
-        # copy data from the ResultsDataFrame to a new instance of AnalysisMethods
-        super(OneCodexAccessor, self).__init__(
-            pandas_obj,
-            pandas_obj.ocx_metadata,
-            pandas_obj.ocx_taxonomy,
-            pandas_obj.ocx_field
-        )
+        # copy data from the ClassificationsDataFrame to a new instance of AnalysisMethods
+        self.metadata = pandas_obj.ocx_metadata
+        self.taxonomy = pandas_obj.ocx_taxonomy
+        self._field = pandas_obj.ocx_field
+        self._rank = pandas_obj.ocx_rank
+        self._results = pandas_obj
 
-        # prune back _taxonomy df to contain only taxa present in the ResultsDataFrame (and parents)
+        # prune back _taxonomy df to contain only taxa present in the ClassificationsDataFrame (and parents)
         tree = self.tree_build()
         tree = self.tree_prune_tax_ids(tree, self._results.keys())
 
         tax_ids_to_keep = [x.name for x in tree.traverse()]
 
-        self._cached['taxonomy'] = self.taxonomy.loc[tax_ids_to_keep]
+        self.taxonomy = self.taxonomy.loc[tax_ids_to_keep]
 
-        # similarly restrict _metadata df to contain only data relevant to samples currently in ResultsDataFrame
-        self._cached['metadata'] = self.metadata.loc[self._results.index]
+        # similarly restrict _metadata df to contain only data relevant to samples currently in ClassificationsDataFrame
+        self.metadata = self.metadata.loc[self._results.index]

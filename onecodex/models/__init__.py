@@ -13,9 +13,9 @@ import warnings
 
 from onecodex.exceptions import MethodNotSupported, OneCodexException, PermissionDenied, ServerError
 try:
-    from onecodex.helpers import AnalysisMethods
+    from onecodex.helpers import AnalysisMixin
 except ImportError:
-    class AnalysisMethods(object):
+    class AnalysisMixin(object):
         pass
 from onecodex.models.helpers import (check_bind, generate_potion_sort_clause,
                                      generate_potion_keyword_where)
@@ -58,27 +58,11 @@ class ResourceList(object):
             if len(set(self_ids + other_ids)) != len(self_ids + other_ids):
                 raise OneCodexException('{} cannot contain duplicate objects'.format(self.__class__.__name__))
 
-    @property
-    def _constructor(self):
-        return ResourceList
-
     def __init__(self, _resource, oc_model):
         # turn potion Resource objects into OneCodex objects
         self._resource = _resource
         self._oc_model = oc_model
         self._update()
-
-    def __lt__(self, other):
-        raise NotImplementedError
-
-    def __le__(self, other):
-        raise NotImplementedError
-
-    def __gt__(self, other):
-        raise NotImplementedError
-
-    def __ge__(self, other):
-        raise NotImplementedError
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
@@ -89,19 +73,16 @@ class ResourceList(object):
 
     @property
     def __repr__(self):
-        self._update()
         return self._res_list.__repr__
 
     @property
     def __len__(self):
-        self._update()
         return self._res_list.__len__
 
     def __getitem__(self, x):
-        self._update()
         wrapped = self._res_list[x]
         if isinstance(wrapped, list):
-            return self._constructor(self._resource[x], self._oc_model)
+            return self.__class__(self._resource[x], self._oc_model)
         else:
             return wrapped
 
@@ -116,12 +97,10 @@ class ResourceList(object):
 
     @property
     def __iter__(self):
-        self._update()
         return self._res_list.__iter__
 
     @property
     def __reversed__(self):
-        self._update()
         return self._res_list.__reversed__
 
     def __add__(self, other):
@@ -143,7 +122,7 @@ class ResourceList(object):
         self._res_list.clear()
 
     def copy(self):
-        new_obj = self._constructor(self._resource[:], self._oc_model)
+        new_obj = self.__class__(self._resource[:], self._oc_model)
         return new_obj
 
     def count(self, x):
@@ -174,7 +153,6 @@ class ResourceList(object):
         self._update()
 
     def pop(self):
-        self._update()
         self._resource.pop()
         return self._res_list.pop()
 
@@ -183,9 +161,7 @@ class ResourceList(object):
         self._update()
 
 
-class SampleCollection(ResourceList, AnalysisMethods):
-    _cached = {}
-
+class SampleCollection(ResourceList, AnalysisMixin):
     def __init__(self, _resource, oc_model, skip_missing=True, label=None, field='auto'):
         self._kwargs = {'skip_missing': skip_missing,
                         'label': label,
@@ -196,10 +172,6 @@ class SampleCollection(ResourceList, AnalysisMethods):
     def _update(self):
         self._cached = {}
         super(SampleCollection, self)._update()
-
-    @property
-    def _constructor(self):
-        return SampleCollection
 
     def _classification_fetch(self, skip_missing=None):
         """Turns a list of objects associated with a classification result into a list of
@@ -216,7 +188,7 @@ class SampleCollection(ResourceList, AnalysisMethods):
         """
         skip_missing = skip_missing if skip_missing else self._kwargs['skip_missing']
 
-        self._cached['classifications'] = []
+        new_classifications = []
 
         for a in self._res_list:
             if isinstance(a, Samples):
@@ -232,7 +204,9 @@ class SampleCollection(ResourceList, AnalysisMethods):
                 warnings.warn('Classification {} not successful. Skipping.'.format(c.id))
                 continue
 
-            self._cached['classifications'].append(c)
+            new_classifications.append(c)
+
+        self._cached['classifications'] = new_classifications
 
     @property
     def primary_classifications(self):
@@ -256,10 +230,7 @@ class SampleCollection(ResourceList, AnalysisMethods):
         -------
         None, but stores a result in self._cached.
         """
-        try:
-            import pandas as pd
-        except ImportError:
-            raise ImportError('This functionality requires installation of pandas')
+        import pandas as pd
 
         label = label if label else self._kwargs['label']
 
@@ -331,10 +302,7 @@ class SampleCollection(ResourceList, AnalysisMethods):
         -------
         None, but stores a result in self._cached.
         """
-        try:
-            import pandas as pd
-        except ImportError:
-            raise ImportError('This functionality requires installation of pandas')
+        import pandas as pd
 
         field = field if field else self._kwargs['field']
 
@@ -387,7 +355,7 @@ class SampleCollection(ResourceList, AnalysisMethods):
         self._cached['taxonomy'] = tax_info
 
     @property
-    def field(self):
+    def _field(self):
         if 'field' not in self._cached:
             self._collate_results()
 
@@ -506,18 +474,6 @@ class OneCodexBase(object):
                 if isinstance(val, OneCodexBase):
                     kwargs[key] = val._resource
             self._resource = self.__class__._resource(**kwargs)
-
-    def __lt__(self, other):
-        raise NotImplementedError
-
-    def __le__(self, other):
-        raise NotImplementedError
-
-    def __gt__(self, other):
-        raise NotImplementedError
-
-    def __ge__(self, other):
-        raise NotImplementedError
 
     def __repr__(self):
         return '<{} {}>'.format(self.__class__.__name__, self.id)
