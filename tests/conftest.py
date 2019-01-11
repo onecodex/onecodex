@@ -15,16 +15,6 @@ import responses
 from onecodex import Api
 from onecodex.lib.inline_validator import BaseFASTXReader
 
-# we need to do this to make sure matplotlib isn't trying to connect to a GUI
-try:
-    import matplotlib
-    matplotlib.use('Agg')
-except ImportError:
-    pass  # May not be incl. in minimal environment
-
-# do not load EnhancedSampleCollection for tests unless explicitly needed
-os.environ['ONE_CODEX_NO_ENHANCED'] = 'True'
-
 
 def intercept(func, log=False, dump=None):
     """
