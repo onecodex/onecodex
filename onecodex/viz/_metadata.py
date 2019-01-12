@@ -2,61 +2,10 @@ import pandas as pd
 import altair as alt
 
 from onecodex.exceptions import OneCodexException
+from onecodex.viz import boxplot
 
 
 class VizMetadataMixin(object):
-    @staticmethod
-    def _box_plot(df, category, quantity, category_type='N',
-                  title=None, xlabel=None, ylabel=None):
-        # must be one of Nominal, Ordinal, Time per altair
-        if category_type not in ('N', 'O', 'T'):
-            raise OneCodexException('If specifying category_type, must be N, O, or T')
-
-        # adapted from https://altair-viz.github.io/gallery/boxplot_max_min.html
-        lower_box = 'q1({}):Q'.format(quantity)
-        lower_whisker = 'min({}):Q'.format(quantity)
-        upper_box = 'q3({}):Q'.format(quantity)
-        upper_whisker = 'max({}):Q'.format(quantity)
-
-        if category_type == 'T':
-            x_format = 'hoursminutes({}):{}'.format(category, category_type)
-        else:
-            x_format = '{}:{}'.format(category, category_type)
-
-        lower_plot = alt.Chart(df).mark_rule().encode(
-            y=alt.Y(lower_whisker, axis=alt.Axis(title=ylabel)),
-            y2=lower_box,
-            x=x_format
-        )
-
-        middle_plot = alt.Chart(df).mark_bar(size=35).encode(
-            y=lower_box,
-            y2=upper_box,
-            x=x_format
-        )
-
-        upper_plot = alt.Chart(df).mark_rule().encode(
-            y=upper_whisker,
-            y2=upper_box,
-            x=x_format
-        )
-
-        middle_tick = alt.Chart(df).mark_tick(
-            color='black',
-            size=35
-        ).encode(
-            y='median({}):Q'.format(quantity),
-            x=alt.X(x_format, axis=alt.Axis(title=xlabel), scale=alt.Scale(rangeStep=45)),
-            tooltip='median({}):Q'.format(quantity)
-        )
-
-        chart = (lower_plot + middle_plot + upper_plot + middle_tick)
-
-        if title:
-            chart = chart.properties(title=title)
-
-        return chart
-
     def plot_metadata(self, rank='auto',
                       haxis='Label', vaxis='simpson',
                       title=None, xlabel=None, ylabel=None, return_chart=False, plot_type='auto'):
@@ -187,7 +136,7 @@ class VizMetadataMixin(object):
             if title:
                 chart = chart.properties(title=title)
         elif plot_type == 'boxplot':
-            chart = self._box_plot(
+            chart = boxplot(
                 df,
                 magic_fields[haxis],
                 magic_fields[vaxis],
