@@ -3,10 +3,12 @@ import os
 
 from onecodex.viz._heatmap import VizHeatmapMixin
 from onecodex.viz._pca import VizPCAMixin
+from onecodex.viz._primitives import dendrogram, boxplot
 from onecodex.viz._metadata import VizMetadataMixin
 from onecodex.viz._distance import VizDistanceMixin
 
-__all__ = ['VizPCAMixin', 'VizHeatmapMixin', 'VizMetadataMixin', 'VizDistanceMixin']
+__all__ = ['VizPCAMixin', 'VizHeatmapMixin', 'VizMetadataMixin', 'VizDistanceMixin',
+           'dendrogram', 'boxplot']
 
 
 def onecodex_theme():
