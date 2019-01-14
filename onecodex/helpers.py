@@ -36,14 +36,15 @@ class ClassificationsDataFrame(pd.DataFrame):
             referenced in this analysis.
     """
 
-    _metadata = ['ocx_rank', 'ocx_field', 'ocx_taxonomy', 'ocx_metadata']
+    _metadata = ['ocx_rank', 'ocx_field', 'ocx_taxonomy', 'ocx_metadata', 'ocx_normalized']
 
     def __init__(self, data=None, index=None, columns=None, dtype=None, copy=False, ocx_rank=None,
-                 ocx_field=None, ocx_taxonomy=None, ocx_metadata=None):
+                 ocx_field=None, ocx_taxonomy=None, ocx_metadata=None, ocx_normalized=None):
         self.ocx_rank = ocx_rank
         self.ocx_field = ocx_field
         self.ocx_taxonomy = ocx_taxonomy
         self.ocx_metadata = ocx_metadata
+        self.ocx_normalized = ocx_normalized
 
         pd.DataFrame.__init__(self, data=data, index=index, columns=columns, dtype=dtype, copy=copy)
 
@@ -52,14 +53,16 @@ class ClassificationsDataFrame(pd.DataFrame):
         # we explicitly do *not* pass rank on to manipulated ClassificationsDataFrame. we don't know
         # how the data has been manipulated, and it may no longer be accurate
         return partial(ClassificationsDataFrame, ocx_rank=None, ocx_field=self.ocx_field,
-                       ocx_taxonomy=self.ocx_taxonomy, ocx_metadata=self.ocx_metadata)
+                       ocx_taxonomy=self.ocx_taxonomy, ocx_metadata=self.ocx_metadata,
+                       ocx_normalized=self.ocx_normalized)
 
     @property
     def _constructor_sliced(self):
         # we explicitly do *not* pass rank on to manipulated ClassificationsDataFrame. we don't know
         # how the data has been manipulated, and it may no longer be accurate
         return partial(ClassificationsSeries, ocx_rank=None, ocx_field=self.ocx_field,
-                       ocx_taxonomy=self.ocx_taxonomy, ocx_metadata=self.ocx_metadata)
+                       ocx_taxonomy=self.ocx_taxonomy, ocx_metadata=self.ocx_metadata,
+                       ocx_normalized=self.ocx_normalized)
 
 
 class ClassificationsSeries(pd.Series):
@@ -68,14 +71,16 @@ class ClassificationsSeries(pd.Series):
     """
 
     # 'name' is a piece of metadata specified by pd.Series--it's not ours
-    _metadata = ['name', 'ocx_rank', 'ocx_field', 'ocx_taxonomy', 'ocx_metadata']
+    _metadata = ['name', 'ocx_rank', 'ocx_field', 'ocx_taxonomy', 'ocx_metadata', 'ocx_normalized']
 
     def __init__(self, data=None, index=None, dtype=None, name=None, copy=False, fastpath=False,
-                 ocx_rank=None, ocx_field=None, ocx_taxonomy=None, ocx_metadata=None):
+                 ocx_rank=None, ocx_field=None, ocx_taxonomy=None, ocx_metadata=None,
+                 ocx_normalized=None):
         self.ocx_rank = ocx_rank
         self.ocx_field = ocx_field
         self.ocx_taxonomy = ocx_taxonomy
         self.ocx_metadata = ocx_metadata
+        self.ocx_normalized = ocx_normalized
 
         pd.Series.__init__(self, data=data, index=index, dtype=dtype, name=name, copy=copy, fastpath=fastpath)
 
@@ -84,14 +89,16 @@ class ClassificationsSeries(pd.Series):
         # we explicitly do *not* pass rank on to manipulated ClassificationsDataFrames. we don't know
         # how the data has been manipulated, and it may no longer be accurate
         return partial(ClassificationsSeries, ocx_rank=None, ocx_field=self.ocx_field,
-                       ocx_taxonomy=self.ocx_taxonomy, ocx_metadata=self.ocx_metadata)
+                       ocx_taxonomy=self.ocx_taxonomy, ocx_metadata=self.ocx_metadata,
+                       ocx_normalized=self.ocx_normalized)
 
     @property
     def _constructor_expanddim(self):
         # we explicitly do *not* pass rank on to manipulated ClassificationsDataFrame. we don't know
         # how the data has been manipulated, and it may no longer be accurate
         return partial(ClassificationsDataFrame, ocx_rank=None, ocx_field=self.ocx_field,
-                       ocx_taxonomy=self.ocx_taxonomy, ocx_metadata=self.ocx_metadata)
+                       ocx_taxonomy=self.ocx_taxonomy, ocx_metadata=self.ocx_metadata,
+                       ocx_normalized=self.ocx_normalized)
 
 
 class AnalysisMixin(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceMixin):
@@ -128,7 +135,9 @@ class AnalysisMixin(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceM
         It's possible that the _results df has already been normalized, which can cause some
         methods to fail. This method lets us guess whether that's true and act accordingly.
         """
-        return bool((self._results.sum(axis=1).round(4) == 1.0).all())
+        return getattr(self, '_normalized', False) or \
+               getattr(self, '_field', None) == 'abundance' or \
+               bool((self._results.sum(axis=1).round(4) == 1.0).all())  # noqa
 
     def _metadata_fetch(self, metadata_fields):
         """Takes a list of metadata fields, some of which can contain taxon names or taxon IDs, and
@@ -313,6 +322,7 @@ class AnalysisMixin(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceM
             'ocx_rank': rank,
             'ocx_field': self._field,
             'ocx_taxonomy': self.taxonomy.copy(),
+            'ocx_normalized': normalize
         }
 
         # generate long-format table
@@ -356,6 +366,7 @@ class OneCodexAccessor(AnalysisMixin):
         # copy data from the ClassificationsDataFrame to a new instance of AnalysisMethods
         self.metadata = pandas_obj.ocx_metadata
         self.taxonomy = pandas_obj.ocx_taxonomy
+        self._normalized = pandas_obj.ocx_normalized
         self._field = pandas_obj.ocx_field
         self._rank = pandas_obj.ocx_rank
         self._results = pandas_obj

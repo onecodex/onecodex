@@ -21,9 +21,6 @@ class VizDistanceMixin(DistanceMixin):
         if rank is None:
             raise OneCodexException('Please specify a rank or \'auto\' to choose automatically')
 
-        if len(self._results) < 2:
-            raise OneCodexException('`plot_distance` requires 2 or more valid classification results.')
-
         # if taxonomy trees are inconsistent, unifrac will not work
         if callable(metric):
             distances = metric(self, rank=rank)
@@ -42,6 +39,39 @@ class VizDistanceMixin(DistanceMixin):
                                     'weighted_unifrac, unweighted_unifrac')
 
         return distances
+
+    def _cluster_by_sample(self, rank='auto', metric='braycurtis', linkage='average'):
+        if metric == 'euclidean':
+            dist_matrix = euclidean_distances(self._results).round(6)
+        else:
+            dist_matrix = self._compute_distance(rank=rank, metric=metric).to_data_frame().round(6)
+        clustering = hierarchy.linkage(squareform(dist_matrix), method=linkage)
+        scipy_tree = hierarchy.dendrogram(clustering, no_plot=True)
+        ids_in_order = [self._results.index[int(x)] for x in scipy_tree['ivl']]
+        labels_in_order = [self.metadata['_display_name'][t] for t in ids_in_order]
+
+        return {
+            'dist_matrix': dist_matrix,
+            'clustering': clustering,
+            'scipy_tree': scipy_tree,
+            'ids_in_order': ids_in_order,
+            'labels_in_order': labels_in_order
+        }
+
+    def _cluster_by_taxa(self, linkage='average'):
+        dist_matrix = euclidean_distances(self._results.T).round(6)
+        clustering = hierarchy.linkage(squareform(dist_matrix), method=linkage)
+        scipy_tree = hierarchy.dendrogram(clustering, no_plot=True)
+        ids_in_order = [self._results.T.index[int(x)] for x in scipy_tree['ivl']]
+        labels_in_order = ['{} ({})'.format(self.taxonomy['name'][t], t) for t in ids_in_order]
+
+        return {
+            'dist_matrix': dist_matrix,
+            'clustering': clustering,
+            'scipy_tree': scipy_tree,
+            'ids_in_order': ids_in_order,
+            'labels_in_order': labels_in_order
+        }
 
     def plot_distance(self, rank='auto', metric='braycurtis',
                       title=None, xlabel=None, ylabel=None, tooltip=None, return_chart=False,
@@ -73,7 +103,8 @@ class VizDistanceMixin(DistanceMixin):
 
         >>> plot_distance(rank='genus', metric='unifrac')
         """
-        distances = self._compute_distance(rank, metric)
+        if len(self._results) < 2:
+            raise OneCodexException('`plot_distance` requires 2 or more valid classification results.')
 
         # this will be passed to the heatmap chart as a dataframe eventually
         plot_data = {
@@ -103,13 +134,15 @@ class VizDistanceMixin(DistanceMixin):
 
             formatted_fields.append(field_group)
 
+        clust = self._cluster_by_sample(rank=rank, metric=metric, linkage=linkage)
+
         # must convert to long format for heatmap plotting
-        for idx1, id1 in enumerate(distances.ids):
-            for idx2, id2 in enumerate(distances.ids):
+        for idx1, id1 in enumerate(clust['dist_matrix'].index):
+            for idx2, id2 in enumerate(clust['dist_matrix'].index):
                 if idx1 == idx2:
                     plot_data['Distance'].append(np.nan)
                 else:
-                    plot_data['Distance'].append(distances.data[idx1][idx2])
+                    plot_data['Distance'].append(clust['dist_matrix'].iloc[idx1, idx2])
 
                 plot_data['1) Label'].append(self.metadata['_display_name'][id1])
                 plot_data['2) Label'].append(self.metadata['_display_name'][id2])
@@ -121,20 +154,11 @@ class VizDistanceMixin(DistanceMixin):
 
         plot_data = pd.DataFrame(data=plot_data)
 
-        # turn the distances returned by skbio into a simple distance matrix
-        dists = distances.to_data_frame()
-
-        # here we use scipy to perform average-linkage clustering on the distance matrix
-        clustering = hierarchy.linkage(squareform(dists), method=linkage)
-        tree = hierarchy.dendrogram(clustering, no_plot=True)
-        class_ids_in_order = [dists.index[int(x)] for x in tree['ivl']]
-        names_in_order = self.metadata['_display_name'][class_ids_in_order].tolist()
-
         # it's important to tell altair to order the cells in the heatmap according to the clustering
         # obtained from scipy
         alt_kwargs = dict(
-            x=alt.X('1) Label:N', axis=alt.Axis(title=xlabel), sort=names_in_order),
-            y=alt.Y('2) Label:N', axis=alt.Axis(title=ylabel, orient='right'), sort=names_in_order),
+            x=alt.X('1) Label:N', axis=alt.Axis(title=xlabel), sort=clust['labels_in_order']),
+            y=alt.Y('2) Label:N', axis=alt.Axis(title=ylabel, orient='right'), sort=clust['labels_in_order']),
             color='Distance:Q',
             tooltip=['1) Label', '2) Label', 'Distance:Q'] + list(chain.from_iterable(formatted_fields)),
             href='url:N',
@@ -142,8 +166,8 @@ class VizDistanceMixin(DistanceMixin):
         )
 
         chart = alt.Chart(plot_data,
-                          width=15 * len(distances.ids),
-                          height=15 * len(distances.ids)) \
+                          width=15 * len(clust['dist_matrix'].index),
+                          height=15 * len(clust['dist_matrix'].index)) \
                    .transform_calculate(url=alt_kwargs.pop('url')) \
                    .mark_rect() \
                    .encode(**alt_kwargs)
@@ -151,7 +175,7 @@ class VizDistanceMixin(DistanceMixin):
         if title:
             chart = chart.properties(title=title)
 
-        dendro_chart = dendrogram(tree)
+        dendro_chart = dendrogram(clust['scipy_tree'])
 
         if return_chart:
             return (dendro_chart | chart)
@@ -206,6 +230,9 @@ class VizDistanceMixin(DistanceMixin):
         they truly represent the calculated distances. They do not reflect how well the distance
         metric captures similarities between the underlying data (in this case, an OTU table).
         """
+        if len(self._results) < 2:
+            raise OneCodexException('`plot_mds` requires 2 or more valid classification results.')
+
         dists = self._compute_distance(rank, metric).to_data_frame()
 
         # here we figure out what to put in the tooltips and get the appropriate data

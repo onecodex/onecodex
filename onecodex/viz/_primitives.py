@@ -108,14 +108,14 @@ def dendrogram(tree):
 
     chart = alt.Chart(plot_data,
                       width=100,
-                      height=15 * len(tree['leaves'])) \
+                      height=15 * len(tree['leaves']) - 7.5) \
                .mark_line(point=False, opacity=0.5) \
                .encode(x=alt.X('x', axis=None),
-                       y=alt.Y('y', axis=None),
+                       y=alt.Y('y', axis=None, scale=alt.Scale(zero=True, nice=False)),
                        order='o',
                        color=alt.Color('b:N',
-                                       scale=alt.Scale(domain=list(range(100)),
-                                                       range=['black'] * 100),
+                                       scale=alt.Scale(domain=list(range(idx + 1)),
+                                                       range=['black'] * (idx + 1)),
                                        legend=None))
 
     return chart
