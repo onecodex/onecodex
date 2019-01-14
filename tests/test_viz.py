@@ -106,6 +106,7 @@ def test_plot_heatmap(ocx, api_data):
     samples.plot_heatmap(top_n=10, threshold=None)
     samples.plot_heatmap(top_n=None, threshold=0.1)
     samples.plot_heatmap(top_n=10, threshold=0.1)
+    samples.plot_heatmap(top_n=10, haxis='eggs')
     samples.plot_heatmap(title='my title', xlabel='my xlabel', ylabel='my ylabel')
 
 

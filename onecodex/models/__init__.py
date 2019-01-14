@@ -373,6 +373,8 @@ class SampleCollection(ResourceList, AnalysisMixin):
                .set_index('classification_id') \
                .fillna(0)
 
+        df.columns.name = 'tax_id'
+
         tax_info = pd.DataFrame(tax_info) \
                      .set_index('tax_id')
 
