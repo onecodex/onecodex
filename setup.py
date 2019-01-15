@@ -53,7 +53,7 @@ setup(
     install_requires=[
         'boto3>=1.4.2',
         'click>=6.6',
-        'jsonschema>=2.4'
+        'jsonschema>=2.4',
         'python-dateutil>=2.5.3',
         'pytz>=2014.1',
         'raven>=6.1.0',
