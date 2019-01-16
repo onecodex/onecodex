@@ -13,7 +13,6 @@ import warnings
 
 from onecodex.api import Api
 from onecodex.auth import _login, _logout, _remove_creds, login_required
-from onecodex.exceptions import (ValidationWarning, ValidationError)
 from onecodex.metadata_upload import validate_appendables
 from onecodex.scripts import filter_reads
 from onecodex.utils import (cli_resource_fetcher, download_file_helper,
@@ -30,11 +29,18 @@ CONTEXT_SETTINGS = dict(
 # logging
 log = logging.getLogger(__name__)
 log.setLevel(logging.WARN)
-log_formatter = logging.Formatter('One Codex CLI (%(levelname)s): %(message)s')
-stream_handler = logging.StreamHandler()
+log_formatter = logging.Formatter('\n%(levelname)s: %(message)s')
+stream_handler = logging.StreamHandler(sys.stderr)
 stream_handler.setLevel(logging.INFO)
 stream_handler.setFormatter(log_formatter)
 log.addHandler(stream_handler)
+
+
+def warning_msg(message, category, filename, lineno, file=None, line=None):
+    log.warning(message)
+
+
+warnings.showwarning = warning_msg
 
 
 # options
@@ -167,12 +173,7 @@ def samples(ctx, samples):
               help=OPTION_HELP['forward'])
 @click.option('--reverse', type=click.Path(exists=True),
               help=OPTION_HELP['reverse'])
-@click.option('--clean', is_flag=True, help=OPTION_HELP['clean'], default=False)
-@click.option('--do-not-interleave', 'no_interleave', is_flag=True, help=OPTION_HELP['interleave'],
-              default=False)
 @click.option('--prompt/--no-prompt', is_flag=True, help=OPTION_HELP['prompt'], default=True)
-@click.option('--validate/--do-not-validate', is_flag=True, help=OPTION_HELP['validate'],
-              default=True)
 @click.option('--tag', '-t', 'tags', multiple=True, help=OPTION_HELP['tag'])
 @click.option('--metadata', '-md', multiple=True, help=OPTION_HELP['metadata'])
 @click.option('--project', '-p', 'project_id', help=OPTION_HELP['project'])
@@ -180,8 +181,7 @@ def samples(ctx, samples):
 @pretty_errors
 @telemetry
 @login_required
-def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
-           forward, reverse, tags, metadata, project_id, coerce_ascii):
+def upload(ctx, files, max_threads, prompt, forward, reverse, tags, metadata, project_id, coerce_ascii):
     """Upload a FASTA or FASTQ (optionally gzip'd) to One Codex"""
 
     appendables = {}
@@ -203,27 +203,28 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
     if (forward or reverse) and not (forward and reverse):
         click.echo('You must specify both forward and reverse files', err=True)
         ctx.exit(1)
+
     if forward and reverse:
         if len(files) > 0:
             click.echo('You may not pass a FILES argument when using the '
                        ' --forward and --reverse options.', err=True)
             ctx.exit(1)
         files = [(forward, reverse)]
-        no_interleave = True
-    if len(files) == 0:
+    elif len(files) == 0:
         click.echo(ctx.get_help())
         return
     else:
         files = list(files)
 
-    if not no_interleave:
         # "intelligently" find paired files and tuple them
         paired_files = []
         single_files = set(files)
+
         for filename in files:
             # convert "read 1" filenames into "read 2" and check that they exist; if they do
             # upload the files as a pair, autointerleaving them
             pair = re.sub('[._][Rr]1[._]', lambda x: x.group().replace('1', '2'), filename)
+
             # we don't necessary need the R2 to have been passed in; we infer it anyways
             if pair != filename and os.path.exists(pair):
                 if not prompt and pair not in single_files:
@@ -232,56 +233,47 @@ def upload(ctx, files, max_threads, clean, no_interleave, prompt, validate,
                     continue
 
                 paired_files.append((filename, pair))
+
                 if pair in single_files:
                     single_files.remove(pair)
+
                 single_files.remove(filename)
 
-        auto_pair = True
-        if prompt and len(paired_files) > 0:
-            pair_list = ''
-            for p in paired_files:
-                pair_list += '\n  {}  &  {}'.format(os.path.basename(p[0]), os.path.basename(p[1]))
+            auto_pair = True
 
-            answer = click.confirm(
-                'It appears there are paired files:{}\nInterleave them after upload?'.format(
-                    pair_list
-                ),
-                default='Y'
-            )
-            if not answer:
-                auto_pair = False
+            if prompt and len(paired_files) > 0:
+                pair_list = ''
+                for p in paired_files:
+                    pair_list += '\n  {}  &  {}'.format(os.path.basename(p[0]), os.path.basename(p[1]))
 
-        if auto_pair:
-            files = paired_files + list(single_files)
+                answer = click.confirm(
+                    'It appears there are paired files:{}\nInterleave them after upload?'.format(
+                        pair_list
+                    ),
+                    default='Y'
+                )
 
-    if not clean:
-        warnings.filterwarnings('error', category=ValidationWarning)
+                if not answer:
+                    auto_pair = False
+
+            if auto_pair:
+                files = paired_files + list(single_files)
 
     upload_kwargs = {
         'threads': max_threads,
-        'validate': validate,
         'metadata': appendables['valid_metadata'],
         'tags': appendables['valid_tags'],
         'project': project_id,
         'coerce_ascii': coerce_ascii,
+        'log': log,
+        'progressbar': True
     }
 
-    try:
-        # do the uploading
-        ctx.obj['API'].Samples.upload(
-            files,
-            **upload_kwargs
-        )
-    except ValidationWarning as e:
-        sys.stderr.write('\nERROR: {}. {}'.format(
-            e, 'Running with the --clean flag will suppress this error.'
-        ))
-        ctx.exit(1)
-    except ValidationError as e:
-        # TODO: Some day improve specific other exception error messages, e.g., gzip CRC IOError
-        sys.stderr.write('\nERROR: {}'.format(e))
-        sys.stderr.write('\nPlease feel free to contact us for help at help@onecodex.com\n\n')
-        ctx.exit(1)
+    # do the uploading
+    ctx.obj['API'].Samples.upload(
+        files,
+        **upload_kwargs
+    )
 
 
 @onecodex.command('login')

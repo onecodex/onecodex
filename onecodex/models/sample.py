@@ -2,7 +2,6 @@ import os
 import requests
 from requests.exceptions import HTTPError
 from six import string_types
-import sys
 import warnings
 
 from onecodex.exceptions import OneCodexException
@@ -96,22 +95,31 @@ class Samples(OneCodexBase):
             self.metadata.save()
 
     @classmethod
-    def upload(cls, filename, threads=None, validate=True, metadata=None, tags=None,
-               project=None, metadata_snake_case=True, coerce_ascii=False):
-        """
-        Uploads a series of files to the One Codex server. These files are automatically
-        validated during upload.
+    def upload(cls, filename, threads=None, metadata=None, tags=None, project=None,
+               metadata_snake_case=True, coerce_ascii=False, log=None, progressbar=False):
+        """Uploads a series of files to the One Codex server.
 
         Parameters
         ----------
-        path: list of strings or tuples
-            List of full paths to the files. If one (or more) of the list items are a tuple, this
-            is parsed as a set of files that are paired and the files are automatically
-            iterleaved during upload.
+        filename : `string`, `tuple,` or `list`
+            A list of paths to files on the system, or tuples containing pairs of paths. Tuples will
+            be interleaved as paired-end reads and both files should contain the same number of
+            records. Paths to single files will be uploaded as-is.
+        threads : `integer`, optional
+            Number of concurrent uploads. May provide a speedup.
+        metadata : `dict`, optional
+        tags : `list`, optional
+        project : `string`, optional
+            UUID of project to associate this sample with.
+        metadata_snake_case : `bool`, optional
+            If true, rename metadata field names to snake case format.
+        coerce_ascii : `bool`, optional
+            If true, rename unicode filenames to ASCII and issue warning.
+        log : `logging.Logger`, optional
+            Used to write status messages to a file or terminal.
+        progressbar : `bool`, optional
+            If true, display a progress bar using Click.
         """
-
-        # TODO: either raise/wrap UploadException or just us the new one in lib.samples
-        # upload_file(filename, cls._resource._client.session, None, 100)
         res = cls._resource
         if isinstance(filename, string_types) or isinstance(filename, tuple):
             filename = [filename]
@@ -141,9 +149,11 @@ class Samples(OneCodexBase):
             if isinstance(project_search, list):
                 project = project_search[0]
 
-        samples = upload(filename, res._client.session, res, res._client._root_url + '/', threads=threads,
-                         validate=validate, log_to=sys.stderr, metadata=metadata, tags=tags, project=project,
-                         coerce_ascii=coerce_ascii)
+        samples = upload(
+            filename, res._client.session, res, threads=threads, log=log, metadata=metadata,
+            tags=tags, project=project, coerce_ascii=coerce_ascii, progressbar=progressbar
+        )
+
         return samples
         # FIXME: pass the auth into this so we can authenticate the callback?
 

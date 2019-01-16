@@ -13,7 +13,6 @@ import requests
 import responses
 
 from onecodex import Api
-from onecodex.lib.inline_validator import BaseFASTXReader
 
 
 def intercept(func, log=False, dump=None):
@@ -307,7 +306,6 @@ def upload_mocks():
         if hasattr(request.body, 'fields'):
             streaming_iterator = request.body.fields['file'][1]
             streaming_iterator.read()
-            assert isinstance(streaming_iterator, BaseFASTXReader)
         return (201, {'location': 'on-aws'}, '')
 
     json_data = {
@@ -399,8 +397,11 @@ def mocked_creds_path(monkeypatch, tmpdir):
 @pytest.fixture(scope='function')
 def mocked_creds_file(mocked_creds_path):
     with open(os.path.expanduser('~/.onecodex'), mode='w') as f:
+        now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+
         f.write(json.dumps({
             'email': 'test@onecodex.com',
-            'api_key': None,
-            'saved_at': datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+            'api_key': '123yuixha87yd87q3123uiqhsd8q2738',
+            'saved_at': now,
+            'updated_at': now
         }))

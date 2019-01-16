@@ -1,10 +1,9 @@
+import pytest; pytest.importorskip('skbio')  # noqa
 import hashlib
 import os
-import pytest
 import shutil
 
 from onecodex import Cli
-from tests.test_cli import make_creds_file
 
 
 @pytest.mark.parametrize('paired,split_pairs,with_children,exclude_reads', [
@@ -26,7 +25,6 @@ from tests.test_cli import make_creds_file
 ])
 def test_filter_reads(runner, api_data, mocked_creds_file, paired, split_pairs,
                       with_children, exclude_reads):
-    make_creds_file()
     basedir = os.path.abspath(os.path.dirname(__file__))
     data_dir = os.path.join(basedir, 'data/files')
     files = [
@@ -99,7 +97,8 @@ def test_filter_reads(runner, api_data, mocked_creds_file, paired, split_pairs,
             ]
             outfiles = ['test_single_filtering_001.filtered.fastq']
             digests = ['26fda71d0ce44292c87c0fb71222f3a9']
-        result = runner.invoke(Cli, args)
+
+        result = runner.invoke(Cli, args, catch_exceptions=False)
 
         assert 'Using cached read-level results' in result.output
 

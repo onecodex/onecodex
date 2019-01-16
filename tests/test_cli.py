@@ -1,6 +1,4 @@
 from click.testing import CliRunner
-import datetime
-import json
 import mock
 import os
 import pytest
@@ -36,7 +34,7 @@ def test_cli_wo_override(api_data, monkeypatch):
 
 
 # Analyses
-def test_analysis_help(runner, api_data, mocked_creds_file):
+def test_analysis_help(runner, api_data, mocked_creds_path):
     result = runner.invoke(Cli, ['analyses', '--help'])
     analysis_desc = "Retrieve performed analyses"
     assert result.exit_code == 0
@@ -44,7 +42,6 @@ def test_analysis_help(runner, api_data, mocked_creds_file):
 
 
 def test_analyses(runner, api_data, mocked_creds_file):
-    make_creds_file()
     r0 = runner.invoke(Cli, ['analyses'])
     r1 = runner.invoke(Cli, ['analyses', '593601a797914cbf'])
     assert r0.exit_code == 0
@@ -55,14 +52,12 @@ def test_analyses(runner, api_data, mocked_creds_file):
 
 # Classifications
 def test_classification_instance(runner, api_data, mocked_creds_file):
-    make_creds_file()
     result = runner.invoke(Cli, ['classifications', '593601a797914cbf'])
     assert result.exit_code == 0
     assert API_DATA['GET::api/v1/classifications/593601a797914cbf']['$uri'] in result.output
 
 
 def test_classifications_table(runner, api_data, mocked_creds_file, monkeypatch):
-    make_creds_file()
     result = runner.invoke(Cli, ['classifications', '45a573fb7833449a', '--results'])
     assert result.exit_code == 0
     assert "Staphylococcus" in result.output
@@ -76,7 +71,6 @@ def test_panel_instances(runner, api_data, mocked_creds_file):
 
 # Samples
 def test_samples(runner, api_data, mocked_creds_file):
-    make_creds_file()
     r0 = runner.invoke(Cli, ['samples'])
     r1 = runner.invoke(Cli, ['samples', '7428cca4a3a04a8e'])
     assert r0.exit_code == 0
@@ -88,20 +82,6 @@ def test_samples(runner, api_data, mocked_creds_file):
 # Login tests
 def mock_fetch_api_key(username, password, server_url):
     return '123yuixha87yd87q3123uiqhsd8q2738'
-
-
-def make_creds_file():
-    api_key = '123yuixha87yd87q3123uiqhsd8q2738'
-    now = datetime.datetime.now().strftime(DATE_FORMAT)
-    fake_creds = {
-        'api_key': api_key,
-        'saved_at': now,
-        'updated_at': None,
-        'email': 'demo@onecodex.com'
-    }
-    path = os.path.expanduser("~/.onecodex")
-    with open(path, mode='w') as f:
-        f.write(json.dumps(fake_creds))
 
 
 def test_api_login(runner, mocked_creds_path):
@@ -124,20 +104,16 @@ def test_api_key_login(runner, api_data, mocked_creds_path, email, success, code
 
 
 def test_creds_file_exists(runner, mocked_creds_file):
-    with runner.isolated_filesystem():
-        make_creds_file()
-        expected_message = "Credentials file already exists"
+    expected_message = "Credentials file already exists"
 
-        result = runner.invoke(Cli, ["login"])
-        assert result.exit_code == 0
-        assert expected_message in result.output
+    result = runner.invoke(Cli, ["login"])
+    assert result.exit_code == 0
+    assert expected_message in result.output
 
 
 def test_silent_login(runner, mocked_creds_file, api_data):
-    with runner.isolated_filesystem():
-        make_creds_file()
-        result = runner.invoke(Cli, ['samples'])
-        assert result.exit_code == 0
+    result = runner.invoke(Cli, ['samples'])
+    assert result.exit_code == 0
 
 
 def test_creds_file_corrupted(runner, mocked_creds_file):
@@ -152,14 +128,12 @@ def test_creds_file_corrupted(runner, mocked_creds_file):
 
 
 def test_logout_creds_exists(runner, mocked_creds_file):
-    with runner.isolated_filesystem():
-        make_creds_file()
-        expected_message = "Successfully removed One Codex credentials."
-        path = os.path.expanduser("~/.onecodex")
-        result = runner.invoke(Cli, ["logout"])
-        assert result.exit_code == 0
-        assert expected_message in result.output
-        assert os.path.exists(path) is False
+    expected_message = "Successfully removed One Codex credentials."
+    path = os.path.expanduser("~/.onecodex")
+    result = runner.invoke(Cli, ["logout"])
+    assert result.exit_code == 0
+    assert expected_message in result.output
+    assert os.path.exists(path) is False
 
 
 def test_logout_creds_dne(runner, mocked_creds_path):
@@ -169,7 +143,7 @@ def test_logout_creds_dne(runner, mocked_creds_path):
     assert expected_message in result.output
 
 
-def test_auth_from_env(runner, api_data):
+def test_auth_from_env(runner, api_data, mocked_creds_path):
     # no authentication method, no stored login
     result = runner.invoke(Cli, ['samples'], catch_exceptions=False)
     assert 'requires authentication' in result.output
@@ -200,12 +174,12 @@ SEQUENCE = ('ACGTGTCGTAGGTAGCTACGACGTAGCTAACGTGTCGTAGCTACGACGTAGCTA'
     (["temp.fa", "temp2.fa"], False),
     (["temp.fa", "temp2.fa"], True),
 ])
-def test_standard_uploads(runner, upload_mocks, files, threads):
+def test_standard_uploads(runner, mocked_creds_path, caplog, upload_mocks, files, threads):
     """Test single and multi file uploads, with and without threads
        (but not files >5GB)
     """
     with runner.isolated_filesystem():
-        args = ['--api-key', '01234567890123456789012345678901', 'upload']
+        args = ['--api-key', '01234567890123456789012345678901', '-v', 'upload']
         if not threads:
             args += ['--max-threads', '1']
         for f in files:
@@ -216,10 +190,10 @@ def test_standard_uploads(runner, upload_mocks, files, threads):
 
         result = runner.invoke(Cli, args)
         assert result.exit_code == 0
-        assert 'ab6276c673814123' in result.output  # mocked file id
+        assert 'ab6276c673814123' in caplog.text  # mocked file id
 
 
-def test_empty_upload(runner, upload_mocks):
+def test_empty_upload(runner, mocked_creds_path, upload_mocks):
     with runner.isolated_filesystem():
         f = 'tmp.fa'
         f_out = open(f, mode='w')
@@ -229,8 +203,7 @@ def test_empty_upload(runner, upload_mocks):
         assert result.exit_code != 0
 
 
-def test_paired_files(runner, upload_mocks):
-    import mock
+def test_paired_files(runner, mocked_creds_path, upload_mocks):
     with runner.isolated_filesystem():
         f, f2 = 'temp_R1.fa', 'temp_R2.fa'
         with open(f, mode='w') as f_out, open(f2, mode='w') as f_out2:
@@ -241,28 +214,14 @@ def test_paired_files(runner, upload_mocks):
 
         args = ['--api-key', '01234567890123456789012345678901', 'upload', f, f2]
         # check that only one upload is kicked off for the pair of files
-        patch1 = 'onecodex.lib.upload.upload_file'
-        patch2 = 'onecodex.lib.inline_validator.FASTXTranslator.close'
+        patch1 = 'onecodex.lib.upload.upload_fileobj'
+        patch2 = 'onecodex.lib.upload.FASTXInterleave'
         with mock.patch(patch1) as mp, mock.patch(patch2) as mp2:
             result = runner.invoke(Cli, args)
             assert mp.call_count == 1
-            assert mp2.call_count == 0  # We close in the upload_file call
+            assert mp2.call_count == 1
         assert 'It appears there are paired files' in result.output
         assert result.exit_code == 0
-
-        # Check with validate=False, should fail
-        args = ['--api-key', '01234567890123456789012345678901', 'upload', f, f2,
-                '--do-not-validate']
-        result2 = runner.invoke(Cli, args)
-        assert result2.exit_code != 0
-
-        # Check with validate=False, interleave=False, should success
-        args = ['--api-key', '01234567890123456789012345678901', 'upload', f, f2,
-                '--do-not-validate', '--do-not-interleave']
-        with mock.patch(patch1) as mp:
-            result3 = runner.invoke(Cli, args)
-            assert mp.call_count == 2
-        assert result3.exit_code == 0
 
         # Check with --forward and --reverse, should succeed
         args = ['--api-key', '01234567890123456789012345678901', 'upload', '--forward', f,
@@ -270,7 +229,7 @@ def test_paired_files(runner, upload_mocks):
         with mock.patch(patch1) as mp, mock.patch(patch2) as mp2:
             result4 = runner.invoke(Cli, args)
             assert mp.call_count == 1
-            assert mp2.call_count == 0  # We close in the upload_file call
+            assert mp2.call_count == 1
         assert 'It appears there are paired files' not in result4.output
         assert result4.exit_code == 0
 
@@ -293,37 +252,3 @@ def test_paired_files(runner, upload_mocks):
             result7 = runner.invoke(Cli, args)
         assert 'You may not pass a FILES argument' in result7.output
         assert result7.exit_code != 0
-
-
-def test_large_uploads(runner, upload_mocks, monkeypatch):
-    # a lot of funky mocking
-    import mock
-
-    def mockfilesize(path):
-        if 'large' in path:
-            return 5 * 1000 * 1000 * 1000 + 1
-        else:
-            return 500  # small
-
-    monkeypatch.setattr(os.path, 'getsize', mockfilesize)
-    with runner.isolated_filesystem():
-        big_file = "large.fa"
-        with open(big_file, mode='w') as f:
-            f.write('>BIG!!!\n')
-            f.write(SEQUENCE)
-
-        args = ['--api-key', '01234567890123456789012345678901', 'upload', big_file]
-
-        def side_effect(*args, **kwargs):
-            """Side effect to ensure FASTXValidator gets properly read
-            """
-            args[0].read()
-            return None
-
-        with mock.patch('onecodex.lib.upload.upload_large_file') as mp:
-            mp.side_effect = side_effect
-            result = runner.invoke(Cli, args)
-            assert mp.call_count == 1
-
-        assert result.exit_code == 0
-        assert 'All complete.' in result.output

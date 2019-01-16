@@ -78,7 +78,7 @@ setup(
             'coverage',
             'coveralls==1.1',
             'flake8',
-            'pytest==3.0.5',
+            'pytest==4.1.1',
             'pytest-cov==2.4.0',
             'responses',
             'testfixtures',
