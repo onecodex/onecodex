@@ -115,13 +115,13 @@ def _cli_resource_fetcher(ctx, resource, uris):
     if len(uris) == 0:
 
         # if non given fetch all
-        cli_log.info("No %s IDs given, fetching all...", resource_name)
+        cli_log.debug("No %s IDs given, fetching all...", resource_name)
         instances = getattr(ctx.obj['API'], resource_name).all()
-        cli_log.info("Fetched %i %ss", len(instances), resource)
+        cli_log.debug("Fetched %i %ss", len(instances), resource)
         pprint([x._resource._properties for x in instances], ctx.obj['NOPPRINT'])
     else:
         uris = list(set(uris))
-        cli_log.info("Fetching %s: %s", resource_name, ",".join(uris))
+        cli_log.debug("Fetching %s: %s", resource_name, ",".join(uris))
 
         instances = []
         for uri in uris:
@@ -181,7 +181,7 @@ def warn_if_insecure_platform():
         echo(m, err=True)
         return True
     else:
-        cli_log.info("Python SSLContext passed")
+        cli_log.debug("Python SSLContext passed")
         return False
 
 

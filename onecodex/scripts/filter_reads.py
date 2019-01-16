@@ -1,11 +1,11 @@
 import click
 import csv
 import gzip
+import io
 import os
 
 from onecodex.auth import login_required
-from onecodex.exceptions import OneCodexException, ValidationError
-from onecodex.lib.inline_validator import FASTXTranslator
+from onecodex.exceptions import OneCodexException
 from onecodex.utils import download_file_helper, get_download_dest, pretty_errors
 
 
@@ -42,16 +42,6 @@ def get_filtered_filename(filepath):
     prefix, ext = os.path.splitext(filename.rstrip('.gz')
                                            .rstrip('gzip'))
     return '{}.filtered{}'.format(prefix, ext), ext
-
-
-def write_fastx_record(record, handler):
-    if len(record) == 2:
-        record_str = '>{}\n{}'
-    elif len(record) == 4:
-        record_str = '@{}\n{}\n{}\n{}'
-    else:
-        raise OneCodexException('Unknown FASTX record format', record)
-    handler.write(record_str.format(*record))
 
 
 def make_taxonomy_dict(classification, parent=False):
@@ -127,23 +117,24 @@ def recurse_taxonomy_map(tax_id_map, tax_id, parent=False):
 @login_required
 def cli(ctx, classification_id, fastx, reverse, tax_id, with_children,
         split_pairs, exclude_reads, out):
-    tax_ids = tax_id  # rename
-    if not len(tax_ids):
+    import skbio
+
+    if not len(tax_id):
         raise OneCodexException('You must supply at least one tax ID')
 
     classification = ctx.obj['API'].Classifications.get(classification_id)
     if classification is None:
-        raise ValidationError('Classification {} not found.'.format(classification_id))
+        raise OneCodexException('Classification {} not found.'.format(classification_id))
 
     if with_children:
         tax_id_map = make_taxonomy_dict(classification)
 
         new_tax_ids = []
 
-        for t_id in tax_ids:
+        for t_id in tax_id:
             new_tax_ids.extend(recurse_taxonomy_map(tax_id_map, t_id))
 
-        tax_ids = list(set(new_tax_ids))
+        tax_id = list(set(new_tax_ids))
 
     tsv_url = classification.readlevel()['url']
     readlevel_path = get_download_dest('./', tsv_url)
@@ -167,27 +158,30 @@ def cli(ctx, classification_id, fastx, reverse, tax_id, with_children,
             tsv.seek(0)
             reader = csv.DictReader(tsv, delimiter='\t')
             click.echo('Selecting results matching tax ID(s): {}'
-                       .format(', '.join(tax_ids)), err=True)
+                       .format(', '.join(tax_id)), err=True)
             filtered_rows = with_progress_bar(
                 tsv_row_count,
                 filter_rows_by_taxid,
                 reader,
-                tax_ids
+                tax_id
             )
 
-    filtered_filename = get_filtered_filename(fastx)[0]
+    filtered_filename, ext = get_filtered_filename(fastx)
     filtered_filename = os.path.join(out, filtered_filename)
     if reverse:
         rev_filtered_filename = get_filtered_filename(reverse)[0]
         rev_filtered_filename = os.path.join(out, rev_filtered_filename)
 
-    fastx_record_count = 0
-    with open(fastx, 'rb') as fastx_file:
-        try:
-            fastx_record_count = get_record_count(
-                FASTXTranslator(fastx_file, validate=False))
-        except ValidationError as e:
-            raise OneCodexException(e.message)
+    if ext in {'.fa', '.fna', '.fasta'}:
+        io_kwargs = {'format': 'fasta'}
+    elif ext in {'.fq', '.fastq'}:
+        io_kwargs = {'format': 'fastq', 'variant': 'illumina1.8'}
+    else:
+        raise OneCodexException(
+            '{}: extension must be one of .fa, .fna, .fasta, .fq, .fastq'.format(fastx)
+        )
+
+    fastx_record_count = get_record_count(skbio.io.read(fastx, **io_kwargs))
 
     if reverse:
         fastx_record_count = fastx_record_count * 2
@@ -202,48 +196,46 @@ def cli(ctx, classification_id, fastx, reverse, tax_id, with_children,
         save_msg += ' and {}'.format(rev_filtered_filename)
     click.echo(save_msg, err=True)
 
+    # skbio doesn't support built-in open() method in python2. must use io.open()
     counter = 0
     if reverse:
-        with open(fastx, 'rb') as fastx_file, \
-                open(reverse, 'rb') as reverse_file, \
-                open(filtered_filename, 'wb') as out_file, \
-                open(rev_filtered_filename, 'wb') as rev_out_file:
+        with io.open(filtered_filename, 'w') as out_file, \
+             io.open(rev_filtered_filename, 'w') as rev_out_file:  # noqa
             if split_pairs:
-                for fwd, rev in FASTXTranslator(fastx_file, reverse_file,
-                                                validate=False):
+                for fwd, rev in zip(skbio.io.read(fastx, **io_kwargs),
+                                    skbio.io.read(reverse, **io_kwargs)):
                     if exclude_reads:
                         if counter not in filtered_rows:
-                            out_file.write(fwd)
+                            fwd.write(out_file, **io_kwargs)
                         if (counter + 1) not in filtered_rows:
-                            rev_out_file.write(rev)
+                            rev.write(rev_out_file, **io_kwargs)
                     else:
                         if counter in filtered_rows:
-                            out_file.write(fwd)
+                            fwd.write(out_file, **io_kwargs)
                         if (counter + 1) in filtered_rows:
-                            rev_out_file.write(rev)
+                            rev.write(rev_out_file, **io_kwargs)
                     counter += 2
             else:
-                for fwd, rev in FASTXTranslator(fastx_file, reverse_file,
-                                                validate=False):
+                for fwd, rev in zip(skbio.io.read(fastx, **io_kwargs),
+                                    skbio.io.read(reverse, **io_kwargs)):
                     if exclude_reads:
                         if counter not in filtered_rows and \
                            (counter + 1) not in filtered_rows:
-                            out_file.write(fwd)
-                            rev_out_file.write(rev)
+                            fwd.write(out_file, **io_kwargs)
+                            rev.write(rev_out_file, **io_kwargs)
                     else:
                         if counter in filtered_rows or \
                            (counter + 1) in filtered_rows:
-                            out_file.write(fwd)
-                            rev_out_file.write(rev)
+                            fwd.write(out_file, **io_kwargs)
+                            rev.write(rev_out_file, **io_kwargs)
                     counter += 2
     else:
-        with open(fastx, 'rb') as fastx_file, \
-                open(filtered_filename, 'wb') as out_file:
-            for seq in FASTXTranslator(fastx_file, validate=False):
+        with io.open(filtered_filename, 'w') as out_file:
+            for seq in skbio.io.read(fastx, **io_kwargs):
                 if exclude_reads:
                     if counter not in filtered_rows:
-                        out_file.write(seq)
+                        seq.write(out_file, **io_kwargs)
                 else:
                     if counter in filtered_rows:
-                        out_file.write(seq)
+                        seq.write(out_file, **io_kwargs)
                 counter += 1
