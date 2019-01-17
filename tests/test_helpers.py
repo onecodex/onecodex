@@ -6,7 +6,7 @@ import warnings
 
 from onecodex.exceptions import OneCodexException
 from onecodex.helpers import AnalysisMixin, ClassificationsDataFrame, ClassificationsSeries, OneCodexAccessor
-from onecodex.models import SampleCollection
+from onecodex.models.collection import SampleCollection
 
 
 def test_pandas_subclass():
