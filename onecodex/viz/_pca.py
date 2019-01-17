@@ -1,7 +1,7 @@
-import pandas as pd
-import numpy as np
-from sklearn.decomposition import PCA
 import altair as alt
+import numpy as np
+import pandas as pd
+from sklearn.decomposition import PCA
 
 from onecodex.exceptions import OneCodexException
 
