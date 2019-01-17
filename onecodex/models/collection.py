@@ -6,7 +6,7 @@ import warnings
 
 from onecodex.exceptions import OneCodexException
 try:
-    from onecodex.helpers import AnalysisMixin
+    from onecodex.analyses import AnalysisMixin
 except ImportError:
     class AnalysisMixin(object):
         pass

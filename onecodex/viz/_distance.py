@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
+import altair as alt
+from itertools import chain
 import numpy as np
 import pandas as pd
-import altair as alt
 from scipy.cluster import hierarchy
 from scipy.spatial.distance import squareform
 from scipy.stats import pearsonr
 from skbio.stats import ordination
 from sklearn import manifold
 from sklearn.metrics.pairwise import euclidean_distances
-from itertools import chain
 import warnings
 
 from onecodex.exceptions import OneCodexException

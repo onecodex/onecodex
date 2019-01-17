@@ -1,5 +1,5 @@
-import pandas as pd
 import altair as alt
+import pandas as pd
 
 from onecodex.exceptions import OneCodexException
 from onecodex.viz import boxplot
