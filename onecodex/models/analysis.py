@@ -1,4 +1,4 @@
-from onecodex.models import OneCodexBase, SampleCollection
+from onecodex.models import OneCodexBase
 
 
 class Analyses(OneCodexBase):
@@ -98,8 +98,8 @@ class Classifications(Analyses):
 
     @classmethod
     def where(cls, *filters, **keyword_filters):
+        from onecodex.models.collection import SampleCollection
         wrapped = super(Classifications, cls).where(*filters, **keyword_filters)
-
         return SampleCollection([w._resource for w in wrapped], Classifications)
 
 

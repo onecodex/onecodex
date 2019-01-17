@@ -6,8 +6,8 @@ import sys
 import warnings
 
 from onecodex.exceptions import OneCodexException
-from onecodex.lib.upload import upload  # upload_file
-from onecodex.models import OneCodexBase, Projects, SampleCollection
+from onecodex.lib.upload import upload
+from onecodex.models import OneCodexBase, Projects
 from onecodex.models.helpers import truncate_string
 from onecodex.utils import snake_case
 
@@ -21,6 +21,8 @@ class Samples(OneCodexBase):
 
     @classmethod
     def where(cls, *filters, **keyword_filters):
+        from onecodex.models.collection import SampleCollection
+
         public = keyword_filters.get('public', False)
         instances_route = 'instances' if not public else 'instances_public'
         limit = keyword_filters.get('limit', None if not public else 1000)
