@@ -396,7 +396,11 @@ def upload(files, session, samples_resource, threads=DEFAULT_UPLOAD_THREADS, log
 
     # if filename cannot be represented as ascii, raise and suggest renaming
     for idx, fname in enumerate(filenames):
-        ascii_fname = unidecode(fname)
+        try:
+            # python2
+            ascii_fname = unidecode(unicode(fname))
+        except NameError:
+            ascii_fname = unidecode(fname)
 
         if fname != ascii_fname:
             if coerce_ascii:
