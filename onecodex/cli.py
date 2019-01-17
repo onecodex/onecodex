@@ -28,10 +28,9 @@ CONTEXT_SETTINGS = dict(
 
 # logging
 log = logging.getLogger(__name__)
-log.setLevel(logging.WARN)
+log.setLevel(logging.INFO)
 log_formatter = logging.Formatter('\n%(levelname)s: %(message)s')
 stream_handler = logging.StreamHandler(sys.stderr)
-stream_handler.setLevel(logging.INFO)
 stream_handler.setFormatter(log_formatter)
 log.addHandler(stream_handler)
 
@@ -66,7 +65,7 @@ def onecodex(ctx, api_key, no_pprint, verbose, telemetry):
     ctx.obj['TELEMETRY'] = telemetry
 
     if verbose:
-        log.setLevel(logging.INFO)
+        log.setLevel(logging.DEBUG)
 
     # handle checking insecure platform, we let upload command do it by itself
     if ctx.invoked_subcommand != "upload":
