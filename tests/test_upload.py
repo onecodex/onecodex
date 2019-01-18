@@ -52,7 +52,7 @@ class FakeSamplesResource():
         assert 'upload_type' in obj
         return {
             'upload_url': '',
-            'sample_id': '',
+            'sample_id': 'sample_uuid_here',
             'additional_fields': {},
         }
 
@@ -68,6 +68,9 @@ class FakeSamplesResource():
     def confirm_upload(self, obj):
         assert 'sample_id' in obj
         assert 'upload_type' in obj
+
+    class _client(object):
+        _root_url = 'http://localhost:3000'
 
 
 class FakeSession():

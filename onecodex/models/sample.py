@@ -8,7 +8,6 @@ from onecodex.exceptions import OneCodexException
 from onecodex.lib.upload import upload
 from onecodex.models import OneCodexBase, Projects
 from onecodex.models.helpers import truncate_string
-from onecodex.utils import snake_case
 
 
 class Samples(OneCodexBase):
@@ -95,13 +94,13 @@ class Samples(OneCodexBase):
             self.metadata.save()
 
     @classmethod
-    def upload(cls, filename, threads=None, metadata=None, tags=None, project=None,
-               metadata_snake_case=True, coerce_ascii=False, log=None, progressbar=False):
+    def upload(cls, files, threads=None, metadata=None, tags=None, project=None,
+               log=None, coerce_ascii=False, progressbar=False):
         """Uploads a series of files to the One Codex server.
 
         Parameters
         ----------
-        filename : `string`, `tuple,` or `list`
+        files : `string`, `tuple,` or `list`
             A list of paths to files on the system, or tuples containing pairs of paths. Tuples will
             be interleaved as paired-end reads and both files should contain the same number of
             records. Paths to single files will be uploaded as-is.
@@ -111,27 +110,16 @@ class Samples(OneCodexBase):
         tags : `list`, optional
         project : `string`, optional
             UUID of project to associate this sample with.
-        metadata_snake_case : `bool`, optional
-            If true, rename metadata field names to snake case format.
-        coerce_ascii : `bool`, optional
-            If true, rename unicode filenames to ASCII and issue warning.
         log : `logging.Logger`, optional
             Used to write status messages to a file or terminal.
+        coerce_ascii : `bool`, optional
+            If true, rename unicode filenames to ASCII and issue warning.
         progressbar : `bool`, optional
             If true, display a progress bar using Click.
         """
         res = cls._resource
-        if isinstance(filename, string_types) or isinstance(filename, tuple):
-            filename = [filename]
-
-        # snakecase metadata, but only if flag is set
-        if metadata_snake_case and metadata is not None:
-            new_metadata = {}
-
-            for md_key, md_val in metadata.items():
-                new_metadata[snake_case(md_key)] = md_val
-
-            metadata = new_metadata
+        if isinstance(files, string_types) or isinstance(files, tuple):
+            files = [files]
 
         if not isinstance(project, Projects) and project is not None:
             project_search = Projects.get(project)
@@ -150,8 +138,8 @@ class Samples(OneCodexBase):
                 project = project_search[0]
 
         samples = upload(
-            filename, res._client.session, res, threads=threads, log=log, metadata=metadata,
-            tags=tags, project=project, coerce_ascii=coerce_ascii, progressbar=progressbar
+            files, res._client.session, res, threads=threads, metadata=metadata, tags=tags,
+            project=project, log=log, coerce_ascii=coerce_ascii, progressbar=progressbar
         )
 
         return samples
