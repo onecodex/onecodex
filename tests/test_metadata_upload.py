@@ -7,71 +7,70 @@ from onecodex.metadata_upload import (
     validate_number, validate_enum, validate_boolean, validate_datetime, is_blacklisted,
     coerce_custom_value
 )
-from tests.conftest import ocx
 
 
-def schema_rules(value):
+def schema_rules(ocx, value):
     if value:
-        return ocx().Metadata._resource._schema['properties'][value]
+        return ocx.Metadata._resource._schema['properties'][value]
     else:
-        return ocx().Metadata._resource._schema['properties']
+        return ocx.Metadata._resource._schema['properties']
 
 
-def test_validate_appendables():
+def test_validate_appendables(ocx):
     initial_appendables = {'metadata': {'foo': 'bar', 'starred': 'true'}, 'tags': ['baz']}
     final_appendables = dict(initial_appendables)
     final_appendables['valid_metadata'] = {'starred': True}
     final_appendables['valid_metadata']['custom'] = {'foo': 'bar'}
     final_appendables['valid_tags'] = [{'name': 'baz'}]
-    appendables = validate_appendables(initial_appendables, ocx())
+    appendables = validate_appendables(initial_appendables, ocx)
     assert appendables == final_appendables
 
 
-def test_validate_tags_valid():
+def test_validate_tags_valid(ocx):
     initial_appendables = {'metadata': {}, 'tags': ['baz'], 'valid_tags': [], 'valid_metadata': {'custom': {}}}
-    validate_tags(initial_appendables, ocx())
+    validate_tags(initial_appendables, ocx)
     assert initial_appendables['valid_tags'] == [{'name': 'baz'}]
 
 
-def test_validate_tags_invalid():
-    too_many_characters = ocx().Tags._resource._schema['properties']['name']['maxLength'] + 1
+def test_validate_tags_invalid(ocx):
+    too_many_characters = ocx.Tags._resource._schema['properties']['name']['maxLength'] + 1
     invalid_tag = 'a' * too_many_characters
     initial_appendables = {'metadata': {}, 'tags': [invalid_tag], 'valid_tags': [], 'valid_metadata': {'custom': {}}}
     with pytest.raises(ValidationError):
-        validate_tags(initial_appendables, ocx())
+        validate_tags(initial_appendables, ocx)
 
 
-def test_validate_metadata_valid():
+def test_validate_metadata_valid(ocx):
     initial_appendables = {'metadata': {'starred': 'true'}, 'tags': [], 'valid_tags': [], 'valid_metadata': {'custom': {}}}
     final_appendables = dict(initial_appendables)
     final_appendables['valid_metadata']['starred'] = True
-    validate_metadata(initial_appendables, ocx())
+    validate_metadata(initial_appendables, ocx)
     assert initial_appendables == final_appendables
 
 
-def test_validate_metadata_not_present():
+def test_validate_metadata_not_present(ocx):
     initial_appendables = {'tags': [], 'valid_tags': [], 'valid_metadata': {'custom': {}}}
     final_appendables = dict(initial_appendables)
-    validate_metadata(initial_appendables, ocx())
+    validate_metadata(initial_appendables, ocx)
     assert initial_appendables == final_appendables
 
 
-def test_validate_metadata_blacklisted():
+def test_validate_metadata_blacklisted(ocx):
     initial_appendables = {'metadata': {'$uri': 'invalid_entry'}, 'tags': [], 'valid_tags': [], 'valid_metadata': {'custom': {}}}
     with pytest.raises(ValidationError):
-        validate_metadata(initial_appendables, ocx())
+        validate_metadata(initial_appendables, ocx)
 
 
-def test_validate_metadata_custom_valid():
+def test_validate_metadata_custom_valid(ocx):
     initial_appendables = {'metadata': {'foo': 'bar'}, 'tags': [], 'valid_tags': [], 'valid_metadata': {'custom': {}}}
     final_appendables = dict(initial_appendables)
     final_appendables['valid_metadata']['custom']['foo'] = 'bar'
-    validate_metadata(initial_appendables, ocx())
+    validate_metadata(initial_appendables, ocx)
     assert initial_appendables == final_appendables
 
 
-def test_validate_metadata_against_schema():
-    schema_props = schema_rules(None)
+def test_validate_metadata_against_schema(ocx):
+    schema_props = schema_rules(ocx, None)
     with mock.patch('onecodex.metadata_upload.validate_enum') as mock_enum:
         validate_metadata_against_schema(schema_props, 'platform', 'Illumina')
         assert mock_enum.call_count == 1
@@ -91,33 +90,33 @@ def test_validate_metadata_against_schema():
     assert string_response == 'foo'
 
 
-def test_validate_number_valid():
-    schema_props = schema_rules('location_lat')
+def test_validate_number_valid(ocx):
+    schema_props = schema_rules(ocx, 'location_lat')
     valid_number = validate_number('50', schema_props)
     assert valid_number == 50
 
 
-def test_validate_number_invalid_large():
-    schema_props = schema_rules('location_lat')
+def test_validate_number_invalid_large(ocx):
+    schema_props = schema_rules(ocx, 'location_lat')
     with pytest.raises(ValidationError) as exception_info:
         validate_number('200', schema_props)
     assert '200 must be smaller than the maximum value: 90.0' in str(exception_info)
 
 
-def test_validate_number_invalid_small():
-    schema_props = schema_rules('location_lat')
+def test_validate_number_invalid_small(ocx):
+    schema_props = schema_rules(ocx, 'location_lat')
     with pytest.raises(ValidationError) as exception_info:
         validate_number('-200', schema_props)
     assert '-200 must be larger than the minimum value: -90.0' in str(exception_info)
 
 
-def test_validate_enum_valid():
-    schema_props = schema_rules('platform')
+def test_validate_enum_valid(ocx):
+    schema_props = schema_rules(ocx, 'platform')
     validate_enum('Illumina HiSeq', schema_props)
 
 
-def test_validate_enum_invalid():
-    schema_props = schema_rules('platform')
+def test_validate_enum_invalid(ocx):
+    schema_props = schema_rules(ocx, 'platform')
     with pytest.raises(ValidationError) as exception_info:
         validate_enum('Foo', schema_props)
     assert "Foo is not a valid value for this key." in str(exception_info)

@@ -8,7 +8,6 @@ import bz2
 import click
 from collections import deque, OrderedDict
 import gzip
-import json
 from multiprocessing import Value
 import os
 import re
@@ -350,9 +349,6 @@ def process_api_error(resp, state=None):
                              'help@onecodex.com for assistance.')
         elif state == 'callback' and not error_message:
             error_message = ('Callback could not be completed. If this problem continues, please '
-                             'contact help@onecodex.com for assistance.')
-        elif state == 'cancel' and not error_message:
-            error_message = ('Trouble cancelling upload. If this problem continues, please '
                              'contact help@onecodex.com for assistance.')
 
     if error_message is None:
@@ -796,5 +792,5 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):
 
     try:
         return resp.json()
-    except json.decoder.JSONDecodeError:
+    except ValueError:
         return {}
