@@ -89,7 +89,7 @@ class VizPCAMixin(object):
             ylabel = 'PC2 ({}%)'.format(round(pca.explained_variance_ratio_[1] * 100, 2))
 
         # don't send all the data to vega, just what we're plotting
-        plot_data = pd.concat([pca_vals.ix[:, ('PC1', 'PC2')], magic_metadata], axis=1).reset_index()
+        plot_data = pd.concat([pca_vals.loc[:, ('PC1', 'PC2')], magic_metadata], axis=1).reset_index()
 
         alt_kwargs = dict(
             x=alt.X('PC1', axis=alt.Axis(title=xlabel)),

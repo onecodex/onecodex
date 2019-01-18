@@ -28,7 +28,7 @@ jobs:
           name: Run tests
           command: |
             . venv/bin/activate
-            py.test -v tests/
+            py.test -v -W ignore::DeprecationWarning tests/
   test-py2:
     docker:
       - image: circleci/python:2.7.15-stretch
@@ -46,7 +46,7 @@ jobs:
           name: Run tests
           command: |
             . venv/bin/activate
-            py.test -v tests/
+            py.test -v -W ignore::DeprecationWarning tests/
   test-minimal:
     docker:
       - image: circleci/python:3.4.9-stretch
@@ -63,7 +63,7 @@ jobs:
           name: Run tests
           command: |
             . venv/bin/activate
-            py.test -v tests/
+            py.test -v -W ignore::DeprecationWarning tests/
   test-simplejson:
     docker:
       - image: circleci/python:3.6.7-stretch
@@ -82,7 +82,7 @@ jobs:
           name: Run tests
           command: |
             . venv/bin/activate
-            py.test -v tests/
+            py.test -v -W ignore::DeprecationWarning tests/
   lint:
     docker:
       - image: circleci/python:3.6.7-stretch
@@ -118,6 +118,6 @@ jobs:
           name: Run tests
           command: |
             . venv/bin/activate
-            py.test -v --cov-report=html --cov=onecodex tests/
+            py.test -v -W ignore::DeprecationWarning --cov-report=html --cov=onecodex tests/
             coveralls
 
