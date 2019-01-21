@@ -360,24 +360,6 @@ def pretty_errors(fn):
     return pretty_errors_wrapper
 
 
-class ModuleAlias(object):
-    # Used as a proxy object to attach
-    # all of a module's __all__ namespace to
-    # on an One Codex Api() instance
-    def __init__(self, module_name):
-        self._name = module_name.split('.')[1]
-        try:
-            module = importlib.import_module(module_name)
-            for key in module.__all__:
-                setattr(self, key, getattr(module, key))
-            self._imported = True
-        except Exception:
-            self._imported = False
-
-    def __repr__(self):
-        return '{} helper functions'.format(self.name)
-
-
 def snake_case(input_string):
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', input_string)
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
