@@ -90,7 +90,7 @@ class FASTXInterleave(object):
             self._fp_right = open(file_path[1], mode='rb')
 
         if file_format == 'fasta':
-            self._lines_per_record = 2
+            raise OneCodexException('Interleaving FASTA files is currently unsupported')
         elif file_format == 'fastq':
             self._lines_per_record = 4
         else:
