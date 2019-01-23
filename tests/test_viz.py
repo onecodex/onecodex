@@ -3,31 +3,37 @@ import pytest; pytest.importorskip('pandas')  # noqa
 from onecodex.exceptions import OneCodexException
 
 
-# TODO: somehow check the graphical output (JSON output to Vega?)
 def test_plot_metadata(ocx, api_data):
     samples = ocx.Samples.where(project='4b53797444f846c4')
 
-    # should resolve samples to classifications via normalize_classifications()
-    samples.plot_metadata(vaxis='simpson')
+    chart = samples.plot_metadata(
+        vaxis='simpson', title='my title', xlabel='my xlabel', ylabel='my ylabel', return_chart=True
+    )
+    assert chart.data['simpson'].round(6).tolist() == [0.788705, 0.845901, 0.372284]
+    assert chart.mark == 'circle'
+    assert chart.title == 'my title'
+    assert chart.encoding.x.axis.title == 'my xlabel'
+    assert chart.encoding.y.axis.title == 'my ylabel'
 
     # try time, boolean, and numerical types for x-axis
-    samples.plot_metadata(haxis='date_sequenced', vaxis='chao1')
-    samples.plot_metadata(haxis='starred', vaxis='chao1')
-    samples.plot_metadata(haxis='totalige', vaxis='chao1')
+    chart = samples.plot_metadata(haxis='date_sequenced', vaxis='chao1', return_chart=True)
+    assert len(chart.layer) == 4
+    assert chart.layer[0].encoding.x.shorthand == 'hoursminutes(date_sequenced):T'
+
+    chart = samples.plot_metadata(haxis='starred', vaxis='chao1', return_chart=True)
+    assert len(chart.layer) == 4
+    assert chart.layer[0].encoding.x.shorthand == 'starred:N'
+
+    chart = samples.plot_metadata(haxis='totalige', vaxis='chao1', return_chart=True)
+    assert chart.mark == 'circle'
+    assert chart.encoding.x.shorthand == 'totalige'
 
     # taxid and taxon on vertical axis
-    samples.plot_metadata(vaxis=1279)  # should coerce to string internally
-    samples.plot_metadata(vaxis='1279')
-    samples.plot_metadata(vaxis='Staphylococcus')
+    chart = samples.plot_metadata(vaxis=1279, plot_type='boxplot', return_chart=True)
+    assert len(chart.layer) == 4
 
-    # force a scatter to be a boxplot and vice versa
-    samples.plot_metadata(haxis='totalige', vaxis='chao1', plot_type='boxplot')
-    samples.plot_metadata(haxis='starred', vaxis='chao1', plot_type='scatter')
-
-    # test plot labeling
-    samples.plot_metadata(
-        vaxis='simpson', title='my title', xlabel='my xlabel', ylabel='my ylabel'
-    )
+    chart = samples.plot_metadata(vaxis='Staphylococcus', plot_type='scatter', return_chart=True)
+    assert chart.mark == 'circle'
 
 
 def test_plot_metadata_exceptions(ocx, api_data):
@@ -50,23 +56,31 @@ def test_plot_metadata_exceptions(ocx, api_data):
 def test_plot_pca(ocx, api_data):
     samples = ocx.Samples.where(project='4b53797444f846c4')
 
-    samples.plot_pca()
+    chart = samples.plot_pca(title='my title', xlabel='my xlabel', ylabel='my ylabel',
+                             color='geo_loc_name', size='totalige', org_vectors=3, return_chart=True,
+                             tooltip=['totalige', 'vegetables', 'Prevotella', 816])
 
-    # test plot labeling
-    samples.plot_pca(title='my title', xlabel='my xlabel', ylabel='my ylabel')
+    # one for main plot, one for eigenvectors
+    assert len(chart.layer) == 2
 
-    # test changing size/colors by metadata
-    samples.plot_pca(color='geo_loc_name', size='totalige')
+    mainplot = chart.layer[0]
+    assert mainplot.data['Bacteroides (816)'].round(6).tolist() == [0.356439, 0.213307, 0.787949]
+    assert mainplot.data['Prevotella (838)'].round(6).tolist() == [0.000221, 0.001872, 6.7e-05]
+    assert mainplot.data['totalige'].tolist() == [62.9, 91.5, 112.0]
+    assert mainplot.title == 'my title'
+    assert mainplot.encoding.color.shorthand == 'geo_loc_name'
+    assert mainplot.encoding.size.shorthand == 'totalige'
+    assert mainplot.encoding.x.shorthand == 'PC1'
+    assert mainplot.encoding.x.axis.title == 'my xlabel'
+    assert mainplot.encoding.y.shorthand == 'PC2'
+    assert mainplot.encoding.y.axis.title == 'my ylabel'
+    assert sorted([x.shorthand for x in mainplot.encoding.tooltip]) == \
+        ['Bacteroides (816)', 'Label', 'Prevotella (838)', 'geo_loc_name', 'totalige', 'vegetables']
 
-    # test changing size/colors by tax id
-    samples.plot_pca(color='1279', size='816')
-    samples.plot_pca(color=1279, size=816)
-
-    # test changing size/colors by taxon name
-    samples.plot_pca(color='Bacteroides', size='Prevotella')
-
-    # test tooltips
-    samples.plot_pca(tooltip=['totalige', 'vegetables', 'Prevotella', '816'])
+    vectors = chart.layer[1]
+    assert vectors.data['x'].round(6).tolist() == [0.0, 0.251969, 0.0, -0.016636, 0.0, -0.090162]
+    assert vectors.data['y'].round(6).tolist() == [0.0, -0.064945, 0.0, 0.214629, 0.0, -0.10974]
+    assert vectors.data['o'].tolist() == [0, 1, 0, 1, 0, 1]
 
 
 def test_plot_pca_exceptions(ocx, api_data):
@@ -103,11 +117,23 @@ def test_plot_pca_exceptions(ocx, api_data):
 def test_plot_heatmap(ocx, api_data):
     samples = ocx.Samples.where(project='4b53797444f846c4')
 
-    samples.plot_heatmap(top_n=10, threshold=None)
-    samples.plot_heatmap(top_n=None, threshold=0.1)
-    samples.plot_heatmap(top_n=10, threshold=0.1)
-    samples.plot_heatmap(top_n=10, haxis='eggs')
-    samples.plot_heatmap(title='my title', xlabel='my xlabel', ylabel='my ylabel')
+    chart = samples.plot_heatmap(top_n=10, threshold=None, title='my title', xlabel='my xlabel',
+                                 ylabel='my ylabel', return_chart=True)
+    assert chart.mark == 'rect'
+    assert chart.title == 'my title'
+    assert chart.encoding.x.axis.title == 'my xlabel'
+    assert chart.encoding.y.axis.title == 'my ylabel'
+    assert len(chart.data['tax_id'].unique()) == 10
+    assert chart.data['readcount_w_children'].sum().round(6) == 2.613775
+
+    chart = samples.plot_heatmap(top_n=None, threshold=0.1, haxis='eggs', return_chart=True)
+    assert len(chart.vconcat) == 2
+    assert chart.vconcat[1].mark == 'rect'
+    assert all(chart.vconcat[1].data.groupby('tax_id').max()['readcount_w_children'] > 0.1)
+
+    chart = samples.plot_heatmap(top_n=10, threshold=0.01, return_chart=True)
+    assert len(chart.data['tax_id'].unique()) == 10
+    assert all(chart.data.groupby('tax_id').max()['readcount_w_children'] > 0.01)
 
 
 def test_plot_heatmap_exceptions(ocx, api_data):
@@ -134,11 +160,20 @@ def test_plot_heatmap_exceptions(ocx, api_data):
     assert 'not found' in str(e.value)
 
 
-@pytest.mark.parametrize('metric', ('braycurtis', 'jaccard', 'unifrac', 'manhattan'))
-def test_plot_distance(ocx, api_data, metric):
+def test_plot_distance(ocx, api_data):
     samples = ocx.Samples.where(project='4b53797444f846c4')
 
-    samples.plot_distance(metric=metric, xlabel='my xlabel', ylabel='my ylabel', title='my title')
+    chart = samples.plot_distance(metric='unifrac', xlabel='my xlabel', ylabel='my ylabel',
+                                  title='my title', tooltip='vegetables', return_chart=True)
+    assert len(chart.hconcat) == 2
+
+    mainplot = chart.hconcat[1]
+    assert mainplot.mark == 'rect'
+    assert mainplot.encoding.x.axis.title == 'my xlabel'
+    assert mainplot.encoding.y.axis.title == 'my ylabel'
+    assert sorted([x.shorthand for x in mainplot.encoding.tooltip]) == \
+        ['1) Label', '1) vegetables', '2) Label', '2) vegetables', 'Distance:Q']
+    assert chart.hconcat[1].data['Distance'].sum().round(6) == 39.463704
 
 
 def test_plot_distance_exceptions(ocx, api_data):
@@ -165,12 +200,21 @@ def test_plot_distance_exceptions(ocx, api_data):
     assert 'not found' in str(e.value)
 
 
-@pytest.mark.parametrize('metric', ('braycurtis', 'jaccard', 'unifrac', 'manhattan'))
-def test_plot_mds(ocx, api_data, metric):
+def test_plot_mds(ocx, api_data):
     samples = ocx.Samples.where(project='4b53797444f846c4')
 
-    samples.plot_mds(method='pcoa', metric=metric, xlabel='my xlabel', ylabel='my ylabel', title='my title')
-    samples.plot_mds(method='smacof', metric=metric, xlabel='my xlabel', ylabel='my ylabel', title='my title')
+    chart = samples.plot_mds(method='pcoa', metric='unifrac', xlabel='my xlabel', ylabel='my ylabel',
+                             title='my title', return_chart=True)
+    assert chart.mark == 'circle'
+    assert chart.title == 'my title'
+    assert chart.encoding.x.shorthand == 'PC1'
+    assert chart.encoding.x.axis.title == 'my xlabel'
+    assert chart.encoding.y.shorthand == 'PC2'
+    assert chart.encoding.y.axis.title == 'my ylabel'
+    assert (chart.data['PC1'] * chart.data['PC2']).sum() == 0.0
+
+    chart = samples.plot_mds(method='smacof', metric='unifrac', return_chart=True)
+    assert (chart.data['MDS1'] * chart.data['MDS2']).sum().round(6) == -0.319449
 
 
 def test_plot_mds_exceptions(ocx, api_data):
