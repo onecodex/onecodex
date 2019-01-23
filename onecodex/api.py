@@ -19,6 +19,7 @@ from onecodex.utils import get_raven_client, collapse_user
 from onecodex.vendored.potion_client import Client as PotionClient
 from onecodex.vendored.potion_client.converter import PotionJSONSchemaDecoder, PotionJSONDecoder, PotionJSONEncoder
 from onecodex.vendored.potion_client.utils import upper_camel_case
+from onecodex.version import __version__
 
 
 log = logging.getLogger(__name__)
@@ -77,6 +78,8 @@ class Api(object):
             self._req_args['auth'] = BearerTokenAuth(bearer_token)
         elif api_key:
             self._req_args['auth'] = HTTPBasicAuth(api_key, '')
+
+        self._req_args['headers'] = {'X-OneCodex-Client-User-Agent': __version__}
 
         # Create client instance
         self._client = ExtendedPotionClient(self._base_url, schema_path=self._schema_path,
