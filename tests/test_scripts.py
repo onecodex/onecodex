@@ -1,6 +1,7 @@
+# flake8: noqa
 import hashlib
 import os
-import pytest; pytest.importorskip('skbio')  # noqa
+import pytest; pytest.importorskip('skbio')
 import shutil
 
 from onecodex import Cli
@@ -46,6 +47,52 @@ def test_subset_reads(runner, api_data, mocked_creds_file, paired, split_pairs,
         'test_single_filtering_001.fastq.gz',
         'test_single_filtering_001.fastq.gz.results.tsv.gz',
     ]
+
+    digests = {
+        # single-end
+        (False, False, False, False, False): ['cc4856f34c4e4742414de15b429466cd'],
+        (False, False, False, True, False):  ['df8b67bf7e4e92122387c0a46a2f0ad4'],
+        (False, False, False, False, True):  ['26fda71d0ce44292c87c0fb71222f3a9'],
+        (False, False, False, True, True):   ['bb2f55962087097a6ecea10e921fa137'],
+        (False, False, True, False, False):  ['8a773e43459561db491ec36a7d9e7df5'],
+        (False, False, True, True, False):   ['60473e16683b258cc7e4da7e733adb68'],
+        (False, False, True, False, True):   ['6081c9985bb9f1ccf32bdcf2b41da14d'],
+        (False, False, True, True, True):    ['bd009027ef68c8f0b3d5c31b38893ca7'],
+
+        # paired-end
+        (True, False, False, False, False):  ['f483a5e69f32839f90aea13be55e2c73',
+                                              '3e1fb9a6df1407d79733e40466fc143e'],
+        (True, False, False, True, False):   ['478e2bbabf6ec09ddd9856da3176e238',
+                                              'adc4e91104e4be9736a23b4b3a8d1b5e'],
+        (True, False, False, False, True):   ['f483a5e69f32839f90aea13be55e2c73',
+                                              '3e1fb9a6df1407d79733e40466fc143e'],
+        (True, False, False, True, True):    ['a009992b18579e9f917478e22ba6d393',
+                                              'ff8ea269b733ad0665ea75cd3bfd1b4c'],
+        (True, False, True, False, False):   ['b4899aff26a94f4a5022252354cc32a3',
+                                              'f7c97b5d094ad41db620374adbb9d9ba'],
+        (True, False, True, True, False):    ['74811360d6203345e7f30eb6fbf34a92',
+                                              '79c7956338fdb2431cdb28280ebf68e3'],
+        (True, False, True, False, True):    ['b4899aff26a94f4a5022252354cc32a3',
+                                              'f7c97b5d094ad41db620374adbb9d9ba'],
+        (True, False, True, True, True):     ['3db7eca476d25fcc0e5adc37e8e83c56',
+                                              'ceb7f837ab51d4bec8bb7a1d53f2ea86'],
+        (True, True, False, False, False):   ['2a517f1f55d1e01a7dd2904121105af0',
+                                              'ac1f2c8b35a8d269edc2a9ac3e1171c3'],
+        (True, True, False, True, False):    ['252467b00875869305c30572c923e0a1',
+                                              'f4081d90fc4ef90c23d8c53a847234dd'],
+        (True, True, False, False, True):    ['2a517f1f55d1e01a7dd2904121105af0',
+                                              'ac1f2c8b35a8d269edc2a9ac3e1171c3'],
+        (True, True, False, True, True):     ['f548459a490b7579f8a989e2127caf2d',
+                                              'cf0ea0fa04cf40b5120cfa5c3731e779'],
+        (True, True, True, False, False):    ['225333af8f060124f43412661efc0dc1',
+                                              '49df9e1764732d12aa4970720214b9bd'],
+        (True, True, True, True, False):     ['74811360d6203345e7f30eb6fbf34a92',
+                                              '79c7956338fdb2431cdb28280ebf68e3'],
+        (True, True, True, False, True):     ['225333af8f060124f43412661efc0dc1',
+                                              '49df9e1764732d12aa4970720214b9bd'],
+        (True, True, True, True, True):      ['6411c6d6a1e3cceb43c55428d4e8cdb9',
+                                              '3486c724c38b25a5bab32d7afac484bd'],
+    }
 
     def md5sum(filepath):
         checksum = hashlib.md5()
@@ -97,58 +144,24 @@ def test_subset_reads(runner, api_data, mocked_creds_file, paired, split_pairs,
         if include_lowconf:
             args += ['--include-lowconf']
 
-        result = runner.invoke(Cli, args)
+        # run with validation
+        result = runner.invoke(Cli, args, catch_exceptions=False)
         assert 'Using cached read-level results' in result.output
 
         results_digests = []
         for f in outfiles:
             results_digests.append(md5sum(f).hexdigest())
 
-        digests = {
-            # single-end
-            (False, False, False, False, False): ['cc4856f34c4e4742414de15b429466cd'],
-            (False, False, False, True, False):  ['df8b67bf7e4e92122387c0a46a2f0ad4'],
-            (False, False, False, False, True):  ['26fda71d0ce44292c87c0fb71222f3a9'],
-            (False, False, False, True, True):   ['bb2f55962087097a6ecea10e921fa137'],
-            (False, False, True, False, False):  ['8a773e43459561db491ec36a7d9e7df5'],
-            (False, False, True, True, False):   ['60473e16683b258cc7e4da7e733adb68'],
-            (False, False, True, False, True):   ['6081c9985bb9f1ccf32bdcf2b41da14d'],
-            (False, False, True, True, True):    ['bd009027ef68c8f0b3d5c31b38893ca7'],
+        assert results_digests == digests[(paired, split_pairs, with_children,
+                                           exclude_reads, include_lowconf)]
 
-            # paired-end
-            (True, False, False, False, False):  ['f483a5e69f32839f90aea13be55e2c73',
-                                                  '3e1fb9a6df1407d79733e40466fc143e'],
-            (True, False, False, True, False):   ['478e2bbabf6ec09ddd9856da3176e238',
-                                                  'adc4e91104e4be9736a23b4b3a8d1b5e'],
-            (True, False, False, False, True):   ['f483a5e69f32839f90aea13be55e2c73',
-                                                  '3e1fb9a6df1407d79733e40466fc143e'],
-            (True, False, False, True, True):    ['a009992b18579e9f917478e22ba6d393',
-                                                  'ff8ea269b733ad0665ea75cd3bfd1b4c'],
-            (True, False, True, False, False):   ['b4899aff26a94f4a5022252354cc32a3',
-                                                  'f7c97b5d094ad41db620374adbb9d9ba'],
-            (True, False, True, True, False):    ['74811360d6203345e7f30eb6fbf34a92',
-                                                  '79c7956338fdb2431cdb28280ebf68e3'],
-            (True, False, True, False, True):    ['b4899aff26a94f4a5022252354cc32a3',
-                                                  'f7c97b5d094ad41db620374adbb9d9ba'],
-            (True, False, True, True, True):     ['3db7eca476d25fcc0e5adc37e8e83c56',
-                                                  'ceb7f837ab51d4bec8bb7a1d53f2ea86'],
-            (True, True, False, False, False):   ['2a517f1f55d1e01a7dd2904121105af0',
-                                                  'ac1f2c8b35a8d269edc2a9ac3e1171c3'],
-            (True, True, False, True, False):    ['252467b00875869305c30572c923e0a1',
-                                                  'f4081d90fc4ef90c23d8c53a847234dd'],
-            (True, True, False, False, True):    ['2a517f1f55d1e01a7dd2904121105af0',
-                                                  'ac1f2c8b35a8d269edc2a9ac3e1171c3'],
-            (True, True, False, True, True):     ['f548459a490b7579f8a989e2127caf2d',
-                                                  'cf0ea0fa04cf40b5120cfa5c3731e779'],
-            (True, True, True, False, False):    ['225333af8f060124f43412661efc0dc1',
-                                                  '49df9e1764732d12aa4970720214b9bd'],
-            (True, True, True, True, False):     ['74811360d6203345e7f30eb6fbf34a92',
-                                                  '79c7956338fdb2431cdb28280ebf68e3'],
-            (True, True, True, False, True):     ['225333af8f060124f43412661efc0dc1',
-                                                  '49df9e1764732d12aa4970720214b9bd'],
-            (True, True, True, True, True):      ['6411c6d6a1e3cceb43c55428d4e8cdb9',
-                                                  '3486c724c38b25a5bab32d7afac484bd'],
-        }
+        # run without validation (faster)
+        result = runner.invoke(Cli, args + ['--no-validate'], catch_exceptions=False)
+        assert 'Using cached read-level results' in result.output
+
+        results_digests = []
+        for f in outfiles:
+            results_digests.append(md5sum(f).hexdigest())
 
         assert results_digests == digests[(paired, split_pairs, with_children,
                                            exclude_reads, include_lowconf)]
