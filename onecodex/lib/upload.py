@@ -411,7 +411,7 @@ def _call_init_upload(file_name, file_size, metadata, tags, project, samples_res
         upload_args['tags'] = tags
 
     if project:
-        upload_args['project'] = project.id
+        upload_args['project'] = getattr(project, 'id', project)
 
     try:
         upload_info = samples_resource.init_upload(upload_args)

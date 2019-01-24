@@ -10,8 +10,8 @@ from requests_toolbelt import MultipartEncoder
 from requests.exceptions import HTTPError
 
 from onecodex.exceptions import OneCodexException, UploadException
-from onecodex.lib.upload import (upload, upload_fileobj, interleaved_filename, FASTXPassthru,
-                                 FASTXInterleave, _file_stats)
+from onecodex.lib.upload import (connectivity_error, upload, upload_fileobj, interleaved_filename,
+                                 FASTXPassthru, FASTXInterleave, _file_stats)
 
 
 @pytest.mark.parametrize('files,filename', [
@@ -36,6 +36,10 @@ def test_file_stats():
     stats = _file_stats(pair)
     assert stats == ('test_L001.fq', 2420, 'fastq')
 
+    with pytest.raises(UploadException) as e:
+        _file_stats('tests/data/api/complete_analyses.json')
+    assert 'extension must be one of' in str(e.value)
+
 
 def test_fastxinterleave():
     pair = ('tests/data/files/test_R1_L001.fq.gz', 'tests/data/files/test_R2_L001.fq.gz')
@@ -47,6 +51,14 @@ def test_fastxinterleave():
     wrapper = FASTXInterleave(pair, 2420, 'fastq')
     assert sha256(wrapper.read()).hexdigest() == \
         '47a98ffeb62e53af916a7afd75e13d1d189d683d0e796c2eef9abb501869de0f'
+
+    with pytest.raises(OneCodexException) as e:
+        wrapper = FASTXInterleave(pair, 2420, 'fasta')
+    assert 'currently unsupported' in str(e.value)
+
+    with pytest.raises(OneCodexException) as e:
+        wrapper = FASTXInterleave(pair, 2420, 'stockholm')
+    assert 'must be one of' in str(e.value)
 
 
 class FakeSamplesResource():
@@ -213,6 +225,10 @@ def test_api_failures(caplog):
     upload(file_list, FakeSessionProxyFails(400, no_msg=True), FakeSamplesResource(), threads=1, log=logging)
     assert 'File could not be uploaded' in caplog.text
 
+    with pytest.raises(UploadException) as e:
+        connectivity_error('filename')
+    assert 'experiencing connectivity' in str(e.value)
+
 
 def test_unicode_filenames(caplog):
     file_list = [
@@ -285,7 +301,7 @@ def test_upload_fileobj():
 
 def test_multipart_encoder_passthru():
     wrapper = FASTXPassthru(
-        'tests/data/files/test_R1_L001.fq.gz', os.path.getsize('tests/data/files/test_R1_L001.fq.gz')
+        'tests/data/files/test_R1_L001.fq.bz2', os.path.getsize('tests/data/files/test_R1_L001.fq.bz2')
     )
     wrapper_len = len(wrapper.read())
     wrapper.seek(0)

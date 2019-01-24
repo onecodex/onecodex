@@ -178,8 +178,9 @@ def test_standard_uploads(runner, mocked_creds_path, caplog, upload_mocks, files
     """Test single and multi file uploads, with and without threads
        (but not files >5GB)
     """
-    with runner.isolated_filesystem():
-        args = ['--api-key', '01234567890123456789012345678901', '-v', 'upload']
+    with runner.isolated_filesystem(), mock.patch('onecodex.models.Projects.get', side_effect=lambda _: None):
+        args = ['--api-key', '01234567890123456789012345678901', '-v', 'upload',
+                '--project', 'testproj', '--tag', 'isolate', '--metadata', 'totalige=1234']
         if not threads:
             args += ['--max-threads', '1']
         for f in files:
@@ -188,7 +189,7 @@ def test_standard_uploads(runner, mocked_creds_path, caplog, upload_mocks, files
                 f_out.write('>Test fasta\n')
                 f_out.write(SEQUENCE)
 
-        result = runner.invoke(Cli, args)
+        result = runner.invoke(Cli, args, catch_exceptions=False)
         assert result.exit_code == 0
         assert 'ab6276c673814123' in caplog.text  # mocked file id
 
@@ -199,7 +200,7 @@ def test_empty_upload(runner, mocked_creds_path, upload_mocks):
         f_out = open(f, mode='w')
         f_out.close()
         args = ['--api-key', '01234567890123456789012345678901', 'upload', f]
-        result = runner.invoke(Cli, args)
+        result = runner.invoke(Cli, args, catch_exceptions=False)
         assert result.exit_code != 0
 
 

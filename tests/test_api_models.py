@@ -2,6 +2,7 @@ from __future__ import print_function
 import datetime
 import pytest
 import responses
+import sys
 
 try:
     from urllib.parse import unquote_plus  # Py3
@@ -36,12 +37,19 @@ def test_sample_get(ocx, api_data):
     assert 'isolate' in [t.name for t in tags]
 
 
+def test_sample_download(ocx, api_data):
+    sample = ocx.Samples.get('761bc54b97f64980')
+
+    sample.download()
+
+
 def test_resourcelist(ocx, api_data):
     sample = ocx.Samples.get('761bc54b97f64980')
     tags1 = onecodex.models.ResourceList(sample.tags._resource,
                                          onecodex.models.misc.Tags)
 
     assert isinstance(sample.tags, onecodex.models.ResourceList)
+    assert sample.tags == tags1
 
     # test manipulation of tags lists
     tag_to_pop = sample.tags[-1]
@@ -80,6 +88,13 @@ def test_resourcelist(ocx, api_data):
     with pytest.raises(ValueError) as e:
         tags1.append(sample)
     assert 'object of type' in str(e.value)
+
+    if sys.version_info.major < 3:
+        with pytest.raises(AttributeError):
+            tags1.clear()
+    else:
+        tags1.clear()
+        assert len(tags1) == 0
 
 
 def test_samplecollection(ocx, api_data):

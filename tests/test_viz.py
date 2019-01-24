@@ -78,8 +78,8 @@ def test_plot_pca(ocx, api_data):
         ['Bacteroides (816)', 'Label', 'Prevotella (838)', 'geo_loc_name', 'totalige', 'vegetables']
 
     vectors = chart.layer[1]
-    assert vectors.data['x'].round(6).tolist() == [0.0, 0.251969, 0.0, -0.016636, 0.0, -0.090162]
-    assert vectors.data['y'].round(6).tolist() == [0.0, -0.064945, 0.0, 0.214629, 0.0, -0.10974]
+    assert vectors.data['x'].sum().round(6) == 0.145172
+    assert vectors.data['y'].sum().round(6) == 0.039944
     assert vectors.data['o'].tolist() == [0, 1, 0, 1, 0, 1]
 
 
@@ -117,7 +117,7 @@ def test_plot_pca_exceptions(ocx, api_data):
 def test_plot_heatmap(ocx, api_data):
     samples = ocx.Samples.where(project='4b53797444f846c4')
 
-    chart = samples.plot_heatmap(top_n=10, threshold=None, title='my title', xlabel='my xlabel',
+    chart = samples.plot_heatmap(top_n=10, title='my title', xlabel='my xlabel',
                                  ylabel='my ylabel', return_chart=True)
     assert chart.mark == 'rect'
     assert chart.title == 'my title'
@@ -126,7 +126,7 @@ def test_plot_heatmap(ocx, api_data):
     assert len(chart.data['tax_id'].unique()) == 10
     assert chart.data['readcount_w_children'].sum().round(6) == 2.613775
 
-    chart = samples.plot_heatmap(top_n=None, threshold=0.1, haxis='eggs', return_chart=True)
+    chart = samples.plot_heatmap(threshold=0.1, haxis='eggs', return_chart=True)
     assert len(chart.vconcat) == 2
     assert chart.vconcat[1].mark == 'rect'
     assert all(chart.vconcat[1].data.groupby('tax_id').max()['readcount_w_children'] > 0.1)
