@@ -1,47 +1,62 @@
 import click
+import bz2
 import csv
 import gzip
 import io
 import os
 
 from onecodex.auth import login_required
-from onecodex.exceptions import OneCodexException
+from onecodex.exceptions import OneCodexException, ValidationError
 from onecodex.utils import download_file_helper, get_download_dest, pretty_errors
 
 
-def with_progress_bar(length, ix, *args, **kwargs):
-    label = kwargs.pop('label', None)
-    bar_kwargs = {
-        'length': length
-    }
-    if label:
-        bar_kwargs['label'] = label
-    with click.progressbar(**bar_kwargs) as bar:
-        return ix(cb=bar.update, *args, **kwargs)
+def fastfastq(file_path):
+    filename, ext = os.path.splitext(file_path)
+
+    if ext in {'.gz', '.gzip'}:
+        open_func = gzip.open
+    elif ext in {'.bz', '.bz2', '.bzip', '.bzip2'}:
+        open_func = bz2.open
+    else:
+        open_func = io.open
+
+    with open_func(file_path, 'rb') as fp:
+        idx = 0
+        buf = []
+
+        for line in fp:
+            idx += 1
+            buf.append(line)
+
+            if len(buf) == 4:
+                buf = b''.join(buf)
+
+                if not buf.startswith(b'@'):
+                    raise ValidationError('FASTQ record line {} does not start with @'.format(idx))
+
+                yield buf
+
+                buf = []
 
 
-def filter_rows_by_taxid(results, tax_ids, cb=None):
-    filtered_rows = []
-    for i, row in enumerate(results):
-        if row['Tax ID'] in tax_ids:
-            filtered_rows.append(i)
-        if i % 1000 == 0 and cb:
-            cb(1000)
-    return filtered_rows
+def validating_parser(file_path, **io_kwargs):
+    import skbio
+
+    for rec in skbio.io.read(file_path, **io_kwargs):
+        buf = io.BytesIO()
+        rec.write(buf, **io_kwargs)
+        buf.seek(0)
+        yield buf.read()
 
 
-def get_record_count(fp):
-    counter = 0
-    for _ in fp:
-        counter += 1
-    return counter
+def get_filtered_filename(file_path):
+    filename = os.path.basename(file_path)
+    filename, ext = os.path.splitext(filename)
 
+    if ext in {'.gz', '.gzip', '.bz', '.bzip', '.bz2', '.bzip2'}:
+        filename, ext = os.path.splitext(filename)
 
-def get_filtered_filename(filepath):
-    filename = os.path.split(filepath)[-1]
-    prefix, ext = os.path.splitext(filename.rstrip('.gz')
-                                           .rstrip('gzip'))
-    return '{}.filtered{}'.format(prefix, ext), ext
+    return '{}.filtered{}'.format(filename, ext), ext
 
 
 def make_taxonomy_dict(classification, parent=False):
@@ -79,6 +94,7 @@ def recurse_taxonomy_map(tax_id_map, tax_id, parent=False):
     """
 
     if parent:
+        # TODO: allow filtering on tax_id and its parents, too
         pass
     else:
         def _child_recurse(tax_id, visited):
@@ -97,45 +113,63 @@ def recurse_taxonomy_map(tax_id_map, tax_id, parent=False):
         return list(set(_child_recurse(tax_id, [])))
 
 
-@click.command('filter_reads', help='Filter a FASTX file based on the taxonomic results from a CLASSIFICATION_ID')
+def too_many_fastx_records():
+    raise ValidationError('FASTX file(s) provided have more records than the classification results')
+
+
+@click.command('subset_reads',
+               help='Subset a FASTX file based on the taxonomic results from a CLASSIFICATION_ID. '
+                    'By default, reads (or pairs or reads) matching the given taxonomic ID are '
+                    'written to the path provided, ignoring low confidence taxonomic assignments. ')
 @click.argument('classification_id')
 @click.argument('fastx', type=click.Path())
-@click.option('-t', '--tax-id', required=True, multiple=True,
-              help='Filter reads mapping to tax IDs. May be passed multiple times.')
+@click.option('-t', '--tax-id', 'tax_ids', required=True, multiple=True,
+              help='Subset reads mapping to tax IDs. May be passed multiple times.')
+@click.option('-r', '--reverse', type=click.Path(),
+              help='The reverse (R2) read file, optionally.')
+@click.option('--validate/--no-validate', is_flag=True, default=True,
+              help='By default, validate FASTQ records (slow). Disable to drastically increase speed')
 @click.option('--with-children', default=False, is_flag=True,
-              help='Keep reads of child taxa, too. For example, all strains of E. coli')
-@click.option('-r', '--reverse', type=click.Path(), help='The reverse (R2) '
-              'read file, optionally')
-@click.option('--split-pairs/--keep-pairs', default=False, help='Keep only '
-              'the read pair member that matches the list of tax ID\'s')
+              help='Match child taxa of those given with -t (e.g., all strains of E. coli)')
+@click.option('--split-pairs', default=False, is_flag=True,
+              help='By default, if either read in a pair matches, both will match. Choose this '
+                   'option to consider each paired-end read separately. Resulting files may *not* '
+                   'have the same number of reads!')
 @click.option('--exclude-reads', default=False, is_flag=True,
-              help='Rather than keep reads matching reads, choosing this option will exclude them.')
-@click.option('-o', '--out', default='.', type=click.Path(), help='Where '
-              'to put the filtered outputs')
+              help='By default, matching reads are kept. Choose this option to instead output '
+                   'reads that do *not* match.')
+@click.option('--include-lowconf', default=False, is_flag=True,
+              help='By default, reads with low confidence taxonomic assignments are ignored. '
+                   'Choose this option to include them.')
+@click.option('-o', '--out', default='.', type=click.Path(),
+              help='Where to save the filtered outputs')
 @click.pass_context
 @pretty_errors
 @login_required
-def cli(ctx, classification_id, fastx, reverse, tax_id, with_children,
-        split_pairs, exclude_reads, out):
-    import skbio
-
-    if not len(tax_id):
+def cli(ctx, classification_id, fastx, reverse, tax_ids, with_children,
+        split_pairs, exclude_reads, include_lowconf, out, validate):
+    if not len(tax_ids):
         raise OneCodexException('You must supply at least one tax ID')
 
+    # fetch classification result object from API
     classification = ctx.obj['API'].Classifications.get(classification_id)
     if classification is None:
-        raise OneCodexException('Classification {} not found.'.format(classification_id))
+        raise ValidationError('Classification {} not found.'.format(classification_id))
 
+    # if with children, expand tax_ids by referring to the taxonomic tree
     if with_children:
         tax_id_map = make_taxonomy_dict(classification)
 
         new_tax_ids = []
 
-        for t_id in tax_id:
+        for t_id in tax_ids:
             new_tax_ids.extend(recurse_taxonomy_map(tax_id_map, t_id))
 
-        tax_id = list(set(new_tax_ids))
+        tax_ids = new_tax_ids
 
+    tax_ids = set(tax_ids)
+
+    # pull the classification result TSV
     tsv_url = classification.readlevel()['url']
     readlevel_path = get_download_dest('./', tsv_url)
     if not os.path.exists(readlevel_path):
@@ -144,28 +178,28 @@ def cli(ctx, classification_id, fastx, reverse, tax_id, with_children,
         click.echo('Using cached read-level results: {}'
                    .format(readlevel_path), err=True)
 
-    filtered_rows = []
-    tsv_row_count = 0
+    # count the number of rows in the TSV file
     with gzip.open(readlevel_path, 'rt') as tsv:
         try:
-            tsv_row_count = get_record_count(tsv) - 1  # discount header line
+            tsv_row_count = 0
+            for _ in tsv:
+                tsv_row_count += 1
+            tsv_row_count -= 1  # discount header line
         except EOFError:
             click.echo('\nWe encountered an error while processing the read '
                        'level results. Please delete {} and try again.'
                        .format(readlevel_path), err=True)
             raise
-        else:
-            tsv.seek(0)
-            reader = csv.DictReader(tsv, delimiter='\t')
-            click.echo('Selecting results matching tax ID(s): {}'
-                       .format(', '.join(tax_id)), err=True)
-            filtered_rows = with_progress_bar(
-                tsv_row_count,
-                filter_rows_by_taxid,
-                reader,
-                tax_id
+
+    if reverse:
+        if tsv_row_count % 2 != 0:
+            raise ValidationError(
+                'Classification results cannot have odd number of records if using --reverse/-r'
             )
 
+        tsv_row_count = int(tsv_row_count / 2.0)
+
+    # determine the name of the output file(s)
     filtered_filename, ext = get_filtered_filename(fastx)
     filtered_filename = os.path.join(out, filtered_filename)
     if reverse:
@@ -181,61 +215,173 @@ def cli(ctx, classification_id, fastx, reverse, tax_id, with_children,
             '{}: extension must be one of .fa, .fna, .fasta, .fq, .fastq'.format(fastx)
         )
 
-    fastx_record_count = get_record_count(skbio.io.read(fastx, **io_kwargs))
-
-    if reverse:
-        fastx_record_count = fastx_record_count * 2
-
-    if tsv_row_count != fastx_record_count:
-        os.remove(readlevel_path)
-        raise OneCodexException('The supplied file has a different number of '
-                                'records than the requested Classification')
-
-    save_msg = 'Saving filtered reads: {}'.format(filtered_filename)
+    # do the actual filtering
+    save_msg = 'Saving subsetted reads: {}'.format(filtered_filename)
     if reverse:
         save_msg += ' and {}'.format(rev_filtered_filename)
     click.echo(save_msg, err=True)
 
-    # skbio doesn't support built-in open() method in python2. must use io.open()
-    counter = 0
-    if reverse:
-        with io.open(filtered_filename, 'w') as out_file, \
-             io.open(rev_filtered_filename, 'w') as rev_out_file:  # noqa
-            if split_pairs:
-                for fwd, rev in zip(skbio.io.read(fastx, **io_kwargs),
-                                    skbio.io.read(reverse, **io_kwargs)):
-                    if exclude_reads:
-                        if counter not in filtered_rows:
-                            fwd.write(out_file, **io_kwargs)
-                        if (counter + 1) not in filtered_rows:
-                            rev.write(rev_out_file, **io_kwargs)
-                    else:
-                        if counter in filtered_rows:
-                            fwd.write(out_file, **io_kwargs)
-                        if (counter + 1) in filtered_rows:
-                            rev.write(rev_out_file, **io_kwargs)
-                    counter += 2
+    # each possible set of parameters gets its own iterator to minimize the amount of comparisons
+    # done inside the innermost loop. yes, we could write this with one iterator and check if
+    # split_pairs, include_lowconf, and exclude_reads are set at /every/ iteration, but that's slow.
+    with click.progressbar(length=tsv_row_count) as bar, gzip.open(readlevel_path, 'rt') as tsv:
+        reader = csv.DictReader(tsv, delimiter='\t')
+
+        if reverse:
+            if not validate and io_kwargs['format'] == 'fastq':
+                fwd_iter = fastfastq(fastx)
+                rev_iter = fastfastq(reverse)
             else:
-                for fwd, rev in zip(skbio.io.read(fastx, **io_kwargs),
-                                    skbio.io.read(reverse, **io_kwargs)):
-                    if exclude_reads:
-                        if counter not in filtered_rows and \
-                           (counter + 1) not in filtered_rows:
-                            fwd.write(out_file, **io_kwargs)
-                            rev.write(rev_out_file, **io_kwargs)
+                fwd_iter = validating_parser(fastx, **io_kwargs)
+                rev_iter = validating_parser(reverse, **io_kwargs)
+
+            with io.open(filtered_filename, 'wb') as out_file, \
+                 io.open(rev_filtered_filename, 'wb') as rev_out_file:  # noqa
+                if split_pairs:
+                    if include_lowconf:
+                        if exclude_reads:
+                            for idx, (fwd, rev) in enumerate(zip(fwd_iter, rev_iter)):
+                                if idx == tsv_row_count:
+                                    too_many_fastx_records()
+                                row = next(reader)  # necessary to do it this way for py2 compat
+                                row2 = next(reader)
+                                if row['Tax ID'] not in tax_ids:
+                                    out_file.write(fwd)
+                                if row2['Tax ID'] not in tax_ids:
+                                    rev_out_file.write(rev)
+                                if idx % 1000 == 0:
+                                    bar.update(1000)
+                        else:
+                            for idx, (fwd, rev) in enumerate(zip(fwd_iter, rev_iter)):
+                                if idx == tsv_row_count:
+                                    too_many_fastx_records()
+                                row = next(reader)
+                                row2 = next(reader)
+                                if row['Tax ID'] in tax_ids:
+                                    out_file.write(fwd)
+                                if row2['Tax ID'] in tax_ids:
+                                    rev_out_file.write(rev)
+                                if idx % 1000 == 0:
+                                    bar.update(1000)
                     else:
-                        if counter in filtered_rows or \
-                           (counter + 1) in filtered_rows:
-                            fwd.write(out_file, **io_kwargs)
-                            rev.write(rev_out_file, **io_kwargs)
-                    counter += 2
-    else:
-        with io.open(filtered_filename, 'w') as out_file:
-            for seq in skbio.io.read(fastx, **io_kwargs):
-                if exclude_reads:
-                    if counter not in filtered_rows:
-                        seq.write(out_file, **io_kwargs)
+                        if exclude_reads:
+                            for idx, (fwd, rev) in enumerate(zip(fwd_iter, rev_iter)):
+                                if idx == tsv_row_count:
+                                    too_many_fastx_records()
+                                row = next(reader)
+                                row2 = next(reader)
+                                if row['Passed Filter'] == 'T' and row['Tax ID'] not in tax_ids:
+                                    out_file.write(fwd)
+                                if row2['Passed Filter'] == 'T' and row2['Tax ID'] not in tax_ids:
+                                    rev_out_file.write(rev)
+                                if idx % 1000 == 0:
+                                    bar.update(1000)
+                        else:
+                            for idx, (fwd, rev) in enumerate(zip(fwd_iter, rev_iter)):
+                                if idx == tsv_row_count:
+                                    too_many_fastx_records()
+                                row = next(reader)
+                                row2 = next(reader)
+                                if row['Passed Filter'] == 'T' and row['Tax ID'] in tax_ids:
+                                    out_file.write(fwd)
+                                if row2['Passed Filter'] == 'T' and row2['Tax ID'] in tax_ids:
+                                    rev_out_file.write(rev)
+                                if idx % 1000 == 0:
+                                    bar.update(1000)
                 else:
-                    if counter in filtered_rows:
-                        seq.write(out_file, **io_kwargs)
-                counter += 1
+                    if include_lowconf:
+                        if exclude_reads:
+                            for idx, (fwd, rev) in enumerate(zip(fwd_iter, rev_iter)):
+                                if idx == tsv_row_count:
+                                    too_many_fastx_records()
+                                row = next(reader)
+                                row2 = next(reader)
+                                if row['Tax ID'] not in tax_ids or row2['Tax ID'] not in tax_ids:
+                                    out_file.write(fwd)
+                                    rev_out_file.write(rev)
+                                if idx % 1000 == 0:
+                                    bar.update(1000)
+                        else:
+                            for idx, (fwd, rev) in enumerate(zip(fwd_iter, rev_iter)):
+                                if idx == tsv_row_count:
+                                    too_many_fastx_records()
+                                row = next(reader)
+                                row2 = next(reader)
+                                if row['Tax ID'] in tax_ids or row2['Tax ID'] in tax_ids:
+                                    out_file.write(fwd)
+                                    rev_out_file.write(rev)
+                                if idx % 1000 == 0:
+                                    bar.update(1000)
+                    else:
+                        if exclude_reads:
+                            for idx, (fwd, rev) in enumerate(zip(fwd_iter, rev_iter)):
+                                if idx == tsv_row_count:
+                                    too_many_fastx_records()
+                                row = next(reader)
+                                row2 = next(reader)
+                                if (row['Passed Filter'] == 'T' and row['Tax ID'] not in tax_ids) or \
+                                   (row2['Passed Filter'] == 'T' and row2['Tax ID'] not in tax_ids):
+                                    out_file.write(fwd)
+                                    rev_out_file.write(rev)
+                                if idx % 1000 == 0:
+                                    bar.update(1000)
+                        else:
+                            for idx, (fwd, rev) in enumerate(zip(fwd_iter, rev_iter)):
+                                if idx == tsv_row_count:
+                                    too_many_fastx_records()
+                                row = next(reader)
+                                row2 = next(reader)
+                                if (row['Passed Filter'] == 'T' and row['Tax ID'] in tax_ids) or \
+                                   (row2['Passed Filter'] == 'T' and row2['Tax ID'] in tax_ids):
+                                    out_file.write(fwd)
+                                    rev_out_file.write(rev)
+                                if idx % 1000 == 0:
+                                    bar.update(1000)
+        else:
+            if not validate and io_kwargs['format'] == 'fastq':
+                fwd_iter = fastfastq(fastx)
+            else:
+                fwd_iter = validating_parser(fastx, **io_kwargs)
+
+            with io.open(filtered_filename, 'wb') as out_file:
+                if include_lowconf:
+                    if exclude_reads:
+                        for idx, (fwd, row) in enumerate(zip(fwd_iter, reader)):
+                            if idx == tsv_row_count:
+                                too_many_fastx_records()
+                            if row['Tax ID'] not in tax_ids:
+                                out_file.write(fwd)
+                            if idx % 1000 == 0:
+                                bar.update(1000)
+                    else:
+                        for idx, (fwd, row) in enumerate(zip(fwd_iter, reader)):
+                            if idx == tsv_row_count:
+                                too_many_fastx_records()
+                            if row['Tax ID'] in tax_ids:
+                                out_file.write(fwd)
+                            if idx % 1000 == 0:
+                                bar.update(1000)
+                else:
+                    if exclude_reads:
+                        for idx, (fwd, row) in enumerate(zip(fwd_iter, reader)):
+                            if idx == tsv_row_count:
+                                too_many_fastx_records()
+                            if row['Passed Filter'] == 'T' and row['Tax ID'] not in tax_ids:
+                                out_file.write(fwd)
+                            if idx % 1000 == 0:
+                                bar.update(1000)
+                    else:
+                        for idx, (fwd, row) in enumerate(zip(fwd_iter, reader)):
+                            if idx == tsv_row_count:
+                                too_many_fastx_records()
+                            if row['Passed Filter'] == 'T' and row['Tax ID'] in tax_ids:
+                                out_file.write(fwd)
+                            if idx % 1000 == 0:
+                                bar.update(1000)
+
+        if idx < tsv_row_count - 1:  # 0-based idx, 1-based tsv_row_count
+            raise ValidationError(
+                'FASTX file(s) provided have fewer records than the classification results'
+            )
+
+        bar.finish()
