@@ -227,7 +227,11 @@ API_DATA = {
         "url": "https://s3.aws.com/bucket/test_single_filtering_001.fastq.gz.results.tsv.gz"
     },
     "PATCH::api/v1/samples/761bc54b97f64980": {},
-    "PATCH::api/v1/metadata/4fe05e748b5a4f0e": update_metadata_callback
+    "PATCH::api/v1/metadata/4fe05e748b5a4f0e": update_metadata_callback,
+    "POST::api/v1/samples/761bc54b97f64980/download_uri": {
+        "download_uri": "http://localhost:3000/mock/download/url"
+    },
+    "GET::mock/download/url": "1234567890",
 }
 
 # explicitly load classification results for testing filter_reads
@@ -332,6 +336,25 @@ def upload_mocks():
             'upload_aws_secret_access_key': 'aws_secret_key'
         },
         'POST::api/import_file_from_s3': '',
+        'GET::api/v1/projects?.*where=%7B%22name.*': '',
+        'GET::api/v1/projects?.*where=%7B%22project_name.*': [{
+            '$uri': '/api/v1/projects/472fc57510e24150',
+            'description': None,
+            'name': 'Test',
+            'owner': {
+                '$ref': '/api/v1/users/9923090af03c46ce'
+            },
+            'permissions': [
+                'can_see_files',
+                'can_incur_charges',
+                'can_download_files',
+                'can_edit_metadata',
+                'can_add_files',
+                'can_administer'
+            ],
+            'project_name': 'testproj',
+            'public': False
+        }]
     }
     json_data.update(SCHEMA_ROUTES)
     with mock_requests(json_data):
