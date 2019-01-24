@@ -80,6 +80,9 @@ class ResourceList(object):
         # two ResourceLists are equal if they refer to the same underlying Resource
         return id(self._resource) == id(other._resource)
 
+    def __contains__(self, other):
+        return other.__hash__() in [x.__hash__() for x in self._res_list]
+
     @property
     def __repr__(self):
         return self._res_list.__repr__

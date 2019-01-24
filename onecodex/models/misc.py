@@ -26,6 +26,9 @@ class Tags(OneCodexBase):
         return '<{} {}: "{}">'.format(self.__class__.__name__, self.id,
                                       truncate_string(self.name, 24))
 
+    def __hash__(self):
+        return hash(self.name)
+
 
 class Users(OneCodexBase):
     _resource_path = '/api/v1/users'

@@ -6,7 +6,7 @@ import warnings
 
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.upload import upload
-from onecodex.models import OneCodexBase, Projects
+from onecodex.models import OneCodexBase, Projects, Tags
 from onecodex.models.helpers import truncate_string
 
 
@@ -24,6 +24,40 @@ class Samples(OneCodexBase):
         public = keyword_filters.get('public', False)
         instances_route = 'instances' if not public else 'instances_public'
         limit = keyword_filters.get('limit', None if not public else 1000)
+
+        # handle conversion of tag UUIDs or names to Tags objects
+        tags = keyword_filters.pop('tags', [])
+
+        if not isinstance(tags, list):
+            tags = [tags]
+
+        new_tags = []
+
+        for t in tags:
+            if isinstance(t, Tags):
+                new_tags.append(t)
+            else:
+                # is it a uuid?
+                if len(t) == 16:
+                    tag_obj = Tags.get(t)
+
+                    if tag_obj is not None:
+                        new_tags.append(tag_obj)
+                        continue
+
+                # is it a name?
+                tag_obj = Tags.where(name=t)
+
+                if len(tag_obj) == 1:
+                    new_tags.append(tag_obj[0])
+                    continue
+                elif len(tag_obj) > 1:
+                    raise OneCodexException('Multiple tags matched query: {}'.format(t))
+
+                raise OneCodexException('Unknown tag specified: {}'.format(t))
+
+        if new_tags:
+            keyword_filters['tags'] = new_tags
 
         # we can only search metadata on our own samples currently
         # FIXME: we need to add `instances_public` and `instances_project` metadata routes to
@@ -174,6 +208,9 @@ class Samples(OneCodexBase):
             else:
                 raise OneCodexException('Download failed with an HTTP status code {}.'.format(
                                         exc.response.status_code))
+
+    def __hash__(self):
+        return hash(self.id)
 
 
 class Metadata(OneCodexBase):
