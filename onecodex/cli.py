@@ -238,25 +238,25 @@ def upload(ctx, files, max_threads, prompt, forward, reverse, tags, metadata, pr
 
                 single_files.remove(filename)
 
-            auto_pair = True
+        auto_pair = True
 
-            if prompt and len(paired_files) > 0:
-                pair_list = ''
-                for p in paired_files:
-                    pair_list += '\n  {}  &  {}'.format(os.path.basename(p[0]), os.path.basename(p[1]))
+        if prompt and len(paired_files) > 0:
+            pair_list = ''
+            for p in paired_files:
+                pair_list += '\n  {}  &  {}'.format(os.path.basename(p[0]), os.path.basename(p[1]))
 
-                answer = click.confirm(
-                    'It appears there are paired files:{}\nInterleave them after upload?'.format(
-                        pair_list
-                    ),
-                    default='Y'
-                )
+            answer = click.confirm(
+                'It appears there are paired files:{}\nInterleave them after upload?'.format(
+                    pair_list
+                ),
+                default='Y'
+            )
 
-                if not answer:
-                    auto_pair = False
+            if not answer:
+                auto_pair = False
 
-            if auto_pair:
-                files = paired_files + list(single_files)
+        if auto_pair:
+            files = paired_files + list(single_files)
 
     upload_kwargs = {
         'threads': max_threads,
