@@ -563,11 +563,14 @@ def upload(files, session, samples_resource, threads=None, metadata=None, tags=N
                 # we need to do this funky wait loop to ensure threads get killed by ctrl-c
                 while True:
                     for thread in upload_threads:
-                        # hopefully no one has a file that takes longer than a week to upload
-                        thread.join(604800)
+                        thread.join(0.1)
 
                     if all(not thread.is_alive() for thread in upload_threads):
                         break
+
+                    if bar.pct > 0.98 and bar.label == 'Uploading... ':
+                        bar.label = 'Finalizing... '
+                        bar.update(1)
             except KeyboardInterrupt:
                 # cancel in progress upload(s)
                 for sample_id in set(uuids_in_progress).difference(uuids_completed):
