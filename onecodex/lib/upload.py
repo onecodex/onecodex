@@ -328,12 +328,16 @@ class FakeProgressBar(object):
 def process_api_error(resp, state=None):
     """Raise an exception with a pretty message in various states of upload"""
     error_code = resp.status_code
-    error_json = resp.json()
 
     if error_code == 402:
         error_message = ('Please add a payment method to upload more samples. If you continue to '
                          'experience problems, contact us at help@onecodex.com for assistance.')
     else:
+        try:
+            error_json = resp.json()
+        except ValueError:
+            error_json = {}
+
         if 'msg' in error_json:
             error_message = error_json['msg'].rstrip('.')
         elif 'message' in error_json:
