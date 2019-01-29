@@ -7,7 +7,7 @@ from onecodex.exceptions import OneCodexException
 class VizHeatmapMixin(object):
     def plot_heatmap(self, rank='auto', normalize='auto', top_n='auto', threshold='auto',
                      title=None, xlabel=None, ylabel=None, tooltip=None, return_chart=False,
-                     linkage='average', haxis=None, metric='euclidean'):
+                     linkage='average', haxis=None, metric='euclidean', legend='auto'):
         """Plot heatmap of taxa abundance/count data for several samples.
 
         Parameters
@@ -64,6 +64,9 @@ class VizHeatmapMixin(object):
             top_n = None
         elif top_n != 'auto' and threshold == 'auto':
             threshold = None
+
+        if legend == 'auto':
+            legend = self._field
 
         df = self.to_df(
             rank=rank,
@@ -226,7 +229,7 @@ class VizHeatmapMixin(object):
         alt_kwargs = dict(
             x=alt.X('display_name:N', axis=alt.Axis(title=xlabel), sort=labels_in_order),
             y=alt.Y('tax_name:N', axis=alt.Axis(title=ylabel), sort=taxa_cluster['labels_in_order']),
-            color='{}:Q'.format(self._field),
+            color=alt.Color('{}:Q'.format(self._field), legend=alt.Legend(title=legend)),
             tooltip=['{}:Q'.format(self._field)] + [magic_fields[f] for f in tooltip],
             href='url:N',
             url='https://app.onecodex.com/classification/' + alt.datum.classification_id
