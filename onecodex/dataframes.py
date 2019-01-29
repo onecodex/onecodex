@@ -62,6 +62,21 @@ class ClassificationsDataFrame(pd.DataFrame):
                        ocx_taxonomy=self.ocx_taxonomy, ocx_metadata=self.ocx_metadata,
                        ocx_normalized=self.ocx_normalized)
 
+    def to_html(self, *args, **kwargs):
+        classes = kwargs.pop('classes', [])
+        if isinstance(classes, str):
+            classes = [classes]
+        classes.append('ocx_classifications_df')
+        kwargs['classes'] = classes
+        kwargs['float_format'] = '%0.3f'
+        kwargs['max_rows'] = 15
+        kwargs['max_cols'] = 10
+
+        # round abundances to avoid long trails of zeros, and sort taxa in order of abundance
+        df = self.round(6).reindex(columns=self.sum().sort_values(ascending=False).index)
+
+        return super(ClassificationsDataFrame, df).to_html(*args, **kwargs)
+
 
 class ClassificationsSeries(pd.Series):
     """A subclassed `pandas.Series` containing additional metadata pertinent to analysis of
