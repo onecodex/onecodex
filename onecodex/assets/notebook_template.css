@@ -1,0 +1,106 @@
+#reportdate {
+  width: 0;
+  height: 0;
+  visibility: hidden;
+  string-set: reportdate content();
+}
+@page {
+  size: letter portrait;
+  margin: 1in 1in 1in 1in;
+  @top-right-corner {
+    content: url("one_codex_logo.png");
+    transform: scale(0.25);
+    text-align: right;
+  }
+  @bottom-left {
+    content: "NOT FOR DIAGNOSTIC USE";
+    text-align: left;
+    color: #aaa;
+    font-size: 11pt;
+  }
+  @bottom-center {
+    content: string(reportdate);
+    text-align: center;
+    color: #aaa;
+    font-size: 11pt;
+  }
+  @bottom-right {
+    content: "Page " counter(page) " of " counter(pages);
+    text-align: right;
+    color: #aaa;
+    font-size: 11pt;
+  }
+}
+a.anchor-link {
+  width: 0;
+  height: 0;
+  visibility: hidden;
+}
+div {
+  hyphens: auto;
+  text-align: justify;
+}
+div.figurelegend {
+  margin-left: 50px;
+  margin-right: 50px;
+  page-break-before: avoid;
+}
+div.pagebreak {
+  page-break-after: always;
+}
+pre {
+  font-family: Monospace;
+  font-size: 10pt;
+  white-space: pre-wrap;
+}
+* {
+  font-family: 'Palatino', sans-serif;
+}
+img {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  padding-top: 25px;
+  padding-bottom: 25px;
+}
+table.dataframe {
+  font-family: 'Palatino', sans-serif;
+  font-size: 10pt;
+  margin-left: auto;
+  margin-right: auto;
+  border: white;
+  border-bottom: 2px solid black;
+  border-spacing: 0px;
+  border-collapse: collapse;
+  page-break-inside: avoid;
+}
+table.dataframe thead td,
+table.dataframe thead th {
+  padding: 8px;
+  border-bottom: 2px solid black;
+  border-top: 2px solid black;
+}
+table.dataframe tbody td,
+table.dataframe tbody th {
+  padding: 8px;
+  text-align: right;
+  border: white;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  padding-bottom: 0px;
+  margin-bottom: 10px;
+}
+p {
+  padding-top: 0px;
+  margin-top: 10px;
+}
+h2.title {
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}

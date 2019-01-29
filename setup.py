@@ -106,6 +106,10 @@ setup(
     ],
     entry_points={
         'console_scripts': ['onecodex = onecodex.cli:onecodex'],
+        'nbconvert.exporters': [
+            'onecodex_pdf = onecodex.reports:PDFExporter',
+            'onecodex_doc = onecodex.reports:DocumentExporter',
+            ],
     },
     test_suite='tests'
 )
