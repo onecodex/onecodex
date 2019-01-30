@@ -2,10 +2,9 @@
 
 {%- block html_head -%}
 <meta charset="utf-8" />
-<div id="reportdate">{{ resources['metadata']['date'] }}</div>
 {% set nb_title = nb.metadata.get('title', '') or resources['metadata']['name'] %}
 <title>{{nb_title}}</title>
-<link rel="stylesheet" href="onecodex/assets/notebook_template.css">
+{{resources['metadata']['head_block']}}
 {%- endblock html_head -%}
 
 {% block output_area_prompt %}

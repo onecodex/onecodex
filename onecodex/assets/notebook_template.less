@@ -7,14 +7,44 @@
 	string-set: reportdate content();
 }
 
+#centerheader {
+	width: 0;
+	height: 0;
+	visibility: hidden;
+	string-set: centerheader content();
+}
+
+img.logo {
+	display: block;
+	position: fixed;
+	top: -90px;
+	width: 120px;
+}
+
+img.logo-left {
+	float: left;
+	left: -60px;
+}
+
+img.logo-center {
+	left: 50%;
+	margin-left: -60px;
+}
+
+img.logo-right {
+	float: right;
+	right: -60px;
+}
+
 @page {
 	size: letter portrait;
 	margin: 1in 1in 1in 1in;
 
-	@top-right-corner {
-		content: url("one_codex_logo.png");
-		transform: scale(0.25);
-		text-align: right;
+	@top-center {
+		content: string(centerheader);
+		text-align: center;
+		color: black;
+		font-size: 11pt;
 	}
 
 	@bottom-left {
@@ -45,10 +75,76 @@ a.anchor-link {
 	visibility: hidden;
 }
 
+dl.coverpage-details {
+	width: 100%;
+	padding: 0;
+	margin: 0;
+
+	dt {
+		float: left;
+		clear: left;
+		width: 30%;
+		padding: 0;
+		margin: 0;
+		padding-right: 10px;
+		font-weight: bold;
+	}
+
+	dd {
+		width: 70%;
+		padding: 0;
+		margin: 0;
+	}
+}
+
+dl.bibliography {
+	width: 100%;
+	padding: 0;
+	margin: 0;
+
+	dt {
+		float: left;
+		clear: left;
+		width: 20px;
+		text-align: right;
+		padding-right: 10px;
+		font-weight: bold;
+	}
+
+	dt::after {
+		content: ".";
+	}
+
+	dd {
+		padding-left: 0px;
+	}
+}
+
 div {
 	hyphens: auto;
-	text-align: justify;
+	text-align: left;
 }
+
+// superscript references
+sup.reference {
+	vertical-align: super;
+	font-size: 8pt;
+}
+
+// // bracketed references
+// sup.reference::before {
+// 	vertical-align: baseline;
+// 	content: " [";
+// }
+
+// sup.reference {
+// 	vertical-align: baseline;
+// }
+
+// sup.reference::after {
+// 	vertical-align: baseline;
+// 	content: "] ";
+// }
 
 div.figurelegend {
 	margin-left: 50px;
@@ -58,6 +154,12 @@ div.figurelegend {
 
 div.pagebreak {
 	page-break-after: always;
+}
+
+div.coverpage-date {
+	margin-top: 80px;
+	margin-bottom: 80px;
+	text-align: center;
 }
 
 pre {
@@ -124,4 +226,12 @@ h2.title {
 	text-align: center;
 	margin-left: auto;
 	margin-right: auto;
+}
+
+h2.coverpage-title {
+	text-align: center;
+	margin-left: auto;
+	margin-right: auto;
+	margin-top: 80px;
+	margin-bottom: 80px;
 }
