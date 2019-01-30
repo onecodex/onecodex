@@ -5,6 +5,7 @@ author: @mbiokyle29
 """
 from __future__ import print_function
 import click
+import copy
 import logging
 import os
 import re
@@ -78,6 +79,11 @@ def scripts():
 
 
 scripts.add_command(subset_reads.cli, 'subset_reads')
+
+# TODO: remove filter_reads which is deprecated in favor of subset_reads
+filter_reads = copy.deepcopy(subset_reads.cli)
+filter_reads.hidden = True
+scripts.add_command(filter_reads, 'filter_reads')
 
 
 # resources

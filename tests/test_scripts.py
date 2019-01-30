@@ -7,7 +7,7 @@ import shutil
 from onecodex import Cli
 
 
-@pytest.mark.parametrize('paired,split_pairs,with_children,exclude_reads,include_lowconf', [
+@pytest.mark.parametrize('paired,subset_pairs_independently,with_children,exclude_reads,include_lowconf', [
     # single end
     (False, False, False, False, False),
     (False, False, False, True, False),  # --exclude-reads
@@ -27,16 +27,16 @@ from onecodex import Cli
     (True, False, True, True, False),     # --with-children --exclude-reads
     (True, False, True, False, True),     # --with-children --include-lowconf
     (True, False, True, True, True),      # --with-children --exclude-reads --include-lowconf
-    (True, True, False, False, False),    # --split-pairs
-    (True, True, False, True, False),     # --split-pairs --exclude-reads
-    (True, True, False, False, True),     # --split-pairs --include-lowconf
-    (True, True, False, True, True),      # --split-pairs --exclude-reads --include-lowconf
-    (True, True, True, False, False),     # --split-pairs --with-children
-    (True, True, True, True, False),      # --split-pairs --with-children --exclude-reads
-    (True, True, True, False, True),      # --split-pairs --with-children --include-lowconf
-    (True, True, True, True, True),       # --split-pairs --with-children --exclude-reads --include-lowconf
+    (True, True, False, False, False),    # --subset-pairs-independently
+    (True, True, False, True, False),     # --subset-pairs-independently --exclude-reads
+    (True, True, False, False, True),     # --subset-pairs-independently --include-lowconf
+    (True, True, False, True, True),      # --subset-pairs-independently --exclude-reads --include-lowconf
+    (True, True, True, False, False),     # --subset-pairs-independently --with-children
+    (True, True, True, True, False),      # --subset-pairs-independently --with-children --exclude-reads
+    (True, True, True, False, True),      # --subset-pairs-independently --with-children --include-lowconf
+    (True, True, True, True, True),       # --subset-pairs-independently --with-children --exclude-reads --include-lowconf
 ])
-def test_subset_reads(runner, api_data, mocked_creds_file, paired, split_pairs,
+def test_subset_reads(runner, api_data, mocked_creds_file, paired, subset_pairs_independently,
                       with_children, exclude_reads, include_lowconf):
     basedir = os.path.abspath(os.path.dirname(__file__))
     data_dir = os.path.join(basedir, 'data/files')
@@ -138,8 +138,8 @@ def test_subset_reads(runner, api_data, mocked_creds_file, paired, split_pairs,
         if exclude_reads:
             args += ['--exclude-reads']
 
-        if split_pairs:
-            args += ['--split-pairs']
+        if subset_pairs_independently:
+            args += ['--subset-pairs-independently']
 
         if include_lowconf:
             args += ['--include-lowconf']
@@ -152,7 +152,7 @@ def test_subset_reads(runner, api_data, mocked_creds_file, paired, split_pairs,
         for f in outfiles:
             results_digests.append(md5sum(f).hexdigest())
 
-        assert results_digests == digests[(paired, split_pairs, with_children,
+        assert results_digests == digests[(paired, subset_pairs_independently, with_children,
                                            exclude_reads, include_lowconf)]
 
         # run without validation (faster)
@@ -163,5 +163,5 @@ def test_subset_reads(runner, api_data, mocked_creds_file, paired, split_pairs,
         for f in outfiles:
             results_digests.append(md5sum(f).hexdigest())
 
-        assert results_digests == digests[(paired, split_pairs, with_children,
+        assert results_digests == digests[(paired, subset_pairs_independently, with_children,
                                            exclude_reads, include_lowconf)]
