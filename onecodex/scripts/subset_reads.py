@@ -4,6 +4,7 @@ import csv
 import gzip
 import io
 import os
+import warnings
 
 from onecodex.auth import login_required
 from onecodex.exceptions import OneCodexException, ValidationError
@@ -131,10 +132,11 @@ def too_many_fastx_records():
               help='By default, validate FASTQ records (slow). Disable to drastically increase speed')
 @click.option('--with-children', default=False, is_flag=True,
               help='Match child taxa of those given with -t (e.g., all strains of E. coli)')
-@click.option('--split-pairs', default=False, is_flag=True,
-              help='By default, if either read in a pair matches, both will match. Choose this '
-                   'option to consider each paired-end read separately. Resulting files may *not* '
-                   'have the same number of reads!')
+@click.option('--subset-pairs-independently', default=False, is_flag=True,
+              help='By default, if either read in a pair matches, both will be retained in the subset '
+                   'file. With this option, R1 and R2 files will be evaluated independently. Note '
+                   'that the subset output FASTQs are *not* guaranteed to have the same number of '
+                   'reads!')
 @click.option('--exclude-reads', default=False, is_flag=True,
               help='By default, matching reads are kept. Choose this option to instead output '
                    'reads that do *not* match.')
@@ -147,7 +149,12 @@ def too_many_fastx_records():
 @pretty_errors
 @login_required
 def cli(ctx, classification_id, fastx, reverse, tax_ids, with_children,
-        split_pairs, exclude_reads, include_lowconf, out, validate):
+        subset_pairs_independently, exclude_reads, include_lowconf, out, validate):
+    if ctx.info_name == 'filter_reads':
+        warnings.warn(
+            'filter_reads will be removed in a future version. Please use subset_reads instead!'
+        )
+
     if not len(tax_ids):
         raise OneCodexException('You must supply at least one tax ID')
 
@@ -221,9 +228,6 @@ def cli(ctx, classification_id, fastx, reverse, tax_ids, with_children,
         save_msg += ' and {}'.format(rev_filtered_filename)
     click.echo(save_msg, err=True)
 
-    # each possible set of parameters gets its own iterator to minimize the amount of comparisons
-    # done inside the innermost loop. yes, we could write this with one iterator and check if
-    # split_pairs, include_lowconf, and exclude_reads are set at /every/ iteration, but that's slow.
     with click.progressbar(length=tsv_row_count) as bar, gzip.open(readlevel_path, 'rt') as tsv:
         reader = csv.DictReader(tsv, delimiter='\t')
 
@@ -237,106 +241,59 @@ def cli(ctx, classification_id, fastx, reverse, tax_ids, with_children,
 
             with io.open(filtered_filename, 'wb') as out_file, \
                  io.open(rev_filtered_filename, 'wb') as rev_out_file:  # noqa
-                if split_pairs:
-                    if include_lowconf:
-                        if exclude_reads:
-                            for idx, (fwd, rev) in enumerate(zip(fwd_iter, rev_iter)):
-                                if idx == tsv_row_count:
-                                    too_many_fastx_records()
-                                row = next(reader)  # necessary to do it this way for py2 compat
-                                row2 = next(reader)
+
+                for idx, (fwd, rev) in enumerate(zip(fwd_iter, rev_iter)):
+                    if idx == tsv_row_count:
+                        too_many_fastx_records()
+                    if idx % 1000 == 0:
+                        bar.update(1000)
+                    row = next(reader)  # necessary to do it this way for py2 compat
+                    row2 = next(reader)
+
+                    if subset_pairs_independently:
+                        if include_lowconf:
+                            if exclude_reads:
                                 if row['Tax ID'] not in tax_ids:
                                     out_file.write(fwd)
                                 if row2['Tax ID'] not in tax_ids:
                                     rev_out_file.write(rev)
-                                if idx % 1000 == 0:
-                                    bar.update(1000)
-                        else:
-                            for idx, (fwd, rev) in enumerate(zip(fwd_iter, rev_iter)):
-                                if idx == tsv_row_count:
-                                    too_many_fastx_records()
-                                row = next(reader)
-                                row2 = next(reader)
+                            else:
                                 if row['Tax ID'] in tax_ids:
                                     out_file.write(fwd)
                                 if row2['Tax ID'] in tax_ids:
                                     rev_out_file.write(rev)
-                                if idx % 1000 == 0:
-                                    bar.update(1000)
-                    else:
-                        if exclude_reads:
-                            for idx, (fwd, rev) in enumerate(zip(fwd_iter, rev_iter)):
-                                if idx == tsv_row_count:
-                                    too_many_fastx_records()
-                                row = next(reader)
-                                row2 = next(reader)
+                        else:
+                            if exclude_reads:
                                 if row['Passed Filter'] == 'T' and row['Tax ID'] not in tax_ids:
                                     out_file.write(fwd)
                                 if row2['Passed Filter'] == 'T' and row2['Tax ID'] not in tax_ids:
                                     rev_out_file.write(rev)
-                                if idx % 1000 == 0:
-                                    bar.update(1000)
-                        else:
-                            for idx, (fwd, rev) in enumerate(zip(fwd_iter, rev_iter)):
-                                if idx == tsv_row_count:
-                                    too_many_fastx_records()
-                                row = next(reader)
-                                row2 = next(reader)
+                            else:
                                 if row['Passed Filter'] == 'T' and row['Tax ID'] in tax_ids:
                                     out_file.write(fwd)
                                 if row2['Passed Filter'] == 'T' and row2['Tax ID'] in tax_ids:
                                     rev_out_file.write(rev)
-                                if idx % 1000 == 0:
-                                    bar.update(1000)
-                else:
-                    if include_lowconf:
-                        if exclude_reads:
-                            for idx, (fwd, rev) in enumerate(zip(fwd_iter, rev_iter)):
-                                if idx == tsv_row_count:
-                                    too_many_fastx_records()
-                                row = next(reader)
-                                row2 = next(reader)
+                    else:
+                        if include_lowconf:
+                            if exclude_reads:
                                 if row['Tax ID'] not in tax_ids or row2['Tax ID'] not in tax_ids:
                                     out_file.write(fwd)
                                     rev_out_file.write(rev)
-                                if idx % 1000 == 0:
-                                    bar.update(1000)
-                        else:
-                            for idx, (fwd, rev) in enumerate(zip(fwd_iter, rev_iter)):
-                                if idx == tsv_row_count:
-                                    too_many_fastx_records()
-                                row = next(reader)
-                                row2 = next(reader)
+                            else:
                                 if row['Tax ID'] in tax_ids or row2['Tax ID'] in tax_ids:
                                     out_file.write(fwd)
                                     rev_out_file.write(rev)
-                                if idx % 1000 == 0:
-                                    bar.update(1000)
-                    else:
-                        if exclude_reads:
-                            for idx, (fwd, rev) in enumerate(zip(fwd_iter, rev_iter)):
-                                if idx == tsv_row_count:
-                                    too_many_fastx_records()
-                                row = next(reader)
-                                row2 = next(reader)
+                        else:
+                            if exclude_reads:
                                 if (row['Passed Filter'] == 'T' and row['Tax ID'] not in tax_ids) or \
                                    (row2['Passed Filter'] == 'T' and row2['Tax ID'] not in tax_ids):
                                     out_file.write(fwd)
                                     rev_out_file.write(rev)
-                                if idx % 1000 == 0:
-                                    bar.update(1000)
-                        else:
-                            for idx, (fwd, rev) in enumerate(zip(fwd_iter, rev_iter)):
-                                if idx == tsv_row_count:
-                                    too_many_fastx_records()
-                                row = next(reader)
-                                row2 = next(reader)
+                            else:
                                 if (row['Passed Filter'] == 'T' and row['Tax ID'] in tax_ids) or \
                                    (row2['Passed Filter'] == 'T' and row2['Tax ID'] in tax_ids):
                                     out_file.write(fwd)
                                     rev_out_file.write(rev)
-                                if idx % 1000 == 0:
-                                    bar.update(1000)
         else:
             if not validate and io_kwargs['format'] == 'fastq':
                 fwd_iter = fastfastq(fastx)
@@ -344,40 +301,25 @@ def cli(ctx, classification_id, fastx, reverse, tax_ids, with_children,
                 fwd_iter = validating_parser(fastx, **io_kwargs)
 
             with io.open(filtered_filename, 'wb') as out_file:
-                if include_lowconf:
-                    if exclude_reads:
-                        for idx, (fwd, row) in enumerate(zip(fwd_iter, reader)):
-                            if idx == tsv_row_count:
-                                too_many_fastx_records()
+                for idx, (fwd, row) in enumerate(zip(fwd_iter, reader)):
+                    if idx == tsv_row_count:
+                        too_many_fastx_records()
+                    if idx % 1000 == 0:
+                        bar.update(1000)
+                    if include_lowconf:
+                        if exclude_reads:
                             if row['Tax ID'] not in tax_ids:
                                 out_file.write(fwd)
-                            if idx % 1000 == 0:
-                                bar.update(1000)
-                    else:
-                        for idx, (fwd, row) in enumerate(zip(fwd_iter, reader)):
-                            if idx == tsv_row_count:
-                                too_many_fastx_records()
+                        else:
                             if row['Tax ID'] in tax_ids:
                                 out_file.write(fwd)
-                            if idx % 1000 == 0:
-                                bar.update(1000)
-                else:
-                    if exclude_reads:
-                        for idx, (fwd, row) in enumerate(zip(fwd_iter, reader)):
-                            if idx == tsv_row_count:
-                                too_many_fastx_records()
+                    else:
+                        if exclude_reads:
                             if row['Passed Filter'] == 'T' and row['Tax ID'] not in tax_ids:
                                 out_file.write(fwd)
-                            if idx % 1000 == 0:
-                                bar.update(1000)
-                    else:
-                        for idx, (fwd, row) in enumerate(zip(fwd_iter, reader)):
-                            if idx == tsv_row_count:
-                                too_many_fastx_records()
+                        else:
                             if row['Passed Filter'] == 'T' and row['Tax ID'] in tax_ids:
                                 out_file.write(fwd)
-                            if idx % 1000 == 0:
-                                bar.update(1000)
 
         if idx < tsv_row_count - 1:  # 0-based idx, 1-based tsv_row_count
             raise ValidationError(
