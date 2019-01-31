@@ -7,7 +7,6 @@ from nbconvert.exporters.html import HTMLExporter
 import os
 import pytz
 from traitlets import default
-from weasyprint import HTML, CSS
 
 from onecodex.exceptions import OneCodexException
 
@@ -100,12 +99,12 @@ class logo(object):
         display(self)
 
     def _repr_mimebundle_(self, include=None, exclude=None):
-        return {'text/html': '<img src="{}" width="120px" class="logo {}" style="{}">'.format(self.url, self.classes, self.style)}
+        return {'text/html': '<img src="{}" width="120px" class="logo {}" style="{}" />'.format(self.url, self.classes, self.style)}
 
 
 class legend(object):
     def __init__(self, text, heading=None, fignum=None, style=None):
-        self.heading = '' if heading is None else '{}&nbsp;'.format(heading)
+        self.heading = '' if heading is None else '{} '.format(heading)
         self.text = text
         self.style = '' if style is None else style
 
@@ -126,7 +125,7 @@ class legend(object):
 
     def _repr_mimebundle_(self, include=None, exclude=None):
         return {
-            'text/html': '<div class="figurelegend" style="{}"><b>Figure {}.&nbsp;{}</b>{}</div>'.format(
+            'text/html': '<div class="figurelegend" style="{}"><b>Figure {}. {}</b>{}</div>'.format(
                 self.style, self.fignum, self.heading, self.text
             )
         }
@@ -182,6 +181,8 @@ def reference(text=None, label=None):
 
 class bibliography(object):
     def __init__(self, style=None):
+        self.style = '' if style is None else style
+
         try:
             ipy = get_ipython()
             ref_list = ipy.meta.get('references', {})
@@ -195,13 +196,18 @@ class bibliography(object):
         display(self)
 
     def _repr_mimebundle_(self, include=None, exclude=None):
-        cites = ['<h4>References</h4>', '<dl class="bibliography">']
+        cites = [
+            '<div>'
+            '<h4>References</h4>',
+            '<dl class="bibliography" style="{}">'.format(self.style)
+        ]
 
         for ref_label, (ref_num, ref_text) in self.ref_list.items():
             cites.append('<dt>{}</dt>'.format(ref_num))
             cites.append('<dd>{}</dd>'.format(ref_text))
 
         cites.append('</dl>')
+        cites.append('</div>')
 
         return {'text/html': '\n'.join(cites)}
 
@@ -212,15 +218,15 @@ class pagebreak(object):
         display(self)
 
     def _repr_mimebundle_(self, include=None, exclude=None):
-        return {'text/html': '<div class="pagebreak">'}
+        return {'text/html': '<div class="pagebreak"></div>'}
 
 
 class coversheet(object):
     def __init__(self, title, prepared_for, prepared_by, project_details, add_br=True):
         if add_br:
-            title = title.replace('\n', '<br>')
-            prepared_for = prepared_for.replace('\n', '<br>')
-            prepared_by = prepared_by.replace('\n', '<br>')
+            title = title.replace('\n', '<br />')
+            prepared_for = prepared_for.replace('\n', '<br />')
+            prepared_by = prepared_by.replace('\n', '<br />')
 
         self.title = title
         self.prepared_for = prepared_for
@@ -238,7 +244,7 @@ class coversheet(object):
             self.project_details = '\n'.join(deets)
         else:
             if add_br:
-                project_details = project_details.replace('\n', '<br>')
+                project_details = project_details.replace('\n', '<br />')
 
             self.project_details = project_details
 
@@ -259,16 +265,18 @@ class coversheet(object):
 
     def _repr_mimebundle_(self, include=None, exclude=None):
         body = """
-        <h2 class="coverpage-title">{}</h2>
-        <div class="coverpage-date">{}</div>
-        <h4>PREPARED FOR</h4>
-        {}
-        <br>
-        <h4>PREPARED BY</h4>
-        {}
-        <br>
-        <h4>PROJECT DETAILS</h4>
-        {}
+        <div class="pagebreak">
+          <h2 class="coverpage-title">{}</h2>
+          <div class="coverpage-date">{}</div>
+          <h4>PREPARED FOR</h4>
+          {}
+          <br />
+          <h4>PREPARED BY</h4>
+          {}
+          <br />
+          <h4>PROJECT DETAILS</h4>
+          {}
+        </div>
         """.format(
             self.title,
             self.proj_date,
@@ -277,9 +285,7 @@ class coversheet(object):
             self.project_details,
         )
 
-        pagebreak_html = pagebreak()._repr_mimebundle_()['text/html']
-
-        return {'text/html': body + pagebreak_html}
+        return {'text/html': body}
 
 
 class OneCodexHTMLExporter(HTMLExporter):
@@ -324,7 +330,8 @@ class OneCodexHTMLExporter(HTMLExporter):
                     elif out.get('metadata') and out['metadata'].get('onecodex') == 'head.style':
                         for mimetype in out.get('data', []):
                             if mimetype == 'text/css':
-                                head_block = resources['metadata'].get('head_block', '') + out['data']['text/css']
+                                style_block = '<style type="text/css">{}</style>'.format(out['data']['text/css'])
+                                head_block = resources['metadata'].get('head_block', '') + style_block
                                 resources['metadata']['head_block'] = head_block
                                 break
 
@@ -356,7 +363,7 @@ class OneCodexHTMLExporter(HTMLExporter):
 
         # add link to our custom CSS using system path
         css_path = 'file:///' + os.path.join(ASSETS_PATH, CSS_TEMPLATE_FILE).replace('\\', '/')
-        css_link = '<link rel="stylesheet" href="{}">'.format(css_path)
+        css_link = '<link rel="stylesheet" href="{}" />'.format(css_path)
         head_block = resources['metadata'].get('head_block', '') + css_link
         resources['metadata']['head_block'] = head_block
 
@@ -400,15 +407,17 @@ class OneCodexHTMLExporter(HTMLExporter):
         return '.html'
 
 
-class PDFExporter(OneCodexHTMLExporter):
+class OneCodexPDFExporter(OneCodexHTMLExporter):
     export_from_notebook = 'One Codex PDF Report'
     template_path = [ASSETS_PATH]
 
     def from_notebook_node(self, nb, resources=None, **kw):
         """Takes output of OneCodexHTMLExporter and runs Weasyprint to get a PDF."""
+        from weasyprint import HTML, CSS
+
         nb = copy.deepcopy(nb)
 
-        output, resources = super(PDFExporter, self).from_notebook_node(nb, resources=resources, **kw)
+        output, resources = super(OneCodexPDFExporter, self).from_notebook_node(nb, resources=resources, **kw)
         buf = BytesIO()
         HTML(string=output).write_pdf(
             buf, stylesheets=[CSS(os.path.join(ASSETS_PATH, CSS_TEMPLATE_FILE))]
@@ -421,13 +430,13 @@ class PDFExporter(OneCodexHTMLExporter):
         return '.pdf'
 
 
-class DocumentExporter(PDFExporter):
+class OneCodexDocumentExporter(OneCodexPDFExporter):
     export_from_notebook = 'Export to One Codex Document Portal'
 
     def from_notebook_node(self, nb, resources=None, **kw):
         """Takes PDF output from PDFExporter and uploads to One Codex Documents portal.
         """
-        output, resources = super(DocumentExporter, self).from_notebook_node(nb, resources=resources, **kw)
+        output, resources = super(OneCodexDocumentExporter, self).from_notebook_node(nb, resources=resources, **kw)
 
         # TODO: implement storage of PDF in Documents portal
 
