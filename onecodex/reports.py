@@ -374,16 +374,11 @@ class OneCodexHTMLExporter(HTMLExporter):
         ]
 
         user_uuid = os.environ.get('ONE_CODEX_USER_UUID')
-
         if user_uuid is not None:
-            nb_uuid = os.environ.get('HOSTNAME', '').split('-')
-
-            if len(nb_uuid) == 2:
-                nb_uuid = nb_uuid[1]
-            else:
-                nb_uuid = 'not_found'
-
             meta_tags.append(('author', 'one_codex_user_uuid_{}'.format(user_uuid)))
+
+        nb_uuid = os.environ.get('ONE_CODEX_NOTEBOOK_UUID')
+        if nb_uuid is not None:
             meta_tags.append(('author', 'one_codex_notebook_uuid_{}'.format(nb_uuid)))
 
         meta_html = ''
