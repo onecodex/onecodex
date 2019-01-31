@@ -105,10 +105,10 @@ def mock_reports():
 
     with mock.patch.dict(sys.modules, fakemodules):
         # for python2 mocking of get_ipython. import must be within mocked sys.modules
-        import onecodex.reports
-        onecodex.reports.get_ipython = None
+        from onecodex.notebooks import report
+        report.get_ipython = None
 
-        with mock.patch('onecodex.reports.get_ipython', mock_ipython):
+        with mock.patch('onecodex.notebooks.report.get_ipython', mock_ipython):
             yield
 
 
@@ -125,11 +125,11 @@ def test_fixture(mock_reports, metaval):
     assert get_ipython().meta.get('test') == metaval
 
 
-def test_style(mock_reports):
-    from onecodex.reports import style
+def test_set_style(mock_reports):
+    from onecodex.notebooks import report
 
     mystyle = 'h1 { text-align: center; }'
-    obj = style(mystyle)
+    obj = report.set_style(mystyle)
     bundle = obj._repr_mimebundle_()
 
     assert len(bundle) == 2
@@ -139,12 +139,12 @@ def test_style(mock_reports):
     obj.display()
 
 
-def test_centerheader(mock_reports):
-    from onecodex.reports import centerheader
+def test_set_center_header(mock_reports):
+    from onecodex.notebooks import report
 
     mytext = 'center header'
     mystyle = 'text-align: center'
-    obj = centerheader(mytext, mystyle)
+    obj = report.set_center_header(mytext, mystyle)
     bundle = obj._repr_mimebundle_()
 
     assert len(bundle) == 1
@@ -154,12 +154,12 @@ def test_centerheader(mock_reports):
     obj.display()
 
 
-def test_date(mock_reports):
-    from onecodex.reports import date
+def test_set_date(mock_reports):
+    from onecodex.notebooks import report
 
     mydate = 'January 1, 1900'
     mystyle = 'text-align: center'
-    obj = date(mydate, mystyle)
+    obj = report.set_date(mydate, mystyle)
     bundle = obj._repr_mimebundle_()
 
     assert len(bundle) == 2
@@ -173,11 +173,11 @@ def test_date(mock_reports):
 
 
 def test_title(mock_reports):
-    from onecodex.reports import title
+    from onecodex.notebooks import report
 
     mytext = 'my title'
     mystyle = 'text-align: center'
-    obj = title(mytext, mystyle)
+    obj = report.title(mytext, mystyle)
     bundle = obj._repr_mimebundle_()
 
     assert len(bundle) == 1
@@ -187,12 +187,12 @@ def test_title(mock_reports):
     obj.display()
 
 
-def test_logo(mock_reports):
-    from onecodex.reports import logo
+def test_set_logo(mock_reports):
+    from onecodex.notebooks import report
 
     myurl = 'file:///path/to/logo.png'
     mystyle = 'text-align: center'
-    obj = logo(myurl, style=mystyle)
+    obj = report.set_logo(myurl, style=mystyle)
     bundle = obj._repr_mimebundle_()
 
     assert len(bundle) == 1
@@ -202,22 +202,22 @@ def test_logo(mock_reports):
     ET.fromstring(bundle['text/html'])
     obj.display()
 
-    logo(myurl, position='left')
-    logo(myurl, position='right')
-    logo(myurl, position='center')
+    report.set_logo(myurl, position='left')
+    report.set_logo(myurl, position='right')
+    report.set_logo(myurl, position='center')
 
     with pytest.raises(OneCodexException) as e:
-        logo(myurl, position='bottom')
+        report.set_logo(myurl, position='bottom')
     assert 'position must be one of' in str(e.value)
 
 
 def test_legend(mock_reports):
-    from onecodex.reports import legend
+    from onecodex.notebooks import report
 
     mytext = 'first legend'
     myheading = 'first heading'
     mystyle = 'text-align: center'
-    obj = legend(mytext, heading=myheading, style=mystyle)
+    obj = report.legend(mytext, heading=myheading, style=mystyle)
     bundle = obj._repr_mimebundle_()
 
     assert len(bundle) == 1
@@ -228,47 +228,47 @@ def test_legend(mock_reports):
     obj.display()
 
     assert get_ipython().meta['figure_count'] == 1
-    legend('second legend', 'second heading')
+    report.legend('second legend', 'second heading')
     assert get_ipython().meta['figure_count'] == 2
 
 
 def test_reference_and_biblio(mock_reports):
-    from onecodex.reports import bibliography, reference
+    from onecodex.notebooks import report
 
     with pytest.raises(OneCodexException) as e:
-        reference()
+        report.reference()
     assert 'at least one of' in str(e.value)
 
     # duplicate references don't get new  numbers
-    ref1 = reference('wikipedia reference 1')
+    ref1 = report.reference('wikipedia reference 1')
     assert '1' in ref1
-    ref2 = reference('wikipedia reference 1')
+    ref2 = report.reference('wikipedia reference 1')
     assert '1' in ref2
 
     # new references get new numbers
-    ref3 = reference('wikipedia reference 2')
+    ref3 = report.reference('wikipedia reference 2')
     assert '2' in ref3
 
     # lookup by tags works
-    ref4 = reference('wikipedia reference 3', 'wiki')
+    ref4 = report.reference('wikipedia reference 3', 'wiki')
     assert '3' in ref4
-    ref5 = reference(label='wiki')
+    ref5 = report.reference(label='wiki')
     assert '3' in ref5
 
     with pytest.raises(OneCodexException) as e:
-        reference(label='wiki2')
+        report.reference(label='wiki2')
     assert 'Cannot find citation' in str(e.value)
 
     with pytest.raises(OneCodexException) as e:
-        reference('wikipedia reference 4', 'wiki')
+        report.reference('wikipedia reference 4', 'wiki')
     assert 'already in use' in str(e.value)
 
     with pytest.raises(OneCodexException) as e:
-        reference('wikipedia reference 1', 'wiki1')
+        report.reference('wikipedia reference 1', 'wiki1')
     assert 'already in use with label=1' in str(e.value)
 
     mystyle = 'font-family: Monospace'
-    obj = bibliography(style=mystyle)
+    obj = report.bibliography(style=mystyle)
     bundle = obj._repr_mimebundle_()
     assert len(bundle) == 1
     assert 'wikipedia reference 1' in bundle['text/html']
@@ -280,10 +280,10 @@ def test_reference_and_biblio(mock_reports):
     obj.display()
 
 
-def test_pagebreak(mock_reports):
-    from onecodex.reports import pagebreak
+def test_page_break(mock_reports):
+    from onecodex.notebooks import report
 
-    obj = pagebreak()
+    obj = report.page_break()
     bundle = obj._repr_mimebundle_()
 
     assert len(bundle) == 1
@@ -293,8 +293,8 @@ def test_pagebreak(mock_reports):
 
 
 @pytest.mark.parametrize('add_br', [False, True])
-def test_coversheet(mock_reports, add_br):
-    from onecodex.reports import coversheet
+def test_cover_sheet(mock_reports, add_br):
+    from onecodex.notebooks import report
 
     mytitle = 'report title'
     prepared_for = 'darth@vader.com'
@@ -303,7 +303,7 @@ def test_coversheet(mock_reports, add_br):
         'light saber': 'blue',
         'force': 'strong'
     }
-    obj = coversheet(mytitle, prepared_for, prepared_by, project_details, add_br=add_br)
+    obj = report.cover_sheet(mytitle, prepared_for, prepared_by, project_details, add_br=add_br)
     bundle = obj._repr_mimebundle_()
 
     assert len(bundle) == 1
@@ -320,9 +320,9 @@ def test_coversheet(mock_reports, add_br):
 
 
 def test_html_export(mock_reports, mock_notebook):
-    from onecodex.reports import OneCodexHTMLExporter
+    from onecodex.notebooks import exporters
 
-    obj = OneCodexHTMLExporter()
+    obj = exporters.OneCodexHTMLExporter()
     output, resources = obj.from_notebook_node(mock_notebook)
 
     # svg gets encoded for embedding in HTML
@@ -363,9 +363,9 @@ def test_html_export(mock_reports, mock_notebook):
 
 
 def test_pdf_export(mock_reports, mock_notebook):
-    from onecodex.reports import OneCodexPDFExporter
+    from onecodex.notebooks import exporters
 
-    obj = OneCodexPDFExporter()
+    obj = exporters.OneCodexPDFExporter()
     output, resources = obj.from_notebook_node(mock_notebook)
 
     # not much to do here without actually importing weasyprint
