@@ -255,16 +255,31 @@ class cover_sheet(object):
         <div class="pagebreak">
           <h2 class="coverpage-title">{}</h2>
           <div class="coverpage-date">{}</div>
-          <h4>PREPARED FOR</h4>
-          {}
-          <br />
-          <h4>PREPARED BY</h4>
-          {}
-          <br />
-          <h4>PROJECT DETAILS</h4>
-          {}
-        </div>
-        """.format(
+        """
+
+        if self.prepared_for:
+            body += """
+            <h4>PREPARED FOR</h4>
+            {}
+            <br />
+            """
+
+        if self.prepared_by:
+            body += """
+            <h4>PREPARED BY</h4>
+            {}
+            <br />
+            """
+
+        if self.project_details:
+            body += """
+            <h4>PROJECT DETAILS</h4>
+            {}
+            """
+
+        body += "</div>"
+
+        body = body.format(
             self.title,
             self.proj_date,
             self.prepared_for,
