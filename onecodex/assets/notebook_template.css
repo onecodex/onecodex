@@ -91,6 +91,7 @@ dl.bibliography dt {
   width: 20px;
   text-align: right;
   padding-right: 10px;
+  padding-bottom: 10px;
   font-weight: bold;
 }
 dl.bibliography dt::after {
@@ -98,6 +99,7 @@ dl.bibliography dt::after {
 }
 dl.bibliography dd {
   padding-left: 0px;
+  padding-bottom: 10px;
 }
 div {
   hyphens: auto;
