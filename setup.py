@@ -72,7 +72,6 @@ setup(
             'pandas>=0.23.0',
             'scikit-bio>=0.4.2,<0.5.0',
             'scikit-learn>=0.19.0',
-            'vega>=1.4.0',
         ],
         'testing': [
             'coverage~=4.5',
