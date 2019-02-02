@@ -13,6 +13,7 @@ import os
 from requests.auth import HTTPBasicAuth
 import warnings
 
+from onecodex.exceptions import OneCodexException
 from onecodex.lib.auth import BearerTokenAuth
 from onecodex.models import _model_lookup
 from onecodex.utils import get_raven_client, collapse_user
@@ -184,6 +185,11 @@ class ExtendedPotionClient(PotionClient):
                                                              client=self)
 
             expanded_schema = self.session.get(self._schema_url + '?expand=all').json()
+
+            if 'message' in schema:
+                raise OneCodexException(schema['message'])
+            elif 'message' in expanded_schema:
+                raise OneCodexException(expanded_schema['message'])
 
             # serialize the main schema
             serialized_schema = {}
