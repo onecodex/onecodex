@@ -82,7 +82,9 @@ class FakeSamplesResource():
         return {
             'upload_url': 'http://localhost:3005/fastx_proxy',
             'sample_id': 'sample_uuid_here',
-            'additional_fields': {},
+            'additional_fields': {
+                'status_url': 'http://localhost:3005/fastx_proxy/errors',
+            },
         }
 
     def init_multipart_upload(self):
@@ -269,8 +271,9 @@ def test_paired_end_files():
 def test_upload_fileobj():
     # upload succeeds via fastx-proxy
     file_obj = BytesIO(b'>test\nACGT\n')
+    init_upload_fields = FakeSamplesResource().init_upload(['filename', 'size', 'upload_type'])
     upload_fileobj(
-        file_obj, 'test.fa', {'upload_url': 'fastx_proxy', 'sample_id': '1234', 'additional_fields': {}},
+        file_obj, 'test.fa', init_upload_fields,
         FakeSession(), FakeSamplesResource()
     )
     file_obj.close()
@@ -278,8 +281,9 @@ def test_upload_fileobj():
     # upload via fastx-proxy fails via 500 and must fall through to S3
     with patch('boto3.client') as b3:
         file_obj = BytesIO(b'>test\nACGT\n')
+        init_upload_fields = FakeSamplesResource().init_upload(['filename', 'size', 'upload_type'])
         ret_sample_id = upload_fileobj(
-            file_obj, 'test.fa', {'upload_url': 'fastx_proxy', 'sample_id': '1234', 'additional_fields': {}},
+            file_obj, 'test.fa', init_upload_fields,
             FakeSessionProxyFails(500), FakeSamplesResource()
         )
         file_obj.close()
@@ -291,8 +295,9 @@ def test_upload_fileobj():
     # to contact the API to get a more detailed error message
     with pytest.raises(UploadException) as e:
         file_obj = BytesIO(b'>test\nACGT\n')
+        init_upload_fields = FakeSamplesResource().init_upload(['filename', 'size', 'upload_type'])
         upload_fileobj(
-            file_obj, 'test.fa', {'upload_url': 'fastx_proxy', 'sample_id': '1234', 'additional_fields': {}},
+            file_obj, 'test.fa', init_upload_fields,
             FakeSessionProxyFails(400), FakeSamplesResource()
         )
         file_obj.close()

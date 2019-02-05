@@ -702,9 +702,10 @@ def _fastx_proxy_upload(file_obj, file_name, fields, session, samples_resource):
     elif upload_request.status_code not in [200, 201]:
         # if using proxy, special route can provide more info on e.g., validation issues
         if fields.get('sample_id'):
-
             try:
-                e_resp = session.post(fields['status_url'], json={'sample_id': fields.get('sample_id')})
+                e_resp = session.post(
+                    fields['additional_fields']['status_url'], json={'sample_id': fields.get('sample_id')}
+                )
 
                 if e_resp.status_code == 200:
                     process_api_error(e_resp, state='upload')
