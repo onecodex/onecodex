@@ -20,6 +20,17 @@ class OneCodexHTMLExporter(HTMLExporter):
     export_from_notebook = 'One Codex HTML Report'
     template_path = [ASSETS_PATH]
 
+    def __init__(self, config=None, **kw):
+        super(OneCodexHTMLExporter, self).__init__(config=config, **kw)
+
+        # this preprocessor converts {{variable}} tags in markdown blocks to their values
+        # see https://jupyter-contrib-nbextensions.readthedocs.io/en/latest/nbextensions/python-
+        # markdown/readme.html
+        self.register_preprocessor(
+            'jupyter_contrib_nbextensions.nbconvert_support.PyMarkdownPreprocessor',
+            enabled=True
+        )
+
     def from_notebook_node(self, nb, resources=None, **kw):
         """Uses nbconvert's HTMLExporter to generate HTML, with slight modifications.
 
@@ -68,13 +79,6 @@ class OneCodexHTMLExporter(HTMLExporter):
                     # if there's a custom date specified, don't insert it
                     elif out.get('metadata') and out['metadata'].get('onecodex') == 'customdate':
                         do_not_insert_date = True
-            # replace variables in markdown blocks with their values
-            elif cell['cell_type'] == 'markdown':
-                md_vars = cell['metadata'].get('variables', {})
-
-                if isinstance(md_vars, dict):
-                    for k, v in md_vars.items():
-                        cell['source'] = cell['source'].replace('{{' + k + '}}', v)
 
         # add one codex logo unless told not to
         if not os.environ.get('ONE_CODEX_REPORT_NO_LOGO', False):
