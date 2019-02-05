@@ -10,6 +10,7 @@ import errno
 import json
 import logging
 import os
+from requests import Session
 from requests.auth import HTTPBasicAuth
 import warnings
 
@@ -180,11 +181,16 @@ class ExtendedPotionClient(PotionClient):
 
         if serialized_schema is None:
             # if the schema wasn't cached or if it was expired, get it anew
-            schema = self.session.get(self._schema_url).json(cls=PotionJSONSchemaDecoder,
-                                                             referrer=self._schema_url,
-                                                             client=self)
 
-            expanded_schema = self.session.get(self._schema_url + '?expand=all').json()
+            # use a non-authenticated session to fetch the schema. if our creds are invalid
+            # and we use the authenticated session in `self.session`, the fetch will fail
+            # despite the schema being publically available.
+            unauth_sess = Session()
+            schema = unauth_sess.get(self._schema_url).json(cls=PotionJSONSchemaDecoder,
+                                                            referrer=self._schema_url,
+                                                            client=self)
+
+            expanded_schema = unauth_sess.get(self._schema_url + '?expand=all').json()
 
             if 'message' in schema:
                 raise OneCodexException(schema['message'])
