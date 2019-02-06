@@ -41,6 +41,8 @@ class VizHeatmapMixin(object):
             A string or list containing strings representing metadata fields. When a point in the
             plot is hovered over, the value of the metadata associated with that sample will be
             displayed in a modal.
+        legend: `string`, optional
+            Variable to map the color scale to (default is 'abundance')
 
         Examples
         --------
