@@ -21,6 +21,17 @@ def test_api_creation(api_data):
     assert True
 
 
+def test_sample_int_id(ocx, api_data):
+    """
+    Ensure that uuids do not get coerced into integers in the off chance that
+    they're numeric-looking.
+
+    Regression test for https://github.com/onecodex/onecodex/issues/200
+    """
+    sample = ocx.Samples.get('0111111111111110')
+    assert sample.id == '0111111111111110'
+
+
 def test_sample_get(ocx, api_data):
     sample = ocx.Samples.get('761bc54b97f64980')
     assert sample.size == 302369471

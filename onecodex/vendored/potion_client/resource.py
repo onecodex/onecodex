@@ -107,9 +107,7 @@ class Resource(Reference):
     @property
     def id(self):
         if self._uri is not None:
-            id_ = self._uri[self._uri.rfind('/') + 1:]
-            if id_.isdigit():
-                return int(id_)
+            id_ = self._uri[self._uri.rfind("/") + 1:]
             return id_
         return None
 
