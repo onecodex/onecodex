@@ -1,6 +1,3 @@
-"""
-Functions for connecting to the One Codex server; these should be used across CLI and GUI clients
-"""
 import re
 import requests
 

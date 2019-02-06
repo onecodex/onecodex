@@ -44,8 +44,8 @@ class OneCodexHTMLExporter(HTMLExporter):
         Notes
         -----
         This exporter will only save cells generated with Altair/Vega if they have an SVG image type
-        stored with them. This data is only stored if our fork of `ipyvega` is installed--otherwise,
-        they will be low-resolution PNGs, which will not be exported.
+        stored with them. This data is only stored if our fork of `ipyvega` is installed or the onecodex
+        # renderer is used--otherwise, they will be low-resolution PNGs, which will not be exported.
         """
         nb = copy.deepcopy(nb)
 

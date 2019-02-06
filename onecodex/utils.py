@@ -1,7 +1,3 @@
-"""
-utils.py
-author: @mbiokyle29
-"""
 import base64
 from click import BadParameter, Context, echo
 from functools import wraps

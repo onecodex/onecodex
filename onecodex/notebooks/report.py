@@ -4,6 +4,14 @@ from onecodex.exceptions import OneCodexException
 
 
 class set_style(object):
+    """Inserts a <style> block in <head>. Used to override default styling.
+
+    Parameters
+    ----------
+    style : `string`
+        CSS to override default styling of the entire report.
+    """
+
     def __init__(self, style):
         if not style.startswith('\n'):
             style = '\n' + style
@@ -22,6 +30,16 @@ class set_style(object):
 
 
 class set_center_header(object):
+    """Inserts text in the center of the header at the top of every page of the report.
+
+    Parameters
+    ----------
+    text : `string`
+        Centered text to display to the top of every page.
+    style : `string`, optional
+        CSS to override default styling.
+    """
+
     def __init__(self, text, style=None):
         self.text = text
         self.style = '' if style is None else style
@@ -35,6 +53,16 @@ class set_center_header(object):
 
 
 class set_date(object):
+    """Set report-wide date, overriding default (today).
+
+    Parameters
+    ----------
+    date : `string`
+        Date to use in page footers and cover pages. Default uses January 1, 1900 format.
+    style : `string`, optional
+        CSS to override default styling.
+    """
+
     def __init__(self, date=None, style=None):
         self.date = '{dt:%B} {dt.day}, {dt:%Y}'.format(dt=datetime.datetime.now()) if date is None else date
         self.style = '' if style is None else style
@@ -55,6 +83,16 @@ class set_date(object):
 
 
 class title(object):
+    """Insert an <h2> title block. Used for either section or report titles.
+
+    Parameters
+    ----------
+    text : `string`
+        Text to insert into <h2> block.
+    style : `string`, optional
+        CSS to override default styling.
+    """
+
     def __init__(self, text, style=None):
         self.text = text
         self.style = '' if style is None else style
@@ -68,6 +106,18 @@ class title(object):
 
 
 class set_logo(object):
+    """Place a custom logo at the top of every page of the report.
+
+    Parameters
+    ----------
+    url : `string`
+        Path to the custom report logo as a URL. If a local file, use file://.
+    position : {'left', 'center', 'right'}, optional
+        Where to place the custom logo. Default is the top-left corner of every page.
+    style : `string`, optional
+        CSS to override default styling.
+    """
+
     def __init__(self, url, position='left', style=None):
         self.url = url
         self.style = '' if style is None else style
@@ -90,6 +140,30 @@ class set_logo(object):
 
 
 class legend(object):
+    """Add a figure legend. Call this after generating a figure.
+
+    Parameters
+    ----------
+    text : `string`
+        The meat of the figure legend.
+    heading : `string`, optional
+        Bolded text to appear before the meat of the legend.
+    fignum : `string` or `integer`, optional
+        The number of this figure. If not specified, will auto-increment every time this method is
+        called, starting with Figure 1.
+    style : `string`, optional
+        CSS to override default styling.
+
+    Notes
+    -----
+    Figure legend text looks something like this:
+
+        <b>Figure {fignum}. {heading}</b> {text}
+
+    The figure number will be auto-incremented every time legend() is called, but can be overriden
+    by passing the fignum kwarg.
+    """
+
     def __init__(self, text, heading=None, fignum=None, style=None):
         self.heading = '' if heading is None else '{} '.format(heading)
         self.text = text
@@ -119,6 +193,62 @@ class legend(object):
 
 
 def reference(text=None, label=None):
+    """Add a reference to the bibliography and insert a superscript number.
+
+    Parameters
+    ----------
+    text : `string`, optional
+        The complete text of the reference, e.g. Roo, et al. "How to Python." Nature, 2019.
+    label : `string`, optional
+        A short label to describe this reference.
+
+    Notes
+    -----
+    1) Every time reference() is called, the reference number is auto-incremented. That is, the first
+       time you call this, a superscript 1 is inserted. The next time you call this (with a different
+       reference), a superscript 2 is inserted.
+
+    2) This function returns HTML. It is meant to be used inside a Markdown cell in your IPython
+       notebook, or concatenated together with another string that's used as input to a function
+       here in the `report` module.
+
+    Examples
+    --------
+    You want to insert a reference at the current position, and store it using a short label so you
+    can access it again without typing the entire reference text.
+
+        >>> reference('Roo, et al. "How to Python." Nature, 2019.', 'roo1')
+        '<sup class="reference">1</sup>'
+
+    The next time you want to insert this reference, just use the short 'roo1' label.
+
+        >>> reference(label='roo1')
+        '<sup class="reference">1</sup>'
+
+    You want to insert a list of references in a single IPython cell, each with a short label, and
+    use them all later without displaying any of the superscript reference numbers now.
+
+        _ = reference('Roo, et al. "How to Python." Nature, 2019.', 'roo1')
+        _ = reference('Roo, et al. "The Tao of Roo." Random House, 2018.', 'roo2')
+        _ = reference('Roo, et al. "Roo and the Art of Database Maintenance." N/A, 2017.', 'roo3')
+
+        ~~~ And later, in a Markdown cell in your IPython notebook ~~~
+
+        As Roo, et al. outlined in a previous work{reference(label='roo2')}, all play and no work
+        makes for a happy dog. Later, the same authors applied similar reasoning to the care of
+        Burmese Pythons{reference(label='roo1')}. By comparing the care of dogs and Pythons to
+        SQL databases, Roo, et al. make a compelling argument for why writing docstrings can be fun
+        and not just a chore{reference(label='roo3')}.
+
+    You want to insert a reference into a figure legend, using `report.legend`.
+
+        report.legend(
+            'As you can clearly see in the above figure, the data supports my conclusion '
+            'and does not support the conclusion of my peers{reference(label='similar_paper1')}. '
+            'This is most likely because I am smarter and more attractive than the authors of '
+            'those other publications{reference(label='ego_and_insecurity1')}.'
+        )
+    """
     if text is None and label is None:
         raise OneCodexException('Please specify at least one of: text, label')
 
@@ -167,6 +297,14 @@ def reference(text=None, label=None):
 
 
 class bibliography(object):
+    """Adds a bibliography containing all references cited using `report.reference`.
+
+    Parameters
+    ----------
+    style : `string`, optional
+        CSS to override default styling.
+    """
+
     def __init__(self, style=None):
         self.style = '' if style is None else style
 
@@ -200,6 +338,8 @@ class bibliography(object):
 
 
 class page_break(object):
+    """Inserts a page break."""
+
     def display(self):
         from IPython.display import display
         display(self)
@@ -209,6 +349,25 @@ class page_break(object):
 
 
 class cover_sheet(object):
+    """Inserts a full-page cover sheet containing report title and various bits of data.
+
+    Parameters
+    ----------
+    title : `string`, optional
+        The title of the report.
+    prepared_for : `string`, optional
+        The name, address, phone number, e-mail, or other information about the person or
+        organization for whom this report was generated.
+    prepared_by : `string`, optional
+        Same as above, but for the person or organization generating this report.
+    project_details : `string` or `dict`, optional
+        Information bits of data related to this project. If given a dictionary, will generate a
+        two-column table where keys appear in the left column, bold, and values appear in the right
+        column. If given a string, will dump that string into the project details section.
+    add_br : `bool`, optional
+        By default, will replace newlines with HTML <br> tags. If false, won't.
+    """
+
     def __init__(self, title, prepared_for, prepared_by, project_details, add_br=True):
         if add_br:
             title = title.replace('\n', '<br />')

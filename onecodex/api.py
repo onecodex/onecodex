@@ -1,9 +1,3 @@
-"""
-api.py
-author: @mbiokyle29
-
-One Codex API
-"""
 from __future__ import print_function
 from datetime import datetime
 import errno
@@ -28,10 +22,8 @@ log = logging.getLogger(__name__)
 
 
 class Api(object):
-    """
-    This is the base One Codex Api object class. It instantiates a Potion-Client
-        object under the hood for making requests.
-    """
+    """This is the base One Codex Api object class. It instantiates a Potion-Client object under the
+    hood for making requests."""
 
     def __init__(self, api_key=None,
                  bearer_token=None, cache_schema=True,

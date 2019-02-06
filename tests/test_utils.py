@@ -1,7 +1,3 @@
-"""
-test_api.py
-author: @mbiokyle29
-"""
 from click import BadParameter
 from functools import partial
 import pytest

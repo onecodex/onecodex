@@ -53,7 +53,7 @@ class AnalysisMixin(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceM
 
         Metadata fields are returned as is, from the `self.metadata` DataFrame. If multiple metadata
         fields are specified in a tuple, their values are joined as strings separated by underscore.
-        Multiple metadata fields in tuple must both be categorical. That is, a numerical field and
+        Multiple metadata fields in a tuple must both be categorical. That is, a numerical field and
         boolean can not be joined, or the result would be something like '87.4_True'.
 
         The 'Label' field name is transformed to '_display_name'. This lets us label points in plots

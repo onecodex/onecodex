@@ -174,8 +174,7 @@ class ResourceList(object):
 
 
 class OneCodexBase(object):
-    """
-    A parent object for all the One Codex objects that wraps the Potion-Client API and makes
+    """A parent object for all the One Codex objects that wraps the Potion-Client API and makes
     access and usage easier.
     """
 
@@ -358,17 +357,15 @@ class OneCodexBase(object):
 
     @classmethod
     def all(cls, sort=None, limit=None):
-        """
-        Returns all of the {classname}. Alias for {classname}.where() (without filter arguments).
+        """Returns all objects of this type. Alias for where() (without filter arguments).
 
-        See `{classname}.where` for documentation on the `sort` and `limit` parameters.
-        """.format(classname=cls.__name__)
+        See `where` for documentation on the `sort` and `limit` parameters.
+        """
         return cls.where(sort=sort, limit=limit)
 
     @classmethod
     def where(cls, *filters, **keyword_filters):
-        """
-        Retrieves {classname} from the One Codex server.
+        """Retrieves objects (Samples, Classifications, etc.) from the One Codex server.
 
         Parameters
         ----------
@@ -388,9 +385,9 @@ class OneCodexBase(object):
         Returns
         -------
         list
-            A list of all {classname} matching these filters. If no filters are passed, this
-            matches all {classname}.
-        """.format(classname=cls.__name__)
+            A list of all objects matching these filters. If no filters are passed, this
+            matches all objects.
+        """
         check_bind(cls)
 
         public = False
@@ -436,26 +433,24 @@ class OneCodexBase(object):
 
     @classmethod
     def get(cls, uuid):
-        """
-        Retrieve one specific {classname} object from the server by its UUID
-        (unique 16-character id). UUIDs can be found in the web browser's address bar while
-        viewing analyses and other objects.
+        """Retrieve one specific object from the server by its UUID (unique 16-character id). UUIDs
+        can be found in the web browser's address bar while viewing analyses and other objects.
 
         Parameters
         ----------
         uuid : string
-            UUID of the {classname} object to retrieve.
+            UUID of the object to retrieve.
 
         Returns
         -------
         OneCodexBase | None
-            The {classname} object with that UUID or None if no {classname} object could be found.
+            The object with that UUID or None if no object could be found.
 
         Examples
         --------
         >>> api.Samples.get('xxxxxxxxxxxxxxxx')
         <Sample xxxxxxxxxxxxxxxx>
-        """.format(classname=cls.__name__)
+        """
         check_bind(cls)
 
         # we're just retrieving one object from its uuid
@@ -477,9 +472,7 @@ class OneCodexBase(object):
         return cls(_resource=resource)
 
     def delete(self):
-        """
-        Delete this {classname} object off the One Codex server.
-        """.format(classname=self.__class__.__name__)
+        """Delete this object from the One Codex server."""
         check_bind(self)
         if self.id is None:
             raise ServerError('{} object does not exist yet'.format(self.__class__.name))
@@ -495,9 +488,7 @@ class OneCodexBase(object):
                 raise e
 
     def save(self):
-        """
-        Either create or persist changes on this {classname} object back to the One Codex server.
-        """.format(classname=self.__class__.__name__)
+        """Either create or persist changes on this object back to the One Codex server."""
         check_bind(self)
 
         creating = self.id is None
@@ -533,8 +524,7 @@ __all__ = ['Samples', 'Classifications', 'Alignments', 'Panels', 'Jobs', 'Projec
 
 
 def pretty_print_error(err_json):
-    """Pretty print Flask-Potion error messages for the user
-    """
+    """Pretty print Flask-Potion error messages for the user."""
     # Special case validation errors
     if len(err_json) == 1 and 'validationOf' in err_json[0]:
         required_fields = ', '.join(err_json[0]['validationOf']['required'])

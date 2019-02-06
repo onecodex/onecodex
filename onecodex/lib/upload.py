@@ -1,7 +1,3 @@
-"""
-Functions for connecting to the One Codex server; these should be rolled out
-into the onecodex python library at some point for use across CLI and GUI clients
-"""
 from __future__ import print_function, division
 
 import bz2
@@ -238,10 +234,8 @@ def _file_size(file_path, uncompressed=False):
             with bz2.BZ2File(file_path, mode='rb') as fp:
                 fp.seek(0, os.SEEK_END)
                 return fp.tell()
-        else:
-            return os.path.getsize(file_path)
-    else:
-        return os.path.getsize(file_path)
+
+    return os.path.getsize(file_path)
 
 
 def _file_stats(file_path, enforce_fastx=True):
@@ -583,7 +577,7 @@ def upload_sequence(files, session, samples_resource, threads=1, metadata=None, 
 
 
 def upload_sequence_fileobj(file_obj, file_name, fields, session, samples_resource, log=None):
-    """Uploads a single file-like object to the One Codex server either via fastx-proxy or directly
+    """Uploads a single file-like object to the One Codex server via either fastx-proxy or directly
     to S3.
 
     Parameters
