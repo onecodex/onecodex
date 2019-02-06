@@ -239,3 +239,38 @@ def test_plot_mds_exceptions(ocx, api_data):
     with pytest.raises(OneCodexException) as e:
         samples.plot_mds(tooltip='does_not_exist')
     assert 'not found' in str(e.value)
+
+
+def test_plot_bargraph_arguments(ocx, api_data):
+    samples = ocx.Samples.where(project='4b53797444f846c4')
+
+    # expect error if rank is None, since that could lead to weird results
+    with pytest.raises(OneCodexException) as e:
+        samples.plot_bargraph(rank=None)
+    assert 'specify a rank' in str(e.value)
+
+    # tooltip with invalid metadata fields or taxids
+    with pytest.raises(OneCodexException) as e:
+        samples.plot_bargraph(tooltip='does_not_exist')
+    assert 'not found' in str(e.value)
+
+
+def test_plot_bargraph_chart_result(ocx, api_data):
+    samples = ocx.Samples.where(project='4b53797444f846c4')
+
+    chart = (
+        samples
+        .plot_bargraph(
+            rank='phylum',
+            return_chart=True,
+            title='Glorious Bargraph',
+            xlabel='Exemplary Samples',
+            ylabel='Glorious Abundances'
+        )
+    )
+
+    assert chart.title == 'Glorious Bargraph'
+    assert chart.encoding.x.shorthand == 'display_name'
+    assert chart.encoding.x.axis.title == 'Exemplary Samples'
+    assert chart.encoding.y.shorthand == 'readcount_w_children'
+    assert chart.encoding.y.axis.title == 'Glorious Abundances'

@@ -7,6 +7,7 @@ from onecodex.viz._pca import VizPCAMixin
 from onecodex.viz._primitives import dendrogram, boxplot
 from onecodex.viz._metadata import VizMetadataMixin
 from onecodex.viz._distance import VizDistanceMixin
+from onecodex.viz._bargraph import VizBargraphMixin
 
 
 # # public CDN
@@ -170,4 +171,4 @@ except NameError:
 
 
 __all__ = ['VizPCAMixin', 'VizHeatmapMixin', 'VizMetadataMixin', 'VizDistanceMixin',
-           'dendrogram', 'boxplot']
+           'dendrogram', 'boxplot', 'VizBargraphMixin']
