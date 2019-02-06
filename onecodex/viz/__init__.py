@@ -9,7 +9,9 @@ from onecodex.viz._metadata import VizMetadataMixin
 from onecodex.viz._distance import VizDistanceMixin
 
 
-ONE_CODEX_VEGA_CDN = 'https://cdn.jsdelivr.net/npm/'
+# # public CDN
+# ONE_CODEX_VEGA_CDN = 'https://cdn.jsdelivr.net/npm/'
+ONE_CODEX_VEGA_CDN = 'https://static.onecodex.com/cdn/'
 
 
 def onecodex_theme():
