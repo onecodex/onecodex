@@ -1,6 +1,3 @@
-"""
-Unit tests for One Codex
-"""
 from onecodex.lib.auth import check_version
 from onecodex.version import __version__
 

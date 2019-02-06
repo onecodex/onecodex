@@ -1,8 +1,3 @@
-"""
-auth.py
-author: @mbiokyle29 / @boydgreenfield
-- Adapted from v0 auth.py
-"""
 from __future__ import print_function
 import click
 import datetime

@@ -1,7 +1,3 @@
-"""
-__init__.py
-author: @mbiokyle29
-"""
 import logging
 
 __all__ = ["Api"]

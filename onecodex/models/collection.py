@@ -14,7 +14,7 @@ from onecodex.models import ResourceList
 
 
 class SampleCollection(ResourceList, AnalysisMixin):
-    """A collection of `Samples` or `Classifications` objects with many methods are analysis of
+    """A collection of `Samples` or `Classifications` objects with many methods for analysis of
     classifications results.
 
     Notes

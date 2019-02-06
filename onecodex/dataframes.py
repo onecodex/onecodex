@@ -16,22 +16,25 @@ class ClassificationsDataFrame(pd.DataFrame):
 
     Parameters
     ----------
-        ocx_rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
-            Analysis was restricted to abundances of taxa at the specified level.
+    ocx_rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+        Analysis was restricted to abundances of taxa at the specified level.
 
-        ocx_field : {'readcount_w_children', 'readcount', 'abundance'}
-            Which field was used for the abundance/count of a particular taxon in a sample.
+    ocx_field : {'readcount_w_children', 'readcount', 'abundance'}
+        Which field was used for the abundance/count of a particular taxon in a sample.
 
-            - 'readcount_w_children': total reads of this taxon and all its descendants
-            - 'readcount': total reads of this taxon
-            - 'abundance': genome size-normalized relative abundances, from shotgun sequencing
+        - 'readcount_w_children': total reads of this taxon and all its descendants
+        - 'readcount': total reads of this taxon
+        - 'abundance': genome size-normalized relative abundances, from shotgun sequencing
 
-        ocx_metadata : `pandas.DataFrame`
-            A DataFrame containing collated metadata fields for all samples in this analysis.
+    ocx_metadata : `pandas.DataFrame`
+        A DataFrame containing collated metadata fields for all samples in this analysis.
 
-        ocx_taxonomy : `pandas.DataFrame`
-            A DataFrame containing taxonomy information (i.e., id, name, rank, parent) for all taxa
-            referenced in this analysis.
+    ocx_taxonomy : `pandas.DataFrame`
+        A DataFrame containing taxonomy information (i.e., id, name, rank, parent) for all taxa
+        referenced in this analysis.
+
+    ocx_normalized : `bool`
+        Whether the results in this DataFrame were normalized, each sample summing to 1.0.
     """
 
     _metadata = ['ocx_rank', 'ocx_field', 'ocx_taxonomy', 'ocx_metadata', 'ocx_normalized']

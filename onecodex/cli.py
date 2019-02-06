@@ -1,8 +1,3 @@
-#!/usr/bin/env python
-"""
-cli.py
-author: @mbiokyle29
-"""
 from __future__ import print_function
 import click
 import copy
