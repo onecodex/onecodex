@@ -43,7 +43,7 @@ class set_date(object):
             ipy = get_ipython()
             ipy.meta['customdate'] = self.date
         except NameError:
-            raise OneCodexException('Must be run from within IPython')
+            pass
 
     def display(self):
         from IPython.display import display
