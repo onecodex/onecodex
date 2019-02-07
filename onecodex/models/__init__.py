@@ -524,12 +524,12 @@ class OneCodexBase(object):
 
 
 from onecodex.models.analysis import Analyses, Classifications, Alignments, Panels  # noqa
-from onecodex.models.misc import Jobs, Projects, Tags, Users  # noqa
+from onecodex.models.misc import Jobs, Projects, Tags, Users, Documents  # noqa
 from onecodex.models.sample import Samples, Metadata  # noqa
 
 
 __all__ = ['Samples', 'Classifications', 'Alignments', 'Panels', 'Jobs', 'Projects', 'Tags',
-           'Users', 'Metadata']
+           'Users', 'Metadata', 'Documents']
 
 
 def pretty_print_error(err_json):

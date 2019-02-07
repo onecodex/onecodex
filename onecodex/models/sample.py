@@ -5,7 +5,7 @@ from six import string_types
 import warnings
 
 from onecodex.exceptions import OneCodexException
-from onecodex.lib.upload import upload
+from onecodex.lib.upload import upload_sequence
 from onecodex.models import OneCodexBase, Projects, Tags
 from onecodex.models.helpers import truncate_string
 
@@ -171,7 +171,7 @@ class Samples(OneCodexBase):
             if isinstance(project_search, list):
                 project = project_search[0]
 
-        samples = upload(
+        samples = upload_sequence(
             files, res._client.session, res, threads=threads, metadata=metadata, tags=tags,
             project=project, log=log, coerce_ascii=coerce_ascii, progressbar=progressbar
         )

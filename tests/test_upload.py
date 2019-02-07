@@ -10,8 +10,8 @@ from requests_toolbelt import MultipartEncoder
 from requests.exceptions import HTTPError
 
 from onecodex.exceptions import OneCodexException, UploadException
-from onecodex.lib.upload import (connectivity_error, upload, upload_fileobj, interleaved_filename,
-                                 FASTXPassthru, FASTXInterleave, _file_stats)
+from onecodex.lib.upload import (connectivity_error, upload_sequence, upload_sequence_fileobj, interleaved_filename,
+                                 FilePassthru, FASTXInterleave, _file_stats)
 
 
 @pytest.mark.parametrize('files,filename', [
@@ -39,6 +39,9 @@ def test_file_stats():
     with pytest.raises(UploadException) as e:
         _file_stats('tests/data/api/complete_analyses.json')
     assert 'extension must be one of' in str(e.value)
+
+    stats = _file_stats('tests/data/api/complete_analyses.json', enforce_fastx=False)
+    assert stats == ('complete_analyses.json', 683, None)
 
 
 def test_fastxinterleave():
@@ -172,16 +175,16 @@ class FakeSessionProxyFails():
 def test_upload_lots_of_files(file_list, nfiles, fxi_calls, fxp_calls, size_calls):
     fake_size = lambda filename: int(float(filename.split('.')[1]))  # noqa
 
-    ufo = 'onecodex.lib.upload.upload_fileobj'
+    ufo = 'onecodex.lib.upload.upload_sequence_fileobj'
     fxi = 'onecodex.lib.upload.FASTXInterleave'
-    fxp = 'onecodex.lib.upload.FASTXPassthru'
+    fxp = 'onecodex.lib.upload.FilePassthru'
     sz = 'onecodex.lib.upload.os.path.getsize'
 
-    with patch(ufo) as upload_fileobj, patch(fxi) as interleave, patch(fxp) as passthru:
+    with patch(ufo) as upload_sequence_fileobj, patch(fxi) as interleave, patch(fxp) as passthru:
         with patch(sz, size_effect=fake_size) as size:
-            upload(file_list, FakeSession(), FakeSamplesResource(), threads=1)
+            upload_sequence(file_list, FakeSession(), FakeSamplesResource(), threads=1)
 
-            assert upload_fileobj.call_count == nfiles
+            assert upload_sequence_fileobj.call_count == nfiles
             assert interleave.call_count == fxi_calls
             assert passthru.call_count == fxp_calls
             assert size.call_count == size_calls
@@ -195,16 +198,16 @@ def test_upload_lots_of_files(file_list, nfiles, fxi_calls, fxp_calls, size_call
 def test_upload_multithread(file_list, nfiles, fxi_calls, fxp_calls, size_calls):
     fake_size = lambda filename: int(float(filename.split('.')[1]))  # noqa
 
-    ufo = 'onecodex.lib.upload.upload_fileobj'
+    ufo = 'onecodex.lib.upload.upload_sequence_fileobj'
     fxi = 'onecodex.lib.upload.FASTXInterleave'
-    fxp = 'onecodex.lib.upload.FASTXPassthru'
+    fxp = 'onecodex.lib.upload.FilePassthru'
     sz = 'onecodex.lib.upload.os.path.getsize'
 
-    with patch(ufo) as upload_fileobj, patch(fxi) as interleave, patch(fxp) as passthru:
+    with patch(ufo) as upload_sequence_fileobj, patch(fxi) as interleave, patch(fxp) as passthru:
         with patch(sz, size_effect=fake_size) as size:
-            upload(file_list, FakeSession(), FakeSamplesResource(), threads=4, log=logging)
+            upload_sequence(file_list, FakeSession(), FakeSamplesResource(), threads=4, log=logging)
 
-            assert upload_fileobj.call_count == nfiles
+            assert upload_sequence_fileobj.call_count == nfiles
             assert interleave.call_count == fxi_calls
             assert passthru.call_count == fxp_calls
             assert size.call_count == size_calls
@@ -218,13 +221,13 @@ def test_api_failures(caplog):
                  'tests/data/files/test.fa']
 
     with pytest.raises(UploadException) as e:
-        upload(file_list, FakeSession(), FakeSamplesResource('init'), threads=1)
+        upload_sequence(file_list, FakeSession(), FakeSamplesResource('init'), threads=1)
     assert 'Could not initialize upload' in str(e.value)
 
-    upload(file_list, FakeSession(), FakeSamplesResource('confirm'), threads=1, log=logging)
+    upload_sequence(file_list, FakeSession(), FakeSamplesResource('confirm'), threads=1, log=logging)
     assert 'Callback could not be completed' in caplog.text
 
-    upload(file_list, FakeSessionProxyFails(400, no_msg=True), FakeSamplesResource(), threads=1, log=logging)
+    upload_sequence(file_list, FakeSessionProxyFails(400, no_msg=True), FakeSamplesResource(), threads=1, log=logging)
     assert 'File could not be uploaded' in caplog.text
 
     with pytest.raises(UploadException) as e:
@@ -242,11 +245,11 @@ def test_unicode_filenames(caplog):
     # should raise if --coerce-ascii not passed
     for before, after in file_list:
         with pytest.raises(OneCodexException) as e:
-            upload([before], FakeSession(), FakeSamplesResource())
+            upload_sequence([before], FakeSession(), FakeSamplesResource())
         assert 'must be ascii' in str(e.value)
 
     # make sure log gets warnings when we rename files
-    upload(
+    upload_sequence(
         [x[0] for x in file_list], FakeSession(), FakeSamplesResource(), log=logging, coerce_ascii=True
     )
 
@@ -255,24 +258,24 @@ def test_unicode_filenames(caplog):
 
 
 def test_single_end_files():
-    upload(
+    upload_sequence(
         ['tests/data/files/test_R1_L001.fq.gz', 'tests/data/files/test_R2_L001.fq.gz'],
         FakeSession(), FakeSamplesResource(), threads=1
     )
 
 
 def test_paired_end_files():
-    upload(
+    upload_sequence(
         [('tests/data/files/test_R1_L001.fq.gz', 'tests/data/files/test_R2_L001.fq.gz')],
         FakeSession(), FakeSamplesResource(), threads=1
     )
 
 
-def test_upload_fileobj():
+def test_upload_sequence_fileobj():
     # upload succeeds via fastx-proxy
     file_obj = BytesIO(b'>test\nACGT\n')
     init_upload_fields = FakeSamplesResource().init_upload(['filename', 'size', 'upload_type'])
-    upload_fileobj(
+    upload_sequence_fileobj(
         file_obj, 'test.fa', init_upload_fields,
         FakeSession(), FakeSamplesResource()
     )
@@ -282,7 +285,7 @@ def test_upload_fileobj():
     with patch('boto3.client') as b3:
         file_obj = BytesIO(b'>test\nACGT\n')
         init_upload_fields = FakeSamplesResource().init_upload(['filename', 'size', 'upload_type'])
-        ret_sample_id = upload_fileobj(
+        ret_sample_id = upload_sequence_fileobj(
             file_obj, 'test.fa', init_upload_fields,
             FakeSessionProxyFails(500), FakeSamplesResource()
         )
@@ -296,7 +299,7 @@ def test_upload_fileobj():
     with pytest.raises(UploadException) as e:
         file_obj = BytesIO(b'>test\nACGT\n')
         init_upload_fields = FakeSamplesResource().init_upload(['filename', 'size', 'upload_type'])
-        upload_fileobj(
+        upload_sequence_fileobj(
             file_obj, 'test.fa', init_upload_fields,
             FakeSessionProxyFails(400), FakeSamplesResource()
         )
@@ -305,7 +308,7 @@ def test_upload_fileobj():
 
 
 def test_multipart_encoder_passthru():
-    wrapper = FASTXPassthru(
+    wrapper = FilePassthru(
         'tests/data/files/test_R1_L001.fq.bz2', os.path.getsize('tests/data/files/test_R1_L001.fq.bz2')
     )
     wrapper_len = len(wrapper.read())

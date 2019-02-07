@@ -86,6 +86,65 @@ filter_reads.hidden = True
 scripts.add_command(filter_reads, 'filter_reads')
 
 
+@onecodex.group('documents', help='Access files in the Document Portal')
+def documents():
+    pass
+
+
+@click.command('list', help='List files available to you')
+@click.pass_context
+@telemetry
+@login_required
+def documents_list(ctx):
+    # TODO: access document listing and print
+    cli_resource_fetcher(ctx, "documents", [])
+
+
+@click.command('upload', help='Upload a file to the Document Portal')
+@click.option('--max-threads', default=4,
+              help=OPTION_HELP['max_threads'], metavar='<int:threads>')
+@click.argument('files', nargs=-1, required=False, type=click.Path(exists=True))
+@click.pass_context
+@pretty_errors
+@telemetry
+@login_required
+def documents_upload(ctx, max_threads, files):
+    """Upload a document file (of any type) to One Codex"""
+    if len(files) == 0:
+        click.echo(ctx.get_help())
+        return
+
+    files = list(files)
+
+    # do the uploading
+    ctx.obj['API'].Documents.upload(
+        files, threads=max_threads, log=log, progressbar=True
+    )
+
+
+@click.command('download', help='Download a file that has been shared with you')
+@click.argument('file', nargs=1, required=True)
+@click.option('--output-path', '-o', 'path', help='Path to output directory',
+              required=False, default=None, type=click.Path(exists=True))
+@click.pass_context
+@pretty_errors
+@telemetry
+@login_required
+def documents_download(ctx, file, path):
+    doc_obj = ctx.obj['API'].Documents.get(file)
+
+    if not doc_obj:
+        log.error('Could not find document {} (404 status code)'.format(file))
+        ctx.exit(1)
+
+    doc_obj.download(path=path, progressbar=True)
+
+
+documents.add_command(documents_list, 'list')
+documents.add_command(documents_upload, 'upload')
+documents.add_command(documents_download, 'download')
+
+
 # resources
 @onecodex.command('analyses')
 @click.argument('analyses', nargs=-1, required=False)
