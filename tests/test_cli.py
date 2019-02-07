@@ -215,7 +215,7 @@ def test_paired_files(runner, mocked_creds_path, upload_mocks):
 
         args = ['--api-key', '01234567890123456789012345678901', 'upload', f, f2]
         # check that only one upload is kicked off for the pair of files
-        patch1 = 'onecodex.lib.upload.upload_fileobj'
+        patch1 = 'onecodex.lib.upload.upload_sequence_fileobj'
         patch2 = 'onecodex.lib.upload.FASTXInterleave'
         with mock.patch(patch1) as mp, mock.patch(patch2) as mp2:
             result = runner.invoke(Cli, args)

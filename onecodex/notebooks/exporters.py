@@ -3,11 +3,13 @@ from builtins import bytes
 import copy
 import datetime
 from io import BytesIO
+import json
 from nbconvert.exporters.html import HTMLExporter
 import os
 import pytz
 from traitlets import default
 
+from onecodex.exceptions import UploadException
 from onecodex.notebooks import report
 
 
@@ -166,11 +168,36 @@ class OneCodexDocumentExporter(OneCodexPDFExporter):
     export_from_notebook = 'Export to One Codex Document Portal'
 
     def from_notebook_node(self, nb, resources=None, **kw):
-        """Takes PDF output from PDFExporter and uploads to One Codex Documents portal.
-        """
+        """Takes PDF output from PDFExporter and uploads to One Codex Documents portal."""
         output, resources = super(OneCodexDocumentExporter, self).from_notebook_node(nb, resources=resources, **kw)
 
-        # TODO: implement storage of PDF in Documents portal
+        from onecodex import Api
+        from onecodex.lib.upload import upload_document_fileobj
+
+        ocx = Api()
+
+        default_filename = 'Analysis Report - {dt:%B} {dt.day}, {dt:%Y}'.format(
+            dt=datetime.datetime.now()
+        )
+
+        file_name = resources['metadata'].get('one_codex_doc_portal_filename', default_filename)
+
+        try:
+            document_id = upload_document_fileobj(
+                BytesIO(output), file_name, ocx._client.session, ocx.Documents._resource
+            )
+        except UploadException as exc:
+            resp = json.dumps({'status': 500, 'message': str(exc)})
+            return resp, resources
+        except Exception:
+            resp = json.dumps({
+                'status': 500,
+                'message': 'Upload failed. Please contact help@onecodex.com for assistance.'
+            })
+            return resp, resources
+
+        resp = json.dumps({'status': 200, 'document_id': document_id})
+        return resp, resources
 
     @default('file_extension')
     def _file_extension_default(self):
