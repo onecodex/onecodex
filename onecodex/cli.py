@@ -6,6 +6,7 @@ author: @mbiokyle29
 from __future__ import print_function
 import click
 import copy
+import dateutil
 import logging
 import os
 import re
@@ -96,8 +97,53 @@ def documents():
 @telemetry
 @login_required
 def documents_list(ctx):
-    # TODO: access document listing and print
-    cli_resource_fetcher(ctx, "documents", [])
+    docs_list = cli_resource_fetcher(ctx, "documents", [], print_results=False)
+
+    if not docs_list:
+        click.echo("You haven't uploaded any files yet, and no files have been shared with you.")
+    else:
+        def _size_formatter(size):
+            suffix = 'B'
+            if size > 1e9:
+                suffix = 'GB'
+                size /= 1e9
+            elif size >= 1e6:
+                suffix = 'MB'
+                size /= 1e6
+            elif size >= 1e3:
+                suffix = 'KB'
+                size /= 1e3
+
+            return '%g %s' % (round(size, 2), suffix)
+
+        formatters = ['%-18s', '%-34s', '%-25s', '%-11s', '%-12s']
+        table = [
+            ['UUID', 'Name', 'Owner', 'Size', 'Created On'],
+            ['-' * 16, '-' * 32, '-' * 23, '-' * 9, '-' * 10],
+        ]
+
+        docs_list = sorted(
+            docs_list,
+            reverse=True,
+            key=lambda x: dateutil.parser.parse(x['created_at']).timestamp()
+        )
+
+        for doc in docs_list:
+            fname = doc['filename']
+            owner = doc['uploader'].email
+            table.append([
+                doc['$uri'].split('/')[-1],
+                fname if len(fname) <= 32 else fname[:29] + '...',
+                owner if len(owner) <= 23 else owner[:20] + '...',
+                _size_formatter(doc['size']) if doc['size'] else 'N/A',
+                dateutil.parser.parse(doc['created_at']).strftime('%Y-%m-%d'),
+            ])
+
+        for row in table:
+            formatted_row = []
+            for formatter, content in zip(formatters, row):
+                formatted_row.append(formatter % content)
+            click.echo(''.join(formatted_row))
 
 
 @click.command('upload', help='Upload a file to the Document Portal')
@@ -137,7 +183,8 @@ def documents_download(ctx, file, path):
         log.error('Could not find document {} (404 status code)'.format(file))
         ctx.exit(1)
 
-    doc_obj.download(path=path, progressbar=True)
+    saved_file = doc_obj.download(path=path, progressbar=True)
+    click.echo('{} saved as {}'.format(file, saved_file))
 
 
 documents.add_command(documents_list, 'list')

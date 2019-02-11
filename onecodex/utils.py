@@ -97,45 +97,43 @@ def pprint(j, no_pretty):
         echo(j)
 
 
-def cli_resource_fetcher(ctx, resource, uris):
-    """Helper method to parse CLI args in API calls
-    """
+def cli_resource_fetcher(ctx, resource, uris, print_results=True):
     try:
-        _cli_resource_fetcher(ctx, resource, uris)
+        # analyses is passed, want Analyses
+        resource_name = resource[0].upper() + resource[1:]
+        if len(uris) == 0:
+
+            # if non given fetch all
+            cli_log.debug("No %s IDs given, fetching all...", resource_name)
+            instances = getattr(ctx.obj['API'], resource_name).all()
+            cli_log.debug("Fetched %i %ss", len(instances), resource)
+            objs_to_return = [x._resource._properties for x in instances]
+        else:
+            uris = list(set(uris))
+            cli_log.debug("Fetching %s: %s", resource_name, ",".join(uris))
+
+            instances = []
+            for uri in uris:
+                try:
+                    instance = getattr(ctx.obj['API'], resource_name).get(uri)
+                    if instance is not None:
+                        instances.append(instance._resource._properties)
+                    else:
+                        cli_log.error('Could not find {} {} (404 status code)'.format(resource_name, uri))
+                except requests.exceptions.HTTPError as e:
+                    cli_log.error('Could not find %s %s (%d status code)'.format(
+                        resource_name, uri, e.response.status_code
+                    ))
+            objs_to_return = instances
+
+        if print_results:
+            pprint(objs_to_return, ctx.obj['NOPPRINT'])
+        else:
+            return objs_to_return
     except requests.exceptions.HTTPError:
         echo("Failed to authenticate. Please check your API key "
              "or trying logging out and back in with `onecodex logout` "
              "and `onecodex login`.")
-
-
-def _cli_resource_fetcher(ctx, resource, uris):
-    # analyses is passed, want Analyses
-    resource_name = resource[0].upper() + resource[1:]
-    if len(uris) == 0:
-
-        # if non given fetch all
-        cli_log.debug("No %s IDs given, fetching all...", resource_name)
-        instances = getattr(ctx.obj['API'], resource_name).all()
-        cli_log.debug("Fetched %i %ss", len(instances), resource)
-        pprint([x._resource._properties for x in instances], ctx.obj['NOPPRINT'])
-    else:
-        uris = list(set(uris))
-        cli_log.debug("Fetching %s: %s", resource_name, ",".join(uris))
-
-        instances = []
-        for uri in uris:
-            try:
-                instance = getattr(ctx.obj['API'], resource_name).get(uri)
-                if instance is not None:
-                    instances.append(instance._resource._properties)
-                else:
-                    cli_log.error('Could not find {} {} (404 status code)'.format(resource_name, uri))
-            except requests.exceptions.HTTPError as e:
-                cli_log.error('Could not find %s %s (%d status code)'.format(
-                    resource_name, uri, e.response.status_code
-                ))
-        # TODO this should probably return, not print
-        pprint(instances, ctx.obj['NOPPRINT'])
 
 
 def is_insecure_platform():

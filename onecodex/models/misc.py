@@ -99,6 +99,8 @@ class Documents(OneCodexBase):
                 raise OneCodexException('Download failed with an HTTP status code {}.'.format(
                                         exc.response.status_code))
 
+        return path
+
     @classmethod
     def upload(cls, files, threads=None, log=None, progressbar=False):
         """Uploads a series of files to the One Codex server.
