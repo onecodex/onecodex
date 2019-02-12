@@ -107,6 +107,7 @@ setup(
         'console_scripts': ['onecodex = onecodex.cli:onecodex'],
         'nbconvert.exporters': [
             'onecodex_pdf = onecodex.notebooks.exporters:OneCodexPDFExporter',
+            'onecodex_html = onecodex.notebooks.exporters:OneCodexHTMLExporter',
             'onecodex_doc = onecodex.notebooks.exporters:OneCodexDocumentExporter',
             ],
     },
