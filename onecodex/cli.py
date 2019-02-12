@@ -93,11 +93,16 @@ def documents():
 
 
 @click.command('list', help='List files available to you')
+@click.option("--json", is_flag=True, default=False,
+              help='Output JSON instead of prettified table')
 @click.pass_context
 @telemetry
 @login_required
-def documents_list(ctx):
-    docs_list = cli_resource_fetcher(ctx, "documents", [], print_results=False)
+def documents_list(ctx, json):
+    docs_list = cli_resource_fetcher(ctx, "documents", [], print_results=json)
+
+    if json:
+        return
 
     if not docs_list:
         click.echo("You haven't uploaded any files yet, and no files have been shared with you.")
@@ -118,7 +123,7 @@ def documents_list(ctx):
 
         formatters = ['%-18s', '%-34s', '%-25s', '%-11s', '%-12s']
         table = [
-            ['UUID', 'Name', 'Owner', 'Size', 'Created On'],
+            ['ID', 'Name', 'Owner', 'Size', 'Created On'],
             ['-' * 16, '-' * 32, '-' * 23, '-' * 9, '-' * 10],
         ]
 
