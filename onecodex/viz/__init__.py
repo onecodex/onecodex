@@ -71,8 +71,25 @@ style.textContent = [
 "}}",
 ].join("\\n");
 
-element[0].appendChild(out_target);
-element[0].appendChild(style);
+if (element[0]) {{
+  // jupyter notebook uses jquery, which returns a list of elements
+  element[0].appendChild(out_target);
+  element[0].appendChild(style);
+}} else {{
+  // jupyter lab returns the DOM element directly
+  element.appendChild(out_target);
+  element.appendChild(style);
+
+  // requirejs is not available in jupyter lab
+  var require_script = document.getElementById("one-codex-requirejs");
+
+  if (!require_script) {{
+    require_script = document.createElement("script");
+    require_script.id = "one-codex-requirejs";
+    require_script.src = "{cdn}require.min.js";
+    document.head.appendChild(require_script);
+  }}
+}}
 
 var output_area = this;
 
@@ -87,17 +104,17 @@ requirejs.config({{
 }});
 
 function showError(el, error) {{
-    el.innerHTML = `<div class="error">
-        <p>JavaScript Error: ${{error.message}}</p>
-        <p>This usually means there's a typo in your chart specification.
-        See the JavaScript console for the full traceback.</p>
-    </div>`;
+  el.innerHTML = `<div class="error">
+    <p>JavaScript Error: ${{error.message}}</p>
+    <p>This usually means there's a typo in your chart specification.
+    See the JavaScript console for the full traceback.</p>
+  </div>`;
 
   throw error;
 }}
 
 require(["vega-embed"], function(vegaEmbed) {{
-  out_target = $("#{id}")[0]
+  out_target = document.getElementById("{id}");
 
   vegaEmbed(out_target, out_target.vega_spec, {{
     defaultStyle: true,
@@ -128,9 +145,12 @@ require(["vega-embed"], function(vegaEmbed) {{
         el_uuid = 'a' + el_uuid[1:]
 
     return (
-        {'application/javascript': vega_js.format(
-            id=el_uuid, spec=json.dumps(spec), cdn=ONE_CODEX_VEGA_CDN
-        )},
+        {
+            'application/javascript': vega_js.format(
+                id=el_uuid, spec=json.dumps(spec), cdn=ONE_CODEX_VEGA_CDN
+            ),
+            'application/vnd.vegalite.v2+json': json.dumps(spec)
+        },
         {'jupyter-vega': '#{0}'.format(el_uuid)}
     )
 
