@@ -232,6 +232,9 @@ API_DATA = {
         "download_uri": "http://localhost:3000/mock/download/url"
     },
     "GET::mock/download/url": "1234567890",
+    "POST::api/v1/documents/a4f6727a840a4df0/download_uri": {
+        "download_uri": "http://localhost:3000/mock/download/url"
+    },
 }
 
 # explicitly load classification results for testing subset_reads

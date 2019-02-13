@@ -37,10 +37,16 @@ def test_sample_get(ocx, api_data):
     assert 'isolate' in [t.name for t in tags]
 
 
-def test_sample_download(ocx, api_data):
-    sample = ocx.Samples.get('761bc54b97f64980')
+def test_sample_download(runner, ocx, api_data):
+    with runner.isolated_filesystem():
+        sample = ocx.Samples.get('761bc54b97f64980')
+        sample.download()
 
-    sample.download()
+
+def test_document_download(runner, ocx, api_data):
+    with runner.isolated_filesystem():
+        doc = ocx.Documents.get('a4f6727a840a4df0')
+        doc.download()
 
 
 def test_resourcelist(ocx, api_data):

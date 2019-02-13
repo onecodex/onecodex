@@ -10,8 +10,17 @@ from requests_toolbelt import MultipartEncoder
 from requests.exceptions import HTTPError
 
 from onecodex.exceptions import OneCodexException, UploadException
-from onecodex.lib.upload import (connectivity_error, upload_sequence, upload_sequence_fileobj, interleaved_filename,
-                                 FilePassthru, FASTXInterleave, _file_stats)
+from onecodex.lib.upload import (
+    _file_stats,
+    connectivity_error,
+    FASTXInterleave,
+    FilePassthru,
+    interleaved_filename,
+    upload_document,
+    upload_document_fileobj,
+    upload_sequence,
+    upload_sequence_fileobj,
+)
 
 
 @pytest.mark.parametrize('files,filename', [
@@ -123,11 +132,46 @@ class FakeSamplesResource():
         _root_url = 'http://localhost:3000'
 
 
+class FakeDocumentsResource():
+    def __init__(self, what_fails=None):
+        self.what_fails = what_fails
+
+    @staticmethod
+    def err_resp():
+        resp = lambda: None  # noqa
+        resp.status_code = 400
+        resp.json = lambda: {}  # noqa
+        raise HTTPError(response=resp)
+
+    def init_multipart_upload(self):
+        if self.what_fails == 'init_multipart':
+            self.err_resp()
+
+        return {
+            'callback_url': '/s3_confirm',
+            's3_bucket': '',
+            'file_id': '',
+            'upload_aws_access_key_id': '',
+            'upload_aws_secret_access_key': '',
+        }
+
+    def confirm_upload(self, obj):
+        if self.what_fails == 'confirm':
+            self.err_resp()
+
+        assert 'sample_id' in obj
+        assert 'upload_type' in obj
+
+    class _client(object):
+        _root_url = 'http://localhost:3000'
+
+
 class FakeSession():
     def post(self, url, **kwargs):
         if 'data' in kwargs:
             kwargs['data'].read()  # So multipart uploader will close properly
         resp = lambda: None  # noqa
+        resp.json = lambda: {}  # noqa
         resp.status_code = 201 if 'auth' in kwargs else 200
         return resp
 
@@ -175,12 +219,13 @@ class FakeSessionProxyFails():
 def test_upload_lots_of_files(file_list, nfiles, fxi_calls, fxp_calls, size_calls):
     fake_size = lambda filename: int(float(filename.split('.')[1]))  # noqa
 
-    ufo = 'onecodex.lib.upload.upload_sequence_fileobj'
+    uso = 'onecodex.lib.upload.upload_sequence_fileobj'
+    udo = 'onecodex.lib.upload.upload_document_fileobj'
     fxi = 'onecodex.lib.upload.FASTXInterleave'
     fxp = 'onecodex.lib.upload.FilePassthru'
     sz = 'onecodex.lib.upload.os.path.getsize'
 
-    with patch(ufo) as upload_sequence_fileobj, patch(fxi) as interleave, patch(fxp) as passthru:
+    with patch(uso) as upload_sequence_fileobj, patch(fxi) as interleave, patch(fxp) as passthru:
         with patch(sz, size_effect=fake_size) as size:
             upload_sequence(file_list, FakeSession(), FakeSamplesResource(), threads=1)
 
@@ -188,6 +233,15 @@ def test_upload_lots_of_files(file_list, nfiles, fxi_calls, fxp_calls, size_call
             assert interleave.call_count == fxi_calls
             assert passthru.call_count == fxp_calls
             assert size.call_count == size_calls
+
+    with patch(udo) as upload_document_fileobj, patch(fxp) as passthru:
+        with patch(sz, size_effect=fake_size) as size:
+            file_list = [(x[0] if isinstance(x, tuple) else x) for x in file_list]
+            upload_document(file_list, FakeSession(), FakeDocumentsResource(), threads=1)
+
+            assert upload_document_fileobj.call_count == nfiles
+            assert passthru.call_count == fxp_calls + fxi_calls
+            assert size.call_count == fxp_calls + fxi_calls
 
 
 @pytest.mark.parametrize('file_list,nfiles,fxi_calls,fxp_calls,size_calls', [
@@ -198,19 +252,29 @@ def test_upload_lots_of_files(file_list, nfiles, fxi_calls, fxp_calls, size_call
 def test_upload_multithread(file_list, nfiles, fxi_calls, fxp_calls, size_calls):
     fake_size = lambda filename: int(float(filename.split('.')[1]))  # noqa
 
-    ufo = 'onecodex.lib.upload.upload_sequence_fileobj'
+    uso = 'onecodex.lib.upload.upload_sequence_fileobj'
+    udo = 'onecodex.lib.upload.upload_document_fileobj'
     fxi = 'onecodex.lib.upload.FASTXInterleave'
     fxp = 'onecodex.lib.upload.FilePassthru'
     sz = 'onecodex.lib.upload.os.path.getsize'
 
-    with patch(ufo) as upload_sequence_fileobj, patch(fxi) as interleave, patch(fxp) as passthru:
+    with patch(uso) as upload_sequence_fileobj, patch(fxi) as interleave, patch(fxp) as passthru:
         with patch(sz, size_effect=fake_size) as size:
-            upload_sequence(file_list, FakeSession(), FakeSamplesResource(), threads=4, log=logging)
+            upload_sequence(file_list, FakeSession(), FakeSamplesResource(), threads=4)
 
             assert upload_sequence_fileobj.call_count == nfiles
             assert interleave.call_count == fxi_calls
             assert passthru.call_count == fxp_calls
             assert size.call_count == size_calls
+
+    with patch(udo) as upload_document_fileobj, patch(fxp) as passthru:
+        with patch(sz, size_effect=fake_size) as size:
+            file_list = [(x[0] if isinstance(x, tuple) else x) for x in file_list]
+            upload_document(file_list, FakeSession(), FakeDocumentsResource(), threads=4)
+
+            assert upload_document_fileobj.call_count == nfiles
+            assert passthru.call_count == fxp_calls + fxi_calls
+            assert size.call_count == fxp_calls + fxi_calls
 
 
 def test_api_failures(caplog):
@@ -305,6 +369,25 @@ def test_upload_sequence_fileobj():
         )
         file_obj.close()
     assert 'Additional error message' in str(e.value)
+
+
+def test_upload_document_fileobj():
+    with patch('boto3.client') as b3:
+        file_obj = BytesIO(b'MY_SPOON_IS_TOO_BIG\n')
+        upload_document_fileobj(
+            file_obj, 'spoon.pdf', FakeSession(), FakeDocumentsResource()
+        )
+        file_obj.close()
+
+        assert b3.call_count == 1
+
+    with pytest.raises(UploadException) as e:
+        file_obj = BytesIO(b'MY_SPOON_IS_TOO_BIG\n')
+        upload_document_fileobj(
+            file_obj, 'spoon.pdf', FakeSession(), FakeDocumentsResource('init_multipart')
+        )
+        file_obj.close()
+    assert 'Could not initialize' in str(e.value)
 
 
 def test_multipart_encoder_passthru():

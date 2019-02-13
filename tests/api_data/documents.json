@@ -1,0 +1,308 @@
+[
+    {
+        "$uri": "/api/v1/documents/a375a9e4c1484df1",
+        "created_at": "2019-02-08T13:54:36.768056-08:00",
+        "description": null,
+        "downloaders": [
+            {
+                "$ref": "/api/v1/users/4ada56103d9a48b8"
+            },
+            {
+                "$ref": "/api/v1/users/2466143688c341db"
+            }
+        ],
+        "downloads_remaining": null,
+        "filename": "foobar_report.pdf",
+        "size": 442139,
+        "uploader": {
+            "$ref": "/api/v1/users/4ada56103d9a48b8"
+        },
+        "valid_until": null
+    },
+    {
+        "$uri": "/api/v1/documents/0dc8710bb7bc4006",
+        "created_at": "2019-02-08T17:35:32.076268-08:00",
+        "description": null,
+        "downloaders": [
+            {
+                "$ref": "/api/v1/users/2466143688c341db"
+            },
+            {
+                "$ref": "/api/v1/users/4ada56103d9a48b8"
+            }
+        ],
+        "downloads_remaining": null,
+        "filename": "report_demo_0.4.0rc1.ipynb",
+        "size": 345742,
+        "uploader": {
+            "$ref": "/api/v1/users/4ada56103d9a48b8"
+        },
+        "valid_until": null
+    },
+    {
+        "$uri": "/api/v1/documents/1a9cb99039ea4b74",
+        "created_at": "2019-02-08T17:42:28.209949-08:00",
+        "description": null,
+        "downloaders": [
+            {
+                "$ref": "/api/v1/users/4ada56103d9a48b8"
+            }
+        ],
+        "downloads_remaining": null,
+        "filename": "andy's report.pdf",
+        "size": 442331,
+        "uploader": {
+            "$ref": "/api/v1/users/4ada56103d9a48b8"
+        },
+        "valid_until": null
+    },
+    {
+        "$uri": "/api/v1/documents/289bf5b57205434c",
+        "created_at": "2019-02-11T10:32:31.295023-08:00",
+        "description": null,
+        "downloaders": [],
+        "downloads_remaining": null,
+        "filename": "tiny.fq.gz",
+        "size": 24400,
+        "uploader": {
+            "$ref": "/api/v1/users/2466143688c341db"
+        },
+        "valid_until": null
+    },
+    {
+        "$uri": "/api/v1/documents/b7e59a0e037f4eeb",
+        "created_at": "2019-02-11T13:35:55.998538-08:00",
+        "description": null,
+        "downloaders": [
+            {
+                "$ref": "/api/v1/users/4ada56103d9a48b8"
+            }
+        ],
+        "downloads_remaining": null,
+        "filename": "new test report.pdf",
+        "size": 441968,
+        "uploader": {
+            "$ref": "/api/v1/users/4ada56103d9a48b8"
+        },
+        "valid_until": null
+    },
+    {
+        "$uri": "/api/v1/documents/140a59776ea54327",
+        "created_at": "2019-02-11T14:17:53.296754-08:00",
+        "description": null,
+        "downloaders": [
+            {
+                "$ref": "/api/v1/users/2466143688c341db"
+            },
+            {
+                "$ref": "/api/v1/users/4ada56103d9a48b8"
+            }
+        ],
+        "downloads_remaining": null,
+        "filename": "exceptionally long filename that is way way too long.pdf",
+        "size": 442160,
+        "uploader": {
+            "$ref": "/api/v1/users/4ada56103d9a48b8"
+        },
+        "valid_until": null
+    },
+    {
+        "$uri": "/api/v1/documents/8b3d04db987542cf",
+        "created_at": "2019-02-11T16:48:02.820663-08:00",
+        "description": null,
+        "downloaders": [
+            {
+                "$ref": "/api/v1/users/4ada56103d9a48b8"
+            }
+        ],
+        "downloads_remaining": null,
+        "filename": "output_13_0.png",
+        "size": 61535,
+        "uploader": {
+            "$ref": "/api/v1/users/4ada56103d9a48b8"
+        },
+        "valid_until": null
+    },
+    {
+        "$uri": "/api/v1/documents/ae535382f2104c9e",
+        "created_at": "2019-02-11T16:48:02.824373-08:00",
+        "description": null,
+        "downloaders": [
+            {
+                "$ref": "/api/v1/users/4ada56103d9a48b8"
+            },
+            {
+                "$ref": "/api/v1/users/2466143688c341db"
+            }
+        ],
+        "downloads_remaining": null,
+        "filename": "output_17_2.png",
+        "size": 30297,
+        "uploader": {
+            "$ref": "/api/v1/users/4ada56103d9a48b8"
+        },
+        "valid_until": null
+    },
+    {
+        "$uri": "/api/v1/documents/39a78f513cdf46e7",
+        "created_at": "2019-02-11T16:48:02.856574-08:00",
+        "description": null,
+        "downloaders": [
+            {
+                "$ref": "/api/v1/users/4ada56103d9a48b8"
+            }
+        ],
+        "downloads_remaining": null,
+        "filename": "output_16_0.png",
+        "size": 158956,
+        "uploader": {
+            "$ref": "/api/v1/users/4ada56103d9a48b8"
+        },
+        "valid_until": null
+    },
+    {
+        "$uri": "/api/v1/documents/e89fbbcd95f142a8",
+        "created_at": "2019-02-11T16:48:02.864876-08:00",
+        "description": null,
+        "downloaders": [
+            {
+                "$ref": "/api/v1/users/4ada56103d9a48b8"
+            },
+            {
+                "$ref": "/api/v1/users/2466143688c341db"
+            }
+        ],
+        "downloads_remaining": null,
+        "filename": "output_15_0.png",
+        "size": 363390,
+        "uploader": {
+            "$ref": "/api/v1/users/4ada56103d9a48b8"
+        },
+        "valid_until": null
+    },
+    {
+        "$uri": "/api/v1/documents/4a46cca64e4c46d9",
+        "created_at": "2019-02-11T16:48:12.839417-08:00",
+        "description": null,
+        "downloaders": [
+            {
+                "$ref": "/api/v1/users/4ada56103d9a48b8"
+            }
+        ],
+        "downloads_remaining": null,
+        "filename": "One Codex.htm",
+        "size": 18151,
+        "uploader": {
+            "$ref": "/api/v1/users/4ada56103d9a48b8"
+        },
+        "valid_until": null
+    },
+    {
+        "$uri": "/api/v1/documents/4eb36bbbc85241f7",
+        "created_at": "2019-02-11T16:48:12.849215-08:00",
+        "description": null,
+        "downloaders": [
+            {
+                "$ref": "/api/v1/users/4ada56103d9a48b8"
+            }
+        ],
+        "downloads_remaining": null,
+        "filename": "report_formatting.rtf",
+        "size": 1011,
+        "uploader": {
+            "$ref": "/api/v1/users/4ada56103d9a48b8"
+        },
+        "valid_until": null
+    },
+    {
+        "$uri": "/api/v1/documents/058e49a62e654c04",
+        "created_at": "2019-02-11T16:48:12.854066-08:00",
+        "description": null,
+        "downloaders": [
+            {
+                "$ref": "/api/v1/users/4ada56103d9a48b8"
+            },
+            {
+                "$ref": "/api/v1/users/2466143688c341db"
+            }
+        ],
+        "downloads_remaining": null,
+        "filename": "report_demo_pdf.pdf",
+        "size": 445617,
+        "uploader": {
+            "$ref": "/api/v1/users/4ada56103d9a48b8"
+        },
+        "valid_until": null
+    },
+    {
+        "$uri": "/api/v1/documents/8760cfa6cac54bdf",
+        "created_at": "2019-02-11T16:50:35.541875-08:00",
+        "description": null,
+        "downloaders": [
+            {
+                "$ref": "/api/v1/users/4ada56103d9a48b8"
+            },
+            {
+                "$ref": "/api/v1/users/2466143688c341db"
+            }
+        ],
+        "downloads_remaining": null,
+        "filename": "OneCodexTakeHome.zip",
+        "size": 373741,
+        "uploader": {
+            "$ref": "/api/v1/users/4ada56103d9a48b8"
+        },
+        "valid_until": null
+    },
+    {
+        "$uri": "/api/v1/documents/11724f3462f249ea",
+        "created_at": "2019-02-12T15:25:29.291358-08:00",
+        "description": null,
+        "downloaders": [
+            {
+                "$ref": "/api/v1/users/4ada56103d9a48b8"
+            }
+        ],
+        "downloads_remaining": null,
+        "filename": "run all and save.pdf",
+        "size": 441888,
+        "uploader": {
+            "$ref": "/api/v1/users/4ada56103d9a48b8"
+        },
+        "valid_until": null
+    },
+    {
+        "$uri": "/api/v1/documents/2cceb2d10d0b41b6",
+        "created_at": "2019-02-12T15:27:55.577591-08:00",
+        "description": null,
+        "downloaders": [
+            {
+                "$ref": "/api/v1/users/4ada56103d9a48b8"
+            }
+        ],
+        "downloads_remaining": null,
+        "filename": "Röö's report.pdf",
+        "size": 441882,
+        "uploader": {
+            "$ref": "/api/v1/users/4ada56103d9a48b8"
+        },
+        "valid_until": null
+    },
+    {
+        "$uri": "/api/v1/documents/a4f6727a840a4df0",
+        "created_at": "2019-02-12T15:59:30.483304-08:00",
+        "description": null,
+        "downloaders": [
+            {
+                "$ref": "/api/v1/users/4ada56103d9a48b8"
+            }
+        ],
+        "downloads_remaining": null,
+        "filename": "report.pdf",
+        "size": 442074,
+        "uploader": {
+            "$ref": "/api/v1/users/4ada56103d9a48b8"
+        },
+        "valid_until": null
+    }
+]
