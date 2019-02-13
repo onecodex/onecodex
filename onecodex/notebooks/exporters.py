@@ -23,6 +23,11 @@ class OneCodexHTMLExporter(HTMLExporter):
     def __init__(self, config=None, **kw):
         super(OneCodexHTMLExporter, self).__init__(config=config, **kw)
 
+        try:
+            from jupyter_contrib_nbextensions.nbconvert_support import PyMarkdownPreprocessor  # noqa
+        except ImportError:
+            return
+
         # this preprocessor converts {{variable}} tags in markdown blocks to their values
         # see https://jupyter-contrib-nbextensions.readthedocs.io/en/latest/nbextensions/python-
         # markdown/readme.html
