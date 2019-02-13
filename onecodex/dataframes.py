@@ -73,7 +73,14 @@ class ClassificationsDataFrame(pd.DataFrame):
         kwargs['max_cols'] = 10
 
         # round abundances to avoid long trails of zeros, and sort taxa in order of abundance
-        df = self.round(6).reindex(columns=self.sum().sort_values(ascending=False).index)
+        if 'classification_id' in self.columns:
+            # long format
+            df = self.copy()
+            df[self.ocx_field] = df[self.ocx_field].round(6)
+            df = df.sort_values(self.ocx_field, ascending=False)
+        else:
+            # wide format
+            df = self.round(6).reindex(columns=self.sum().sort_values(ascending=False).index)
 
         return super(ClassificationsDataFrame, df).to_html(*args, **kwargs)
 
