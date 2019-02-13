@@ -63,6 +63,17 @@ def test_classifications_table(runner, api_data, mocked_creds_file, monkeypatch)
     assert "Staphylococcus" in result.output
 
 
+# Documents
+def test_documents_table(runner, api_data, mocked_creds_file):
+    result = runner.invoke(Cli, ['documents', 'list'])
+    assert len(result.stdout.split('\n')) == 20
+    assert 'OneCodexTakeHome' in result.stdout
+
+    result = runner.invoke(Cli, ['documents', 'list', '--json'])
+    assert len(result.stdout.split('\n')) == 309
+    assert 'OneCodexTakeHome' in result.stdout
+
+
 # Panels
 def test_panel_instances(runner, api_data, mocked_creds_file):
     result = runner.invoke(Cli, ['panels'])

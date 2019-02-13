@@ -11,6 +11,7 @@ import logging
 import os
 import re
 import sys
+import time
 import warnings
 
 from onecodex.api import Api
@@ -130,7 +131,7 @@ def documents_list(ctx, json):
         docs_list = sorted(
             docs_list,
             reverse=True,
-            key=lambda x: dateutil.parser.parse(x['created_at']).timestamp()
+            key=lambda x: time.mktime(dateutil.parser.parse(x['created_at']).timetuple())
         )
 
         for doc in docs_list:
