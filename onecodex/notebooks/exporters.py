@@ -165,7 +165,8 @@ class OneCodexPDFExporter(OneCodexHTMLExporter):
 
 
 class OneCodexDocumentExporter(OneCodexPDFExporter):
-    export_from_notebook = 'Export to One Codex Document Portal'
+    # make this a string and it will appear in the 'Download as...' menu
+    export_from_notebook = None
 
     def from_notebook_node(self, nb, resources=None, **kw):
         """Takes PDF output from PDFExporter and uploads to One Codex Documents portal."""
