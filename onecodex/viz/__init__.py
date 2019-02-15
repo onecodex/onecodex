@@ -127,7 +127,14 @@ require(["vega-embed"], function(vegaEmbed) {{
         .toSVG()
         .then(imageData => {{
           if (output_area !== undefined && output_area.outputs !== undefined) {{
-            output_area.outputs[0]["data"]["image/svg+xml"] = imageData;
+            // figure out which output cell belongs to this render block. there may be
+            // multiple jupyter-vega cells per input cell, but only one will match our id
+            for (const cell_num in output_area.outputs) {{
+              let cell = output_area.outputs[cell_num];
+              if (cell.metadata && cell.metadata["jupyter-vega"] === "#{id}") {{
+                output_area.outputs[cell_num]["data"]["image/svg+xml"] = imageData;
+              }}
+            }}
           }}
         }})
         .catch(error => showError(out_target, error));
