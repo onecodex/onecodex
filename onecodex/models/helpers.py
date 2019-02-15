@@ -1,6 +1,9 @@
+import click
 import inspect
+import os
+import requests
 
-from onecodex.exceptions import UnboundObject
+from onecodex.exceptions import OneCodexException, UnboundObject
 
 
 def as_uri(uuid, base_class):
@@ -82,3 +85,67 @@ def truncate_string(s, length=24):
         else:
             s = s + '...'
         return s
+
+
+class ResourceDownloadMixin(object):
+    def download(self, path=None, file_obj=None, progressbar=False):
+        """Downloads files from One Codex.
+
+        Parameters
+        ----------
+        path : `string`, optional
+            Full path to save the file to. If omitted, defaults to the original filename
+            in the current working directory.
+        file_obj : file-like object, optional
+            Rather than save the file to a path, write it to this file-like object.
+
+        Returns
+        -------
+        `string`
+            The path the file was downloaded to, if applicable. Otherwise, None.
+
+        Notes
+        -----
+        If no arguments specified, defaults to download the file as the original filename
+        in the current working directory. If `file_obj` given, will write data into the
+        passed file-like object. If `path` given, will download the file to the path provided,
+        but will not overwrite any existing files.
+        """
+        if path and file_obj:
+            raise OneCodexException('Please specify only one of: path, file_obj')
+
+        if path is None and file_obj is None:
+            path = os.path.join(os.getcwd(), self.filename)
+
+        if path and os.path.exists(path):
+            raise OneCodexException('{} already exists! Will not overwrite.'.format(path))
+
+        try:
+            url_data = self._resource.download_uri()
+            resp = requests.get(url_data['download_uri'], stream=True)
+
+            with (open(path, 'wb') if path else file_obj) as f_out:
+                if progressbar:
+                    with click.progressbar(length=self.size, label=self.filename) as bar:
+                        for data in resp.iter_content(chunk_size=1024):
+                            bar.update(len(data))
+                            f_out.write(data)
+                else:
+                    for data in resp.iter_content(chunk_size=1024):
+                        f_out.write(data)
+        except KeyboardInterrupt:
+            if path:
+                os.remove(path)
+        except requests.exceptions.HTTPError as exc:
+            if exc.response.status_code == 401:
+                raise OneCodexException('You must be logged in to download files.')
+            elif exc.response.status_code == 402:
+                raise OneCodexException('You must either have a premium platform account or be in '
+                                        'a notebook environment to download files.')
+            elif exc.response.status_code == 403:
+                raise OneCodexException('You are not authorized to download this file.')
+            else:
+                raise OneCodexException('Download failed with an HTTP status code {}.'.format(
+                                        exc.response.status_code))
+
+        return path
