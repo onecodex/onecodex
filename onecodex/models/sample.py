@@ -1,5 +1,3 @@
-import os
-import requests
 from requests.exceptions import HTTPError
 from six import string_types
 import warnings
@@ -7,10 +5,10 @@ import warnings
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.upload import upload_sequence
 from onecodex.models import OneCodexBase, Projects, Tags
-from onecodex.models.helpers import truncate_string
+from onecodex.models.helpers import truncate_string, ResourceDownloadMixin
 
 
-class Samples(OneCodexBase):
+class Samples(OneCodexBase, ResourceDownloadMixin):
     _resource_path = '/api/v1/samples'
 
     def __repr__(self):
@@ -178,36 +176,6 @@ class Samples(OneCodexBase):
 
         return samples
         # FIXME: pass the auth into this so we can authenticate the callback?
-
-    def download(self, path=None):
-        """
-        Downloads the original reads file (FASTA/FASTQ) from One Codex.
-
-        Note that this may only work from within a notebook session and the file
-        is not guaranteed to exist for all One Codex plan types.
-
-        Parameters
-        ----------
-        path : string, optional
-            Full path to save the file to. If omitted, defaults to the original filename
-            in the current working directory.
-        """
-        if path is None:
-            path = os.path.join(os.getcwd(), self.filename)
-        try:
-            url_data = self._resource.download_uri()
-            resp = requests.get(url_data['download_uri'], stream=True)
-            # TODO: use tqdm or ProgressBar here to display progress?
-            with open(path, 'wb') as f_out:
-                for data in resp.iter_content(chunk_size=1024):
-                    f_out.write(data)
-        except HTTPError as exc:
-            if exc.response.status_code == 402:
-                raise OneCodexException('You must either have a premium platform account or be in '
-                                        'a notebook environment to download samples.')
-            else:
-                raise OneCodexException('Download failed with an HTTP status code {}.'.format(
-                                        exc.response.status_code))
 
     def __hash__(self):
         return hash(self.id)

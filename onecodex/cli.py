@@ -175,22 +175,25 @@ def documents_upload(ctx, max_threads, files):
 
 
 @click.command('download', help='Download a file that has been shared with you')
-@click.argument('file', nargs=1, required=True)
-@click.option('--output-path', '-o', 'path', help='Path to output directory',
-              required=False, default=None, type=click.Path(exists=True))
+@click.argument('file_id', nargs=1, required=True)
+@click.option('--output-document', '-O', 'file_path', help='Write document to PATH',
+              required=False, type=click.Path(dir_okay=False, allow_dash=True))
 @click.pass_context
 @pretty_errors
 @telemetry
 @login_required
-def documents_download(ctx, file, path):
-    doc_obj = ctx.obj['API'].Documents.get(file)
+def documents_download(ctx, file_id, file_path):
+    doc_obj = ctx.obj['API'].Documents.get(file_id)
 
     if not doc_obj:
-        log.error('Could not find document {} (404 status code)'.format(file))
+        log.error('Could not find document {} (404 status code)'.format(file_id))
         ctx.exit(1)
 
-    saved_file = doc_obj.download(path=path, progressbar=True)
-    click.echo('{} saved as {}'.format(file, saved_file))
+    if file_path == '-' or file_path == '/dev/stdout':
+        doc_obj.download(file_obj=open('/dev/stdout', 'wb'), progressbar=False)
+    else:
+        path = doc_obj.download(path=file_path, progressbar=True)
+        click.echo('{} saved to {}'.format(file_id, path), err=True)
 
 
 documents.add_command(documents_list, 'list')
