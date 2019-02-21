@@ -42,7 +42,8 @@ class VizHeatmapMixin(object):
             plot is hovered over, the value of the metadata associated with that sample will be
             displayed in a modal.
         legend: `string`, optional
-            Variable to map the color scale to (default is 'abundance')
+            Title for color scale. Defaults to the field used to generate the plot, e.g.
+            readcount_w_children or abundance.
 
         Examples
         --------
