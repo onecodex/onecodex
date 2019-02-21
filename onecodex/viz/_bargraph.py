@@ -85,6 +85,8 @@ class VizBargraphMixin(object):
         else:
             tooltip = []
 
+        tooltip.append("Label")
+
         # takes metadata columns and returns a dataframe with just those columns
         # renames columns in the case where columns are taxids
         magic_metadata, magic_fields = self._metadata_fetch(tooltip)
@@ -93,9 +95,6 @@ class VizBargraphMixin(object):
             df[magic_fields[f]] = magic_metadata[magic_fields[f]][
                 df["classification_id"]
             ].tolist()
-
-        # add sample filenames
-        df["display_name"] = self.metadata["_display_name"][df["classification_id"]].tolist()
 
         # add taxa names
         df["tax_name"] = [
@@ -114,13 +113,13 @@ class VizBargraphMixin(object):
         #
 
         ylabel = self._field if ylabel is None else ylabel
-        xlabel = 'Sample' if xlabel is None else xlabel
+        xlabel = 'Label' if xlabel is None else xlabel
 
         chart = (
             alt.Chart(df)
             .mark_bar()
             .encode(
-                x=alt.X("display_name", axis=alt.Axis(title=xlabel)),
+                x=alt.X("Label", axis=alt.Axis(title=xlabel)),
                 y=alt.Y(self._field, axis=alt.Axis(title=ylabel)),
                 color=alt.Color("tax_name", legend=alt.Legend(title=legend)),
                 tooltip=["{}:Q".format(self._field)] + [magic_fields[f] for f in tooltip],

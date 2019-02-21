@@ -270,7 +270,7 @@ def test_plot_bargraph_chart_result(ocx, api_data):
     )
 
     assert chart.title == 'Glorious Bargraph'
-    assert chart.encoding.x.shorthand == 'display_name'
+    assert chart.encoding.x.shorthand == 'Label'
     assert chart.encoding.x.axis.title == 'Exemplary Samples'
     assert chart.encoding.y.shorthand == 'readcount_w_children'
     assert chart.encoding.y.axis.title == 'Glorious Abundances'
