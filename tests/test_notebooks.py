@@ -346,10 +346,10 @@ def test_html_export(mock_reports, mock_notebook):
     head_block = resources['metadata']['head_block']
 
     # custom date caused suppression of today's date in header
-    assert 'reportdate' not in head_block
+    assert 'id="reportdate"' not in head_block
 
-    # one codex logo is on by default
-    assert 'one_codex_logo.png' in head_block
+    # one codex logo is on by default. this will have to be updated if logo is changed
+    assert 'iVBORw0KGgoAAA' in head_block
 
     # custom CSS injected into head block
     assert '<style type="text/css">h1 { text-align: center; }</style>' in head_block

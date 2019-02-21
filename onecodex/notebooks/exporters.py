@@ -89,8 +89,9 @@ class OneCodexHTMLExporter(HTMLExporter):
 
         # add one codex logo unless told not to
         if not os.environ.get('ONE_CODEX_REPORT_NO_LOGO', False):
-            logo_path = 'file:///' + os.path.join(ASSETS_PATH, 'one_codex_logo.png').replace('\\', '/')
-            logo_html = report.set_logo(logo_path, position='right')._repr_mimebundle_()['text/html']
+            img = b64encode(bytes(open(os.path.join(ASSETS_PATH, 'one_codex_logo.png'), 'rb').read())).decode()
+            img = 'data:image/png;charset=utf-8;base64,%s' % (img,)
+            logo_html = report.set_logo(img, position='right')._repr_mimebundle_()['text/html']
             head_block = resources['metadata'].get('head_block', '') + logo_html
             resources['metadata']['head_block'] = head_block
 
@@ -100,10 +101,10 @@ class OneCodexHTMLExporter(HTMLExporter):
             head_block = resources['metadata'].get('head_block', '') + date_div
             resources['metadata']['head_block'] = head_block
 
-        # add link to our custom CSS using system path
-        css_path = 'file:///' + os.path.join(ASSETS_PATH, CSS_TEMPLATE_FILE).replace('\\', '/')
-        css_link = '<link rel="stylesheet" href="{}" />'.format(css_path)
-        head_block = resources['metadata'].get('head_block', '') + css_link
+        # embed the default CSS
+        css = open(os.path.join(ASSETS_PATH, CSS_TEMPLATE_FILE), 'r').read()
+        css = '<style type="text/css">{}</style>'.format(css)
+        head_block = resources['metadata'].get('head_block', '') + css
         resources['metadata']['head_block'] = head_block
 
         # tag this report for traceability, if run from notebook service. these will be transferred
