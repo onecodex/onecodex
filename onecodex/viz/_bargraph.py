@@ -113,7 +113,7 @@ class VizBargraphMixin(object):
         #
 
         ylabel = self._field if ylabel is None else ylabel
-        xlabel = 'Label' if xlabel is None else xlabel
+        xlabel = '' if xlabel is None else xlabel
 
         chart = (
             alt.Chart(df)
