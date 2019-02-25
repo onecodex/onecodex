@@ -14,6 +14,7 @@ class VizBargraphMixin(object):
         ylabel=None,
         tooltip=None,
         return_chart=False,
+        haxis=None,
         legend="auto",
     ):
         """Plot a bargraph of relative abundance of taxa for multiple samples.
@@ -42,6 +43,9 @@ class VizBargraphMixin(object):
             A string or list containing strings representing metadata fields. When a point in the
             plot is hovered over, the value of the metadata associated with that sample will be
             displayed in a modal.
+        haxis : `string`, optional
+            The metadata field (or tuple containing multiple categorical fields) used to group
+            samples together.
         legend: `string`, optional
             Title for color scale. Defaults to the field used to generate the plot, e.g.
             readcount_w_children or abundance.
@@ -85,12 +89,31 @@ class VizBargraphMixin(object):
         else:
             tooltip = []
 
-        tooltip.append("Label")
+        if haxis:
+            tooltip.append(haxis)
+
+        tooltip.insert(0, "Label")
 
         # takes metadata columns and returns a dataframe with just those columns
         # renames columns in the case where columns are taxids
         magic_metadata, magic_fields = self._metadata_fetch(tooltip)
 
+        # add sort order to long-format df
+        if haxis:
+            sort_order = magic_metadata.sort_values(magic_fields[haxis]).index.tolist()
+
+            for sort_num, sort_class_id in enumerate(sort_order):
+                magic_metadata.loc[sort_class_id, 'sort_order'] = sort_num
+
+            df['sort_order'] = magic_metadata['sort_order'][
+                df["classification_id"]
+            ].tolist()
+
+            sort_order = alt.EncodingSortField(field='sort_order', op="mean")
+        else:
+            sort_order = None
+
+        # transfer metadata from wide-format df (magic_metadata) to long-format df
         for f in tooltip:
             df[magic_fields[f]] = magic_metadata[magic_fields[f]][
                 df["classification_id"]
@@ -115,20 +138,68 @@ class VizBargraphMixin(object):
         ylabel = self._field if ylabel is None else ylabel
         xlabel = '' if xlabel is None else xlabel
 
-        chart = (
-            alt.Chart(df)
-            .mark_bar()
-            .encode(
-                x=alt.X("Label", axis=alt.Axis(title=xlabel)),
-                y=alt.Y(self._field, axis=alt.Axis(title=ylabel)),
-                color=alt.Color("tax_name", legend=alt.Legend(title=legend)),
-                tooltip=["{}:Q".format(self._field)] + [magic_fields[f] for f in tooltip],
-                href="url:N",
+        # should ultimately be Label, tax_name, readcount_w_children, then custom fields
+        tooltip_for_altair = [magic_fields[f] for f in tooltip]
+        tooltip_for_altair.insert(1, "tax_name")
+        tooltip_for_altair.insert(2, "{}:Q".format(self._field))
+
+        # generate dataframes to plot, one per facet
+        dfs_to_plot = []
+
+        if haxis:
+            # if using facets, first facet is just the vertical axis
+            blank_df = df.iloc[:1].copy()
+            blank_df[self._field] = 0
+
+            dfs_to_plot.append(blank_df)
+
+            for md_val in magic_metadata[magic_fields[haxis]].unique():
+                plot_df = df.where(df[magic_fields[haxis]] == md_val).dropna()
+
+                # preserve booleans
+                if magic_metadata[magic_fields[haxis]].dtype == 'bool':
+                    plot_df[magic_fields[haxis]] = plot_df[magic_fields[haxis]].astype(bool)
+
+                dfs_to_plot.append(plot_df)
+        else:
+            dfs_to_plot.append(df)
+
+        charts = []
+
+        for plot_num, plot_df in enumerate(dfs_to_plot):
+            chart = (
+                alt.Chart(plot_df)
+                .mark_bar()
+                .encode(
+                    x=alt.X("Label", axis=alt.Axis(title=xlabel), sort=sort_order),
+                    y=alt.Y(self._field, axis=alt.Axis(title=ylabel), scale=alt.Scale(domain=[0, 1], zero=True, nice=False)),
+                    color=alt.Color("tax_name", legend=alt.Legend(title=legend)),
+                    tooltip=tooltip_for_altair,
+                    href="url:N",
+                )
             )
-        )
+
+            if haxis:
+                if plot_num == 0:
+                    # first plot (blank_df) has vert axis but no horiz axis
+                    chart.encoding.x.axis = None
+                elif plot_num > 0:
+                    # strip vertical axis from subsequent facets
+                    chart.encoding.y.axis = None
+
+                    # facet's title set to value of metadata in this group
+                    chart.title = str(plot_df[magic_fields[haxis]].tolist()[0])
+
+            charts.append(chart)
+
+        # add all the facets together
+        final_chart = charts[0]
+
+        if len(charts) > 1:
+            for chart in charts[1:]:
+                final_chart |= chart
 
         # add title to chart
         # (cannot specify None or False for no title)
-        chart = chart.properties(title=title) if title else chart
-
-        return chart if return_chart else chart.display()
+        final_chart = final_chart.properties(title=title) if title else final_chart
+        return final_chart if return_chart else final_chart.display()
