@@ -11,7 +11,7 @@ class DistanceMixin(TaxonomyMixin):
 
         Parameters
         ----------
-        metric : {'simpson', 'chao1'}
+        metric : {'simpson', 'chao1', 'shannon'}
             The diversity metric to calculate.
         rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
             Analysis will be restricted to abundances of taxa at the specified level.
@@ -20,8 +20,8 @@ class DistanceMixin(TaxonomyMixin):
         -------
         pandas.DataFrame, a distance matrix.
         """
-        if metric not in ('simpson', 'chao1'):
-            raise OneCodexException('For alpha diversity, metric must be one of: simpson, chao1')
+        if metric not in ('simpson', 'chao1', 'shannon'):
+            raise OneCodexException('For alpha diversity, metric must be one of: simpson, chao1, shannon')
 
         # needs read counts, not relative abundances
         if self._guess_normalized():
