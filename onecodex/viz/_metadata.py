@@ -24,7 +24,7 @@ class VizMetadataMixin(object):
             Data to be plotted on the vertical axis. Can be any one of the following:
 
             - A metadata field: the name of a metadata field containing numerical data
-            - {'simpson', 'chao1'}: an alpha diversity statistic to calculate for each sample
+            - {'simpson', 'chao1', 'shannon'}: an alpha diversity statistic to calculate for each sample
             - A taxon name: the name of a taxon in the analysis
             - A taxon ID: the ID of a taxon in the analysis
 
@@ -57,7 +57,7 @@ class VizMetadataMixin(object):
         # alpha diversity is only allowed on vertical axis--horizontal can be magically mapped
         df, magic_fields = self._metadata_fetch([haxis, 'Label'])
 
-        if vaxis in ('simpson', 'chao1'):
+        if vaxis in ('simpson', 'chao1', 'shannon'):
             df.loc[:, vaxis] = self.alpha_diversity(vaxis, rank=rank)
             magic_fields[vaxis] = vaxis
         else:
