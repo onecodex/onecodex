@@ -1,3 +1,5 @@
+import warnings
+
 from onecodex.exceptions import OneCodexException
 from onecodex.viz import VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceMixin, VizBargraphMixin
 
@@ -189,6 +191,12 @@ class AnalysisMixin(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceM
 
         # subset by taxa
         if rank:
+            if rank == 'kingdom':
+                warnings.warn(
+                    'Did you mean to specify rank=kingdom? Use rank=superkingdom to see Bacteria, '
+                    'Archaea and Eukaryota.'
+                )
+
             tax_ids_to_keep = []
 
             for tax_id in df.keys():
