@@ -1,5 +1,6 @@
 from hashlib import sha256
 import pytest; pytest.importorskip('pandas')  # noqa
+import warnings
 
 from onecodex.exceptions import OneCodexException
 
@@ -93,6 +94,12 @@ def test_results_filtering_rank(ocx, api_data):
     with pytest.raises(OneCodexException) as e:
         samples.to_df(rank='does_not_exist')
     assert 'No taxa kept' in str(e.value)
+
+    # should warn if using rank=kingdom
+    with warnings.catch_warnings(record=True) as w:
+        samples.to_df(rank='kingdom')
+        assert len(w) == 1
+        assert 'superkingdom' in str(w[-1].message)
 
 
 def test_results_filtering_other(ocx, api_data):
