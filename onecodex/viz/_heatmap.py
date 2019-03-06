@@ -7,7 +7,8 @@ from onecodex.exceptions import OneCodexException
 class VizHeatmapMixin(object):
     def plot_heatmap(self, rank='auto', normalize='auto', top_n='auto', threshold='auto',
                      title=None, xlabel=None, ylabel=None, tooltip=None, return_chart=False,
-                     linkage='average', haxis=None, metric='euclidean', legend='auto'):
+                     linkage='average', haxis=None, metric='euclidean', legend='auto',
+                     label=None):
         """Plot heatmap of taxa abundance/count data for several samples.
 
         Parameters
@@ -44,6 +45,10 @@ class VizHeatmapMixin(object):
         legend: `string`, optional
             Title for color scale. Defaults to the field used to generate the plot, e.g.
             readcount_w_children or abundance.
+        label : `string` or `callable`, optional
+            A metadata field (or function) used to label each analysis. If passing a function, a
+            dict containing the metadata for each analysis is passed as the first and only
+            positional argument. The callable function must return a string.
 
         Examples
         --------
@@ -88,10 +93,12 @@ class VizHeatmapMixin(object):
         if haxis:
             tooltip.append(haxis)
 
-        magic_metadata, magic_fields = self._metadata_fetch(tooltip)
+        tooltip.insert(0, "Label")
+
+        magic_metadata, magic_fields = self._metadata_fetch(tooltip, label=label)
 
         # add columns for prettier display
-        df['display_name'] = self.metadata['_display_name'][df['classification_id']].tolist()
+        df['Label'] = magic_metadata['Label'][df['classification_id']].tolist()
         df['tax_name'] = ['{} ({})'.format(self.taxonomy['name'][t], t) for t in df['tax_id']]
 
         # and for metadata
@@ -122,7 +129,7 @@ class VizHeatmapMixin(object):
             sample_cluster = df_sample_cluster.ocx._cluster_by_sample(rank=rank, metric=metric, linkage=linkage)
             taxa_cluster = df_taxa_cluster.ocx._cluster_by_taxa(linkage=linkage)
 
-            labels_in_order = sample_cluster['labels_in_order']
+            labels_in_order = magic_metadata['Label'][sample_cluster['ids_in_order']].tolist()
         else:
             if not (pd.api.types.is_bool_dtype(df[magic_fields[haxis]]) or  # noqa
                     pd.api.types.is_categorical_dtype(df[magic_fields[haxis]]) or  # noqa
@@ -156,7 +163,7 @@ class VizHeatmapMixin(object):
                 if len(c_ids_in_group) < 3:
                     # clustering not possible in this case
                     cluster_by_group[group] = {
-                        'labels_in_order': self.metadata._display_name[c_ids_in_group]
+                        'ids_in_order': c_ids_in_group
                     }
                 else:
                     cluster_by_group[group] = sample_slice.ocx._cluster_by_sample(
@@ -165,7 +172,7 @@ class VizHeatmapMixin(object):
 
                 plot_data['x'].append(len(labels_in_order) + 0.25)
 
-                labels_in_order.extend(cluster_by_group[group]['labels_in_order'])
+                labels_in_order.extend(magic_metadata['Label'][cluster_by_group[group]['ids_in_order']].tolist())
 
                 plot_data['x'].append(len(labels_in_order) - 0.25)
                 plot_data['y'].extend([0, 0])
@@ -229,11 +236,16 @@ class VizHeatmapMixin(object):
 
             top_label = alt.layer(label_text, label_bars)
 
+        # should ultimately be Label, tax_name, readcount_w_children, then custom fields
+        tooltip_for_altair = [magic_fields[f] for f in tooltip]
+        tooltip_for_altair.insert(1, "tax_name")
+        tooltip_for_altair.insert(2, "{}:Q".format(self._field))
+
         alt_kwargs = dict(
-            x=alt.X('display_name:N', axis=alt.Axis(title=xlabel), sort=labels_in_order),
+            x=alt.X('Label:N', axis=alt.Axis(title=xlabel), sort=labels_in_order),
             y=alt.Y('tax_name:N', axis=alt.Axis(title=ylabel), sort=taxa_cluster['labels_in_order']),
             color=alt.Color('{}:Q'.format(self._field), legend=alt.Legend(title=legend)),
-            tooltip=['{}:Q'.format(self._field)] + [magic_fields[f] for f in tooltip],
+            tooltip=tooltip_for_altair,
             href='url:N',
             url='https://app.onecodex.com/classification/' + alt.datum.classification_id
         )
