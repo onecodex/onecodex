@@ -1,7 +1,6 @@
 from collections import defaultdict, OrderedDict
 from datetime import datetime
 import json
-import six
 import warnings
 
 from onecodex.exceptions import OneCodexException
@@ -23,10 +22,8 @@ class SampleCollection(ResourceList, AnalysisMixin):
     analysis methods.
     """
 
-    def __init__(self, _resource, oc_model, skip_missing=True, label=None, field='auto'):
-        self._kwargs = {'skip_missing': skip_missing,
-                        'label': label,
-                        'field': field}
+    def __init__(self, _resource, oc_model, skip_missing=True, field='auto'):
+        self._kwargs = {'skip_missing': skip_missing, 'field': field}
 
         super(SampleCollection, self).__init__(_resource, oc_model)
 
@@ -74,16 +71,9 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         return self._cached['classifications']
 
-    def _collate_metadata(self, label=None):
+    def _collate_metadata(self):
         """Turns a list of objects associated with a classification result into a DataFrame of
         metadata.
-
-        Parameters
-        ----------
-        label : `string` or `callable`
-            A metadata field (or function) used to label each analysis. If passing a function, a
-            dict containing the metadata for each analysis is passed as the first and only
-            positional argument.
 
         Returns
         -------
@@ -92,7 +82,6 @@ class SampleCollection(ResourceList, AnalysisMixin):
         import pandas as pd
 
         DEFAULT_FIELDS = None
-        label = label if label else self._kwargs['label']
         metadata = []
 
         for c in self.primary_classifications:
@@ -108,31 +97,13 @@ class SampleCollection(ResourceList, AnalysisMixin):
             metadatum['sample_id'] = m.sample.id
             metadatum['metadata_id'] = m.id
             metadatum['created_at'] = m.sample.created_at
-
-            if label is None:
-                metadatum['_display_name'] = (
-                    metadatum['name'] if metadatum['name'] is not None else c.sample.filename
-                )
-            elif isinstance(label, six.string_types):
-                if label in metadatum:
-                    metadatum['_display_name'] = metadatum[label]
-                elif label in m.custom:
-                    metadatum['_display_name'] = m.custom[label]
-                else:
-                    metadatum['_display_name'] = None
-            elif callable(label):
-                metadatum['_display_name'] = label(m)
-            else:
-                raise NotImplementedError('Must pass a string or function to `label`.')
+            metadatum['filename'] = c.sample.filename
 
             metadatum.update(m.custom)
             metadata.append(metadatum)
 
         if metadata:
             metadata = pd.DataFrame(metadata).set_index('classification_id')
-
-            if all(pd.isnull(metadata['_display_name'])):
-                raise OneCodexException('Could not find any labels for `{}`'.format(label))
         else:
             metadata = pd.DataFrame(columns=['classification_id', 'sample_id', 'metadata_id', 'created_at'])
 
