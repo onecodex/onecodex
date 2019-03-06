@@ -18,6 +18,9 @@ from onecodex.exceptions import OneCodexException, UploadException
 from onecodex.utils import snake_case
 
 
+DEFAULT_THREADS = 4
+
+
 # buffer code from
 # http://stackoverflow.com/questions/2192529/python-creating-a-streaming-gzipd-file-like/2193508
 class Buffer(object):
@@ -420,7 +423,7 @@ def _call_init_upload(file_name, file_size, metadata, tags, project, samples_res
     return upload_info
 
 
-def upload_sequence(files, session, samples_resource, threads=1, metadata=None, tags=None,
+def upload_sequence(files, session, samples_resource, threads=None, metadata=None, tags=None,
                     project=None, log=None, coerce_ascii=False, progressbar=False):
     """Uploads multiple files to the One Codex server via either fastx-proxy or directly to S3.
 
@@ -451,6 +454,9 @@ def upload_sequence(files, session, samples_resource, threads=1, metadata=None, 
     -------
     `list` of `string`s containing sample UUIDs of newly uploaded files.
     """
+    if threads is None:
+        threads = DEFAULT_THREADS
+
     file_names = []
     file_sizes = []
     file_formats = []
@@ -648,7 +654,7 @@ def upload_sequence_fileobj(file_obj, file_name, fields, session, samples_resour
     return sample_id
 
 
-def upload_document(files, session, documents_resource, threads=1, log=None, progressbar=False):
+def upload_document(files, session, documents_resource, threads=None, log=None, progressbar=False):
     """Uploads multiple document files to the One Codex server directly to S3 via an intermediate
     bucket.
 
@@ -671,6 +677,9 @@ def upload_document(files, session, documents_resource, threads=1, log=None, pro
     -------
     `list` of `string`s containing document UUIDs of newly uploaded files.
     """
+    if threads is None:
+        threads = DEFAULT_THREADS
+
     file_names = []
     file_sizes = []
 

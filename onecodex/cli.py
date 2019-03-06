@@ -11,6 +11,7 @@ import warnings
 
 from onecodex.api import Api
 from onecodex.auth import _login, _logout, _remove_creds, login_required
+from onecodex.lib.upload import DEFAULT_THREADS
 from onecodex.metadata_upload import validate_appendables
 from onecodex.scripts import subset_reads
 from onecodex.utils import (cli_resource_fetcher, download_file_helper,
@@ -148,7 +149,7 @@ def documents_list(ctx, json):
 
 
 @click.command('upload', help='Upload a file to the Document Portal')
-@click.option('--max-threads', default=4,
+@click.option('--max-threads', default=DEFAULT_THREADS,
               help=OPTION_HELP['max_threads'], metavar='<int:threads>')
 @click.argument('files', nargs=-1, required=False, type=click.Path(exists=True))
 @click.pass_context
