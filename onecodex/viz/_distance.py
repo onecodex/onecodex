@@ -48,14 +48,12 @@ class VizDistanceMixin(DistanceMixin):
         clustering = hierarchy.linkage(squareform(dist_matrix), method=linkage)
         scipy_tree = hierarchy.dendrogram(clustering, no_plot=True)
         ids_in_order = [self._results.index[int(x)] for x in scipy_tree['ivl']]
-        labels_in_order = [self.metadata['_display_name'][t] for t in ids_in_order]
 
         return {
             'dist_matrix': dist_matrix,
             'clustering': clustering,
             'scipy_tree': scipy_tree,
-            'ids_in_order': ids_in_order,
-            'labels_in_order': labels_in_order
+            'ids_in_order': ids_in_order
         }
 
     def _cluster_by_taxa(self, linkage='average'):
@@ -75,7 +73,7 @@ class VizDistanceMixin(DistanceMixin):
 
     def plot_distance(self, rank='auto', metric='braycurtis',
                       title=None, xlabel=None, ylabel=None, tooltip=None, return_chart=False,
-                      linkage='average'):
+                      linkage='average', label=None):
         """Plot beta diversity distance matrix as a heatmap and dendrogram.
 
         Parameters
@@ -96,6 +94,10 @@ class VizDistanceMixin(DistanceMixin):
             A string or list containing strings representing metadata fields. When a point in the
             plot is hovered over, the value of the metadata associated with that sample will be
             displayed in a modal.
+        label : `string` or `callable`, optional
+            A metadata field (or function) used to label each analysis. If passing a function, a
+            dict containing the metadata for each analysis is passed as the first and only
+            positional argument. The callable function must return a string.
 
         Examples
         --------
@@ -121,7 +123,9 @@ class VizDistanceMixin(DistanceMixin):
         else:
             tooltip = []
 
-        magic_metadata, magic_fields = self._metadata_fetch(tooltip)
+        tooltip.insert(0, "Label")
+
+        magic_metadata, magic_fields = self._metadata_fetch(tooltip, label=label)
         formatted_fields = []
 
         for _, magic_field in magic_fields.items():
@@ -144,8 +148,6 @@ class VizDistanceMixin(DistanceMixin):
                 else:
                     plot_data['Distance'].append(clust['dist_matrix'].iloc[idx1, idx2])
 
-                plot_data['1) Label'].append(self.metadata['_display_name'][id1])
-                plot_data['2) Label'].append(self.metadata['_display_name'][id2])
                 plot_data['classification_id'].append(id1)
 
                 for field_group, magic_field in zip(formatted_fields, magic_fields.values()):
@@ -154,13 +156,15 @@ class VizDistanceMixin(DistanceMixin):
 
         plot_data = pd.DataFrame(data=plot_data)
 
+        labels_in_order = magic_metadata['Label'][clust['ids_in_order']].tolist()
+
         # it's important to tell altair to order the cells in the heatmap according to the clustering
         # obtained from scipy
         alt_kwargs = dict(
-            x=alt.X('1) Label:N', axis=alt.Axis(title=xlabel), sort=clust['labels_in_order']),
-            y=alt.Y('2) Label:N', axis=alt.Axis(title=ylabel, orient='right'), sort=clust['labels_in_order']),
+            x=alt.X('1) Label:N', axis=alt.Axis(title=xlabel), sort=labels_in_order),
+            y=alt.Y('2) Label:N', axis=alt.Axis(title=ylabel, orient='right'), sort=labels_in_order),
             color='Distance:Q',
-            tooltip=['1) Label', '2) Label', 'Distance:Q'] + list(chain.from_iterable(formatted_fields)),
+            tooltip=list(chain.from_iterable(formatted_fields)) + ['Distance:Q'],
             href='url:N',
             url='https://app.onecodex.com/classification/' + alt.datum.classification_id
         )
@@ -184,7 +188,7 @@ class VizDistanceMixin(DistanceMixin):
 
     def plot_mds(self, rank='auto', metric='braycurtis', method='pcoa',
                  title=None, xlabel=None, ylabel=None, color=None, size=None, tooltip=None,
-                 return_chart=False):
+                 return_chart=False, label=None):
         """Plot beta diversity distance matrix using multidimensional scaling (MDS).
 
         Parameters
@@ -213,6 +217,10 @@ class VizDistanceMixin(DistanceMixin):
             A string or list containing strings representing metadata fields. When a point in the
             plot is hovered over, the value of the metadata associated with that sample will be
             displayed in a modal.
+        label : `string` or `callable`, optional
+            A metadata field (or function) used to label each analysis. If passing a function, a
+            dict containing the metadata for each analysis is passed as the first and only
+            positional argument. The callable function must return a string.
 
         Examples
         --------
@@ -242,9 +250,15 @@ class VizDistanceMixin(DistanceMixin):
         else:
             tooltip = []
 
-        tooltip = list(set(['Label', color, size] + tooltip))
+        tooltip.insert(0, 'Label')
 
-        magic_metadata, magic_fields = self._metadata_fetch(tooltip)
+        if color and color not in tooltip:
+            tooltip.insert(1, color)
+
+        if size and size not in tooltip:
+            tooltip.insert(2, size)
+
+        magic_metadata, magic_fields = self._metadata_fetch(tooltip, label=label)
 
         if method == 'smacof':
             # adapted from https://scikit-learn.org/stable/auto_examples/manifold/plot_mds.html
@@ -303,7 +317,7 @@ class VizDistanceMixin(DistanceMixin):
         alt_kwargs = dict(
             x=alt.X(x_field, axis=alt.Axis(title=xlabel)),
             y=alt.Y(y_field, axis=alt.Axis(title=ylabel)),
-            tooltip=[magic_fields[t] for t in tooltip if t],
+            tooltip=[magic_fields[t] for t in tooltip],
             href='url:N',
             url='https://app.onecodex.com/classification/' + alt.datum.classification_id
         )

@@ -6,9 +6,8 @@ from onecodex.viz import boxplot
 
 
 class VizMetadataMixin(object):
-    def plot_metadata(self, rank='auto',
-                      haxis='Label', vaxis='simpson',
-                      title=None, xlabel=None, ylabel=None, return_chart=False, plot_type='auto'):
+    def plot_metadata(self, rank='auto', haxis='Label', vaxis='simpson', title=None, xlabel=None,
+                      ylabel=None, return_chart=False, plot_type='auto', label=None):
         """Plot an arbitrary metadata field versus an arbitrary quantity as a boxplot or scatter plot.
 
         Parameters
@@ -41,6 +40,11 @@ class VizMetadataMixin(object):
             By default, will determine plot type automatically based on the data. Otherwise, specify
             one of 'boxplot' or 'scatter' to set the type of plot manually.
 
+        label : `string` or `callable`, optional
+            A metadata field (or function) used to label each analysis. If passing a function, a
+            dict containing the metadata for each analysis is passed as the first and only
+            positional argument. The callable function must return a string.
+
         Examples
         --------
         Generate a boxplot of the abundance of Bacteroides (genus) of samples grouped by whether the
@@ -55,7 +59,7 @@ class VizMetadataMixin(object):
             raise OneCodexException('Plot type must be one of: auto, boxplot, scatter')
 
         # alpha diversity is only allowed on vertical axis--horizontal can be magically mapped
-        df, magic_fields = self._metadata_fetch([haxis, 'Label'])
+        df, magic_fields = self._metadata_fetch([haxis, 'Label'], label=label)
 
         if vaxis in ('simpson', 'chao1', 'shannon'):
             df.loc[:, vaxis] = self.alpha_diversity(vaxis, rank=rank)

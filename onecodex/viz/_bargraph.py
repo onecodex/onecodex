@@ -16,6 +16,7 @@ class VizBargraphMixin(object):
         return_chart=False,
         haxis=None,
         legend="auto",
+        label=None,
     ):
         """Plot a bargraph of relative abundance of taxa for multiple samples.
 
@@ -49,6 +50,10 @@ class VizBargraphMixin(object):
         legend: `string`, optional
             Title for color scale. Defaults to the field used to generate the plot, e.g.
             readcount_w_children or abundance.
+        label : `string` or `callable`, optional
+            A metadata field (or function) used to label each analysis. If passing a function, a
+            dict containing the metadata for each analysis is passed as the first and only
+            positional argument. The callable function must return a string.
 
         Examples
         --------
@@ -96,7 +101,7 @@ class VizBargraphMixin(object):
 
         # takes metadata columns and returns a dataframe with just those columns
         # renames columns in the case where columns are taxids
-        magic_metadata, magic_fields = self._metadata_fetch(tooltip)
+        magic_metadata, magic_fields = self._metadata_fetch(tooltip, label=label)
 
         # add sort order to long-format df
         if haxis:

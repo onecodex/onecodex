@@ -9,7 +9,7 @@ from onecodex.exceptions import OneCodexException
 class VizPCAMixin(object):
     def plot_pca(self, rank='auto', normalize='auto', org_vectors=0, org_vectors_scale=None,
                  title=None, xlabel=None, ylabel=None, color=None, size=None, tooltip=None,
-                 return_chart=False):
+                 return_chart=False, label=None):
         """Perform principal component analysis and plot first two axes.
 
         Parameters
@@ -39,6 +39,10 @@ class VizPCAMixin(object):
             A string or list containing strings representing metadata fields. When a point in the
             plot is hovered over, the value of the metadata associated with that sample will be
             displayed in a modal.
+        label : `string` or `callable`, optional
+            A metadata field (or function) used to label each analysis. If passing a function, a
+            dict containing the metadata for each analysis is passed as the first and only
+            positional argument. The callable function must return a string.
 
         Examples
         --------
@@ -73,9 +77,15 @@ class VizPCAMixin(object):
         else:
             tooltip = []
 
-        tooltip = list(set(['Label', color, size] + tooltip))
+        tooltip.insert(0, 'Label')
 
-        magic_metadata, magic_fields = self._metadata_fetch(tooltip)
+        if color and color not in tooltip:
+            tooltip.insert(1, color)
+
+        if size and size not in tooltip:
+            tooltip.insert(2, size)
+
+        magic_metadata, magic_fields = self._metadata_fetch(tooltip, label=label)
 
         pca = PCA()
         pca_vals = pca.fit(df.values).transform(df.values)
@@ -94,7 +104,7 @@ class VizPCAMixin(object):
         alt_kwargs = dict(
             x=alt.X('PC1', axis=alt.Axis(title=xlabel)),
             y=alt.Y('PC2', axis=alt.Axis(title=ylabel)),
-            tooltip=[magic_fields[t] for t in tooltip if t],
+            tooltip=[magic_fields[t] for t in tooltip],
             href='url:N',
             url='https://app.onecodex.com/classification/' + alt.datum.classification_id
         )
