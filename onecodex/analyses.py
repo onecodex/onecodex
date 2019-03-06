@@ -1,3 +1,4 @@
+import six
 import warnings
 
 from onecodex.exceptions import OneCodexException
@@ -42,9 +43,21 @@ class AnalysisMixin(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceM
                getattr(self, '_field', None) == 'abundance' or \
                bool((self._results.sum(axis=1).round(4) == 1.0).all())  # noqa
 
-    def _metadata_fetch(self, metadata_fields):
+    def _metadata_fetch(self, metadata_fields, label=None):
         """Takes a list of metadata fields, some of which can contain taxon names or taxon IDs, and
         returns a DataFrame with transformed data that can be used for plotting.
+
+        Parameters
+        ----------
+        metadata_fields : `list` of `string`
+            A list of metadata fields, taxon names, or taxon IDs to fetch and transform for display.
+        label : `string` or `callable`, optional
+            A metadata field (or function) used to label each analysis. If passing a function, a
+            dict containing the metadata for each analysis is passed as the first and only
+            positional argument. The callable function must return a string.
+
+            If this argument is not given, and "Label" is in `metadata_fields`, "Label" will be set
+            to the filename associated with an analysis.
 
         Notes
         -----
@@ -79,6 +92,11 @@ class AnalysisMixin(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceM
         magic_metadata = pd.DataFrame({'classification_id': self._results.index}) \
                            .set_index('classification_id')
 
+        # if user passed label kwarg but didn't put "Label" in the fields, assume the user wants
+        # that field added
+        if label is not None and "Label" not in metadata_fields:
+            metadata_fields.append("Label")
+
         # if we magically rename fields, keep track
         magic_fields = {}
 
@@ -109,9 +127,30 @@ class AnalysisMixin(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceM
                 str_f = str(f)
 
                 if str_f == 'Label':
-                    # it's our magic keyword that means _display_name
-                    magic_metadata[f] = self.metadata['_display_name']
+                    magic_metadata[str_f] = self.metadata['filename']
                     magic_fields[f] = str_f
+
+                    if isinstance(label, six.string_types):
+                        if label in self.metadata.columns:
+                            magic_metadata[str_f] = self.metadata[label]
+                        else:
+                            raise OneCodexException(
+                                'Label field {} not found. Choose from: {}'.format(label, help_metadata)
+                            )
+                    elif callable(label):
+                        for classification_id, metadata in self.metadata.to_dict(orient='index').items():
+                            c_id_label = label(metadata)
+
+                            if not isinstance(c_id_label, six.string_types):
+                                raise OneCodexException(
+                                    'Expected string from label function, got: {}'.format(type(c_id_label).__name__)
+                                )
+
+                            magic_metadata.loc[classification_id, 'Label'] = c_id_label
+                    elif label is not None:
+                        raise OneCodexException(
+                            'Expected string or callable for label, got: {}'.format(type(label).__name__)
+                        )
                 elif str_f in self.metadata:
                     # exactly matches existing metadata field
                     magic_metadata[f] = self.metadata[str_f]

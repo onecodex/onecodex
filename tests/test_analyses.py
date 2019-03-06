@@ -65,6 +65,28 @@ def test_metadata_fetch(ocx, api_data):
     assert fields['bacteroid'] == 'Bacteroidaceae (815)'
     assert df['Bacteroidaceae (815)'].round(10).tolist() == [0.344903898, 0.1656058794, 0.7776093433]
 
+    # label is a metadata field or callable
+    df, fields = samples._metadata_fetch(['Label'], label='eggs')
+    assert df['Label'].tolist() == [True, True, True]
+
+    df, fields = samples._metadata_fetch(['Label'], label=lambda x: str(x['eggs']) + '_foo')
+    assert df['Label'].tolist() == ['True_foo', 'True_foo', 'True_foo']
+
+    # label must be a string or callable
+    with pytest.raises(OneCodexException) as e:
+        df, fields = samples._metadata_fetch(['Label'], label=False)
+    assert 'string or callable' in str(e.value)
+
+    # label is a field not in the table
+    with pytest.raises(OneCodexException) as e:
+        df, fields = samples._metadata_fetch(['Label'], label='does_not_exist')
+    assert 'not found' in str(e.value)
+
+    # label is a callable doesn't return a string
+    with pytest.raises(OneCodexException) as e:
+        df, fields = samples._metadata_fetch(['Label'], label=lambda x: False)
+    assert 'string from label' in str(e.value)
+
 
 def test_results_filtering_rank(ocx, api_data):
     samples = ocx.Samples.where(project='4b53797444f846c4')

@@ -97,16 +97,6 @@ def test_collate_metadata(ocx, api_data):
     assert sha256(string_to_hash.encode()).hexdigest() == \
         '6bebbdcc842f5d83d98a02657231093d68a649fc7721cf3a92755260dd45bf3d'
 
-    # label must be a string or callable
-    with pytest.raises(NotImplementedError) as e:
-        samples._collate_metadata(label=123)
-    assert 'string or function' in str(e.value)
-
-    # label is a field not in the table
-    with pytest.raises(OneCodexException) as e:
-        samples._collate_metadata(label='does_not_exist')
-    assert 'not find any labels' in str(e.value)
-
 
 def test_collate_results(ocx, api_data):
     samples = ocx.Samples.where(project='4b53797444f846c4')
