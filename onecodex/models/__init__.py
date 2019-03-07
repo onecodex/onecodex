@@ -383,6 +383,13 @@ class OneCodexBase(object):
         keyword_filters : strings | objects
             Filter the results by specific keywords (or filter objects, in advanced usage)
 
+        Examples
+        --------
+        You can filter objects that are returned locally using a lambda function:
+
+            # returns only samples with a filename ending in '.gz'
+            my_samples = Samples.where(filter=lambda s: s.filename.endswith('.gz'))
+
         Returns
         -------
         list
@@ -390,6 +397,9 @@ class OneCodexBase(object):
             matches all objects.
         """
         check_bind(cls)
+
+        # do this here to avoid passing this on to potion
+        filter_func = keyword_filters.pop('filter', None)
 
         public = False
         if any(x['rel'] == 'instances_public' for x in cls._resource._schema['links']):
@@ -430,7 +440,19 @@ class OneCodexBase(object):
         cursor = getattr(cls._resource, instances_route)(where=where, sort=sort, per_page=DEFAULT_PAGE_SIZE)
         if limit is not None:
             cursor = itertools.islice(cursor, limit)
-        return [cls(_resource=r) for r in cursor]
+
+        # finally, apply local filtering function on objects before returning
+        wrapped = [cls(_resource=r) for r in cursor]
+
+        if filter_func:
+            if callable(filter_func):
+                wrapped = [obj for obj in wrapped if filter_func(obj) is True]
+            else:
+                raise OneCodexException(
+                    'Expected callable for filter, got: {}'.format(type(filter_func).__name__)
+                )
+
+        return wrapped
 
     @classmethod
     def get(cls, uuid):

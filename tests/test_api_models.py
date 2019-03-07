@@ -154,6 +154,12 @@ def test_samplecollection(ocx, api_data):
         onecodex.models.SampleCollection([s._resource for s in all_samples[:7]])
     assert 'can only contain' in str(e.value)
 
+    # test filtering of Samples in a collection
+    new_collection = all_samples.filter(lambda s: s.filename.endswith('9.fastq.gz'))
+    assert all([s.filename.endswith('9.fastq.gz') for s in new_collection])
+    assert len(new_collection) == 7
+    assert id(new_collection) != id(all_samples)
+
 
 def test_dir_method(ocx, api_data):
     sample = ocx.Samples.get('761bc54b97f64980')
@@ -304,6 +310,17 @@ def test_where_clauses_with_tags(ocx, api_data):
         query_in_urls.append(query in url)
 
     assert any(query_in_urls)
+
+
+def test_where_filter(ocx, api_data):
+    samples = ocx.Samples.where(filter=lambda s: s.filename.endswith('9.fastq.gz'))
+    assert all([s.filename.endswith('9.fastq.gz') for s in samples])
+    assert len(samples) == 7
+
+    # filter kwarg must be callable
+    with pytest.raises(OneCodexException) as e:
+        ocx.Samples.where(filter='not_callable')
+    assert 'Expected callable' in str(e.value)
 
 
 def test_where_primary_classification(ocx, api_data):
