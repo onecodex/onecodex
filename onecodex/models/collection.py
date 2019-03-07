@@ -82,6 +82,36 @@ class SampleCollection(ResourceList, AnalysisMixin):
         self._kwargs = {'skip_missing': skip_missing, 'field': field}
         super(SampleCollection, self).__init__(resources, model, **self._kwargs)
 
+    def filter(self, filter_func):
+        """Return a new SampleCollection containing only samples meeting the filter criteria.
+
+        Will pass any kwargs (e.g., field or skip_missing) used when instantiating the current class
+        on to the new SampleCollection that is returned.
+
+        Parameters
+        ----------
+        filter_func : `callable`
+            A function that will be evaluated on every object in the collection. The function must
+            return a `bool`. If True, the object will be kept. If False, it will be removed from the
+            SampleCollection that is returned.
+
+        Returns
+        -------
+        `onecodex.models.SampleCollection` containing only objects `filter_func` returned True on.
+
+        Examples
+        --------
+        Generate a new collection of Samples that have a specific filename extension:
+
+            new_collection = samples.filter(lambda s: s.filename.endswith('.fastq.gz'))
+        """
+        if callable(filter_func):
+            return self.__class__([obj for obj in self if filter_func(obj) is True], **self._kwargs)
+        else:
+            raise OneCodexException(
+                'Expected callable for filter, got: {}'.format(type(filter_func).__name__)
+            )
+
     def _update(self):
         self._cached = {}
         super(SampleCollection, self)._update()
