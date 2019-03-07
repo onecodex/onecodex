@@ -64,8 +64,8 @@ def test_classification_fetch(ocx, api_data):
 
     # should work with a list of classifications as input, not just samples
     samples._oc_model = ocx.Classifications
-    samples._res_list = samples.primary_classifications
-    samples._resource = [x._resource for x in samples.primary_classifications]
+    samples._res_list = samples._classifications
+    samples._resource = [x._resource for x in samples._classifications]
     samples._classification_fetch()
 
     # should issue a warning if a classification did not succeed

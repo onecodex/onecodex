@@ -152,7 +152,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         self._cached['classifications'] = new_classifications
 
     @property
-    def primary_classifications(self):
+    def _classifications(self):
         if 'classifications' not in self._cached:
             self._classification_fetch()
 
@@ -171,7 +171,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         DEFAULT_FIELDS = None
         metadata = []
 
-        for c in self.primary_classifications:
+        for c in self._classifications:
             m = c.sample.metadata
 
             if DEFAULT_FIELDS is None:
@@ -229,7 +229,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         # we'll fill these dicts that eventually turn into DataFrames
         df = {
-            'classification_id': [c.id for c in self.primary_classifications]
+            'classification_id': [c.id for c in self._classifications]
         }
 
         tax_info = {
@@ -244,7 +244,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         self._cached['field'] = field
 
-        for c_idx, c in enumerate(self.primary_classifications):
+        for c_idx, c in enumerate(self._classifications):
             # pulling results from mainline is the slowest part of the function
             result = c.results()['table']
 
@@ -257,7 +257,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
                         tax_info[k].append(d[k])
 
                     # first time we've seen this taxon, so make a vector for it
-                    df[d_tax_id] = [0] * len(self.primary_classifications)
+                    df[d_tax_id] = [0] * len(self._classifications)
 
                 df[d_tax_id][c_idx] = d[field]
 
@@ -328,7 +328,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         rows = defaultdict(dict)
 
         tax_ids_to_names = {}
-        for classification in self.primary_classifications:
+        for classification in self._classifications:
             col_id = len(otu['columns'])  # 0 index
 
             # Re-encoding the JSON is a bit of a hack, but
