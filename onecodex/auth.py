@@ -9,8 +9,9 @@ import os
 import sys
 
 from onecodex.api import Api
-from onecodex.lib.auth import fetch_api_key_from_uname
+from onecodex.lib.auth import check_version, fetch_api_key_from_uname
 from onecodex.utils import collapse_user
+from onecodex.version import __version__
 
 
 log = logging.getLogger(__name__)
@@ -67,6 +68,30 @@ def _login(server=None, creds_file=None, api_key=None, silent=False):
                            'Please delete it and re-authorize.', err=True)
                 sys.exit(1)
 
+        # check for updates if logged in more than one day ago
+        last_update = creds.get('updated_at', creds.get('saved_at'))
+        last_update = last_update if last_update else datetime.datetime.now().strftime(DATE_FORMAT)
+        diff = datetime.datetime.now() - datetime.datetime.strptime(last_update,
+                                                                    DATE_FORMAT)
+        if diff.days >= 1:
+            # if creds_file is old, check for updates
+            upgrade_required, msg = check_version(__version__, server)
+            creds['updated_at'] = datetime.datetime.now().strftime(DATE_FORMAT)
+
+            try:
+                json.dump(creds, open(creds_file, 'w'))
+            except Exception as e:
+                if e.errno == errno.EACCES:
+                    click.echo('Please check the permissions on {}'
+                               .format(collapse_user(creds_file)),
+                               err=True)
+                    sys.exit(1)
+                else:
+                    raise
+
+            if upgrade_required:
+                click.echo('\nWARNING: {}\n'.format(msg), err=True)
+
         # finally, give the user back what they want (whether silent or not)
         if silent:
             return creds.get('api_key', None)
@@ -87,6 +112,7 @@ def _login(server=None, creds_file=None, api_key=None, silent=False):
     creds.update({
         'api_key': api_key,
         'saved_at': datetime.datetime.now().strftime(DATE_FORMAT),
+        'updated_at': None,
         'email': email,
     })
 

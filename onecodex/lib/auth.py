@@ -33,3 +33,45 @@ def fetch_api_key_from_uname(username, password, server_url):
         except (ValueError, KeyError):  # ValueError includes simplejson.decoder.JSONDecodeError
             key = None
     return key
+
+
+def check_version(version, server):
+    """Check if the current CLI version is supported by the One Codex backend.
+
+    Parameters
+    ----------
+    version : `string`
+        Current version of the One Codex client library
+    server : `string`
+        Complete URL to One Codex server, e.g., https://app.onecodex.com
+
+    Returns
+    -------
+    `tuple` containing two values:
+        - True if the user *must* upgrade their software, otherwise False
+        - An error message if the user should upgrade, otherwise None.
+    """
+    def version_inadequate(client_version, server_version):
+        """Simple, fast check for version inequality.
+
+        Could use python package `semver` if we need more precise checks in
+        edge cases, but this generally works for now.
+        """
+        client_version = tuple([int(x) for x in client_version.split('-')[0].split('.')])
+        server_version = tuple([int(x) for x in server_version.split('.')])
+        return client_version < server_version
+
+    # this will probably live on /api/v0 forever for compat with older CLI versions
+    data = requests.post(server + 'api/v0/check_for_cli_update', data={'version': version})
+
+    if data.status_code != 200:
+        return False, 'Error connecting to server'
+
+    data = data.json()
+    latest_version = data['latest_version']
+
+    if version_inadequate(version, latest_version):
+        return True, ('Please upgrade your client to the latest version (v{}) using the command '
+                      '`pip install --upgrade onecodex`'.format(latest_version))
+
+    return False, None
