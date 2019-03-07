@@ -107,7 +107,7 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
             # TODO: implement this (see above block)
             samples = metadata_samples
 
-        return SampleCollection([w._resource for w in samples[:limit]], Samples)
+        return SampleCollection([s._resource for s in samples[:limit]], Samples)
 
     @classmethod
     def search_public(cls, *filters, **keyword_filters):

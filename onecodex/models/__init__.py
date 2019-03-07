@@ -63,7 +63,7 @@ class ResourceList(object):
             if len(set(self_ids + other_ids)) != len(self_ids + other_ids):
                 raise OneCodexException('{} cannot contain duplicate objects'.format(self.__class__.__name__))
 
-    def __init__(self, _resource, oc_model):
+    def __init__(self, _resource, oc_model, **kwargs):
         if not issubclass(oc_model, OneCodexBase):
             raise ValueError("Expected object of type '{}', got '{}'"
                              .format(OneCodexBase.__name__, oc_model.__name__))
@@ -71,6 +71,7 @@ class ResourceList(object):
         # turn potion Resource objects into OneCodex objects
         self._resource = _resource
         self._oc_model = oc_model
+        self._kwargs = kwargs
         self._update()
 
     def __eq__(self, other):
@@ -94,7 +95,7 @@ class ResourceList(object):
     def __getitem__(self, x):
         wrapped = self._res_list[x]
         if isinstance(wrapped, list):
-            return self.__class__(self._resource[x], self._oc_model)
+            return self.__class__(self._resource[x], self._oc_model, **self._kwargs)
         else:
             return wrapped
 
@@ -134,7 +135,7 @@ class ResourceList(object):
         self._res_list.clear()
 
     def copy(self):
-        new_obj = self.__class__(self._resource[:], self._oc_model)
+        new_obj = self.__class__(self._resource[:], self._oc_model, **self._kwargs)
         return new_obj
 
     def count(self, x):
@@ -515,12 +516,13 @@ class OneCodexBase(object):
 
 
 from onecodex.models.analysis import Analyses, Classifications, Alignments, Panels  # noqa
+from onecodex.models.collection import SampleCollection  # noqa
 from onecodex.models.misc import Jobs, Projects, Tags, Users, Documents  # noqa
 from onecodex.models.sample import Samples, Metadata  # noqa
 
 
-__all__ = ['Samples', 'Classifications', 'Alignments', 'Panels', 'Jobs', 'Projects', 'Tags',
-           'Users', 'Metadata', 'Documents']
+__all__ = ['Alignments', 'Classifications', 'Documents', 'Jobs', 'Metadata', 'Panels',
+           'Projects', 'Samples', 'SampleCollection', 'Tags', 'Users']
 
 
 def pretty_print_error(err_json):
