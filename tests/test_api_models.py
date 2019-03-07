@@ -136,6 +136,24 @@ def test_samplecollection(ocx, api_data):
         samples + single_sample
     assert 'can only concatenate' in str(e.value)
 
+    # you can make a new SampleCollection from a list of Samples
+    onecodex.models.SampleCollection([s for s in all_samples[:7]])
+
+    # and from a list of Classifications
+    onecodex.models.SampleCollection([s.primary_classification for s in all_samples[:7]])
+
+    # but not a combination of both
+    with pytest.raises(OneCodexException) as e:
+        onecodex.models.SampleCollection(
+            [s.primary_classification for s in all_samples[:3]] + [s for s in all_samples[4:7]]
+        )
+    assert 'but not both' in str(e.value)
+
+    # and not using unwrapped potion resources
+    with pytest.raises(OneCodexException) as e:
+        onecodex.models.SampleCollection([s._resource for s in all_samples[:7]])
+    assert 'can only contain' in str(e.value)
+
 
 def test_dir_method(ocx, api_data):
     sample = ocx.Samples.get('761bc54b97f64980')

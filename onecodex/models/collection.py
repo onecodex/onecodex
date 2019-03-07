@@ -9,7 +9,7 @@ try:
 except ImportError:
     class AnalysisMixin(object):
         pass
-from onecodex.models import ResourceList
+from onecodex.models import OneCodexBase, ResourceList
 
 
 class SampleCollection(ResourceList, AnalysisMixin):
@@ -22,10 +22,65 @@ class SampleCollection(ResourceList, AnalysisMixin):
     analysis methods.
     """
 
-    def __init__(self, _resource, oc_model, skip_missing=True, field='auto'):
-        self._kwargs = {'skip_missing': skip_missing, 'field': field}
+    def __init__(self, *args, **kwargs):
+        """Instantiate a new SampleCollection containing `Samples` or `Classifications` objects.
 
-        super(SampleCollection, self).__init__(_resource, oc_model)
+        Parameters
+        ----------
+        objects : `list` of `onecodex.models.Samples` or `onecodex.models.Classifications`
+            A list of objects which will be processed into a SampleCollection
+
+        skip_missing : `bool`, optional
+            If an analysis was not successful, exclude it, warn, and keep going
+
+        field : {'readcount_w_children', 'readcount', 'abundance'}, optional
+            Which field to use for the abundance/count of a particular taxon in a sample.
+
+            - 'readcount_w_children': total reads of this taxon and all its descendants
+            - 'readcount': total reads of this taxon
+            - 'abundance': genome size-normalized relative abundances, from shotgun sequencing
+
+        Examples
+        --------
+        Given a list of Samples, create a new SampleCollection using abundances:
+
+            samples = [sample1, sample2, sample3]
+            collection = SampleCollection(samples, field='abundance')
+
+        Notes
+        -----
+        To provide access to the list-like API of `ResourceList`, must also accept a list of
+        unwrapped potion resources and a One Codex model.
+        """
+        if len(args) == 2 and isinstance(args[0], list) and issubclass(args[1], OneCodexBase):
+            self._resource_list_constructor(*args, **kwargs)
+        else:
+            self._sample_collection_constructor(*args, **kwargs)
+
+    def _resource_list_constructor(self, _resource, oc_model, skip_missing=True, field='auto'):
+        self._kwargs = {'skip_missing': skip_missing, 'field': field}
+        super(SampleCollection, self).__init__(_resource, oc_model, **self._kwargs)
+
+    def _sample_collection_constructor(self, objects, skip_missing=True, field='auto'):
+        # are they all wrapped potion resources?
+        if not all([hasattr(obj, '_resource') for obj in objects]):
+            raise OneCodexException(
+                'SampleCollection can only contain One Codex Samples or Classifications objects'
+            )
+
+        # are they all the same model?
+        object_classes = [type(obj) for obj in objects]
+
+        if len(set(object_classes)) > 1:
+            raise OneCodexException(
+                'SampleCollection can contain Samples or Classifications, but not both'
+            )
+
+        resources = [obj._resource for obj in objects]
+        model = objects[0].__class__
+
+        self._kwargs = {'skip_missing': skip_missing, 'field': field}
+        super(SampleCollection, self).__init__(resources, model, **self._kwargs)
 
     def _update(self):
         self._cached = {}
@@ -54,7 +109,9 @@ class SampleCollection(ResourceList, AnalysisMixin):
             elif a.__class__.__name__ == 'Classifications':
                 c = a
             else:
-                raise OneCodexException('{} must be one of: Classifications, Samples')
+                raise OneCodexException(
+                    'Objects in SampleCollection must be one of: Classifications, Samples'
+                )
 
             if skip_missing and not c.success:
                 warnings.warn('Classification {} not successful. Skipping.'.format(c.id))
