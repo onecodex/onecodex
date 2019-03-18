@@ -399,9 +399,9 @@ def login(ctx):
     """Add an API key (saved in ~/.onecodex)"""
     base_url = os.environ.get("ONE_CODEX_API_BASE", "https://app.onecodex.com")
     if not ctx.obj['API_KEY']:
-        _login(server=base_url)
+        _login(base_url)
     else:
-        email = _login(server=base_url, api_key=ctx.obj['API_KEY'])
+        email = _login(base_url, api_key=ctx.obj['API_KEY'])
         ocx = Api(api_key=ctx.obj['API_KEY'], telemetry=ctx.obj['TELEMETRY'])
 
         # TODO: This should be protected or built in as a first class resource

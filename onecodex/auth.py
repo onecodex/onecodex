@@ -31,19 +31,19 @@ def login_uname_pwd(server, api_key=None):
     password = click.prompt('Please enter your password (typing will be hidden)',
                             hide_input=True)
 
-    # fetch_api_key expects server to end in /
-    if server[-1] != '/':
-        server = server + '/'
-
     # now get the API key
     api_key = fetch_api_key_from_uname(username, password, server)
     return username, api_key
 
 
-def _login(server=None, creds_file=None, api_key=None, silent=False):
+def _login(server, creds_file=None, api_key=None, silent=False):
     """
     Login main function
     """
+    # fetch_api_key and check_version expect server to end in /
+    if server[-1] != '/':
+        server = server + '/'
+
     # creds file path setup
     if creds_file is None:
         creds_file = os.path.expanduser('~/.onecodex')
@@ -180,12 +180,14 @@ def login_required(fn):
 
     @wraps(fn)
     def login_wrapper(ctx, *args, **kwargs):
+        base_url = os.environ.get('ONE_CODEX_API_BASE', 'https://app.onecodex.com')
+
         api_kwargs = {'telemetry': ctx.obj['TELEMETRY']}
 
         api_key_prior_login = ctx.obj.get('API_KEY')
         bearer_token_env = os.environ.get('ONE_CODEX_BEARER_TOKEN')
         api_key_env = os.environ.get('ONE_CODEX_API_KEY')
-        api_key_creds_file = _login(silent=True)
+        api_key_creds_file = _login(base_url, silent=True)
 
         if api_key_prior_login is not None:
             api_kwargs['api_key'] = api_key_prior_login
