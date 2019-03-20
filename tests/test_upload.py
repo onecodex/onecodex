@@ -99,7 +99,7 @@ class FakeSamplesResource():
             },
         }
 
-    def init_multipart_upload(self):
+    def init_multipart_upload(self, obj):
         if self.what_fails == 'init_multipart':
             self.err_resp()
 
@@ -340,7 +340,7 @@ def test_upload_sequence_fileobj():
     file_obj = BytesIO(b'>test\nACGT\n')
     init_upload_fields = FakeSamplesResource().init_upload(['filename', 'size', 'upload_type'])
     upload_sequence_fileobj(
-        file_obj, 'test.fa', init_upload_fields,
+        file_obj, 'test.fa', init_upload_fields, {},
         FakeSession(), FakeSamplesResource()
     )
     file_obj.close()
@@ -350,7 +350,7 @@ def test_upload_sequence_fileobj():
         file_obj = BytesIO(b'>test\nACGT\n')
         init_upload_fields = FakeSamplesResource().init_upload(['filename', 'size', 'upload_type'])
         ret_sample_id = upload_sequence_fileobj(
-            file_obj, 'test.fa', init_upload_fields,
+            file_obj, 'test.fa', init_upload_fields, {},
             FakeSessionProxyFails(500), FakeSamplesResource()
         )
         file_obj.close()
@@ -364,7 +364,7 @@ def test_upload_sequence_fileobj():
         file_obj = BytesIO(b'>test\nACGT\n')
         init_upload_fields = FakeSamplesResource().init_upload(['filename', 'size', 'upload_type'])
         upload_sequence_fileobj(
-            file_obj, 'test.fa', init_upload_fields,
+            file_obj, 'test.fa', init_upload_fields, {},
             FakeSessionProxyFails(400), FakeSamplesResource()
         )
         file_obj.close()
