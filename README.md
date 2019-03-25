@@ -107,6 +107,15 @@ ocx = Api(api_key="YOUR_API_KEY_HERE")
 Resources are exposed as attributes on the API object. You can fetch a resource directly by its ID or you can fetch it using the query interface. Currently you can access resources using either `get()` or `where()`. If you need help finding the ID for a sample, its identifier is part of its url on our webpage: e.g. for an analysis at `https://app.onecodex.com/analysis/public/1d9491c5c31345b6`, the ID is `1d9491c5c31345b6`. IDs are all short unique identifiers, consisting of 16 hexadecimal characters (`0-9a-f`).
 
 ```python
+sample_analysis = ocx.Classifications.get("1d9491c5c31345b6")	# Fetch an individual classification
+sample_analysis.results()  # Returns classification results as JSON object	
+sample_analysis.table()    # Returns a pandas dataframe	
+```
+
+In addition to methods on individual instances of a given resource (e.g., a `Sample` or an `Analysis`), the library also provides methods for aggregating sets of samples or analyses:
+
+
+```python
 all_completed_analyses = ocx.Classifications.where(complete=True)
 all_completed_analyses.to_otu()   # Returns classification results as JSON object
 all_completed_analyses.to_df()    # Returns a pandas dataframe
