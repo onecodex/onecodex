@@ -69,10 +69,10 @@ def _login(server, creds_file=None, api_key=None, silent=False):
                 sys.exit(1)
 
         # check for updates if logged in more than one day ago
-        last_update = creds.get('updated_at', creds.get('saved_at'))
+        last_update = creds.get('updated_at') or creds.get('saved_at')
         last_update = last_update if last_update else datetime.datetime.now().strftime(DATE_FORMAT)
-        diff = datetime.datetime.now() - datetime.datetime.strptime(last_update,
-                                                                    DATE_FORMAT)
+        diff = datetime.datetime.now() - datetime.datetime.strptime(last_update, DATE_FORMAT)
+
         if diff.days >= 1:
             # if creds_file is old, check for updates
             upgrade_required, msg = check_version(__version__, server)
