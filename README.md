@@ -108,9 +108,8 @@ Resources are exposed as attributes on the API object. You can fetch a resource 
 
 ```python
 all_completed_analyses = ocx.Classifications.where(complete=True)
-sample_analysis = ocx.Classifications.get("1d9491c5c31345b6")
-sample_analysis.results()  # Returns classification results as JSON object
-sample_analysis.table()    # Returns a pandas dataframe
+all_completed_analyses.to_otu()   # Returns classification results as JSON object
+all_completed_analyses.to_df()    # Returns a pandas dataframe
 ```
 
 # Development
