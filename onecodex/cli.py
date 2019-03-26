@@ -249,7 +249,7 @@ def classifications(ctx, classifications, results, readlevel, readlevel_path):
                 log.error('Could not find classification {} (404 status code)'
                           .format(classifications[0]))
                 return
-            tsv_url = classification.readlevel()['url']
+            tsv_url = classification._readlevel()['url']
             log.info("Downloading tsv data from: {}".format(tsv_url))
             download_file_helper(tsv_url, readlevel_path)
 

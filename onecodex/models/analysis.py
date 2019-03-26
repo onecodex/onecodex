@@ -61,7 +61,7 @@ class Classifications(Analyses):
         else:
             return self._table()
 
-    def readlevel(self):
+    def _readlevel(self):
         return self._resource.readlevel()
 
     def _table(self):

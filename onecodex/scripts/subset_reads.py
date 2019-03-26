@@ -177,7 +177,7 @@ def cli(ctx, classification_id, fastx, reverse, tax_ids, with_children,
     tax_ids = set(tax_ids)
 
     # pull the classification result TSV
-    tsv_url = classification.readlevel()['url']
+    tsv_url = classification._readlevel()['url']
     readlevel_path = get_download_dest('./', tsv_url)
     if not os.path.exists(readlevel_path):
         download_file_helper(tsv_url, './')
