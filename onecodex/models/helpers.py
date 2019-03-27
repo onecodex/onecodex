@@ -136,6 +136,7 @@ class ResourceDownloadMixin(object):
         except KeyboardInterrupt:
             if path:
                 os.remove(path)
+            raise
         except requests.exceptions.HTTPError as exc:
             if exc.response.status_code == 401:
                 raise OneCodexException('You must be logged in to download files.')
