@@ -307,6 +307,9 @@ def _file_stats(file_path, enforce_fastx=True):
 # this lets us turn off the click progressbar context manager and is python2 compatible
 # https://stackoverflow.com/questions/45187286/how-do-i-write-a-null-no-op-contextmanager-in-python
 class FakeProgressBar(object):
+    pct = 0
+    label = ''
+
     def __init__(self):
         pass
 
