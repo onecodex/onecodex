@@ -62,9 +62,7 @@ class VizBargraphMixin(object):
         >>> plot_bargraph(rank='genus', top_n=10)
         """
         if rank is None:
-            raise OneCodexException(
-                "Please specify a rank or 'auto' to choose automatically"
-            )
+            raise OneCodexException("Please specify a rank or 'auto' to choose automatically")
 
         if not (threshold or top_n):
             raise OneCodexException("Please specify at least one of: threshold, top_n")
@@ -77,15 +75,11 @@ class VizBargraphMixin(object):
         elif top_n != "auto" and threshold == "auto":
             threshold = None
 
-        if legend == 'auto':
+        if legend == "auto":
             legend = self._field
 
         df = self.to_df(
-            rank=rank,
-            normalize=normalize,
-            top_n=top_n,
-            threshold=threshold,
-            table_format="long",
+            rank=rank, normalize=normalize, top_n=top_n, threshold=threshold, table_format="long"
         )
 
         if tooltip:
@@ -108,27 +102,21 @@ class VizBargraphMixin(object):
             sort_order = magic_metadata.sort_values(magic_fields[haxis]).index.tolist()
 
             for sort_num, sort_class_id in enumerate(sort_order):
-                magic_metadata.loc[sort_class_id, 'sort_order'] = sort_num
+                magic_metadata.loc[sort_class_id, "sort_order"] = sort_num
 
-            df['sort_order'] = magic_metadata['sort_order'][
-                df["classification_id"]
-            ].tolist()
+            df["sort_order"] = magic_metadata["sort_order"][df["classification_id"]].tolist()
 
-            sort_order = alt.EncodingSortField(field='sort_order', op="mean")
+            sort_order = alt.EncodingSortField(field="sort_order", op="mean")
         else:
             sort_order = None
 
         # transfer metadata from wide-format df (magic_metadata) to long-format df
         for f in tooltip:
-            df[magic_fields[f]] = magic_metadata[magic_fields[f]][
-                df["classification_id"]
-            ].tolist()
+            df[magic_fields[f]] = magic_metadata[magic_fields[f]][df["classification_id"]].tolist()
 
         # add taxa names
         df["tax_name"] = [
-            "{} ({})".format(self.taxonomy["name"][t], t)
-            if t in self.taxonomy["name"]
-            else t
+            "{} ({})".format(self.taxonomy["name"][t], t) if t in self.taxonomy["name"] else t
             for t in df["tax_id"]
         ]
 
@@ -141,7 +129,7 @@ class VizBargraphMixin(object):
         #
 
         ylabel = self._field if ylabel is None else ylabel
-        xlabel = '' if xlabel is None else xlabel
+        xlabel = "" if xlabel is None else xlabel
 
         # should ultimately be Label, tax_name, readcount_w_children, then custom fields
         tooltip_for_altair = [magic_fields[f] for f in tooltip]
@@ -162,7 +150,7 @@ class VizBargraphMixin(object):
                 plot_df = df.where(df[magic_fields[haxis]] == md_val).dropna()
 
                 # preserve booleans
-                if magic_metadata[magic_fields[haxis]].dtype == 'bool':
+                if magic_metadata[magic_fields[haxis]].dtype == "bool":
                     plot_df[magic_fields[haxis]] = plot_df[magic_fields[haxis]].astype(bool)
 
                 dfs_to_plot.append(plot_df)
@@ -177,7 +165,11 @@ class VizBargraphMixin(object):
                 .mark_bar()
                 .encode(
                     x=alt.X("Label", axis=alt.Axis(title=xlabel), sort=sort_order),
-                    y=alt.Y(self._field, axis=alt.Axis(title=ylabel), scale=alt.Scale(domain=[0, 1], zero=True, nice=False)),
+                    y=alt.Y(
+                        self._field,
+                        axis=alt.Axis(title=ylabel),
+                        scale=alt.Scale(domain=[0, 1], zero=True, nice=False),
+                    ),
                     color=alt.Color("tax_name", legend=alt.Legend(title=legend)),
                     tooltip=tooltip_for_altair,
                     href="url:N",

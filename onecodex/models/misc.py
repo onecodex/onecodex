@@ -8,7 +8,7 @@ from onecodex.models.helpers import truncate_string, ResourceDownloadMixin
 
 
 class Tags(OneCodexBase):
-    _resource_path = '/api/v1/tags'
+    _resource_path = "/api/v1/tags"
 
     def __init__(self, _resource=None, **kwargs):
         if kwargs:
@@ -20,39 +20,40 @@ class Tags(OneCodexBase):
             elif len(results) == 1:
                 self._resource = results[0]._resource
             elif len(results) > 1:
-                raise OneCodexException('Multiple matches found for given criteria')
+                raise OneCodexException("Multiple matches found for given criteria")
         else:
             super(Tags, self).__init__(_resource=_resource, **kwargs)
 
     def __repr__(self):
-        return '<{} {}: "{}">'.format(self.__class__.__name__, self.id,
-                                      truncate_string(self.name, 24))
+        return '<{} {}: "{}">'.format(
+            self.__class__.__name__, self.id, truncate_string(self.name, 24)
+        )
 
     def __hash__(self):
         return hash(self.name)
 
 
 class Users(OneCodexBase):
-    _resource_path = '/api/v1/users'
+    _resource_path = "/api/v1/users"
 
 
 class Projects(OneCodexBase):
-    _resource_path = '/api/v1/projects'
+    _resource_path = "/api/v1/projects"
 
     @classmethod
     def search_public(cls, *filters, **keyword_filters):
-        warnings.warn('Now supported via `.where(..., public=True)`', DeprecationWarning)
-        keyword_filters['public'] = True
-        keyword_filters['limit'] = 1000
+        warnings.warn("Now supported via `.where(..., public=True)`", DeprecationWarning)
+        keyword_filters["public"] = True
+        keyword_filters["limit"] = 1000
         return cls.where(*filters, **keyword_filters)
 
 
 class Jobs(OneCodexBase):
-    _resource_path = '/api/v1/jobs'
+    _resource_path = "/api/v1/jobs"
 
 
 class Documents(OneCodexBase, ResourceDownloadMixin):
-    _resource_path = '/api/v1/documents'
+    _resource_path = "/api/v1/documents"
 
     @classmethod
     def upload(cls, files, threads=None, log=None, progressbar=False):

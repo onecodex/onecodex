@@ -6,6 +6,7 @@ class MethodNotSupported(OneCodexException):
     """
     The object does not support this operation.
     """
+
     pass
 
 
@@ -21,6 +22,7 @@ class UnboundObject(OneCodexException):
     """
     To use against the One Codex server, all classes must be derived from an Api instance.
     """
+
     pass
 
 
@@ -32,4 +34,5 @@ class UploadException(Exception):
     """
     An exception for when things go wrong with uploading
     """
+
     pass

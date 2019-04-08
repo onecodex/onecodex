@@ -3,8 +3,9 @@ test:
 	@echo "Successfully passed all tests (one environment only, use tox to full suite)."
 
 lint:
-	flake8 --ignore E501 onecodex/
-	flake8 --ignore E501 tests/
+	flake8 onecodex/
+	flake8 tests/
+	black --check -l 100 --exclude vendored/* onecodex/ tests/
 	@echo "Successfully linted all files."
 
 coverage:

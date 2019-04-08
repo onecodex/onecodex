@@ -10,22 +10,23 @@ from onecodex.models.helpers import truncate_string, ResourceDownloadMixin
 
 
 class Samples(OneCodexBase, ResourceDownloadMixin):
-    _resource_path = '/api/v1/samples'
+    _resource_path = "/api/v1/samples"
 
     def __repr__(self):
-        return '<{} {}: "{}">'.format(self.__class__.__name__, self.id,
-                                      truncate_string(self.filename, 24))
+        return '<{} {}: "{}">'.format(
+            self.__class__.__name__, self.id, truncate_string(self.filename, 24)
+        )
 
     @classmethod
     def where(cls, *filters, **keyword_filters):
         from onecodex.models.collection import SampleCollection
 
-        public = keyword_filters.get('public', False)
-        instances_route = 'instances' if not public else 'instances_public'
-        limit = keyword_filters.get('limit', None if not public else 1000)
+        public = keyword_filters.get("public", False)
+        instances_route = "instances" if not public else "instances_public"
+        limit = keyword_filters.get("limit", None if not public else 1000)
 
         # handle conversion of tag UUIDs or names to Tags objects
-        tags = keyword_filters.pop('tags', [])
+        tags = keyword_filters.pop("tags", [])
 
         if not isinstance(tags, list):
             tags = [tags]
@@ -51,27 +52,28 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
                     new_tags.append(tag_obj[0])
                     continue
                 elif len(tag_obj) > 1:
-                    raise OneCodexException('Multiple tags matched query: {}'.format(t))
+                    raise OneCodexException("Multiple tags matched query: {}".format(t))
 
-                raise OneCodexException('Unknown tag specified: {}'.format(t))
+                raise OneCodexException("Unknown tag specified: {}".format(t))
 
         if new_tags:
-            keyword_filters['tags'] = new_tags
+            keyword_filters["tags"] = new_tags
 
         # we can only search metadata on our own samples currently
         # FIXME: we need to add `instances_public` and `instances_project` metadata routes to
         # mirror the ones on the samples
         metadata_samples = []
         if not public:
-            md_schema = next(l for l in Metadata._resource._schema['links']
-                             if l['rel'] == instances_route)
+            md_schema = next(
+                l for l in Metadata._resource._schema["links"] if l["rel"] == instances_route
+            )
 
-            md_where_schema = md_schema['schema']['properties']['where']['properties']
+            md_where_schema = md_schema["schema"]["properties"]["where"]["properties"]
             md_search_keywords = {}
             for keyword in list(keyword_filters):
                 # skip out on $uri to prevent duplicate field searches and the others to
                 # simplify the checking below
-                if keyword in ['$uri', 'sort', '_instances']:
+                if keyword in ["$uri", "sort", "_instances"]:
                     continue
                 elif keyword in md_where_schema:
                     md_search_keywords[keyword] = keyword_filters.pop(keyword)
@@ -112,9 +114,9 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
 
     @classmethod
     def search_public(cls, *filters, **keyword_filters):
-        warnings.warn('Now supported via `where(..., public=True)`', DeprecationWarning)
-        keyword_filters['public'] = True
-        keyword_filters['limit'] = 1000
+        warnings.warn("Now supported via `where(..., public=True)`", DeprecationWarning)
+        keyword_filters["public"] = True
+        keyword_filters["limit"] = 1000
         return cls.where(*filters, **keyword_filters)
 
     def save(self):
@@ -127,8 +129,17 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
             self.metadata.save()
 
     @classmethod
-    def upload(cls, files, threads=None, metadata=None, tags=None, project=None,
-               log=None, coerce_ascii=False, progressbar=False):
+    def upload(
+        cls,
+        files,
+        threads=None,
+        metadata=None,
+        tags=None,
+        project=None,
+        log=None,
+        coerce_ascii=False,
+        progressbar=False,
+    ):
         """Uploads a series of files to the One Codex server.
 
         Parameters
@@ -164,15 +175,22 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
                 except HTTPError:
                     project_search = None
             if not project_search:
-                raise OneCodexException('{} is not a valid project UUID'
-                                        .format(project))
+                raise OneCodexException("{} is not a valid project UUID".format(project))
 
             if isinstance(project_search, list):
                 project = project_search[0]
 
         samples = upload_sequence(
-            files, res._client.session, res, threads=threads, metadata=metadata, tags=tags,
-            project=project, log=log, coerce_ascii=coerce_ascii, progressbar=progressbar
+            files,
+            res._client.session,
+            res,
+            threads=threads,
+            metadata=metadata,
+            tags=tags,
+            project=project,
+            log=log,
+            coerce_ascii=coerce_ascii,
+            progressbar=progressbar,
         )
 
         return samples
@@ -183,11 +201,11 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
 
 
 class Metadata(OneCodexBase):
-    _resource_path = '/api/v1/metadata'
+    _resource_path = "/api/v1/metadata"
 
     def __setattr__(self, key, value):
         # At some point we should validate that these match the schema
-        if key == 'custom':
+        if key == "custom":
             try:
                 import pandas as pd
 
@@ -212,9 +230,9 @@ class Metadata(OneCodexBase):
 
             # Then eject samplea and uri as needed
             ref_props = self._resource._properties
-            if 'sample' in ref_props or '$uri' in ref_props:  # May not be there if not resolved!
-                ref_props.pop('$uri', None)
-                ref_props.pop('sample', None)
+            if "sample" in ref_props or "$uri" in ref_props:  # May not be there if not resolved!
+                ref_props.pop("$uri", None)
+                ref_props.pop("sample", None)
                 self._resource._update(ref_props)
             else:
                 super(Metadata, self).save()

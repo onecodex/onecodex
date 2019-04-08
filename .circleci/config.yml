@@ -94,13 +94,13 @@ jobs:
             virtualenv venv
             . venv/bin/activate
             pip install -q -U pip
+            pip install black
             pip install --progress-bar=off .[testing]
       - run:
           name: Run flake8
           command: |
             . venv/bin/activate
-            flake8 --ignore E501 --exclude onecodex/schemas/* onecodex/
-            flake8 --ignore E501 --exclude onecodex/schemas/* tests/
+            make lint
   coverage:
     docker:
       - image: circleci/python:3.6.7-stretch
