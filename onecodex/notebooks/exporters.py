@@ -26,9 +26,9 @@ class OneCodexHTMLExporter(HTMLExporter):
         super(OneCodexHTMLExporter, self).__init__(config=config, **kw)
 
         try:
-            from jupyter_contrib_nbextensions.nbconvert_support import (
+            from jupyter_contrib_nbextensions.nbconvert_support import (  # noqa
                 PyMarkdownPreprocessor,
-            )  # noqa
+            )
         except ImportError:
             return
 
