@@ -37,10 +37,21 @@ class ClassificationsDataFrame(pd.DataFrame):
         Whether the results in this DataFrame were normalized, each sample summing to 1.0.
     """
 
-    _metadata = ['ocx_rank', 'ocx_field', 'ocx_taxonomy', 'ocx_metadata', 'ocx_normalized']
+    _metadata = ["ocx_rank", "ocx_field", "ocx_taxonomy", "ocx_metadata", "ocx_normalized"]
 
-    def __init__(self, data=None, index=None, columns=None, dtype=None, copy=False, ocx_rank=None,
-                 ocx_field=None, ocx_taxonomy=None, ocx_metadata=None, ocx_normalized=None):
+    def __init__(
+        self,
+        data=None,
+        index=None,
+        columns=None,
+        dtype=None,
+        copy=False,
+        ocx_rank=None,
+        ocx_field=None,
+        ocx_taxonomy=None,
+        ocx_metadata=None,
+        ocx_normalized=None,
+    ):
         self.ocx_rank = ocx_rank
         self.ocx_field = ocx_field
         self.ocx_taxonomy = ocx_taxonomy
@@ -53,30 +64,40 @@ class ClassificationsDataFrame(pd.DataFrame):
     def _constructor(self):
         # we explicitly do *not* pass rank on to manipulated ClassificationsDataFrame. we don't know
         # how the data has been manipulated, and it may no longer be accurate
-        return partial(ClassificationsDataFrame, ocx_rank=None, ocx_field=self.ocx_field,
-                       ocx_taxonomy=self.ocx_taxonomy, ocx_metadata=self.ocx_metadata,
-                       ocx_normalized=self.ocx_normalized)
+        return partial(
+            ClassificationsDataFrame,
+            ocx_rank=None,
+            ocx_field=self.ocx_field,
+            ocx_taxonomy=self.ocx_taxonomy,
+            ocx_metadata=self.ocx_metadata,
+            ocx_normalized=self.ocx_normalized,
+        )
 
     @property
     def _constructor_sliced(self):
         # we explicitly do *not* pass rank on to manipulated ClassificationsDataFrame. we don't know
         # how the data has been manipulated, and it may no longer be accurate
-        return partial(ClassificationsSeries, ocx_rank=None, ocx_field=self.ocx_field,
-                       ocx_taxonomy=self.ocx_taxonomy, ocx_metadata=self.ocx_metadata,
-                       ocx_normalized=self.ocx_normalized)
+        return partial(
+            ClassificationsSeries,
+            ocx_rank=None,
+            ocx_field=self.ocx_field,
+            ocx_taxonomy=self.ocx_taxonomy,
+            ocx_metadata=self.ocx_metadata,
+            ocx_normalized=self.ocx_normalized,
+        )
 
     def to_html(self, *args, **kwargs):
-        classes = kwargs.pop('classes', [])
+        classes = kwargs.pop("classes", [])
         if isinstance(classes, str):
             classes = [classes]
-        classes.append('ocx_classifications_df')
-        kwargs['classes'] = classes
-        kwargs['float_format'] = '%0.3f'
-        kwargs['max_rows'] = 15
-        kwargs['max_cols'] = 10
+        classes.append("ocx_classifications_df")
+        kwargs["classes"] = classes
+        kwargs["float_format"] = "%0.3f"
+        kwargs["max_rows"] = 15
+        kwargs["max_cols"] = 10
 
         # round abundances to avoid long trails of zeros, and sort taxa in order of abundance
-        if 'classification_id' in self.columns:
+        if "classification_id" in self.columns:
             # long format
             df = self.copy()
             df[self.ocx_field] = df[self.ocx_field].round(6)
@@ -94,37 +115,60 @@ class ClassificationsSeries(pd.Series):
     """
 
     # 'name' is a piece of metadata specified by pd.Series--it's not ours
-    _metadata = ['name', 'ocx_rank', 'ocx_field', 'ocx_taxonomy', 'ocx_metadata', 'ocx_normalized']
+    _metadata = ["name", "ocx_rank", "ocx_field", "ocx_taxonomy", "ocx_metadata", "ocx_normalized"]
 
-    def __init__(self, data=None, index=None, dtype=None, name=None, copy=False, fastpath=False,
-                 ocx_rank=None, ocx_field=None, ocx_taxonomy=None, ocx_metadata=None,
-                 ocx_normalized=None):
+    def __init__(
+        self,
+        data=None,
+        index=None,
+        dtype=None,
+        name=None,
+        copy=False,
+        fastpath=False,
+        ocx_rank=None,
+        ocx_field=None,
+        ocx_taxonomy=None,
+        ocx_metadata=None,
+        ocx_normalized=None,
+    ):
         self.ocx_rank = ocx_rank
         self.ocx_field = ocx_field
         self.ocx_taxonomy = ocx_taxonomy
         self.ocx_metadata = ocx_metadata
         self.ocx_normalized = ocx_normalized
 
-        pd.Series.__init__(self, data=data, index=index, dtype=dtype, name=name, copy=copy, fastpath=fastpath)
+        pd.Series.__init__(
+            self, data=data, index=index, dtype=dtype, name=name, copy=copy, fastpath=fastpath
+        )
 
     @property
     def _constructor(self):
         # we explicitly do *not* pass rank on to manipulated ClassificationsDataFrames. we don't know
         # how the data has been manipulated, and it may no longer be accurate
-        return partial(ClassificationsSeries, ocx_rank=None, ocx_field=self.ocx_field,
-                       ocx_taxonomy=self.ocx_taxonomy, ocx_metadata=self.ocx_metadata,
-                       ocx_normalized=self.ocx_normalized)
+        return partial(
+            ClassificationsSeries,
+            ocx_rank=None,
+            ocx_field=self.ocx_field,
+            ocx_taxonomy=self.ocx_taxonomy,
+            ocx_metadata=self.ocx_metadata,
+            ocx_normalized=self.ocx_normalized,
+        )
 
     @property
     def _constructor_expanddim(self):
         # we explicitly do *not* pass rank on to manipulated ClassificationsDataFrame. we don't know
         # how the data has been manipulated, and it may no longer be accurate
-        return partial(ClassificationsDataFrame, ocx_rank=None, ocx_field=self.ocx_field,
-                       ocx_taxonomy=self.ocx_taxonomy, ocx_metadata=self.ocx_metadata,
-                       ocx_normalized=self.ocx_normalized)
+        return partial(
+            ClassificationsDataFrame,
+            ocx_rank=None,
+            ocx_field=self.ocx_field,
+            ocx_taxonomy=self.ocx_taxonomy,
+            ocx_metadata=self.ocx_metadata,
+            ocx_normalized=self.ocx_normalized,
+        )
 
 
-@pd.api.extensions.register_dataframe_accessor('ocx')
+@pd.api.extensions.register_dataframe_accessor("ocx")
 class OneCodexAccessor(AnalysisMixin):
     """Accessor object alllowing access of `AnalysisMixin` methods from the 'ocx' namespace of a
     `ClassificationsDataFrame`.

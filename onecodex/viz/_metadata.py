@@ -6,8 +6,18 @@ from onecodex.viz import boxplot
 
 
 class VizMetadataMixin(object):
-    def plot_metadata(self, rank='auto', haxis='Label', vaxis='simpson', title=None, xlabel=None,
-                      ylabel=None, return_chart=False, plot_type='auto', label=None):
+    def plot_metadata(
+        self,
+        rank="auto",
+        haxis="Label",
+        vaxis="simpson",
+        title=None,
+        xlabel=None,
+        ylabel=None,
+        return_chart=False,
+        plot_type="auto",
+        label=None,
+    ):
         """Plot an arbitrary metadata field versus an arbitrary quantity as a boxplot or scatter plot.
 
         Parameters
@@ -53,15 +63,15 @@ class VizMetadataMixin(object):
         >>> plot_metadata(haxis=('allergy_dogs', 'allergy_cats'), vaxis='Bacteroides')
         """
         if rank is None:
-            raise OneCodexException('Please specify a rank or \'auto\' to choose automatically')
+            raise OneCodexException("Please specify a rank or 'auto' to choose automatically")
 
-        if plot_type not in ('auto', 'boxplot', 'scatter'):
-            raise OneCodexException('Plot type must be one of: auto, boxplot, scatter')
+        if plot_type not in ("auto", "boxplot", "scatter"):
+            raise OneCodexException("Plot type must be one of: auto, boxplot, scatter")
 
         # alpha diversity is only allowed on vertical axis--horizontal can be magically mapped
-        df, magic_fields = self._metadata_fetch([haxis, 'Label'], label=label)
+        df, magic_fields = self._metadata_fetch([haxis, "Label"], label=label)
 
-        if vaxis in ('simpson', 'chao1', 'shannon'):
+        if vaxis in ("simpson", "chao1", "shannon"):
             df.loc[:, vaxis] = self.alpha_diversity(vaxis, rank=rank)
             magic_fields[vaxis] = vaxis
         else:
@@ -69,51 +79,58 @@ class VizMetadataMixin(object):
             vert_df, vert_magic_fields = self._metadata_fetch([vaxis])
 
             # we require the vertical axis to be numerical otherwise plots get weird
-            if pd.api.types.is_bool_dtype(vert_df[vert_magic_fields[vaxis]]) or \
-               pd.api.types.is_categorical_dtype(vert_df[vert_magic_fields[vaxis]]) or \
-               pd.api.types.is_object_dtype(vert_df[vert_magic_fields[vaxis]]) or \
-               not pd.api.types.is_numeric_dtype(vert_df[vert_magic_fields[vaxis]]):  # noqa
-                raise OneCodexException('Metadata field on vertical axis must be numerical')
+            if (
+                pd.api.types.is_bool_dtype(vert_df[vert_magic_fields[vaxis]])
+                or pd.api.types.is_categorical_dtype(vert_df[vert_magic_fields[vaxis]])
+                or pd.api.types.is_object_dtype(vert_df[vert_magic_fields[vaxis]])
+                or not pd.api.types.is_numeric_dtype(vert_df[vert_magic_fields[vaxis]])
+            ):  # noqa
+                raise OneCodexException("Metadata field on vertical axis must be numerical")
 
             df = pd.concat([df, vert_df], axis=1).dropna(subset=[vert_magic_fields[vaxis]])
             magic_fields.update(vert_magic_fields)
 
         # plots can look different depending on what the horizontal axis contains
         if pd.api.types.is_datetime64_any_dtype(df[magic_fields[haxis]]):
-            category_type = 'T'
+            category_type = "T"
 
-            if plot_type == 'auto':
-                plot_type = 'boxplot'
-        elif 'date' in magic_fields[haxis].split('_'):
-            df.loc[:, magic_fields[haxis]] = \
-                df.loc[:, magic_fields[haxis]].apply(pd.to_datetime, utc=True)
+            if plot_type == "auto":
+                plot_type = "boxplot"
+        elif "date" in magic_fields[haxis].split("_"):
+            df.loc[:, magic_fields[haxis]] = df.loc[:, magic_fields[haxis]].apply(
+                pd.to_datetime, utc=True
+            )
 
-            category_type = 'T'
+            category_type = "T"
 
-            if plot_type == 'auto':
-                plot_type = 'boxplot'
-        elif pd.api.types.is_bool_dtype(df[magic_fields[haxis]]) or \
-             pd.api.types.is_categorical_dtype(df[magic_fields[haxis]]) or \
-             pd.api.types.is_object_dtype(df[magic_fields[haxis]]):  # noqa
-            df = df.fillna({field: 'N/A' for field in df.columns})
+            if plot_type == "auto":
+                plot_type = "boxplot"
+        elif (
+            pd.api.types.is_bool_dtype(df[magic_fields[haxis]])
+            or pd.api.types.is_categorical_dtype(df[magic_fields[haxis]])
+            or pd.api.types.is_object_dtype(df[magic_fields[haxis]])
+        ):  # noqa
+            df = df.fillna({field: "N/A" for field in df.columns})
 
-            category_type = 'N'
+            category_type = "N"
 
-            if plot_type == 'auto':
+            if plot_type == "auto":
                 # if data is categorical but there is only one value per sample, scatter plot instead
                 if len(df[magic_fields[haxis]].unique()) == len(df[magic_fields[haxis]]):
-                    plot_type = 'scatter'
+                    plot_type = "scatter"
                 else:
-                    plot_type = 'boxplot'
+                    plot_type = "boxplot"
         elif pd.api.types.is_numeric_dtype(df[magic_fields[haxis]]):
             df = df.dropna(subset=[magic_fields[vaxis]])
 
-            category_type = 'O'
+            category_type = "O"
 
-            if plot_type == 'auto':
-                plot_type = 'scatter'
+            if plot_type == "auto":
+                plot_type = "scatter"
         else:
-            raise OneCodexException('Unplottable column type for horizontal axis ({})'.format(haxis))
+            raise OneCodexException(
+                "Unplottable column type for horizontal axis ({})".format(haxis)
+            )
 
         if xlabel is None:
             xlabel = magic_fields[haxis]
@@ -121,25 +138,27 @@ class VizMetadataMixin(object):
         if ylabel is None:
             ylabel = magic_fields[vaxis]
 
-        if plot_type == 'scatter':
+        if plot_type == "scatter":
             df = df.reset_index()
 
             alt_kwargs = dict(
                 x=alt.X(magic_fields[haxis], axis=alt.Axis(title=xlabel)),
                 y=alt.Y(magic_fields[vaxis], axis=alt.Axis(title=ylabel)),
-                tooltip=['Label', '{}:Q'.format(vaxis)],
-                href='url:N',
-                url='https://app.onecodex.com/classification/' + alt.datum.classification_id
+                tooltip=["Label", "{}:Q".format(vaxis)],
+                href="url:N",
+                url="https://app.onecodex.com/classification/" + alt.datum.classification_id,
             )
 
-            chart = alt.Chart(df) \
-                       .transform_calculate(url=alt_kwargs.pop('url')) \
-                       .mark_circle() \
-                       .encode(**alt_kwargs)
+            chart = (
+                alt.Chart(df)
+                .transform_calculate(url=alt_kwargs.pop("url"))
+                .mark_circle()
+                .encode(**alt_kwargs)
+            )
 
             if title:
                 chart = chart.properties(title=title)
-        elif plot_type == 'boxplot':
+        elif plot_type == "boxplot":
             chart = boxplot(
                 df,
                 magic_fields[haxis],
@@ -147,7 +166,7 @@ class VizMetadataMixin(object):
                 category_type=category_type,
                 title=title,
                 xlabel=xlabel,
-                ylabel=ylabel
+                ylabel=ylabel,
             )
 
         if return_chart:

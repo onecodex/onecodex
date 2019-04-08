@@ -2,10 +2,18 @@ import six
 import warnings
 
 from onecodex.exceptions import OneCodexException
-from onecodex.viz import VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceMixin, VizBargraphMixin
+from onecodex.viz import (
+    VizPCAMixin,
+    VizHeatmapMixin,
+    VizMetadataMixin,
+    VizDistanceMixin,
+    VizBargraphMixin,
+)
 
 
-class AnalysisMixin(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceMixin, VizBargraphMixin):
+class AnalysisMixin(
+    VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceMixin, VizBargraphMixin
+):
     """Contains methods for analyzing Classifications results.
 
     Notes
@@ -19,15 +27,15 @@ class AnalysisMixin(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceM
     def _get_auto_rank(self, rank):
         """Tries to figure out what rank we should use for analyses"""
 
-        if rank == 'auto':
+        if rank == "auto":
             # if we're an accessor for a ClassificationsDataFrame, use its _rank property
-            if self.__class__.__name__ == 'OneCodexAccessor':
+            if self.__class__.__name__ == "OneCodexAccessor":
                 return self._rank
 
-            if self._field == 'abundance':
-                return 'species'
+            if self._field == "abundance":
+                return "species"
             else:
-                return 'genus'
+                return "genus"
         else:
             return rank
 
@@ -39,9 +47,11 @@ class AnalysisMixin(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceM
         It's possible that the _results df has already been normalized, which can cause some
         methods to fail. This method lets us guess whether that's true and act accordingly.
         """
-        return getattr(self, '_normalized', False) or \
-               getattr(self, '_field', None) == 'abundance' or \
-               bool((self._results.sum(axis=1).round(4) == 1.0).all())  # noqa
+        return (
+            getattr(self, "_normalized", False)
+            or getattr(self, "_field", None) == "abundance"
+            or bool((self._results.sum(axis=1).round(4) == 1.0).all())
+        )  # noqa
 
     def _metadata_fetch(self, metadata_fields, label=None):
         """Takes a list of metadata fields, some of which can contain taxon names or taxon IDs, and
@@ -88,9 +98,10 @@ class AnalysisMixin(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceM
         """
         import pandas as pd
 
-        help_metadata = ', '.join(self.metadata.keys())
-        magic_metadata = pd.DataFrame({'classification_id': self._results.index}) \
-                           .set_index('classification_id')
+        help_metadata = ", ".join(self.metadata.keys())
+        magic_metadata = pd.DataFrame({"classification_id": self._results.index}).set_index(
+            "classification_id"
+        )
 
         # if user passed label kwarg but didn't put "Label" in the fields, assume the user wants
         # that field added
@@ -106,28 +117,32 @@ class AnalysisMixin(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceM
                 for field in f:
                     if field not in self.metadata:
                         raise OneCodexException(
-                            'Field {} not found. Choose from: {}'.format(field, help_metadata)
+                            "Field {} not found. Choose from: {}".format(field, help_metadata)
                         )
 
-                    if not (pd.api.types.is_bool_dtype(self.metadata[field]) or  # noqa
-                            pd.api.types.is_categorical_dtype(self.metadata[field]) or  # noqa
-                            pd.api.types.is_object_dtype(self.metadata[field])):
+                    if not (
+                        pd.api.types.is_bool_dtype(self.metadata[field])
+                        or pd.api.types.is_categorical_dtype(self.metadata[field])  # noqa
+                        or pd.api.types.is_object_dtype(self.metadata[field])  # noqa
+                    ):
                         raise OneCodexException(
-                            'When specifying multiple metadata fields, all must be categorical'
+                            "When specifying multiple metadata fields, all must be categorical"
                         )
 
                 # concatenate the columns together with underscores
-                composite_field = '_'.join(f)
-                magic_metadata[composite_field] = ''
-                magic_metadata[composite_field] = magic_metadata[composite_field].str.cat(
-                    [self.metadata[field].astype(str) for field in f], sep='_'
-                ).str.lstrip('_')
+                composite_field = "_".join(f)
+                magic_metadata[composite_field] = ""
+                magic_metadata[composite_field] = (
+                    magic_metadata[composite_field]
+                    .str.cat([self.metadata[field].astype(str) for field in f], sep="_")
+                    .str.lstrip("_")
+                )
                 magic_fields[f] = composite_field
             else:
                 str_f = str(f)
 
-                if str_f == 'Label':
-                    magic_metadata[str_f] = self.metadata['filename']
+                if str_f == "Label":
+                    magic_metadata[str_f] = self.metadata["filename"]
                     magic_fields[f] = str_f
 
                     if isinstance(label, six.string_types):
@@ -135,21 +150,29 @@ class AnalysisMixin(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceM
                             magic_metadata[str_f] = self.metadata[label]
                         else:
                             raise OneCodexException(
-                                'Label field {} not found. Choose from: {}'.format(label, help_metadata)
+                                "Label field {} not found. Choose from: {}".format(
+                                    label, help_metadata
+                                )
                             )
                     elif callable(label):
-                        for classification_id, metadata in self.metadata.to_dict(orient='index').items():
+                        for classification_id, metadata in self.metadata.to_dict(
+                            orient="index"
+                        ).items():
                             c_id_label = label(metadata)
 
                             if not isinstance(c_id_label, six.string_types):
                                 raise OneCodexException(
-                                    'Expected string from label function, got: {}'.format(type(c_id_label).__name__)
+                                    "Expected string from label function, got: {}".format(
+                                        type(c_id_label).__name__
+                                    )
                                 )
 
-                            magic_metadata.loc[classification_id, 'Label'] = c_id_label
+                            magic_metadata.loc[classification_id, "Label"] = c_id_label
                     elif label is not None:
                         raise OneCodexException(
-                            'Expected string or callable for label, got: {}'.format(type(label).__name__)
+                            "Expected string or callable for label, got: {}".format(
+                                type(label).__name__
+                            )
                         )
                 elif str_f in self.metadata:
                     # exactly matches existing metadata field
@@ -157,12 +180,12 @@ class AnalysisMixin(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceM
                     magic_fields[f] = str_f
                 elif str_f in self._results.keys():
                     # is a tax_id
-                    tax_name = self.taxonomy['name'][str_f]
+                    tax_name = self.taxonomy["name"][str_f]
 
                     # report within-rank abundance
-                    df = self.to_df(rank=self.taxonomy['rank'][str_f])
+                    df = self.to_df(rank=self.taxonomy["rank"][str_f])
 
-                    renamed_field = '{} ({})'.format(tax_name, str_f)
+                    renamed_field = "{} ({})".format(tax_name, str_f)
                     magic_metadata[renamed_field] = df[str_f]
                     magic_fields[f] = renamed_field
                 else:
@@ -171,7 +194,7 @@ class AnalysisMixin(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceM
 
                     # don't both searching if the query is really short
                     if len(str_f) > 4:
-                        for tax_id, tax_name in zip(self.taxonomy.index, self.taxonomy['name']):
+                        for tax_id, tax_name in zip(self.taxonomy.index, self.taxonomy["name"]):
                             # if it's an exact match, use that and skip the rest
                             if str_f.lower() == tax_name.lower():
                                 hits = [(tax_id, tax_name)]
@@ -185,21 +208,30 @@ class AnalysisMixin(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceM
 
                     if hits:
                         # report within-rank abundance
-                        df = self.to_df(rank=self.taxonomy['rank'][hits[0][0]])
+                        df = self.to_df(rank=self.taxonomy["rank"][hits[0][0]])
 
-                        renamed_field = '{} ({})'.format(hits[0][1], hits[0][0])
+                        renamed_field = "{} ({})".format(hits[0][1], hits[0][0])
                         magic_metadata[renamed_field] = df[hits[0][0]]
                         magic_fields[f] = renamed_field
                     else:
                         # matched nothing
                         raise OneCodexException(
-                            'Field or taxon {} not found. Choose from: {}'.format(str_f, help_metadata)
+                            "Field or taxon {} not found. Choose from: {}".format(
+                                str_f, help_metadata
+                            )
                         )
 
         return magic_metadata, magic_fields
 
-    def to_df(self, rank='auto', top_n=None, threshold=None, remove_zeros=True, normalize='auto',
-              table_format='wide'):
+    def to_df(
+        self,
+        rank="auto",
+        top_n=None,
+        threshold=None,
+        remove_zeros=True,
+        normalize="auto",
+        table_format="wide",
+    ):
         """Takes the ClassificationsDataFrame associated with these samples, or SampleCollection,
         does some filtering, and returns a ClassificationsDataFrame copy.
 
@@ -230,28 +262,30 @@ class AnalysisMixin(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceM
 
         # subset by taxa
         if rank:
-            if rank == 'kingdom':
+            if rank == "kingdom":
                 warnings.warn(
-                    'Did you mean to specify rank=kingdom? Use rank=superkingdom to see Bacteria, '
-                    'Archaea and Eukaryota.'
+                    "Did you mean to specify rank=kingdom? Use rank=superkingdom to see Bacteria, "
+                    "Archaea and Eukaryota."
                 )
 
             tax_ids_to_keep = []
 
             for tax_id in df.keys():
-                if self.taxonomy['rank'][tax_id] == rank:
+                if self.taxonomy["rank"][tax_id] == rank:
                     tax_ids_to_keep.append(tax_id)
 
             if len(tax_ids_to_keep) == 0:
-                raise OneCodexException('No taxa kept--is rank ({}) correct?'.format(rank))
+                raise OneCodexException("No taxa kept--is rank ({}) correct?".format(rank))
 
             df = df.loc[:, tax_ids_to_keep]
 
         # normalize
         if normalize is False and self._guess_normalized():
-            raise OneCodexException('Data has already been normalized and this can not be undone.')
+            raise OneCodexException("Data has already been normalized and this can not be undone.")
 
-        if normalize is True or (normalize == 'auto' and rank is not None and self._field != 'abundance'):
+        if normalize is True or (
+            normalize == "auto" and rank is not None and self._field != "abundance"
+        ):
             df = df.div(df.sum(axis=1), axis=0)
 
         # remove columns (tax_ids) with no values that are > 0
@@ -269,31 +303,27 @@ class AnalysisMixin(VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceM
 
         # additional data to copy into the ClassificationsDataFrame
         ocx_data = {
-            'ocx_metadata': self.metadata.copy(),
-            'ocx_rank': rank,
-            'ocx_field': self._field,
-            'ocx_taxonomy': self.taxonomy.copy(),
-            'ocx_normalized': normalize
+            "ocx_metadata": self.metadata.copy(),
+            "ocx_rank": rank,
+            "ocx_field": self._field,
+            "ocx_taxonomy": self.taxonomy.copy(),
+            "ocx_normalized": normalize,
         }
 
         # generate long-format table
-        if table_format == 'long':
-            long_df = {
-                'classification_id': [],
-                'tax_id': [],
-                self._field: []
-            }
+        if table_format == "long":
+            long_df = {"classification_id": [], "tax_id": [], self._field: []}
 
             for t_id in df:
                 for c_id, count in df[t_id].iteritems():
-                    long_df['classification_id'].append(c_id)
-                    long_df['tax_id'].append(t_id)
+                    long_df["classification_id"].append(c_id)
+                    long_df["tax_id"].append(t_id)
                     long_df[self._field].append(count)
 
             results_df = ClassificationsDataFrame(long_df, **ocx_data)
-        elif table_format == 'wide':
+        elif table_format == "wide":
             results_df = ClassificationsDataFrame(df, **ocx_data)
         else:
-            raise OneCodexException('table_format must be one of: long, wide')
+            raise OneCodexException("table_format must be one of: long, wide")
 
         return results_df

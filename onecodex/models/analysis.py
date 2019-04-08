@@ -2,7 +2,7 @@ from onecodex.models import OneCodexBase
 
 
 class Analyses(OneCodexBase):
-    _resource_path = '/api/v1/analyses'
+    _resource_path = "/api/v1/analyses"
     _cached_result = None
 
     def results(self, json=True):
@@ -22,23 +22,23 @@ class Analyses(OneCodexBase):
         if json is True:
             return self._results()
         else:
-            raise NotImplementedError('No non-JSON result format implemented.')
+            raise NotImplementedError("No non-JSON result format implemented.")
 
     def _results(self):
         try:
-            if not getattr(self._resource, '_cached_result', None):
+            if not getattr(self._resource, "_cached_result", None):
                 self._resource._cached_result = self._resource.results()
             return self._resource._cached_result
         except AttributeError:
-            raise NotImplementedError('.results() not implemented for this Analyses resource.')
+            raise NotImplementedError(".results() not implemented for this Analyses resource.")
 
 
 class Alignments(Analyses):
-    _resource_path = '/api/v1/alignments'
+    _resource_path = "/api/v1/alignments"
 
 
 class Classifications(Analyses):
-    _resource_path = '/api/v1/classifications'
+    _resource_path = "/api/v1/classifications"
     _cached_table = None
 
     def results(self, json=True):
@@ -66,8 +66,9 @@ class Classifications(Analyses):
 
     def _table(self):
         import pandas as pd
+
         if self._cached_table is None:
-            self._cached_table = pd.DataFrame(self._results()['table'])
+            self._cached_table = pd.DataFrame(self._results()["table"])
         return self._cached_table
 
     def table(self):
@@ -94,20 +95,21 @@ class Classifications(Analyses):
 
         else:
             res = self.table()
-            return res[res['tax_id'].isin(ids)]
+            return res[res["tax_id"].isin(ids)]
 
     @classmethod
     def where(cls, *filters, **keyword_filters):
         from onecodex.models.collection import SampleCollection
+
         wrapped = super(Classifications, cls).where(*filters, **keyword_filters)
         return SampleCollection([w._resource for w in wrapped], Classifications)
 
 
 class Panels(Analyses):
-    _resource_path = '/api/v1/panels'
+    _resource_path = "/api/v1/panels"
 
     def results(self, json=True):
         if json is True:
             return self._results()
         else:
-            raise NotImplementedError('Panel results only available as JSON at this time.')
+            raise NotImplementedError("Panel results only available as JSON at this time.")

@@ -7,9 +7,21 @@ from onecodex.exceptions import OneCodexException
 
 
 class VizPCAMixin(object):
-    def plot_pca(self, rank='auto', normalize='auto', org_vectors=0, org_vectors_scale=None,
-                 title=None, xlabel=None, ylabel=None, color=None, size=None, tooltip=None,
-                 return_chart=False, label=None):
+    def plot_pca(
+        self,
+        rank="auto",
+        normalize="auto",
+        org_vectors=0,
+        org_vectors_scale=None,
+        title=None,
+        xlabel=None,
+        ylabel=None,
+        color=None,
+        size=None,
+        tooltip=None,
+        return_chart=False,
+        label=None,
+    ):
         """Perform principal component analysis and plot first two axes.
 
         Parameters
@@ -61,15 +73,15 @@ class VizPCAMixin(object):
         >>> plot_pca(tooltip=['Bacteroides', 'Prevotella', 'Bifidobacterium'])
         """
         if rank is None:
-            raise OneCodexException('Please specify a rank or \'auto\' to choose automatically')
+            raise OneCodexException("Please specify a rank or 'auto' to choose automatically")
 
         if len(self._results) < 2:
-            raise OneCodexException('`plot_pca` requires 2 or more valid classification results.')
+            raise OneCodexException("`plot_pca` requires 2 or more valid classification results.")
 
         df = self.to_df(rank=rank, normalize=normalize)
 
         if len(df.columns) < 2:
-            raise OneCodexException('Too few taxa in results. Need at least 2 for PCA.')
+            raise OneCodexException("Too few taxa in results. Need at least 2 for PCA.")
 
         if tooltip:
             if not isinstance(tooltip, list):
@@ -77,7 +89,7 @@ class VizPCAMixin(object):
         else:
             tooltip = []
 
-        tooltip.insert(0, 'Label')
+        tooltip.insert(0, "Label")
 
         if color and color not in tooltip:
             tooltip.insert(1, color)
@@ -94,31 +106,35 @@ class VizPCAMixin(object):
 
         # label the axes
         if xlabel is None:
-            xlabel = 'PC1 ({}%)'.format(round(pca.explained_variance_ratio_[0] * 100, 2))
+            xlabel = "PC1 ({}%)".format(round(pca.explained_variance_ratio_[0] * 100, 2))
         if ylabel is None:
-            ylabel = 'PC2 ({}%)'.format(round(pca.explained_variance_ratio_[1] * 100, 2))
+            ylabel = "PC2 ({}%)".format(round(pca.explained_variance_ratio_[1] * 100, 2))
 
         # don't send all the data to vega, just what we're plotting
-        plot_data = pd.concat([pca_vals.loc[:, ('PC1', 'PC2')], magic_metadata], axis=1).reset_index()
+        plot_data = pd.concat(
+            [pca_vals.loc[:, ("PC1", "PC2")], magic_metadata], axis=1
+        ).reset_index()
 
         alt_kwargs = dict(
-            x=alt.X('PC1', axis=alt.Axis(title=xlabel)),
-            y=alt.Y('PC2', axis=alt.Axis(title=ylabel)),
+            x=alt.X("PC1", axis=alt.Axis(title=xlabel)),
+            y=alt.Y("PC2", axis=alt.Axis(title=ylabel)),
             tooltip=[magic_fields[t] for t in tooltip],
-            href='url:N',
-            url='https://app.onecodex.com/classification/' + alt.datum.classification_id
+            href="url:N",
+            url="https://app.onecodex.com/classification/" + alt.datum.classification_id,
         )
 
         # only add these parameters if they are in use
         if color:
-            alt_kwargs['color'] = magic_fields[color]
+            alt_kwargs["color"] = magic_fields[color]
         if size:
-            alt_kwargs['size'] = magic_fields[size]
+            alt_kwargs["size"] = magic_fields[size]
 
-        chart = alt.Chart(plot_data) \
-                   .transform_calculate(url=alt_kwargs.pop('url')) \
-                   .mark_circle() \
-                   .encode(**alt_kwargs)
+        chart = (
+            alt.Chart(plot_data)
+            .transform_calculate(url=alt_kwargs.pop("url"))
+            .mark_circle()
+            .encode(**alt_kwargs)
+        )
 
         if title:
             chart = chart.properties(title=title)
@@ -126,10 +142,10 @@ class VizPCAMixin(object):
         # plot the organism eigenvectors that contribute the most
         if org_vectors > 0:
             plot_data = {
-                'x': [],
-                'y': [],
-                'o': [],             # order these points should be connected in
-                'Eigenvectors': []
+                "x": [],
+                "y": [],
+                "o": [],  # order these points should be connected in
+                "Eigenvectors": [],
             }
 
             magnitudes = np.sqrt(pca.components_[0] ** 2 + pca.components_[1] ** 2)
@@ -139,12 +155,14 @@ class VizPCAMixin(object):
             if org_vectors_scale is None:
                 org_vectors_scale = 0.8 * np.max(pca_vals.abs().values)
 
-            for tax_id, var1, var2 in zip(df.columns.values, pca.components_[0, :], pca.components_[1, :]):
+            for tax_id, var1, var2 in zip(
+                df.columns.values, pca.components_[0, :], pca.components_[1, :]
+            ):
                 if np.sqrt(var1 ** 2 + var2 ** 2) >= cutoff:
-                    plot_data['x'].extend([0, var1 * float(org_vectors_scale)])
-                    plot_data['y'].extend([0, var2 * float(org_vectors_scale)])
-                    plot_data['o'].extend([0, 1])
-                    plot_data['Eigenvectors'].extend([self.taxonomy['name'][tax_id]] * 2)
+                    plot_data["x"].extend([0, var1 * float(org_vectors_scale)])
+                    plot_data["y"].extend([0, var2 * float(org_vectors_scale)])
+                    plot_data["o"].extend([0, 1])
+                    plot_data["Eigenvectors"].extend([self.taxonomy["name"][tax_id]] * 2)
 
                     org_vectors -= 1
 
@@ -153,12 +171,16 @@ class VizPCAMixin(object):
 
             plot_data = pd.DataFrame(plot_data)
 
-            vector_chart = alt.Chart(plot_data) \
-                              .mark_line(point=False) \
-                              .encode(x=alt.X('x', axis=None),
-                                      y=alt.Y('y', axis=None),
-                                      order='o',
-                                      color='Eigenvectors')
+            vector_chart = (
+                alt.Chart(plot_data)
+                .mark_line(point=False)
+                .encode(
+                    x=alt.X("x", axis=None),
+                    y=alt.Y("y", axis=None),
+                    order="o",
+                    color="Eigenvectors",
+                )
+            )
 
             chart += vector_chart
 

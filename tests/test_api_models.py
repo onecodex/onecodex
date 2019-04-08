@@ -15,8 +15,11 @@ from onecodex.exceptions import MethodNotSupported, OneCodexException
 
 
 def test_api_creation(api_data):
-    ocx = Api(api_key='1eab4217d30d42849dbde0cd1bb94e39',
-              base_url='http://localhost:3000', cache_schema=False)
+    ocx = Api(
+        api_key="1eab4217d30d42849dbde0cd1bb94e39",
+        base_url="http://localhost:3000",
+        cache_schema=False,
+    )
     assert isinstance(ocx, Api)
     assert True
 
@@ -28,14 +31,14 @@ def test_sample_int_id(ocx, api_data):
 
     Regression test for https://github.com/onecodex/onecodex/issues/200
     """
-    sample = ocx.Samples.get('0111111111111110')
-    assert sample.id == '0111111111111110'
+    sample = ocx.Samples.get("0111111111111110")
+    assert sample.id == "0111111111111110"
 
 
 def test_sample_get(ocx, api_data):
-    sample = ocx.Samples.get('761bc54b97f64980')
+    sample = ocx.Samples.get("761bc54b97f64980")
     assert sample.size == 302369471
-    assert sample.filename == 'SRR2352223.fastq.gz'
+    assert sample.filename == "SRR2352223.fastq.gz"
     assert sample.__repr__() == '<Samples 761bc54b97f64980: "SRR2352223.fastq.gz">'
     assert isinstance(sample.created_at, datetime.datetime)
 
@@ -45,25 +48,24 @@ def test_sample_get(ocx, api_data):
 
     tags = sample.tags
     assert len(tags) > 1
-    assert 'isolate' in [t.name for t in tags]
+    assert "isolate" in [t.name for t in tags]
 
 
 def test_sample_download(runner, ocx, api_data):
     with runner.isolated_filesystem():
-        sample = ocx.Samples.get('761bc54b97f64980')
+        sample = ocx.Samples.get("761bc54b97f64980")
         sample.download()
 
 
 def test_document_download(runner, ocx, api_data):
     with runner.isolated_filesystem():
-        doc = ocx.Documents.get('a4f6727a840a4df0')
+        doc = ocx.Documents.get("a4f6727a840a4df0")
         doc.download()
 
 
 def test_resourcelist(ocx, api_data):
-    sample = ocx.Samples.get('761bc54b97f64980')
-    tags1 = onecodex.models.ResourceList(sample.tags._resource,
-                                         onecodex.models.misc.Tags)
+    sample = ocx.Samples.get("761bc54b97f64980")
+    tags1 = onecodex.models.ResourceList(sample.tags._resource, onecodex.models.misc.Tags)
 
     assert isinstance(sample.tags, onecodex.models.ResourceList)
     assert sample.tags == tags1
@@ -104,7 +106,7 @@ def test_resourcelist(ocx, api_data):
     # can't mix types in a ResourceList
     with pytest.raises(ValueError) as e:
         tags1.append(sample)
-    assert 'object of type' in str(e.value)
+    assert "object of type" in str(e.value)
 
     if sys.version_info.major < 3:
         with pytest.raises(AttributeError):
@@ -122,7 +124,7 @@ def test_samplecollection(ocx, api_data):
     # duplicate Classifications can not be part of the same SampleCollection
     with pytest.raises(OneCodexException) as e:
         samples + samples
-    assert 'contain duplicate objects' in str(e.value)
+    assert "contain duplicate objects" in str(e.value)
 
     # SampleCollections can be added together
     new_samples = samples + other_samples
@@ -130,11 +132,11 @@ def test_samplecollection(ocx, api_data):
     assert len(new_samples) == 6
 
     # addition doesn't work with a SampleCollection and a lone Samples object
-    single_sample = ocx.Samples.get('761bc54b97f64980')
+    single_sample = ocx.Samples.get("761bc54b97f64980")
 
     with pytest.raises(TypeError) as e:
         samples + single_sample
-    assert 'can only concatenate' in str(e.value)
+    assert "can only concatenate" in str(e.value)
 
     # you can make a new SampleCollection from a list of Samples
     onecodex.models.SampleCollection([s for s in all_samples[:7]])
@@ -147,27 +149,27 @@ def test_samplecollection(ocx, api_data):
         onecodex.models.SampleCollection(
             [s.primary_classification for s in all_samples[:3]] + [s for s in all_samples[4:7]]
         )
-    assert 'but not both' in str(e.value)
+    assert "but not both" in str(e.value)
 
     # and not using unwrapped potion resources
     with pytest.raises(OneCodexException) as e:
         onecodex.models.SampleCollection([s._resource for s in all_samples[:7]])
-    assert 'can only contain' in str(e.value)
+    assert "can only contain" in str(e.value)
 
     # test filtering of Samples in a collection
-    new_collection = all_samples.filter(lambda s: s.filename.endswith('9.fastq.gz'))
-    assert all([s.filename.endswith('9.fastq.gz') for s in new_collection])
+    new_collection = all_samples.filter(lambda s: s.filename.endswith("9.fastq.gz"))
+    assert all([s.filename.endswith("9.fastq.gz") for s in new_collection])
     assert len(new_collection) == 7
     assert id(new_collection) != id(all_samples)
 
 
 def test_dir_method(ocx, api_data):
-    sample = ocx.Samples.get('761bc54b97f64980')
+    sample = ocx.Samples.get("761bc54b97f64980")
 
     instance_names = dir(sample)
-    assert "where" not in instance_names   # we mask @classmethod's
+    assert "where" not in instance_names  # we mask @classmethod's
     assert "created_at" in instance_names  # property on _resource
-    assert "save" in instance_names        # function in py3, method in py2
+    assert "save" in instance_names  # function in py3, method in py2
 
     class_names = dir(ocx.Samples)
     assert "where" in class_names
@@ -177,11 +179,11 @@ def test_dir_method(ocx, api_data):
 
 def test_get_failure_instructions(ocx):
     with pytest.raises(TypeError):
-        ocx.Samples('direct_id')
+        ocx.Samples("direct_id")
 
 
 def test_model_deletions(ocx, api_data):
-    sample = ocx.Samples.get('761bc54b97f64980')
+    sample = ocx.Samples.get("761bc54b97f64980")
     sample.delete()
 
     analysis = sample.primary_classification
@@ -190,12 +192,12 @@ def test_model_deletions(ocx, api_data):
 
 
 def test_model_updates(ocx, api_data):
-    sample = ocx.Samples.get('761bc54b97f64980')
-    sample.visibility = 'public' if sample.visibility == 'private' else 'public'
+    sample = ocx.Samples.get("761bc54b97f64980")
+    sample.visibility = "public" if sample.visibility == "private" else "public"
 
     # Read-only field
     with pytest.raises(MethodNotSupported):
-        sample.filename = 'something_else'
+        sample.filename = "something_else"
 
     # No update resource
     analysis = sample.primary_classification
@@ -204,60 +206,80 @@ def test_model_updates(ocx, api_data):
 
 
 def test_sample_saving(ocx, api_data):
-    sample = ocx.Samples.get('761bc54b97f64980')
+    sample = ocx.Samples.get("761bc54b97f64980")
     visibility = sample.visibility
-    sample.visibility = 'private' if visibility == 'public' else 'public'
+    sample.visibility = "private" if visibility == "public" else "public"
     sample.save()
     assert sample.visibility is not visibility
 
 
 def test_metadata_saving(ocx, api_data):
-    sample = ocx.Samples.get('761bc54b97f64980')
+    sample = ocx.Samples.get("761bc54b97f64980")
     metadata1 = sample.metadata
-    metadata2 = ocx.Metadata.get('4fe05e748b5a4f0e')
+    metadata2 = ocx.Metadata.get("4fe05e748b5a4f0e")
     assert metadata1 == metadata2
-    metadata1.description = 'my new description -- testing!'
+    metadata1.description = "my new description -- testing!"
     metadata1.date_collected = datetime.datetime.now()
     metadata1.save()
     assert isinstance(metadata1.date_collected, datetime.datetime)
-    assert metadata1.description == 'my new description -- testing!'
-    assert hasattr(metadata1, 'sample')  # This will fail because we don't mock it in the return
+    assert metadata1.description == "my new description -- testing!"
+    assert hasattr(metadata1, "sample")  # This will fail because we don't mock it in the return
 
 
 def test_dir_patching(ocx, api_data):
-    sample = ocx.Samples.get('761bc54b97f64980')
-    props = {'id', 'created_at', 'filename', 'visibility',
-             'metadata', 'owner', 'primary_classification', 'project',
-             'size', 'tags'}
+    sample = ocx.Samples.get("761bc54b97f64980")
+    props = {
+        "id",
+        "created_at",
+        "filename",
+        "visibility",
+        "metadata",
+        "owner",
+        "primary_classification",
+        "project",
+        "size",
+        "tags",
+    }
     for prop in props:
         assert prop in dir(sample)
     assert len(sample.__dict__) == 1  # I'm not sure we *want* this...
 
 
 def test_classification_methods(ocx, api_data):
-    classification = ocx.Classifications.get('45a573fb7833449a')
+    classification = ocx.Classifications.get("45a573fb7833449a")
     assert isinstance(classification, onecodex.models.analysis.Classifications)
 
 
 # Sorting and where clauses
-@pytest.mark.parametrize('where_args,where_kwargs,queries', [
-    ([], {'visibility': 'public'},
-        ['where={"visibility": "public"}']),
-    ([], {'visibility': 'private'},
-        ['where={"visibility": "private"}']),
-    ([], {'filename': 'SRR1234.fastq.gz'},
-        ['where={"filename": "SRR1234.fastq.gz"}']),
-    ([], {'filename': 'SRR1234.fastq.gz', 'sort': 'visibility'},
-        ['where={"filename": "SRR1234.fastq.gz"}']),
-    ([], {'visibility': 'private', 'filename': 'tmp.fa'},
-        ['"filename": "tmp.fa"', '"visibility": "private"']),
-    ([{'visibility': 'private', 'filename': 'tmp.fa'}], {},
-        ['"filename": "tmp.fa"', '"visibility": "private"']),
-    (['761bc54b97f64980'], {},
-        ['"$uri": {"$in": ["/api/v1/samples/761bc54b97f64980"']),
-    (['/api/v1/samples/761bc54b97f64980'], {},
-        ['"$uri": {"$in": ["/api/v1/samples/761bc54b97f64980"']),
-])
+@pytest.mark.parametrize(
+    "where_args,where_kwargs,queries",
+    [
+        ([], {"visibility": "public"}, ['where={"visibility": "public"}']),
+        ([], {"visibility": "private"}, ['where={"visibility": "private"}']),
+        ([], {"filename": "SRR1234.fastq.gz"}, ['where={"filename": "SRR1234.fastq.gz"}']),
+        (
+            [],
+            {"filename": "SRR1234.fastq.gz", "sort": "visibility"},
+            ['where={"filename": "SRR1234.fastq.gz"}'],
+        ),
+        (
+            [],
+            {"visibility": "private", "filename": "tmp.fa"},
+            ['"filename": "tmp.fa"', '"visibility": "private"'],
+        ),
+        (
+            [{"visibility": "private", "filename": "tmp.fa"}],
+            {},
+            ['"filename": "tmp.fa"', '"visibility": "private"'],
+        ),
+        (["761bc54b97f64980"], {}, ['"$uri": {"$in": ["/api/v1/samples/761bc54b97f64980"']),
+        (
+            ["/api/v1/samples/761bc54b97f64980"],
+            {},
+            ['"$uri": {"$in": ["/api/v1/samples/761bc54b97f64980"'],
+        ),
+    ],
+)
 def test_where_clauses(ocx, api_data, where_args, where_kwargs, queries):
     ocx.Samples.where(*where_args, **where_kwargs)
 
@@ -283,23 +305,23 @@ def test_where_clauses(ocx, api_data, where_args, where_kwargs, queries):
 
 def test_public_search(ocx, api_data):
     with pytest.warns(DeprecationWarning):
-        samples = ocx.Samples.search_public(filename='tmp.fa')
+        samples = ocx.Samples.search_public(filename="tmp.fa")
         assert len(samples) == 0
-    samples = ocx.Samples.where(filename='tmp.fa', public=True)
+    samples = ocx.Samples.where(filename="tmp.fa", public=True)
     assert len(samples) == 0
 
 
 def test_public_project(ocx, api_data):
     with pytest.warns(DeprecationWarning):
-        projs = ocx.Projects.search_public(name='One Codex Project')
+        projs = ocx.Projects.search_public(name="One Codex Project")
         assert len(projs) == 0
-    projs = ocx.Projects.where(name='One Codex Project', public=True)
+    projs = ocx.Projects.where(name="One Codex Project", public=True)
     assert len(projs) == 0
 
 
 def test_where_clauses_with_tags(ocx, api_data):
-    tag = ocx.Tags.get('5c1e9e41043e4435')
-    sample = ocx.Samples.get('7428cca4a3a04a8e')
+    tag = ocx.Tags.get("5c1e9e41043e4435")
+    sample = ocx.Samples.get("7428cca4a3a04a8e")
     samples = ocx.Samples.where(tags=[tag])
     assert sample in samples
 
@@ -313,19 +335,19 @@ def test_where_clauses_with_tags(ocx, api_data):
 
 
 def test_where_filter(ocx, api_data):
-    samples = ocx.Samples.where(filter=lambda s: s.filename.endswith('9.fastq.gz'))
-    assert all([s.filename.endswith('9.fastq.gz') for s in samples])
+    samples = ocx.Samples.where(filter=lambda s: s.filename.endswith("9.fastq.gz"))
+    assert all([s.filename.endswith("9.fastq.gz") for s in samples])
     assert len(samples) == 7
 
     # filter kwarg must be callable
     with pytest.raises(OneCodexException) as e:
-        ocx.Samples.where(filter='not_callable')
-    assert 'Expected callable' in str(e.value)
+        ocx.Samples.where(filter="not_callable")
+    assert "Expected callable" in str(e.value)
 
 
 def test_where_primary_classification(ocx, api_data):
-    analysis = ocx.Analyses.get('935c2a3611944e39')
-    sample = ocx.Samples.get('7428cca4a3a04a8e')
+    analysis = ocx.Analyses.get("935c2a3611944e39")
+    sample = ocx.Samples.get("7428cca4a3a04a8e")
     samples = ocx.Samples.where(primary_classification=analysis)
     assert sample in samples
 
@@ -342,9 +364,9 @@ def test_public_analyses(ocx, api_data):
     analyses = ocx.Analyses.where(public=True)
     assert len(analyses) == 1
     a = analyses[0]
-    assert a.sample.filename == 'MSA-1000.16S.example.fastq.gz'
-    assert a.job.name == 'One Codex Database'
-    assert a.sample.visibility == 'public'
+    assert a.sample.filename == "MSA-1000.16S.example.fastq.gz"
+    assert a.job.name == "One Codex Database"
+    assert a.sample.visibility == "public"
 
 
 def test_jobs(ocx, api_data):

@@ -32,13 +32,16 @@ def test_is_valid_api_key():
     assert good_key == valid_api_key_partial(good_key)
 
 
-@pytest.mark.parametrize('resource,uris', [
-    ('Samples', []),
-    ('Samples', ['761bc54b97f64980']),
-    ('Analyses', []),
-    ('Analyses', ['45a573fb7833449a']),
-    ('Markerpanels', [])
-])
+@pytest.mark.parametrize(
+    "resource,uris",
+    [
+        ("Samples", []),
+        ("Samples", ["761bc54b97f64980"]),
+        ("Analyses", []),
+        ("Analyses", ["45a573fb7833449a"]),
+        ("Markerpanels", []),
+    ],
+)
 def test_fetcher(ocx, api_data, resource, uris):
     if len(uris) == 0:
         pass
@@ -50,6 +53,6 @@ def test_fetcher(ocx, api_data, resource, uris):
 
 
 def test_snake_case():
-    test_cases = ['SnakeCase', 'snakeCase', 'SNAKE_CASE']
+    test_cases = ["SnakeCase", "snakeCase", "SNAKE_CASE"]
     for test_case in test_cases:
-        assert snake_case(test_case) == 'snake_case'
+        assert snake_case(test_case) == "snake_case"

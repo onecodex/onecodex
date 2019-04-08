@@ -1,10 +1,10 @@
 # One Codex API - Python Client Library and CLI
 
-[![Circle CI](https://circleci.com/gh/onecodex/onecodex.png?style=shield&circle-token=d86a8fc55e54a645ee515387db9acee32068a6ad)](https://circleci.com/gh/onecodex/onecodex) [![Coverage Status](https://coveralls.io/repos/github/onecodex/onecodex/badge.svg)](https://coveralls.io/github/onecodex/onecodex)
+[![Circle CI](https://circleci.com/gh/onecodex/onecodex.png?style=shield&circle-token=d86a8fc55e54a645ee515387db9acee32068a6ad)](https://circleci.com/gh/onecodex/onecodex) [![Coverage Status](https://coveralls.io/repos/github/onecodex/onecodex/badge.svg)](https://coveralls.io/github/onecodex/onecodex) ![Black Code Style](https://camo.githubusercontent.com/28a51fe3a2c05048d8ca8ecd039d6b1619037326/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f636f64652532307374796c652d626c61636b2d3030303030302e737667)
 
 Command line interface (CLI) and Python client library for interacting with the One Codex v1 API ([API docs](https://docs.onecodex.com)).
 
-MAINTAINERS: [@bovee](https://github.com/bovee), [@boydgreenfield](https://github.com/boydgreenfield)
+MAINTAINERS: [@polyatail](https://github.com/polyatail), [@bovee](https://github.com/bovee), [@boydgreenfield](https://github.com/boydgreenfield)
 
 # Installation
 
@@ -108,8 +108,8 @@ Resources are exposed as attributes on the API object. You can fetch a resource 
 
 ```python
 sample_analysis = ocx.Classifications.get("1d9491c5c31345b6")	# Fetch an individual classification
-sample_analysis.results()  # Returns classification results as JSON object	
-sample_analysis.table()    # Returns a pandas dataframe	
+sample_analysis.results()  # Returns classification results as JSON object
+sample_analysis.table()    # Returns a pandas dataframe
 ```
 
 In addition to methods on individual instances of a given resource (e.g., a `Sample` or an `Analysis`), the library also provides methods for aggregating sets of samples or analyses:
@@ -141,9 +141,11 @@ pip install numpy  # numpy must be installed before any of its dependencies
 pip install -r requirements.txt
 ```
 
-Test are run through the makefile, and call tox. Note this may take awhile at first because of installing dependencies:
+Test are run through the Makefile, and call tox. Note this may take awhile at first because of installing dependencies:
 
 ```shell
 make lint
 make test
 ```
+
+We use [`pre-commit`](https://pre-commit.com) for automated linting using [`black`](https://github.com/ambv/black), `flake8`, and various whitespace and newline formatters during development.

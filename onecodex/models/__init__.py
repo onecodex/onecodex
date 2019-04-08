@@ -10,8 +10,11 @@ import six
 import sys
 
 from onecodex.exceptions import MethodNotSupported, OneCodexException, PermissionDenied, ServerError
-from onecodex.models.helpers import (check_bind, generate_potion_sort_clause,
-                                     generate_potion_keyword_where)
+from onecodex.models.helpers import (
+    check_bind,
+    generate_potion_sort_clause,
+    generate_potion_keyword_where,
+)
 from onecodex.vendored.potion_client.converter import PotionJSONEncoder
 from onecodex.vendored.potion_client.resource import Resource
 
@@ -51,8 +54,11 @@ class ResourceList(object):
 
         for o in other:
             if not isinstance(o, self._oc_model):
-                raise ValueError("Expected object of type '{}', got '{}'"
-                                 .format(self._oc_model.__name__, type(o).__name__))
+                raise ValueError(
+                    "Expected object of type '{}', got '{}'".format(
+                        self._oc_model.__name__, type(o).__name__
+                    )
+                )
 
             other_ids.append(o.id)
 
@@ -61,12 +67,17 @@ class ResourceList(object):
             self_ids = [s.id for s in self._resource]
 
             if len(set(self_ids + other_ids)) != len(self_ids + other_ids):
-                raise OneCodexException('{} cannot contain duplicate objects'.format(self.__class__.__name__))
+                raise OneCodexException(
+                    "{} cannot contain duplicate objects".format(self.__class__.__name__)
+                )
 
     def __init__(self, _resource, oc_model, **kwargs):
         if not issubclass(oc_model, OneCodexBase):
-            raise ValueError("Expected object of type '{}', got '{}'"
-                             .format(OneCodexBase.__name__, oc_model.__name__))
+            raise ValueError(
+                "Expected object of type '{}', got '{}'".format(
+                    OneCodexBase.__name__, oc_model.__name__
+                )
+            )
 
         # turn potion Resource objects into OneCodex objects
         self._resource = _resource
@@ -118,8 +129,10 @@ class ResourceList(object):
 
     def __add__(self, other):
         if not isinstance(other, self.__class__):
-            raise TypeError('can only concatenate {} (not "{}") to {}'.format(
-                self.__class__.__name__, type(other), self.__class__.__name__)
+            raise TypeError(
+                'can only concatenate {} (not "{}") to {}'.format(
+                    self.__class__.__name__, type(other), self.__class__.__name__
+                )
             )
         new_obj = self.copy()
         new_obj.extend(other._res_list)
@@ -158,7 +171,7 @@ class ResourceList(object):
         for res_obj_idx, res_obj in enumerate(self._resource):
             if res_obj == x._resource:
                 return res_obj_idx
-        raise ValueError('{} is not in list'.format(x))
+        raise ValueError("{} is not in list".format(x))
 
     def insert(self, idx, x):
         self._check_valid_resource(x)
@@ -185,9 +198,9 @@ class OneCodexBase(object):
         # non-None) if we have a class.resource?
         if _resource is not None:
             if not isinstance(_resource, Resource):
-                raise TypeError('Use the .get() method to fetch an individual resource.')
+                raise TypeError("Use the .get() method to fetch an individual resource.")
             self._resource = _resource
-        elif hasattr(self.__class__, '_resource'):
+        elif hasattr(self.__class__, "_resource"):
             for key, val in kwargs.items():
                 # This modifies kwargs in place to be the underlying
                 # Potion-Client resource
@@ -196,7 +209,7 @@ class OneCodexBase(object):
             self._resource = self.__class__._resource(**kwargs)
 
     def __repr__(self):
-        return '<{} {}>'.format(self.__class__.__name__, self.id)
+        return "<{} {}>".format(self.__class__.__name__, self.id)
 
     def _repr_html_(self):
         return self._resource._repr_html_()
@@ -205,8 +218,9 @@ class OneCodexBase(object):
         # this only gets called on instances, so we're okay to add all the properties because
         # this won't appear when you call, e.g. dir(ocx.Samples)
 
-        fields = [str(f) if f != '$uri' else 'id' for f in
-                  self.__class__._resource._schema['properties']]
+        fields = [
+            str(f) if f != "$uri" else "id" for f in self.__class__._resource._schema["properties"]
+        ]
 
         # this might be a little too clever, but we mask out class methods/fxns from the instances
         base_object_names = []
@@ -219,60 +233,62 @@ class OneCodexBase(object):
         return fields + base_object_names
 
     def __getattr__(self, key):
-        if hasattr(self, '_resource') and hasattr(self.__class__, '_resource'):
-            schema_key = key if key != 'id' else '$uri'
-            schema = self.__class__._resource._schema['properties'].get(schema_key)
+        if hasattr(self, "_resource") and hasattr(self.__class__, "_resource"):
+            schema_key = key if key != "id" else "$uri"
+            schema = self.__class__._resource._schema["properties"].get(schema_key)
             if schema is not None:
                 value = getattr(self._resource, key)
                 if isinstance(value, Resource):
                     # convert potion resources into wrapped ones
-                    resource_path = value._uri.rsplit('/', 1)[0]
+                    resource_path = value._uri.rsplit("/", 1)[0]
                     return _model_lookup[resource_path](_resource=value)
                 elif isinstance(value, list):
-                    if schema['items']['type'] == 'object':
+                    if schema["items"]["type"] == "object":
                         # convert lists of potion resources into wrapped ones
-                        compiled_re = re.compile(schema['items']['properties']['$ref']['pattern'])
+                        compiled_re = re.compile(schema["items"]["properties"]["$ref"]["pattern"])
 
                         # if the list we're returning is empty, we can't just infer what type of
                         # object belongs in this list from its contents. to account for this, we'll
                         # instead try to match the object's URI to those in our lookup table
                         for route, obj in _model_lookup.items():
-                            if compiled_re.match('{}/dummy_lookup'.format(route)):
+                            if compiled_re.match("{}/dummy_lookup".format(route)):
                                 return ResourceList(value, obj)
 
-                        raise OneCodexException('No object found for {}'.format(compiled_re.pattern))
+                        raise OneCodexException(
+                            "No object found for {}".format(compiled_re.pattern)
+                        )
                     else:
                         # otherwise, just return a regular list
                         return value
                 else:
-                    if key == 'id':
+                    if key == "id":
                         # undo the bad coercion from potion_client/resource.py#L111
                         if value is None:
                             return None
                         else:
                             return str(value)
-                    if schema.get('format') == 'date-time' and value is not None:
+                    if schema.get("format") == "date-time" and value is not None:
                         datetime_value = parse(value)
                         if datetime_value.tzinfo is None:
                             return pytz.utc.localize(datetime_value)
                         else:
                             return datetime_value.astimezone(pytz.utc)
                     return value
-        elif key == 'id' or key in self.__class__._resource._schema['properties']:
+        elif key == "id" or key in self.__class__._resource._schema["properties"]:
             # make fields appear blank if there's no _resource bound to me
             return None
 
-        raise AttributeError('\'{}\' object has no attribute \'{}\''.format(
-            self.__class__.__name__, key
-        ))
+        raise AttributeError(
+            "'{}' object has no attribute '{}'".format(self.__class__.__name__, key)
+        )
 
     def __setattr__(self, key, value):
         if key.startswith("_"):  # Allow directly setting _attributes, incl. _resource
             # these are any fields that have to be settable normally
             super(OneCodexBase, self).__setattr__(key, value)
             return
-        elif key == 'id':
-            raise AttributeError('can\'t set attribute')
+        elif key == "id":
+            raise AttributeError("can't set attribute")
         elif isinstance(value, OneCodexBase) or isinstance(value, ResourceList):
             self._resource[key] = value._resource
             return
@@ -284,22 +300,22 @@ class OneCodexBase(object):
             # coerce back to the value passed in
             self._resource[key] = type(value)(new_value)
             return
-        elif hasattr(self, '_resource') and hasattr(self.__class__, '_resource'):
-            schema = self.__class__._resource._schema['properties'].get(key)
+        elif hasattr(self, "_resource") and hasattr(self.__class__, "_resource"):
+            schema = self.__class__._resource._schema["properties"].get(key)
 
             if schema is not None:
                 # do some type checking against the schema
-                if not self.__class__._has_schema_method('update'):
-                    raise MethodNotSupported('{} do not support editing.'.format(
-                        self.__class__.__name__
-                    ))
-                if schema.get('readOnly', False):
-                    raise MethodNotSupported('{} is a read-only field'.format(key))
+                if not self.__class__._has_schema_method("update"):
+                    raise MethodNotSupported(
+                        "{} do not support editing.".format(self.__class__.__name__)
+                    )
+                if schema.get("readOnly", False):
+                    raise MethodNotSupported("{} is a read-only field".format(key))
 
-                if schema.get('format') == 'date-time':
+                if schema.get("format") == "date-time":
                     if isinstance(value, datetime):
                         if value.tzinfo is None:
-                            value = value.isoformat() + 'Z'
+                            value = value.isoformat() + "Z"
                         else:
                             value = value.isoformat()
 
@@ -307,15 +323,15 @@ class OneCodexBase(object):
                 self._resource[key] = value
                 return
 
-        raise AttributeError('\'{}\' object has no attribute \'{}\''.format(
-            self.__class__.__name__, key
-        ))
+        raise AttributeError(
+            "'{}' object has no attribute '{}'".format(self.__class__.__name__, key)
+        )
 
     def __delattr__(self, key):
-        if not self.__class__._has_schema_method('update'):
-            raise MethodNotSupported('{} do not support editing.'.format(self.__class__.__name__))
+        if not self.__class__._has_schema_method("update"):
+            raise MethodNotSupported("{} do not support editing.".format(self.__class__.__name__))
 
-        if hasattr(self, '_resource') and key in self._resource.keys():
+        if hasattr(self, "_resource") and key in self._resource.keys():
             # changes on this model also change the potion resource
             del self._resource[key]
 
@@ -334,16 +350,19 @@ class OneCodexBase(object):
             return json.dumps(self._resource._properties, cls=PotionJSONEncoder)
         else:
             return json.dumps(
-                {k: v for k, v in self._resource._properties.items()
-                 if not isinstance(v, Resource) and not k.startswith('$')},
-                cls=PotionJSONEncoder
+                {
+                    k: v
+                    for k, v in self._resource._properties.items()
+                    if not isinstance(v, Resource) and not k.startswith("$")
+                },
+                cls=PotionJSONEncoder,
             )
 
     @classmethod
     def _convert_id_to_uri(cls, uuid):
-        base_uri = cls._resource._schema['_base_uri']
+        base_uri = cls._resource._schema["_base_uri"]
         if not uuid.startswith(base_uri):
-            uuid = '{}/{}'.format(base_uri, uuid)
+            uuid = "{}/{}".format(base_uri, uuid)
         return uuid
 
     @classmethod
@@ -353,8 +372,8 @@ class OneCodexBase(object):
 
         # FIXME: this doesn't actually work though, because potion creates these routes for all
         # items :/
-        method_links = cls._resource._schema['links']
-        return any(True for l in method_links if l['rel'] == method_name)
+        method_links = cls._resource._schema["links"]
+        return any(True for l in method_links if l["rel"] == method_name)
 
     @classmethod
     def all(cls, sort=None, limit=None):
@@ -399,21 +418,22 @@ class OneCodexBase(object):
         check_bind(cls)
 
         # do this here to avoid passing this on to potion
-        filter_func = keyword_filters.pop('filter', None)
+        filter_func = keyword_filters.pop("filter", None)
 
         public = False
-        if any(x['rel'] == 'instances_public' for x in cls._resource._schema['links']):
-            public = keyword_filters.pop('public', False)
+        if any(x["rel"] == "instances_public" for x in cls._resource._schema["links"]):
+            public = keyword_filters.pop("public", False)
 
-        instances_route = keyword_filters.pop('_instances',
-                                              'instances' if not public else 'instances_public')
+        instances_route = keyword_filters.pop(
+            "_instances", "instances" if not public else "instances_public"
+        )
 
-        schema = next(l for l in cls._resource._schema['links'] if l['rel'] == instances_route)
-        sort_schema = schema['schema']['properties']['sort']['properties']
-        where_schema = schema['schema']['properties']['where']['properties']
+        schema = next(l for l in cls._resource._schema["links"] if l["rel"] == instances_route)
+        sort_schema = schema["schema"]["properties"]["sort"]["properties"]
+        where_schema = schema["schema"]["properties"]["where"]["properties"]
 
-        sort = generate_potion_sort_clause(keyword_filters.pop('sort', None), sort_schema)
-        limit = keyword_filters.pop('limit', None if not public else 1000)
+        sort = generate_potion_sort_clause(keyword_filters.pop("sort", None), sort_schema)
+        limit = keyword_filters.pop("limit", None if not public else 1000)
         where = {}
 
         # we're filtering by fancy objects (like SQLAlchemy's filter)
@@ -422,22 +442,24 @@ class OneCodexBase(object):
                 where = filters[0]
             elif all(isinstance(f, six.string_types) for f in filters):
                 # if it's a list of strings, treat it as an multiple "get" request
-                where = {'$uri': {'$in': [cls._convert_id_to_uri(f) for f in filters]}}
+                where = {"$uri": {"$in": [cls._convert_id_to_uri(f) for f in filters]}}
             else:
                 # we're doing some more advanced filtering
-                raise NotImplementedError('Advanced filtering hasn\'t been implemented yet')
+                raise NotImplementedError("Advanced filtering hasn't been implemented yet")
 
         # we're filtering by keyword arguments (like SQLAlchemy's filter_by)
         if len(keyword_filters) > 0:
             for k, v in generate_potion_keyword_where(keyword_filters, where_schema, cls).items():
                 if k in where:
-                    raise AttributeError('Multiple definitions for same field {}'.format(k))
+                    raise AttributeError("Multiple definitions for same field {}".format(k))
                 where[k] = v
 
         # the potion-client method returns an iterator (which lazily fetchs the records
         # using `per_page` instances per request) so for limiting we only want to fetch the first
         # n (and not instantiate all the available which is what would happen if we just sliced)
-        cursor = getattr(cls._resource, instances_route)(where=where, sort=sort, per_page=DEFAULT_PAGE_SIZE)
+        cursor = getattr(cls._resource, instances_route)(
+            where=where, sort=sort, per_page=DEFAULT_PAGE_SIZE
+        )
         if limit is not None:
             cursor = itertools.islice(cursor, limit)
 
@@ -449,7 +471,7 @@ class OneCodexBase(object):
                 wrapped = [obj for obj in wrapped if filter_func(obj) is True]
             else:
                 raise OneCodexException(
-                    'Expected callable for filter, got: {}'.format(type(filter_func).__name__)
+                    "Expected callable for filter, got: {}".format(type(filter_func).__name__)
                 )
 
         return wrapped
@@ -498,15 +520,15 @@ class OneCodexBase(object):
         """Delete this object from the One Codex server."""
         check_bind(self)
         if self.id is None:
-            raise ServerError('{} object does not exist yet'.format(self.__class__.name))
-        elif not self.__class__._has_schema_method('destroy'):
-            raise MethodNotSupported('{} do not support deletion.'.format(self.__class__.__name__))
+            raise ServerError("{} object does not exist yet".format(self.__class__.name))
+        elif not self.__class__._has_schema_method("destroy"):
+            raise MethodNotSupported("{} do not support deletion.".format(self.__class__.__name__))
 
         try:
             self._resource.delete()
         except HTTPError as e:
             if e.response.status_code == 403:
-                raise PermissionDenied('')  # FIXME: is this right?
+                raise PermissionDenied("")  # FIXME: is this right?
             else:
                 raise e
 
@@ -515,24 +537,25 @@ class OneCodexBase(object):
         check_bind(self)
 
         creating = self.id is None
-        if creating and not self.__class__._has_schema_method('create'):
-            raise MethodNotSupported('{} do not support creating.'.format(self.__class__.__name__))
-        if not creating and not self.__class__._has_schema_method('update'):
-            raise MethodNotSupported('{} do not support updating.'.format(self.__class__.__name__))
+        if creating and not self.__class__._has_schema_method("create"):
+            raise MethodNotSupported("{} do not support creating.".format(self.__class__.__name__))
+        if not creating and not self.__class__._has_schema_method("update"):
+            raise MethodNotSupported("{} do not support updating.".format(self.__class__.__name__))
 
         try:
             self._resource.save()
         except HTTPError as e:
             if e.response.status_code == 400:
-                err_json = e.response.json().get('errors', [])
+                err_json = e.response.json().get("errors", [])
                 msg = pretty_print_error(err_json)
                 raise ServerError(msg)
             elif e.response.status_code == 404:
-                action = 'creating' if creating else 'updating'
-                raise MethodNotSupported('{} do not support {}.'.format(self.__class__.__name__,
-                                                                        action))
+                action = "creating" if creating else "updating"
+                raise MethodNotSupported(
+                    "{} do not support {}.".format(self.__class__.__name__, action)
+                )
             elif e.response.status_code == 409:
-                raise ServerError('This {} object already exists'.format(self.__class__.__name__))
+                raise ServerError("This {} object already exists".format(self.__class__.__name__))
             else:
                 raise e
 
@@ -543,23 +566,34 @@ from onecodex.models.misc import Jobs, Projects, Tags, Users, Documents  # noqa
 from onecodex.models.sample import Samples, Metadata  # noqa
 
 
-__all__ = ['Alignments', 'Classifications', 'Documents', 'Jobs', 'Metadata', 'Panels',
-           'Projects', 'Samples', 'SampleCollection', 'Tags', 'Users']
+__all__ = [
+    "Alignments",
+    "Classifications",
+    "Documents",
+    "Jobs",
+    "Metadata",
+    "Panels",
+    "Projects",
+    "Samples",
+    "SampleCollection",
+    "Tags",
+    "Users",
+]
 
 
 def pretty_print_error(err_json):
     """Pretty print Flask-Potion error messages for the user."""
     # Special case validation errors
-    if len(err_json) == 1 and 'validationOf' in err_json[0]:
-        required_fields = ', '.join(err_json[0]['validationOf']['required'])
-        return 'Validation error. Requires properties: {}.'.format(required_fields)
+    if len(err_json) == 1 and "validationOf" in err_json[0]:
+        required_fields = ", ".join(err_json[0]["validationOf"]["required"])
+        return "Validation error. Requires properties: {}.".format(required_fields)
 
     # General error handling
-    msg = '; '.join(err.get('message', '') for err in err_json)
+    msg = "; ".join(err.get("message", "") for err in err_json)
 
     # Fallback
     if not msg:
-        msg = 'Bad request.'
+        msg = "Bad request."
     return msg
 
 
@@ -570,5 +604,5 @@ def is_oc_class(cls):
 
 _model_lookup = {}
 for name, obj in inspect.getmembers(sys.modules[__name__], is_oc_class):
-    if hasattr(obj, '_resource_path'):
+    if hasattr(obj, "_resource_path"):
         _model_lookup[obj._resource_path] = obj

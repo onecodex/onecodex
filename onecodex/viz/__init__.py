@@ -12,43 +12,30 @@ from onecodex.viz._bargraph import VizBargraphMixin
 
 # # public CDN
 # ONE_CODEX_VEGA_CDN = 'https://cdn.jsdelivr.net/npm/'
-ONE_CODEX_VEGA_CDN = 'https://static.onecodex.com/cdn/'
+ONE_CODEX_VEGA_CDN = "https://static.onecodex.com/cdn/"
 
 
 def onecodex_theme():
-    onecodex_palette = [
-        '#ffffcc',
-        '#c7e9b4',
-        '#7fcdbb',
-        '#41b6c4',
-        '#2c7fb8',
-        '#264153'
-    ]
+    onecodex_palette = ["#ffffcc", "#c7e9b4", "#7fcdbb", "#41b6c4", "#2c7fb8", "#264153"]
 
     return {
-        'config': {
-            'range': {
-                'heatmap': list(reversed(onecodex_palette))
+        "config": {
+            "range": {"heatmap": list(reversed(onecodex_palette))},
+            "axis": {
+                "labelFont": "Helvetica",
+                "labelFontSize": 12,
+                "titleFont": "Helvetica",
+                "titleFontSize": 12,
+                "grid": False,
             },
-            'axis': {
-                'labelFont': 'Helvetica',
-                'labelFontSize': 12,
-                'titleFont': 'Helvetica',
-                'titleFontSize': 12,
-                'grid': False
+            "legend": {
+                "labelFont": "Helvetica",
+                "labelFontSize": 12,
+                "titleFont": "Helvetica",
+                "titleFontSize": 12,
             },
-            'legend': {
-                'labelFont': 'Helvetica',
-                'labelFontSize': 12,
-                'titleFont': 'Helvetica',
-                'titleFontSize': 12
-            },
-            'view': {
-                'width': 400,
-                'height': 400,
-                'strokeWidth': 0
-            },
-            'background': 'white'
+            "view": {"width": 400, "height": 400, "strokeWidth": 0},
+            "background": "white",
         }
     }
 
@@ -150,32 +137,39 @@ require(["vega-embed"], function(vegaEmbed) {{
 
     # CSS selector ids cannot start with numbers. if ours does, rename it
     if el_uuid[0] in map(str, range(10)):
-        el_uuid = 'a' + el_uuid[1:]
+        el_uuid = "a" + el_uuid[1:]
 
     return (
         {
-            'application/javascript': vega_js.format(
+            "application/javascript": vega_js.format(
                 id=el_uuid, spec=json.dumps(spec), cdn=ONE_CODEX_VEGA_CDN
             ),
-            'application/vnd.vegalite.v2+json': json.dumps(spec)
+            "application/vnd.vegalite.v2+json": json.dumps(spec),
         },
-        {'jupyter-vega': '#{0}'.format(el_uuid)}
+        {"jupyter-vega": "#{0}".format(el_uuid)},
     )
 
 
-alt.themes.register('onecodex', onecodex_theme)
-alt.themes.enable('onecodex')
-alt.renderers.register('onecodex', onecodex_renderer)
+alt.themes.register("onecodex", onecodex_theme)
+alt.themes.enable("onecodex")
+alt.renderers.register("onecodex", onecodex_renderer)
 
 
 try:
     # if inside ipython, enable the notebook renderer
     get_ipython()
-    alt.renderers.enable('onecodex')
+    alt.renderers.enable("onecodex")
 except NameError:
     # otherwise, use altair's default renderer
-    alt.renderers.enable('default')
+    alt.renderers.enable("default")
 
 
-__all__ = ['VizPCAMixin', 'VizHeatmapMixin', 'VizMetadataMixin', 'VizDistanceMixin',
-           'dendrogram', 'boxplot', 'VizBargraphMixin']
+__all__ = [
+    "VizPCAMixin",
+    "VizHeatmapMixin",
+    "VizMetadataMixin",
+    "VizDistanceMixin",
+    "dendrogram",
+    "boxplot",
+    "VizBargraphMixin",
+]

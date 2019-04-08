@@ -5,10 +5,23 @@ from onecodex.exceptions import OneCodexException
 
 
 class VizHeatmapMixin(object):
-    def plot_heatmap(self, rank='auto', normalize='auto', top_n='auto', threshold='auto',
-                     title=None, xlabel=None, ylabel=None, tooltip=None, return_chart=False,
-                     linkage='average', haxis=None, metric='euclidean', legend='auto',
-                     label=None):
+    def plot_heatmap(
+        self,
+        rank="auto",
+        normalize="auto",
+        top_n="auto",
+        threshold="auto",
+        title=None,
+        xlabel=None,
+        ylabel=None,
+        tooltip=None,
+        return_chart=False,
+        linkage="average",
+        haxis=None,
+        metric="euclidean",
+        legend="auto",
+        label=None,
+    ):
         """Plot heatmap of taxa abundance/count data for several samples.
 
         Parameters
@@ -57,31 +70,29 @@ class VizHeatmapMixin(object):
         >>> plot_heatmap(rank='family', top_n=10)
         """
         if rank is None:
-            raise OneCodexException('Please specify a rank or \'auto\' to choose automatically')
+            raise OneCodexException("Please specify a rank or 'auto' to choose automatically")
 
         if not (threshold or top_n):
-            raise OneCodexException('Please specify at least one of: threshold, top_n')
+            raise OneCodexException("Please specify at least one of: threshold, top_n")
 
         if len(self._results) < 2:
-            raise OneCodexException('`plot_heatmap` requires 2 or more valid classification results.')
+            raise OneCodexException(
+                "`plot_heatmap` requires 2 or more valid classification results."
+            )
 
-        if top_n == 'auto' and threshold == 'auto':
+        if top_n == "auto" and threshold == "auto":
             top_n = 10
             threshold = None
-        elif top_n == 'auto' and threshold != 'auto':
+        elif top_n == "auto" and threshold != "auto":
             top_n = None
-        elif top_n != 'auto' and threshold == 'auto':
+        elif top_n != "auto" and threshold == "auto":
             threshold = None
 
-        if legend == 'auto':
+        if legend == "auto":
             legend = self._field
 
         df = self.to_df(
-            rank=rank,
-            normalize=normalize,
-            top_n=top_n,
-            threshold=threshold,
-            table_format='long'
+            rank=rank, normalize=normalize, top_n=top_n, threshold=threshold, table_format="long"
         )
 
         if tooltip:
@@ -98,18 +109,20 @@ class VizHeatmapMixin(object):
         magic_metadata, magic_fields = self._metadata_fetch(tooltip, label=label)
 
         # add columns for prettier display
-        df['Label'] = magic_metadata['Label'][df['classification_id']].tolist()
-        df['tax_name'] = ['{} ({})'.format(self.taxonomy['name'][t], t) for t in df['tax_id']]
+        df["Label"] = magic_metadata["Label"][df["classification_id"]].tolist()
+        df["tax_name"] = ["{} ({})".format(self.taxonomy["name"][t], t) for t in df["tax_id"]]
 
         # and for metadata
         for f in tooltip:
-            df[magic_fields[f]] = magic_metadata[magic_fields[f]][df['classification_id']].tolist()
+            df[magic_fields[f]] = magic_metadata[magic_fields[f]][df["classification_id"]].tolist()
 
         # if we've already been normalized, we must cluster samples by euclidean distance. beta
         # diversity measures won't work with normalized distances.
         if self._guess_normalized():
-            if metric != 'euclidean':
-                raise OneCodexException('Results are normalized. Please re-run with metric=euclidean')
+            if metric != "euclidean":
+                raise OneCodexException(
+                    "Results are normalized. Please re-run with metric=euclidean"
+                )
 
             df_sample_cluster = self.to_df(
                 rank=rank, normalize=normalize, top_n=top_n, threshold=threshold
@@ -126,15 +139,19 @@ class VizHeatmapMixin(object):
 
         if haxis is None:
             # cluster only once
-            sample_cluster = df_sample_cluster.ocx._cluster_by_sample(rank=rank, metric=metric, linkage=linkage)
+            sample_cluster = df_sample_cluster.ocx._cluster_by_sample(
+                rank=rank, metric=metric, linkage=linkage
+            )
             taxa_cluster = df_taxa_cluster.ocx._cluster_by_taxa(linkage=linkage)
 
-            labels_in_order = magic_metadata['Label'][sample_cluster['ids_in_order']].tolist()
+            labels_in_order = magic_metadata["Label"][sample_cluster["ids_in_order"]].tolist()
         else:
-            if not (pd.api.types.is_bool_dtype(df[magic_fields[haxis]]) or  # noqa
-                    pd.api.types.is_categorical_dtype(df[magic_fields[haxis]]) or  # noqa
-                    pd.api.types.is_object_dtype(df[magic_fields[haxis]])):  # noqa
-                raise OneCodexException('Metadata field on horizontal axis can not be numerical')
+            if not (
+                pd.api.types.is_bool_dtype(df[magic_fields[haxis]])
+                or pd.api.types.is_categorical_dtype(df[magic_fields[haxis]])  # noqa
+                or pd.api.types.is_object_dtype(df[magic_fields[haxis]])  # noqa
+            ):  # noqa
+                raise OneCodexException("Metadata field on horizontal axis can not be numerical")
 
             # taxa clustered only once
             taxa_cluster = df_taxa_cluster.ocx._cluster_by_taxa(linkage=linkage)
@@ -145,15 +162,19 @@ class VizHeatmapMixin(object):
 
             labels_in_order = []
 
-            plot_data = {'x': [], 'y': [], 'o': [], 'b': []}
-            label_data = {'x': [], 'y': [], 'label': []}
+            plot_data = {"x": [], "y": [], "o": [], "b": []}
+            label_data = {"x": [], "y": [], "label": []}
 
             for idx, group in enumerate(groups):
                 # if value of metadata field is 'null', we have to use pd.isnull, can't use 'is None'
                 if pd.isnull(group):
-                    c_ids_in_group = magic_metadata.index[pd.isnull(magic_metadata[magic_fields[haxis]])]
+                    c_ids_in_group = magic_metadata.index[
+                        pd.isnull(magic_metadata[magic_fields[haxis]])
+                    ]
                 else:
-                    c_ids_in_group = magic_metadata.index[magic_metadata[magic_fields[haxis]] == group]
+                    c_ids_in_group = magic_metadata.index[
+                        magic_metadata[magic_fields[haxis]] == group
+                    ]
 
                 if len(c_ids_in_group) == 0:
                     continue
@@ -162,76 +183,68 @@ class VizHeatmapMixin(object):
 
                 if len(c_ids_in_group) < 3:
                     # clustering not possible in this case
-                    cluster_by_group[group] = {
-                        'ids_in_order': c_ids_in_group
-                    }
+                    cluster_by_group[group] = {"ids_in_order": c_ids_in_group}
                 else:
                     cluster_by_group[group] = sample_slice.ocx._cluster_by_sample(
                         rank=rank, metric=metric, linkage=linkage
                     )
 
-                plot_data['x'].append(len(labels_in_order) + 0.25)
+                plot_data["x"].append(len(labels_in_order) + 0.25)
 
-                labels_in_order.extend(magic_metadata['Label'][cluster_by_group[group]['ids_in_order']].tolist())
+                labels_in_order.extend(
+                    magic_metadata["Label"][cluster_by_group[group]["ids_in_order"]].tolist()
+                )
 
-                plot_data['x'].append(len(labels_in_order) - 0.25)
-                plot_data['y'].extend([0, 0])
-                plot_data['o'].extend([0, 1])
-                plot_data['b'].extend([idx, idx])
+                plot_data["x"].append(len(labels_in_order) - 0.25)
+                plot_data["y"].extend([0, 0])
+                plot_data["o"].extend([0, 1])
+                plot_data["b"].extend([idx, idx])
 
-                label_data['x'].append(sum(plot_data['x'][-2:]) / 2)
-                label_data['y'].append(1)
-                label_data['label'].append(str(group))
+                label_data["x"].append(sum(plot_data["x"][-2:]) / 2)
+                label_data["y"].append(1)
+                label_data["label"].append(str(group))
 
-            label_bars = alt.Chart(
-                pd.DataFrame(plot_data), width=15 * len(df_sample_cluster.index), height=10
-            ).mark_line(
-                point=False, opacity=0.5
-            ).encode(
-                x=alt.X(
-                    'x',
-                    axis=None,
-                    scale=alt.Scale(
-                        domain=[0, len(df_sample_cluster.index)],
-                        zero=True,
-                        nice=False
-                    )
-                ),
-                y=alt.Y(
-                    'y',
-                    axis=None
-                ),
-                order='o',
-                color=alt.Color(
-                    'b:N',
-                    scale=alt.Scale(
-                        domain=list(range(idx + 1)),
-                        range=['black'] * (idx + 1)
+            label_bars = (
+                alt.Chart(
+                    pd.DataFrame(plot_data), width=15 * len(df_sample_cluster.index), height=10
+                )
+                .mark_line(point=False, opacity=0.5)
+                .encode(
+                    x=alt.X(
+                        "x",
+                        axis=None,
+                        scale=alt.Scale(
+                            domain=[0, len(df_sample_cluster.index)], zero=True, nice=False
+                        ),
                     ),
-                    legend=None
+                    y=alt.Y("y", axis=None),
+                    order="o",
+                    color=alt.Color(
+                        "b:N",
+                        scale=alt.Scale(domain=list(range(idx + 1)), range=["black"] * (idx + 1)),
+                        legend=None,
+                    ),
                 )
             )
 
-            label_text = alt.Chart(
-                pd.DataFrame(label_data), width=15 * len(df_sample_cluster.index), height=10
-            ).mark_text(
-                align='center', baseline='middle'
-            ).encode(
-                x=alt.X(
-                    'x',
-                    axis=None,
-                    scale=alt.Scale(
-                        domain=[0, len(df_sample_cluster.index)],
-                        zero=True,
-                        nice=False
-                    )
-                ),
-                y=alt.Y(
-                    'y',
-                    axis=alt.Axis(
-                        title=haxis, ticks=False, domain=False, labels=False
-                    )),
-                text='label'
+            label_text = (
+                alt.Chart(
+                    pd.DataFrame(label_data), width=15 * len(df_sample_cluster.index), height=10
+                )
+                .mark_text(align="center", baseline="middle")
+                .encode(
+                    x=alt.X(
+                        "x",
+                        axis=None,
+                        scale=alt.Scale(
+                            domain=[0, len(df_sample_cluster.index)], zero=True, nice=False
+                        ),
+                    ),
+                    y=alt.Y(
+                        "y", axis=alt.Axis(title=haxis, ticks=False, domain=False, labels=False)
+                    ),
+                    text="label",
+                )
             )
 
             top_label = alt.layer(label_text, label_bars)
@@ -242,23 +255,25 @@ class VizHeatmapMixin(object):
         tooltip_for_altair.insert(2, "{}:Q".format(self._field))
 
         alt_kwargs = dict(
-            x=alt.X('Label:N', axis=alt.Axis(title=xlabel), sort=labels_in_order),
-            y=alt.Y('tax_name:N', axis=alt.Axis(title=ylabel), sort=taxa_cluster['labels_in_order']),
-            color=alt.Color('{}:Q'.format(self._field), legend=alt.Legend(title=legend)),
+            x=alt.X("Label:N", axis=alt.Axis(title=xlabel), sort=labels_in_order),
+            y=alt.Y(
+                "tax_name:N", axis=alt.Axis(title=ylabel), sort=taxa_cluster["labels_in_order"]
+            ),
+            color=alt.Color("{}:Q".format(self._field), legend=alt.Legend(title=legend)),
             tooltip=tooltip_for_altair,
-            href='url:N',
-            url='https://app.onecodex.com/classification/' + alt.datum.classification_id
+            href="url:N",
+            url="https://app.onecodex.com/classification/" + alt.datum.classification_id,
         )
 
-        chart = alt.Chart(
-            df,
-            width=15 * len(df['classification_id'].unique()),
-            height=15 * len(df['tax_id'].unique())
-        ).transform_calculate(
-            url=alt_kwargs.pop('url')
-        ).mark_rect(
-        ).encode(
-            **alt_kwargs
+        chart = (
+            alt.Chart(
+                df,
+                width=15 * len(df["classification_id"].unique()),
+                height=15 * len(df["tax_id"].unique()),
+            )
+            .transform_calculate(url=alt_kwargs.pop("url"))
+            .mark_rect()
+            .encode(**alt_kwargs)
         )
 
         if title:
