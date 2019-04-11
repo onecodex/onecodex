@@ -1,3 +1,4 @@
+import atexit
 import base64
 import click
 import concurrent.futures
@@ -441,3 +442,23 @@ def progressbar(*args, **kwargs):
 
     bar.update = partial(update, bar)
     return bar
+
+
+def atexit_register(func, *args, **kwargs):
+    atexit.register(func, *args, **kwargs)
+
+
+def atexit_unregister(func, *args, **kwargs):
+    """Python 2/3 compatible method for unregistering exit function.
+
+    Python2 has no atexit.unregister function :/
+    """
+    try:
+        atexit.unregister(func, *args, **kwargs)
+    except AttributeError:
+        # This code runs in Python 2.7 *only*
+        # Only replace with a noop, don't delete during iteration
+        for i in range(len(atexit._exithandlers)):
+            if atexit._exithandlers[i] == (func, args, kwargs):
+                atexit._exithandlers[i] = (lambda: None, [], {})
+                break

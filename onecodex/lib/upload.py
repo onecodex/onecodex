@@ -13,7 +13,7 @@ from unidecode import unidecode
 import warnings
 
 from onecodex.exceptions import OneCodexException, UploadException
-from onecodex.utils import snake_case
+from onecodex.utils import atexit_register, atexit_unregister, snake_case
 
 
 DEFAULT_THREADS = 4
@@ -544,6 +544,14 @@ def upload_sequence(
         # cancel_upload on later if user hits ctrl+c
         fields = _call_init_upload(filename, file_size, metadata, tags, project, samples_resource)
 
+        def cancel_atexit():
+            bar.canceled = True
+            bar.update(1)
+            logging.info("Canceled upload for sample: {}".format(fields["sample_id"]))
+            samples_resource.cancel_upload({"sample_id": fields["sample_id"]})
+
+        atexit_register(cancel_atexit)
+
         # if the upload via init_upload fails, upload_sequence_fileobj will call
         # init_multipart_upload, which accepts metadata to be integrated into a newly-created
         # Sample model. if the s3 intermediate route is used, two Sample models will ultimately
@@ -554,13 +562,12 @@ def upload_sequence(
             sample_id = upload_sequence_fileobj(
                 fobj, filename, fields, retry_fields, session, samples_resource
             )
+            atexit_unregister(cancel_atexit)
             return sample_id
         except KeyboardInterrupt:
-            logging.debug("Canceling upload for sample: {}".format(fields["sample_id"]))
-            samples_resource.cancel_upload({"sample_id": fields["sample_id"]})
-            raise KeyboardInterrupt
-
-        bar.finish()
+            cancel_atexit()
+            atexit_unregister(cancel_atexit)
+            raise
 
 
 def upload_sequence_fileobj(file_obj, file_name, fields, retry_fields, session, samples_resource):
