@@ -1,8 +1,7 @@
 import base64
-from click import BadParameter, Context, echo
 import click
 import concurrent.futures
-from functools import wraps
+from functools import partial, wraps
 import json
 import logging
 import os
@@ -102,7 +101,9 @@ def valid_api_key(ctx, param, value):
     Ensures an API has valid length (this is a click callback)
     """
     if value is not None and len(value) != 32:
-        raise BadParameter("API Key must be 32 characters long, not {}".format(str(len(value))))
+        raise click.BadParameter(
+            "API Key must be 32 characters long, not {}".format(str(len(value)))
+        )
     else:
         return value
 
@@ -112,9 +113,11 @@ def pprint(j, no_pretty):
     Prints as formatted JSON
     """
     if not no_pretty:
-        echo(json.dumps(j, cls=PotionJSONEncoder, sort_keys=True, indent=4, separators=(",", ": ")))
+        click.echo(
+            json.dumps(j, cls=PotionJSONEncoder, sort_keys=True, indent=4, separators=(",", ": "))
+        )
     else:
-        echo(j)
+        click.echo(j)
 
 
 def cli_resource_fetcher(ctx, resource, uris, print_results=True):
@@ -155,7 +158,7 @@ def cli_resource_fetcher(ctx, resource, uris, print_results=True):
         else:
             return objs_to_return
     except requests.exceptions.HTTPError:
-        echo(
+        click.echo(
             "Failed to authenticate. Please check your API key "
             "or trying logging out and back in with `onecodex logout` "
             "and `onecodex login`."
@@ -203,7 +206,7 @@ def warn_if_insecure_platform():
         "######################################################################################\n"
     )  # noqa
     if is_insecure_platform():
-        echo(m, err=True)
+        click.echo(m, err=True)
         return True
     else:
         cli_log.debug("Python SSLContext passed")
@@ -229,7 +232,7 @@ def download_file_helper(url, input_path):
     local_full_path = get_download_dest(input_path, r.url)
     original_filename = os.path.split(local_full_path)[-1]
     with open(local_full_path, "wb") as f:
-        echo("Downloading {}".format(original_filename), err=True)
+        click.echo("Downloading {}".format(original_filename), err=True)
         for chunk in r.iter_content(chunk_size=1024):
             if chunk:  # filter out keep-alive new chunks
                 f.write(chunk)
@@ -343,7 +346,7 @@ def telemetry(fn):
         # By default, do not instantiate a client,
         # and inherit the telemetry settings passed
         client = None
-        if len(args) > 0 and isinstance(args[0], Context):
+        if len(args) > 0 and isinstance(args[0], click.Context):
             ctx = args[0]
 
             # First try to get off API obj
@@ -417,3 +420,24 @@ def run_via_threadpool(fn, iterable, fn_kwargs, max_threads=1, graceful_exit=Fal
                 executor._threads.clear()
                 concurrent.futures.thread._threads_queues.clear()
             raise k
+
+
+def progressbar(*args, **kwargs):
+    bar = click.progressbar(*args, **kwargs)
+    bar._update = bar.update
+
+    def update(self, value):
+        if getattr(self, "canceled", False) is True:
+            self.label = "Canceling..."
+            if self.eta_known:
+                self.eta_known = 0
+                self.pos = 0
+                self._update(1)
+        elif self.pct >= 0.98 and self.label.startswith("Uploading"):
+            self.label = "Finalizing..."
+            self._update(value)
+        else:
+            self._update(value)
+
+    bar.update = partial(update, bar)
+    return bar

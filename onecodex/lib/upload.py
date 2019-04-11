@@ -526,7 +526,7 @@ def upload_sequence(
             raise OneCodexException("Filenames must be ascii. Try using --coerce-ascii")
 
     # disable progressbar while keeping context manager
-    if progressbar is None:
+    if not progressbar:
         progressbar = FakeProgressBar()
 
     # file_path is the path to the file on this disk. file_name is what we'll call the file in the
@@ -652,7 +652,7 @@ def upload_document(file_path, session, documents_resource, progressbar=None):
     file_name, file_size, _ = _file_stats(file_path, enforce_fastx=False)
 
     # disable progressbar while keeping context manager
-    if progressbar is None:
+    if not progressbar:
         progressbar = FakeProgressBar()
 
     with progressbar as bar:

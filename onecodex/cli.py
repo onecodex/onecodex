@@ -20,6 +20,7 @@ from onecodex.utils import (
     download_file_helper,
     valid_api_key,
     OPTION_HELP,
+    progressbar,
     pprint,
     pretty_errors,
     run_via_threadpool,
@@ -425,7 +426,7 @@ def upload(
         "tags": appendables["valid_tags"],
         "project": project_id,
         "coerce_ascii": coerce_ascii,
-        "progressbar": click.progressbar(length=total_size, label="Uploading... "),
+        "progressbar": progressbar(length=total_size, label="Uploading..."),
     }
 
     run_via_threadpool(
