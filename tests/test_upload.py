@@ -11,7 +11,7 @@ from requests.exceptions import HTTPError
 from onecodex.exceptions import OneCodexException, UploadException
 from onecodex.lib.upload import (
     _file_stats,
-    connectivity_error,
+    raise_connectivity_error,
     FASTXInterleave,
     FilePassthru,
     interleaved_filename,
@@ -267,7 +267,7 @@ def test_api_failures(caplog):
     assert "File could not be uploaded" in str(e.value)
 
     with pytest.raises(UploadException) as e:
-        connectivity_error("filename")
+        raise_connectivity_error("filename")
     assert "experiencing connectivity" in str(e.value)
 
 
