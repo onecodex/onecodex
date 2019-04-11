@@ -4,13 +4,12 @@ import bz2
 import click
 from collections import deque, OrderedDict
 import gzip
-from multiprocessing import Value
+import logging
 import os
 import re
 import requests
 from requests_toolbelt import MultipartEncoder
 import six
-from threading import BoundedSemaphore, Thread
 from unidecode import unidecode
 import warnings
 
@@ -477,15 +476,13 @@ def upload_sequence(
     files,
     session,
     samples_resource,
-    threads=None,
     metadata=None,
     tags=None,
     project=None,
-    log=None,
     coerce_ascii=False,
     progressbar=False,
 ):
-    """Uploads multiple files to the One Codex server via either fastx-proxy or directly to S3.
+    """Uploads a sequence file (or pair of files) to the One Codex server via either our proxy or directly to S3.
 
     Parameters
     ----------
@@ -497,14 +494,10 @@ def upload_sequence(
         Connection to One Codex API.
     samples_resource : `onecodex.models.Samples`
         Wrapped potion-client object exposing `init_upload` and `confirm_upload` methods.
-    threads : `integer`, optional
-        Number of concurrent uploads. May provide a speedup.
     metadata : `dict`, optional
     tags : `list`, optional
     project : `string`, optional
         UUID of project to associate this sample with.
-    log : `logging.Logger`, optional
-        Used to write status messages to a file or terminal.
     coerce_ascii : `bool`, optional
         If true, rename unicode filenames to ASCII and issue warning.
     progressbar : `bool`, optional
@@ -512,76 +505,30 @@ def upload_sequence(
 
     Returns
     -------
-    `list` of `string`s containing sample UUIDs of newly uploaded files.
+    A Sample object for the completed upload.
     """
-    if threads is None:
-        threads = DEFAULT_THREADS
-
-    file_names = []
-    file_sizes = []
-    file_formats = []
-
-    for file_path in files:
-        fname, fsize, fformat = _file_stats(file_path)
-        file_names.append(fname)
-        file_sizes.append(fsize)
-        file_formats.append(fformat)
+    filename, file_size, file_format = _file_stats(files)
 
     # if filename cannot be represented as ascii, raise and suggest renaming
-    for idx, fname in enumerate(file_names):
-        try:
-            # python2
-            ascii_fname = unidecode(unicode(fname))
-        except NameError:
-            ascii_fname = unidecode(fname)
+    try:
+        # python2
+        ascii_fname = unidecode(unicode(filename))
+    except NameError:
+        ascii_fname = unidecode(filename)
 
-        if fname != ascii_fname:
-            if coerce_ascii:
-                if log:
-                    log.warning(
-                        "Renaming {} to {}, must be ASCII\n".format(
-                            fname.encode("utf-8"), ascii_fname
-                        )
-                    )
-                file_names[idx] = ascii_fname
-            else:
-                raise OneCodexException("Filenames must be ascii. Try using --coerce-ascii")
-
-    upload_threads = []  # actual thread objects
-    uuids_completed = []  # holds successfully uploaded sample uuids
-    uuids_in_progress = []  # holds sample uuids of threads that have been launched
-
-    if threads > 1:
-        import ctypes
-
-        thread_error = Value(ctypes.c_wchar_p, "")
-        semaphore = BoundedSemaphore(threads)
-
-        def threaded_upload(*args):
-            def _wrapped(*wrapped_args):
-                semaphore.acquire()
-
-                try:
-                    file_uuid = upload_sequence_fileobj(*wrapped_args[:-1])
-                    uuids_completed.append(file_uuid)
-                except Exception as e:
-                    # handle inside the thread to prevent the exception message from leaking out
-                    wrapped_args[-1].value = "{}".format(e)
-
-                    if log:
-                        log.error("{}: {}".format(wrapped_args[1], e))
-
-                semaphore.release()
-
-            # the thread error message must be the last parameter
-            thread = Thread(target=_wrapped, args=args + (thread_error,))
-            thread.daemon = True
-            thread.start()
-            upload_threads.append(thread)
+    if filename != ascii_fname:
+        if coerce_ascii:
+            # TODO: Consider warnings.warn here instead
+            logging.warn(
+                "Renaming {} to {}, must be ASCII\n".format(filename.encode("utf-8"), ascii_fname)
+            )
+            filename = ascii_fname
+        else:
+            raise OneCodexException("Filenames must be ascii. Try using --coerce-ascii")
 
     # disable progressbar while keeping context manager
     if progressbar:
-        bar_context = click.progressbar(length=sum(file_sizes), label="Uploading... ")
+        bar_context = click.progressbar(length=file_size, label="Uploading... ")
     else:
         bar_context = FakeProgressBar()
 
@@ -591,68 +538,35 @@ def upload_sequence(
     # size on disk. unpaired files are uploaded as-is. paired files are decompressed, interleaved,
     # and uploaded as uncompressed data.
     with bar_context as bar:
-        for fpath, fname, fsize, fformat in zip(files, file_names, file_sizes, file_formats):
-            if isinstance(fpath, tuple):
-                fobj = FASTXInterleave(fpath, fsize, fformat, bar)
-            else:
-                fobj = FilePassthru(fpath, fsize, bar)
+        if isinstance(files, tuple):
+            fobj = FASTXInterleave(files, file_size, file_format, bar)
+        else:
+            fobj = FilePassthru(files, file_size, bar)
 
-            # must call init_upload in this loop in order to get a sample uuid we can call
-            # cancel_upload on later if user hits ctrl+c
-            fields = _call_init_upload(fname, fsize, metadata, tags, project, samples_resource)
+        # must call init_upload in this loop in order to get a sample uuid we can call
+        # cancel_upload on later if user hits ctrl+c
+        fields = _call_init_upload(filename, file_size, metadata, tags, project, samples_resource)
 
-            # if the upload via init_upload fails, upload_sequence_fileobj will call
-            # init_multipart_upload, which accepts metadata to be integrated into a newly-created
-            # Sample model. if the s3 intermediate route is used, two Sample models will ultimately
-            # exist on mainline: the failed fastx-proxy upload and the successful s3 intermediate.
-            retry_fields = _make_retry_fields(fname, metadata, tags, project)
+        # if the upload via init_upload fails, upload_sequence_fileobj will call
+        # init_multipart_upload, which accepts metadata to be integrated into a newly-created
+        # Sample model. if the s3 intermediate route is used, two Sample models will ultimately
+        # exist on mainline: the failed fastx-proxy upload and the successful s3 intermediate.
+        retry_fields = _make_retry_fields(filename, metadata, tags, project)
 
-            uuids_in_progress.append(fields["sample_id"])
-
-            if threads > 1:
-                threaded_upload(fobj, fname, fields, retry_fields, session, samples_resource, log)
-            else:
-                try:
-                    fuuid = upload_sequence_fileobj(
-                        fobj, fname, fields, retry_fields, session, samples_resource, log
-                    )
-                    uuids_completed.append(fuuid)
-                except KeyboardInterrupt:
-                    # cancel in progress upload(s)
-                    for sample_id in set(uuids_in_progress).difference(uuids_completed):
-                        samples_resource.cancel_upload({"sample_id": sample_id})
-                    raise KeyboardInterrupt
-                except UploadException as e:
-                    if log:
-                        log.error("{}: {}".format(fname, e))
-
-        if threads > 1:
-            try:
-                # we need to do this funky wait loop to ensure threads get killed by ctrl-c
-                while True:
-                    for thread in upload_threads:
-                        thread.join(0.1)
-
-                    if all(not thread.is_alive() for thread in upload_threads):
-                        break
-
-                    if bar.pct > 0.98 and bar.label == "Uploading... ":
-                        bar.label = "Finalizing... "
-                        bar.update(1)
-            except KeyboardInterrupt:
-                # cancel in progress upload(s)
-                for sample_id in set(uuids_in_progress).difference(uuids_completed):
-                    samples_resource.cancel_upload({"sample_id": sample_id})
-                raise KeyboardInterrupt
+        try:
+            sample_id = upload_sequence_fileobj(
+                fobj, filename, fields, retry_fields, session, samples_resource
+            )
+            return sample_id
+        except KeyboardInterrupt:
+            # cancel in progress upload(s)
+            samples_resource.cancel_upload({"sample_id": fields["sample_id"]})
+            raise KeyboardInterrupt
 
         bar.finish()
 
-    return uuids_completed
 
-
-def upload_sequence_fileobj(
-    file_obj, file_name, fields, retry_fields, session, samples_resource, log=None
-):
+def upload_sequence_fileobj(file_obj, file_name, fields, retry_fields, session, samples_resource):
     """Uploads a single file-like object to the One Codex server via either fastx-proxy or directly
     to S3.
 
@@ -674,8 +588,6 @@ def upload_sequence_fileobj(
         Connection to One Codex API.
     samples_resource : `onecodex.models.Samples`
         Wrapped potion-client object exposing `init_upload` and `confirm_upload` routes to mainline.
-    log : `logging.Logger`, optional
-        Used to write status messages to a file or terminal.
 
     Returns
     -------
@@ -686,9 +598,7 @@ def upload_sequence_fileobj(
 
     if proxy_upload is False:
         # upload failed--retry direct upload to S3 intermediate
-        if log:
-            log.error("{}: Connectivity issue, trying direct upload...".format(file_name))
-
+        logging.error("{}: Connectivity issue, trying direct upload...".format(file_name))
         file_obj.seek(0)  # reset file_obj back to start
 
         try:
@@ -714,118 +624,47 @@ def upload_sequence_fileobj(
     else:
         sample_id = fields["sample_id"]
 
-    if log:
-        log.info("{}: finished as sample {}".format(file_name, sample_id))
-
+    logging.info("{}: finished as sample {}".format(file_name, sample_id))
     return sample_id
 
 
-def upload_document(files, session, documents_resource, threads=None, log=None, progressbar=False):
+def upload_document(file_path, session, documents_resource, progressbar=False):
     """Uploads multiple document files to the One Codex server directly to S3 via an intermediate
     bucket.
 
     Parameters
     ----------
-    files : `list`
-        A list of paths to files on the system.
+    file_path : `str`
+        A path to a file on the system.
     session : `requests.Session`
         Connection to One Codex API.
     documents_resource : `onecodex.models.Documents`
         Wrapped potion-client object exposing `init_upload` and `confirm_upload` methods.
-    threads : `integer`, optional
-        Number of concurrent uploads. May provide a speedup.
-    log : `logging.Logger`, optional
-        Used to write status messages to a file or terminal.
     progressbar : `bool`, optional
         If true, display a progress bar using Click.
 
     Returns
     -------
-    `list` of `string`s containing document UUIDs of newly uploaded files.
+    A `str` document ID for the newly uploaded file.
     """
-    if threads is None:
-        threads = DEFAULT_THREADS
+    if not isinstance(file_path, six.string_types):
+        raise ValueError(
+            "Expected file_path to be a string, got {}".format(type(file_path).__name__)
+        )
 
-    file_names = []
-    file_sizes = []
-
-    for file_path in files:
-        if not isinstance(file_path, six.string_types):
-            raise ValueError(
-                "Expected file_path to be a string, got {}".format(type(file_path).__name__)
-            )
-
-        fname, fsize, _ = _file_stats(file_path, enforce_fastx=False)
-        file_names.append(fname)
-        file_sizes.append(fsize)
-
-    upload_threads = []  # actual thread objects
-    uuids_completed = []  # holds successfully uploaded document uuids
-
-    if threads > 1:
-        import ctypes
-
-        thread_error = Value(ctypes.c_wchar_p, "")
-        semaphore = BoundedSemaphore(threads)
-
-        def threaded_upload(*args):
-            def _wrapped(*wrapped_args):
-                semaphore.acquire()
-
-                try:
-                    file_uuid = upload_document_fileobj(*wrapped_args[:-1])
-                    uuids_completed.append(file_uuid)
-                except Exception as e:
-                    # handle inside the thread to prevent the exception message from leaking out
-                    wrapped_args[-1].value = "{}".format(e)
-
-                    if log:
-                        log.error("{}: {}".format(wrapped_args[1], e))
-
-                semaphore.release()
-
-            # the thread error message must be the last parameter
-            thread = Thread(target=_wrapped, args=args + (thread_error,))
-            thread.daemon = True
-            thread.start()
-            upload_threads.append(thread)
+    file_name, file_size, _ = _file_stats(file_path, enforce_fastx=False)
 
     # disable progressbar while keeping context manager
     if progressbar:
-        bar_context = click.progressbar(length=sum(file_sizes), label="Uploading... ")
+        bar_context = click.progressbar(length=file_size, label="Uploading... ")
     else:
         bar_context = FakeProgressBar()
 
     with bar_context as bar:
-        for fpath, fname, fsize in zip(files, file_names, file_sizes):
-            fobj = FilePassthru(fpath, fsize, bar)
-
-            if threads > 1:
-                threaded_upload(fobj, fname, session, documents_resource, log)
-            else:
-                try:
-                    fuuid = upload_document_fileobj(fobj, fname, session, documents_resource, log)
-                    uuids_completed.append(fuuid)
-                except UploadException as e:
-                    if log:
-                        log.error("{}: {}".format(fname, e))
-
-        if threads > 1:
-            # we need to do this funky wait loop to ensure threads get killed by ctrl-c
-            while True:
-                for thread in upload_threads:
-                    thread.join(0.1)
-
-                if all(not thread.is_alive() for thread in upload_threads):
-                    break
-
-                if bar.pct > 0.98 and bar.label == "Uploading... ":
-                    bar.label = "Finalizing... "
-                    bar.update(1)
-
+        fobj = FilePassthru(file_path, file_size, bar)
+        document_id = upload_document_fileobj(fobj, file_name, session, documents_resource)
         bar.finish()
-
-    return uuids_completed
+        return document_id
 
 
 def upload_document_fileobj(file_obj, file_name, session, documents_resource, log=None):
@@ -844,8 +683,6 @@ def upload_document_fileobj(file_obj, file_name, session, documents_resource, lo
         Connection to One Codex API.
     documents_resource : `onecodex.models.Documents`
         Wrapped potion-client object exposing `init_upload` and `confirm_upload` routes to mainline.
-    log : `logging.Logger`, optional
-        Used to write status messages to a file or terminal.
 
     Notes
     -----
@@ -876,9 +713,7 @@ def upload_document_fileobj(file_obj, file_name, session, documents_resource, lo
     else:
         document_id = s3_upload.get("document_id", "<UUID not yet assigned>")
 
-    if log:
-        log.info("{}: finished as document {}".format(file_name, document_id))
-
+    logging.info("{}: finished as document {}".format(file_name, document_id))
     return document_id
 
 
@@ -924,7 +759,7 @@ def _fastx_proxy_upload(file_obj, file_name, fields, session, samples_resource):
             auth={},
         )
     except requests.exceptions.ConnectionError:
-        return False
+        return False  # this is our problem
 
     if upload_request.status_code == 500:
         return False

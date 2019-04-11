@@ -1,4 +1,3 @@
-import six
 import warnings
 
 from onecodex.exceptions import OneCodexException
@@ -56,26 +55,21 @@ class Documents(OneCodexBase, ResourceDownloadMixin):
     _resource_path = "/api/v1/documents"
 
     @classmethod
-    def upload(cls, files, threads=None, log=None, progressbar=False):
+    def upload(cls, file_path, progressbar=False):
         """Uploads a series of files to the One Codex server.
 
         Parameters
         ----------
-        files : `string`, `tuple,` or `list`
-            A list of paths to files on the system.
-        threads : `integer`, optional
-            Number of concurrent uploads. May provide a speedup.
-        log : `logging.Logger`, optional
-            Used to write status messages to a file or terminal.
+        file_path : `string`
+            A path to a file on the system.
         progressbar : `bool`, optional
             If true, display a progress bar using Click.
+
+        Returns
+        -------
+        A `Samples` object upon successful upload. None if the upload failed.
         """
         res = cls._resource
-        if isinstance(files, six.string_types):
-            files = [files]
+        doc_id = upload_document(file_path, res._client.session, res, progressbar=progressbar)
 
-        docs = upload_document(
-            files, res._client.session, res, threads=threads, log=log, progressbar=progressbar
-        )
-
-        return docs
+        return cls.get(doc_id)

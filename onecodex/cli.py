@@ -30,8 +30,8 @@ from onecodex.version import __version__
 # set the context for getting -h also
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
-# logging
-log = logging.getLogger(__name__)
+# Modify the root logger directly
+log = logging.getLogger()
 log.setLevel(logging.INFO)
 log_formatter = logging.Formatter("\n%(levelname)s: %(message)s")
 stream_handler = logging.StreamHandler(sys.stderr)
@@ -175,8 +175,8 @@ def documents_upload(ctx, max_threads, files):
 
     files = list(files)
 
-    # do the uploading
-    ctx.obj["API"].Documents.upload(files, threads=max_threads, log=log, progressbar=True)
+    for f in files:
+        ctx.obj["API"].Documents.upload(f, progressbar=True)
 
 
 @click.command("download", help="Download a file that has been shared with you")
@@ -402,17 +402,16 @@ def upload(
             files = paired_files + list(single_files)
 
     upload_kwargs = {
-        "threads": max_threads,
         "metadata": appendables["valid_metadata"],
         "tags": appendables["valid_tags"],
         "project": project_id,
         "coerce_ascii": coerce_ascii,
-        "log": log,
         "progressbar": True,
     }
 
-    # do the uploading
-    ctx.obj["API"].Samples.upload(files, **upload_kwargs)
+    # TODO: Use multiprocessing.Pool here
+    for f in files:
+        ctx.obj["API"].Samples.upload(f, **upload_kwargs)
 
 
 @onecodex.command("login")
