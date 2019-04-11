@@ -130,7 +130,7 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
 
     @classmethod
     def upload(
-        cls, files, metadata=None, tags=None, project=None, coerce_ascii=False, progressbar=False
+        cls, files, metadata=None, tags=None, project=None, coerce_ascii=False, progressbar=None
     ):
         """Uploads a series of files to the One Codex server.
 
@@ -146,8 +146,8 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
             UUID of project to associate this sample with.
         coerce_ascii : `bool`, optional
             If true, rename unicode filenames to ASCII and issue warning.
-        progressbar : `bool`, optional
-            If true, display a progress bar using Click.
+        progressbar : `click.progressbar`, optional
+            If passed, display a progress bar using Click.
 
         Returns
         -------

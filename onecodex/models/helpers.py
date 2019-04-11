@@ -100,6 +100,8 @@ class ResourceDownloadMixin(object):
             in the current working directory.
         file_obj : file-like object, optional
             Rather than save the file to a path, write it to this file-like object.
+        progressbar : `bool`
+            Display a progress bar using Click for the download?
 
         Returns
         -------

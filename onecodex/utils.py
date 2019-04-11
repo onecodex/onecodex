@@ -1,5 +1,7 @@
 import base64
 from click import BadParameter, Context, echo
+import click
+import concurrent.futures
 from functools import wraps
 import json
 import logging
@@ -391,3 +393,27 @@ def pretty_errors(fn):
 def snake_case(input_string):
     s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", input_string)
     return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
+
+
+def run_via_threadpool(fn, iterable, fn_kwargs, max_threads=1, graceful_exit=False):
+    if max_threads == 1:
+        for item in iterable:
+            fn(item, **fn_kwargs)
+        return
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
+        futures = {executor.submit(fn, x, **fn_kwargs) for x in iterable}
+
+        try:
+            for future in concurrent.futures.as_completed(futures):
+                try:
+                    future.result()
+                except Exception as e:
+                    raise e
+                else:
+                    pass
+        except KeyboardInterrupt as k:
+            if not graceful_exit:
+                executor._threads.clear()
+                concurrent.futures.thread._threads_queues.clear()
+            raise k

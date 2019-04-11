@@ -1,7 +1,6 @@
 from __future__ import print_function, division
 
 import bz2
-import click
 from collections import deque, OrderedDict
 import gzip
 import logging
@@ -480,7 +479,7 @@ def upload_sequence(
     tags=None,
     project=None,
     coerce_ascii=False,
-    progressbar=False,
+    progressbar=None,
 ):
     """Uploads a sequence file (or pair of files) to the One Codex server via either our proxy or directly to S3.
 
@@ -500,8 +499,8 @@ def upload_sequence(
         UUID of project to associate this sample with.
     coerce_ascii : `bool`, optional
         If true, rename unicode filenames to ASCII and issue warning.
-    progressbar : `bool`, optional
-        If true, display a progress bar using Click.
+    progressbar : `click.progressbar`, optional
+        If passed, display a progress bar using Click.
 
     Returns
     -------
@@ -527,17 +526,15 @@ def upload_sequence(
             raise OneCodexException("Filenames must be ascii. Try using --coerce-ascii")
 
     # disable progressbar while keeping context manager
-    if progressbar:
-        bar_context = click.progressbar(length=file_size, label="Uploading... ")
-    else:
-        bar_context = FakeProgressBar()
+    if progressbar is None:
+        progressbar = FakeProgressBar()
 
     # file_path is the path to the file on this disk. file_name is what we'll call the file in the
     # mainline database. file_size is the sum of both files in a pair, or the size of an unpaired
     # file. if paired, file_size is the uncompressed size. if unpaired, file_size is the actual
     # size on disk. unpaired files are uploaded as-is. paired files are decompressed, interleaved,
     # and uploaded as uncompressed data.
-    with bar_context as bar:
+    with progressbar as bar:
         if isinstance(files, tuple):
             fobj = FASTXInterleave(files, file_size, file_format, bar)
         else:
@@ -559,7 +556,7 @@ def upload_sequence(
             )
             return sample_id
         except KeyboardInterrupt:
-            # cancel in progress upload(s)
+            logging.debug("Canceling upload for sample: {}".format(fields["sample_id"]))
             samples_resource.cancel_upload({"sample_id": fields["sample_id"]})
             raise KeyboardInterrupt
 
@@ -628,7 +625,7 @@ def upload_sequence_fileobj(file_obj, file_name, fields, retry_fields, session, 
     return sample_id
 
 
-def upload_document(file_path, session, documents_resource, progressbar=False):
+def upload_document(file_path, session, documents_resource, progressbar=None):
     """Uploads multiple document files to the One Codex server directly to S3 via an intermediate
     bucket.
 
@@ -640,8 +637,8 @@ def upload_document(file_path, session, documents_resource, progressbar=False):
         Connection to One Codex API.
     documents_resource : `onecodex.models.Documents`
         Wrapped potion-client object exposing `init_upload` and `confirm_upload` methods.
-    progressbar : `bool`, optional
-        If true, display a progress bar using Click.
+    progressbar : `click.progressbar`, optional
+        If passed, display a progress bar using Click.
 
     Returns
     -------
@@ -655,12 +652,10 @@ def upload_document(file_path, session, documents_resource, progressbar=False):
     file_name, file_size, _ = _file_stats(file_path, enforce_fastx=False)
 
     # disable progressbar while keeping context manager
-    if progressbar:
-        bar_context = click.progressbar(length=file_size, label="Uploading... ")
-    else:
-        bar_context = FakeProgressBar()
+    if progressbar is None:
+        progressbar = FakeProgressBar()
 
-    with bar_context as bar:
+    with progressbar as bar:
         fobj = FilePassthru(file_path, file_size, bar)
         document_id = upload_document_fileobj(fobj, file_name, session, documents_resource)
         bar.finish()

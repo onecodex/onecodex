@@ -55,15 +55,15 @@ class Documents(OneCodexBase, ResourceDownloadMixin):
     _resource_path = "/api/v1/documents"
 
     @classmethod
-    def upload(cls, file_path, progressbar=False):
+    def upload(cls, file_path, progressbar=None):
         """Uploads a series of files to the One Codex server.
 
         Parameters
         ----------
         file_path : `string`
             A path to a file on the system.
-        progressbar : `bool`, optional
-            If true, display a progress bar using Click.
+        progressbar : `click.progressbar`, optional
+            If passed, display a progress bar using Click.
 
         Returns
         -------

@@ -267,7 +267,7 @@ def test_paired_files(runner, mocked_creds_path, upload_mocks):
             f2,
         ]
         with mock.patch(patch1) as mp, mock.patch(patch2) as mp2, mock.patch(patch3) as mp3:
-            result4 = runner.invoke(Cli, args)
+            result4 = runner.invoke(Cli, args, input="Y")
             assert mp.call_count == 1
             assert mp2.call_count == 1
             assert mp3.call_count == 1

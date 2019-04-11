@@ -65,6 +65,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     extras_require={
+        ':python_version == "2.7"': ["futures"],
         'all': [
             'altair==2.3.0',
             'networkx>=1.11,<2.0',
