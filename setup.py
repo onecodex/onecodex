@@ -16,16 +16,24 @@ Links
 """
 from setuptools import setup, find_packages
 from setuptools.command.install import install
+import sys
 
 
 class PostInstallCommand(install):
     def run(self):
         install.run(self)
 
-        # try to enable bash completion, if possible
+        if sys.prefix == sys.base_prefix:
+            # not running inside of a virtual environment
+            self._install_bash_autocompletion()
+
+    def _install_bash_autocompletion(self):
         import os
 
-        paths_to_try = ['/etc/bash_completion.d', '/usr/local/etc/bash_completion.d']
+        # try to enable bash completion, if possible
+
+        paths_to_try = ["/etc/bash_completion.d", "/usr/local/etc/bash_completion.d"]
+
 
         for path in paths_to_try:
             if os.access(path, os.W_OK):
