@@ -153,7 +153,7 @@ class VizMetadataMixin(object):
                     sort=sort_x(df[magic_fields[haxis]].tolist()) if sort_x else None,
                 ),
                 y=alt.Y(magic_fields[vaxis], axis=alt.Axis(title=ylabel)),
-                tooltip=["Label", "{}:Q".format(vaxis)],
+                tooltip=["Label", "{}:Q".format(magic_fields[vaxis])],
                 href="url:N",
                 url="https://app.onecodex.com/classification/" + alt.datum.classification_id,
             )
