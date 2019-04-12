@@ -80,8 +80,9 @@ def test_fastxinterleave():
 
 
 class FakeSamplesResource:
-    def __init__(self, what_fails=None):
+    def __init__(self, what_fails=None, via_proxy=True):
         self.what_fails = what_fails
+        self.via_proxy = via_proxy
 
     @staticmethod
     def err_resp():
@@ -97,11 +98,15 @@ class FakeSamplesResource:
         assert "filename" in obj
         assert "size" in obj
         assert "upload_type" in obj
-        return {
+        data = {
             "upload_url": "http://localhost:3005/fastx_proxy",
             "sample_id": "sample_uuid_here",
             "additional_fields": {"status_url": "http://localhost:3005/fastx_proxy/errors"},
         }
+        if not self.via_proxy:
+            # raise Exception
+            data["additional_fields"] = {}
+        return data
 
     def init_multipart_upload(self, obj):
         if self.what_fails == "init_multipart":
@@ -172,8 +177,9 @@ class FakeSession:
         if "data" in kwargs:
             kwargs["data"].read()  # So multipart uploader will close properly
         resp = lambda: None  # noqa
-        resp.json = lambda: {}  # noqa
+        resp.json = lambda: {"code": 200}
         resp.status_code = 201 if "auth" in kwargs else 200
+        resp.raise_for_status = lambda: None  # noqa
         return resp
 
 
@@ -187,6 +193,7 @@ class FakeSessionProxyFails:
         if "data" in kwargs:
             kwargs["data"].read()  # So multipart uploader will close properly
         resp = lambda: None  # noqa
+        resp.raise_for_status = lambda: None  # noqa
 
         if url.endswith("fastx_proxy"):
             resp.status_code = self.failure_code
@@ -203,11 +210,15 @@ class FakeSessionProxyFails:
             resp.status_code = 200
 
         # support for callback for more info on fastx-proxy errors
-        if url.endswith("errors"):
+        if url.endswith("errors") or url.endswith("status"):
             if self.no_msg:
-                resp.status_code = 500
+                resp.status_code = self.failure_code
+                resp.json = lambda: {"code": self.failure_code}
             else:
-                resp.json = lambda: {"message": "Additional error message"}  # noqa
+                resp.json = lambda: {
+                    "message": "Additional error message",
+                    "code": self.failure_code,
+                }
 
         return resp
 
@@ -258,14 +269,21 @@ def test_api_failures(caplog):
         upload_sequence(files, FakeSession(), FakeSamplesResource("init"))
     assert "Could not initialize upload" in str(e.value)
 
+    # Test direct upload not via the proxy
     with pytest.raises(UploadException) as e:
-        upload_sequence(files, FakeSession(), FakeSamplesResource("confirm"))
+        with patch("boto3.client") as b3:
+            upload_sequence(files, FakeSession(), FakeSamplesResource("confirm", via_proxy=False))
+            assert b3.call_count == 1
     assert "Callback could not be completed" in str(e.value)
 
+    # Test 400 on proxy
     with pytest.raises(UploadException) as e:
         upload_sequence(files, FakeSessionProxyFails(400, no_msg=True), FakeSamplesResource())
     assert "File could not be uploaded" in str(e.value)
 
+    # Test 500 on proxy
+
+    # Test connectivity
     with pytest.raises(UploadException) as e:
         raise_connectivity_error("filename")
     assert "experiencing connectivity" in str(e.value)

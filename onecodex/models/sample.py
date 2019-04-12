@@ -155,7 +155,9 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
         """
         res = cls._resource
         if not isinstance(files, string_types) and not isinstance(files, tuple):
-            raise Exception("BAD!")
+            raise OneCodexException(
+                "Please pass a string or tuple or forward and reverse filepaths."
+            )
 
         if not isinstance(project, Projects) and project is not None:
             project_search = Projects.get(project)

@@ -9,6 +9,7 @@ import re
 import requests
 from requests_toolbelt import MultipartEncoder
 import six
+import time
 from unidecode import unidecode
 import warnings
 
@@ -17,7 +18,7 @@ from onecodex.exceptions import (
     UploadException,
     RetryableUploadException,
     raise_connectivity_error,
-    process_api_error,
+    raise_api_error,
 )
 from onecodex.utils import atexit_register, atexit_unregister, snake_case
 
@@ -64,7 +65,7 @@ class Buffer(object):
 
 class FASTXInterleave(object):
     """Wrapper around two `file` objects that decompresses gzip or bz2, where applicable, and
-    interleaves the two files either two or four lines at a time. Yields uncompressed data.
+    interleaves the two files either two or four lines at a time Yields uncompressed data.
 
     Parameters
     ----------
@@ -376,7 +377,7 @@ def _call_init_upload(file_name, file_size, metadata, tags, project, samples_res
     try:
         upload_info = samples_resource.init_upload(upload_args)
     except requests.exceptions.HTTPError as e:
-        process_api_error(e.response, state="init")
+        raise_api_error(e.response, state="init")
     except requests.exceptions.ConnectionError:
         raise_connectivity_error(file_name)
 
@@ -559,6 +560,7 @@ def _direct_upload(file_obj, file_name, fields, session, samples_resource):
     mime_type = getattr(file_obj, "mime_type", "text/plain")
     multipart_fields["file"] = (file_name, file_obj, mime_type)
     encoder = MultipartEncoder(multipart_fields)
+    upload_request = None
 
     try:
         upload_request = session.post(
@@ -568,41 +570,55 @@ def _direct_upload(file_obj, file_name, fields, session, samples_resource):
             auth={},
         )
     except requests.exceptions.ConnectionError:
-        # FIXME: Introduce retry loop polling on /status here
-        raise RetryableUploadException("Temporary connectivity issue with direct upload proxy")
+        pass
 
-    if upload_request.status_code == 500:
-        raise RetryableUploadException
-
-    elif upload_request.status_code not in [200, 201]:
-        # if using proxy, special route can provide more info on e.g., validation issues
-        if fields.get("sample_id"):
+    # If we expect a status *always* try to check it,
+    # waiting up to 15 minutes for buffering to complete
+    if "status_url" in fields["additional_fields"]:
+        now = time.time()
+        while time.time() < (now + 60 * 15):
             try:
-                e_resp = session.post(
+                resp = session.post(
                     fields["additional_fields"]["status_url"],
-                    json={"sample_id": fields.get("sample_id")},
+                    json={"sample_id": fields["sample_id"]},
+                )
+                resp.raise_for_status()
+            except (ValueError, requests.exceptions.RequestException):
+                raise RetryableUploadException(
+                    "Unexpected failure of direct upload proxy. Retrying..."
                 )
 
-                if e_resp.status_code == 200:
-                    process_api_error(e_resp, state="upload")
-            except requests.exceptions.RequestException:
-                pass
+            if resp.json() and resp.json().get("complete", True) is False:
+                logging.debug("Blocking on waiting for proxy to complete (in progress)...")
+                time.sleep(5)
+            else:
+                break
 
-        # failures to get better error message should drop through to this
-        process_api_error(upload_request, state="upload")
+        # Return is successfully processed
+        if resp.json().get("code") in [200, 201]:
+            file_obj.close()
+            return
+        elif resp.json().get("code") == 500:
+            raise RetryableUploadException("Proxy failed. Retrying...")
+        else:
+            raise_api_error(resp, state="upload")
 
-    file_obj.close()
+    # Direct to S3 case
+    else:
+        file_obj.close()
+        if upload_request.status_code not in [200, 201]:
+            raise RetryableUploadException("Unknown connectivity issue with proxy upload.")
 
-    # Issue a callback -- this only happens in the direct-to-S3 case
-    try:
-        if not fields["additional_fields"].get("callback_url"):
-            samples_resource.confirm_upload(
-                {"sample_id": fields["sample_id"], "upload_type": "standard"}
-            )
-    except requests.exceptions.HTTPError as e:
-        process_api_error(e.response, state="callback")
-    except requests.exceptions.ConnectionError:
-        raise_connectivity_error()
+        # Issue a callback -- this only happens in the direct-to-S3 case
+        try:
+            if not fields["additional_fields"].get("callback_url"):
+                samples_resource.confirm_upload(
+                    {"sample_id": fields["sample_id"], "upload_type": "standard"}
+                )
+        except requests.exceptions.HTTPError as e:
+            raise_api_error(e.response, state="callback")
+        except requests.exceptions.ConnectionError:
+            raise_connectivity_error()
 
 
 def upload_sequence_fileobj(file_obj, file_name, fields, retry_fields, session, samples_resource):
@@ -650,7 +666,7 @@ def upload_sequence_fileobj(file_obj, file_name, fields, retry_fields, session, 
         try:
             retry_fields = samples_resource.init_multipart_upload(retry_fields)
         except requests.exceptions.HTTPError as e:
-            process_api_error(e.response, state="init")
+            raise_api_error(e.response, state="init")
         except requests.exceptions.ConnectionError:
             raise_connectivity_error(file_name)
 
@@ -743,7 +759,7 @@ def upload_document_fileobj(file_obj, file_name, session, documents_resource, lo
     try:
         fields = documents_resource.init_multipart_upload()
     except requests.exceptions.HTTPError as e:
-        process_api_error(e.response, state="init")
+        raise_api_error(e.response, state="init")
     except requests.exceptions.ConnectionError:
         raise_connectivity_error(file_name)
 

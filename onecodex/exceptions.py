@@ -42,7 +42,7 @@ class RetryableUploadException(UploadException):
     pass
 
 
-def process_api_error(resp, state=None):
+def raise_api_error(resp, state=None):
     """Raise an exception with a pretty message in various states of upload"""
     # TODO: Refactor into an Exception class
     error_code = resp.status_code
