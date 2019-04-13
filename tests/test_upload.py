@@ -2,7 +2,6 @@
 from collections import OrderedDict
 from hashlib import sha256
 from io import BytesIO
-import logging
 from mock import patch
 import os
 import pytest
@@ -12,7 +11,7 @@ from requests.exceptions import HTTPError
 from onecodex.exceptions import OneCodexException, UploadException
 from onecodex.lib.upload import (
     _file_stats,
-    connectivity_error,
+    raise_connectivity_error,
     FASTXInterleave,
     FilePassthru,
     interleaved_filename,
@@ -81,8 +80,9 @@ def test_fastxinterleave():
 
 
 class FakeSamplesResource:
-    def __init__(self, what_fails=None):
+    def __init__(self, what_fails=None, via_proxy=True):
         self.what_fails = what_fails
+        self.via_proxy = via_proxy
 
     @staticmethod
     def err_resp():
@@ -98,11 +98,15 @@ class FakeSamplesResource:
         assert "filename" in obj
         assert "size" in obj
         assert "upload_type" in obj
-        return {
+        data = {
             "upload_url": "http://localhost:3005/fastx_proxy",
             "sample_id": "sample_uuid_here",
             "additional_fields": {"status_url": "http://localhost:3005/fastx_proxy/errors"},
         }
+        if not self.via_proxy:
+            # raise Exception
+            data["additional_fields"] = {}
+        return data
 
     def init_multipart_upload(self, obj):
         if self.what_fails == "init_multipart":
@@ -173,8 +177,9 @@ class FakeSession:
         if "data" in kwargs:
             kwargs["data"].read()  # So multipart uploader will close properly
         resp = lambda: None  # noqa
-        resp.json = lambda: {}  # noqa
+        resp.json = lambda: {"code": 200}
         resp.status_code = 201 if "auth" in kwargs else 200
+        resp.raise_for_status = lambda: None  # noqa
         return resp
 
 
@@ -188,6 +193,7 @@ class FakeSessionProxyFails:
         if "data" in kwargs:
             kwargs["data"].read()  # So multipart uploader will close properly
         resp = lambda: None  # noqa
+        resp.raise_for_status = lambda: None  # noqa
 
         if url.endswith("fastx_proxy"):
             resp.status_code = self.failure_code
@@ -204,24 +210,31 @@ class FakeSessionProxyFails:
             resp.status_code = 200
 
         # support for callback for more info on fastx-proxy errors
-        if url.endswith("errors"):
+        if url.endswith("errors") or url.endswith("status"):
             if self.no_msg:
-                resp.status_code = 500
+                resp.status_code = self.failure_code
+                resp.json = lambda: {"code": self.failure_code}
             else:
-                resp.json = lambda: {"message": "Additional error message"}  # noqa
+                resp.json = lambda: {
+                    "message": "Additional error message",
+                    "code": self.failure_code,
+                }
 
         return resp
 
 
 @pytest.mark.parametrize(
-    "file_list,nfiles,fxi_calls,fxp_calls,size_calls",
+    "files,n_uploads,fxi_calls,fxp_calls,size_calls",
     [
-        (["file.1000.fa", "file.5e10.fa"], 2, 0, 2, 2),
-        ([("file.3e10.R1.fa", "file.3e10.R2.fa")], 1, 1, 0, 2),
-        ([("file.3e5.R1.fa", "file.3e5.R2.fa"), "file.1e5.fa"], 2, 1, 1, 3),
+        ("file.1000.fa", 1, 0, 1, 1),
+        ("file.5e10.fa", 1, 0, 1, 1),
+        (("file.3e10.R1.fa", "file.3e10.R2.fa"), 1, 1, 0, 2),
+        # (["file.1000.fa", "file.5e10.fa"], 2, 0, 2, 2),
+        # ([("file.3e10.R1.fa", "file.3e10.R2.fa")], 1, 1, 0, 2),
+        # ([("file.3e5.R1.fa", "file.3e5.R2.fa"), "file.1e5.fa"], 2, 1, 1, 3),
     ],
 )
-def test_upload_lots_of_files(file_list, nfiles, fxi_calls, fxp_calls, size_calls):
+def test_upload_lots_of_files(files, n_uploads, fxi_calls, fxp_calls, size_calls):
     fake_size = lambda filename: int(float(filename.split(".")[1]))  # noqa
 
     uso = "onecodex.lib.upload.upload_sequence_fileobj"
@@ -232,86 +245,47 @@ def test_upload_lots_of_files(file_list, nfiles, fxi_calls, fxp_calls, size_call
 
     with patch(uso) as upload_sequence_fileobj, patch(fxi) as interleave, patch(fxp) as passthru:
         with patch(sz, size_effect=fake_size) as size:
-            upload_sequence(file_list, FakeSession(), FakeSamplesResource(), threads=1)
+            upload_sequence(files, FakeSession(), FakeSamplesResource())
 
-            assert upload_sequence_fileobj.call_count == nfiles
+            assert upload_sequence_fileobj.call_count == n_uploads
             assert interleave.call_count == fxi_calls
             assert passthru.call_count == fxp_calls
             assert size.call_count == size_calls
 
     with patch(udo) as upload_document_fileobj, patch(fxp) as passthru:
         with patch(sz, size_effect=fake_size) as size:
-            file_list = [(x[0] if isinstance(x, tuple) else x) for x in file_list]
-            upload_document(file_list, FakeSession(), FakeDocumentsResource(), threads=1)
+            files = files[0] if isinstance(files, tuple) else files
+            upload_document(files, FakeSession(), FakeDocumentsResource())
 
-            assert upload_document_fileobj.call_count == nfiles
-            assert passthru.call_count == fxp_calls + fxi_calls
-            assert size.call_count == fxp_calls + fxi_calls
-
-
-@pytest.mark.parametrize(
-    "file_list,nfiles,fxi_calls,fxp_calls,size_calls",
-    [
-        (["file.1000.fa", "file.5e10.fa"], 2, 0, 2, 2),
-        ([("file.3e10.R1.fa", "file.3e10.R2.fa")], 1, 1, 0, 2),
-        ([("file.3e5.R1.fa", "file.3e5.R2.fa"), "file.1e5.fa"], 2, 1, 1, 3),
-    ],
-)
-def test_upload_multithread(file_list, nfiles, fxi_calls, fxp_calls, size_calls):
-    fake_size = lambda filename: int(float(filename.split(".")[1]))  # noqa
-
-    uso = "onecodex.lib.upload.upload_sequence_fileobj"
-    udo = "onecodex.lib.upload.upload_document_fileobj"
-    fxi = "onecodex.lib.upload.FASTXInterleave"
-    fxp = "onecodex.lib.upload.FilePassthru"
-    sz = "onecodex.lib.upload.os.path.getsize"
-
-    with patch(uso) as upload_sequence_fileobj, patch(fxi) as interleave, patch(fxp) as passthru:
-        with patch(sz, size_effect=fake_size) as size:
-            upload_sequence(file_list, FakeSession(), FakeSamplesResource(), threads=4)
-
-            assert upload_sequence_fileobj.call_count == nfiles
-            assert interleave.call_count == fxi_calls
-            assert passthru.call_count == fxp_calls
-            assert size.call_count == size_calls
-
-    with patch(udo) as upload_document_fileobj, patch(fxp) as passthru:
-        with patch(sz, size_effect=fake_size) as size:
-            file_list = [(x[0] if isinstance(x, tuple) else x) for x in file_list]
-            upload_document(file_list, FakeSession(), FakeDocumentsResource(), threads=4)
-
-            assert upload_document_fileobj.call_count == nfiles
+            assert upload_document_fileobj.call_count == n_uploads
             assert passthru.call_count == fxp_calls + fxi_calls
             assert size.call_count == fxp_calls + fxi_calls
 
 
 def test_api_failures(caplog):
-    file_list = [
-        ("tests/data/files/test_R1_L001.fq.gz", "tests/data/files/test_R2_L001.fq.gz"),
-        ("tests/data/files/test_R1_L001.fq.bz2", "tests/data/files/test_R2_L001.fq.bz2"),
-        "tests/data/files/test.fa",
-    ]
+    files = ("tests/data/files/test_R1_L001.fq.gz", "tests/data/files/test_R2_L001.fq.gz")
 
     with pytest.raises(UploadException) as e:
-        upload_sequence(file_list, FakeSession(), FakeSamplesResource("init"), threads=1)
+        upload_sequence(files, FakeSession(), FakeSamplesResource("init"))
     assert "Could not initialize upload" in str(e.value)
 
-    upload_sequence(
-        file_list, FakeSession(), FakeSamplesResource("confirm"), threads=1, log=logging
-    )
-    assert "Callback could not be completed" in caplog.text
-
-    upload_sequence(
-        file_list,
-        FakeSessionProxyFails(400, no_msg=True),
-        FakeSamplesResource(),
-        threads=1,
-        log=logging,
-    )
-    assert "File could not be uploaded" in caplog.text
-
+    # Test direct upload not via the proxy
     with pytest.raises(UploadException) as e:
-        connectivity_error("filename")
+        with patch("boto3.client") as b3:
+            upload_sequence(files, FakeSession(), FakeSamplesResource("confirm", via_proxy=False))
+            assert b3.call_count == 1
+    assert "Callback could not be completed" in str(e.value)
+
+    # Test 400 on proxy
+    with pytest.raises(UploadException) as e:
+        upload_sequence(files, FakeSessionProxyFails(400, no_msg=True), FakeSamplesResource())
+    assert "File could not be uploaded" in str(e.value)
+
+    # Test 500 on proxy
+
+    # Test connectivity
+    with pytest.raises(UploadException) as e:
+        raise_connectivity_error("filename")
     assert "experiencing connectivity" in str(e.value)
 
 
@@ -325,37 +299,26 @@ def test_unicode_filenames(caplog):
     # should raise if --coerce-ascii not passed
     for before, after in file_list:
         with pytest.raises(OneCodexException) as e:
-            upload_sequence([before], FakeSession(), FakeSamplesResource())
+            upload_sequence(before, FakeSession(), FakeSamplesResource())
         assert "must be ascii" in str(e.value)
 
     # make sure log gets warnings when we rename files
-    upload_sequence(
-        [x[0] for x in file_list],
-        FakeSession(),
-        FakeSamplesResource(),
-        log=logging,
-        coerce_ascii=True,
-    )
+    for before, after in file_list:
+        upload_sequence(before, FakeSession(), FakeSamplesResource(), coerce_ascii=True)
 
     for _, after in file_list:
         assert after in caplog.text
 
 
 def test_single_end_files():
-    upload_sequence(
-        ["tests/data/files/test_R1_L001.fq.gz", "tests/data/files/test_R2_L001.fq.gz"],
-        FakeSession(),
-        FakeSamplesResource(),
-        threads=1,
-    )
+    upload_sequence("tests/data/files/test_R1_L001.fq.gz", FakeSession(), FakeSamplesResource())
 
 
 def test_paired_end_files():
     upload_sequence(
-        [("tests/data/files/test_R1_L001.fq.gz", "tests/data/files/test_R2_L001.fq.gz")],
+        ("tests/data/files/test_R1_L001.fq.gz", "tests/data/files/test_R2_L001.fq.gz"),
         FakeSession(),
         FakeSamplesResource(),
-        threads=1,
     )
 
 

@@ -130,40 +130,34 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
 
     @classmethod
     def upload(
-        cls,
-        files,
-        threads=None,
-        metadata=None,
-        tags=None,
-        project=None,
-        log=None,
-        coerce_ascii=False,
-        progressbar=False,
+        cls, files, metadata=None, tags=None, project=None, coerce_ascii=False, progressbar=None
     ):
         """Uploads a series of files to the One Codex server.
 
         Parameters
         ----------
-        files : `string`, `tuple,` or `list`
-            A list of paths to files on the system, or tuples containing pairs of paths. Tuples will
-            be interleaved as paired-end reads and both files should contain the same number of
-            records. Paths to single files will be uploaded as-is.
-        threads : `integer`, optional
-            Number of concurrent uploads. May provide a speedup.
+        files : `string` or `tuple`
+            A single path to a file on the system, or a tuple containing a pairs of paths. Tuple
+            values  will be interleaved as paired-end reads and both files should contain the same
+            number of records. Paths to single files will be uploaded as-is.
         metadata : `dict`, optional
         tags : `list`, optional
         project : `string`, optional
             UUID of project to associate this sample with.
-        log : `logging.Logger`, optional
-            Used to write status messages to a file or terminal.
         coerce_ascii : `bool`, optional
             If true, rename unicode filenames to ASCII and issue warning.
-        progressbar : `bool`, optional
-            If true, display a progress bar using Click.
+        progressbar : `click.progressbar`, optional
+            If passed, display a progress bar using Click.
+
+        Returns
+        -------
+        A `Samples` object upon successful upload. None if the upload failed.
         """
         res = cls._resource
-        if isinstance(files, string_types) or isinstance(files, tuple):
-            files = [files]
+        if not isinstance(files, string_types) and not isinstance(files, tuple):
+            raise OneCodexException(
+                "Please pass a string or tuple or forward and reverse filepaths."
+            )
 
         if not isinstance(project, Projects) and project is not None:
             project_search = Projects.get(project)
@@ -180,21 +174,18 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
             if isinstance(project_search, list):
                 project = project_search[0]
 
-        samples = upload_sequence(
+        sample_id = upload_sequence(
             files,
             res._client.session,
             res,
-            threads=threads,
             metadata=metadata,
             tags=tags,
             project=project,
-            log=log,
             coerce_ascii=coerce_ascii,
             progressbar=progressbar,
         )
 
-        return samples
-        # FIXME: pass the auth into this so we can authenticate the callback?
+        return cls.get(sample_id)
 
     def __hash__(self):
         return hash(self.id)

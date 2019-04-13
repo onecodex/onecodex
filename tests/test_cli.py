@@ -221,7 +221,7 @@ def test_standard_uploads(runner, mocked_creds_path, caplog, upload_mocks, files
 
         result = runner.invoke(Cli, args, catch_exceptions=False)
         assert result.exit_code == 0
-        assert "ab6276c673814123" in caplog.text  # mocked file id
+        assert "7428cca4a3a04a8e" in caplog.text  # mocked file id
 
 
 def test_empty_upload(runner, mocked_creds_path, upload_mocks):
@@ -247,10 +247,12 @@ def test_paired_files(runner, mocked_creds_path, upload_mocks):
         # check that only one upload is kicked off for the pair of files
         patch1 = "onecodex.lib.upload.upload_sequence_fileobj"
         patch2 = "onecodex.lib.upload.FASTXInterleave"
-        with mock.patch(patch1) as mp, mock.patch(patch2) as mp2:
+        patch3 = "onecodex.models.sample.Samples.get"
+        with mock.patch(patch1) as mp, mock.patch(patch2) as mp2, mock.patch(patch3) as mp3:
             result = runner.invoke(Cli, args)
             assert mp.call_count == 1
             assert mp2.call_count == 1
+            assert mp3.call_count == 1
         assert "It appears there are paired files" in result.output
         assert result.exit_code == 0
 
@@ -264,10 +266,11 @@ def test_paired_files(runner, mocked_creds_path, upload_mocks):
             "--reverse",
             f2,
         ]
-        with mock.patch(patch1) as mp, mock.patch(patch2) as mp2:
-            result4 = runner.invoke(Cli, args)
+        with mock.patch(patch1) as mp, mock.patch(patch2) as mp2, mock.patch(patch3) as mp3:
+            result4 = runner.invoke(Cli, args, input="Y")
             assert mp.call_count == 1
             assert mp2.call_count == 1
+            assert mp3.call_count == 1
         assert "It appears there are paired files" not in result4.output
         assert result4.exit_code == 0
 
@@ -294,7 +297,7 @@ def test_paired_files(runner, mocked_creds_path, upload_mocks):
             f2,
             f2,
         ]
-        with mock.patch(patch1) as mp, mock.patch(patch2) as mp2:
+        with mock.patch(patch1) as mp, mock.patch(patch2) as mp2, mock.patch(patch3) as mp3:
             result7 = runner.invoke(Cli, args)
         assert "You may not pass a FILES argument" in result7.output
         assert result7.exit_code != 0

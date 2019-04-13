@@ -9,18 +9,22 @@ import sys
 import time
 import warnings
 
+
 from onecodex.api import Api
 from onecodex.auth import _login, _logout, _remove_creds, login_required
-from onecodex.lib.upload import DEFAULT_THREADS
+from onecodex.lib.upload import DEFAULT_THREADS, _file_size
 from onecodex.metadata_upload import validate_appendables
 from onecodex.scripts import subset_reads
 from onecodex.utils import (
     cli_resource_fetcher,
+    CliLogFormatter,
     download_file_helper,
     valid_api_key,
     OPTION_HELP,
+    progressbar,
     pprint,
     pretty_errors,
+    run_via_threadpool,
     warn_if_insecure_platform,
     telemetry,
 )
@@ -30,10 +34,12 @@ from onecodex.version import __version__
 # set the context for getting -h also
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
-# logging
-log = logging.getLogger(__name__)
+# Modify the root logger directly
+log = logging.getLogger()
 log.setLevel(logging.INFO)
-log_formatter = logging.Formatter("\n%(levelname)s: %(message)s")
+
+# Setup log formatter. TODO: Evaluate click-log instead
+log_formatter = CliLogFormatter()
 stream_handler = logging.StreamHandler(sys.stderr)
 stream_handler.setFormatter(log_formatter)
 log.addHandler(stream_handler)
@@ -175,8 +181,14 @@ def documents_upload(ctx, max_threads, files):
 
     files = list(files)
 
-    # do the uploading
-    ctx.obj["API"].Documents.upload(files, threads=max_threads, log=log, progressbar=True)
+    bar = click.progressbar(length=sum([_file_size(x) for x in files]), label="Uploading... ")
+    run_via_threadpool(
+        ctx.obj["API"].Documents.upload,
+        files,
+        {"progressbar": bar},
+        max_threads=max_threads,
+        graceful_exit=False,
+    )
 
 
 @click.command("download", help="Download a file that has been shared with you")
@@ -401,18 +413,30 @@ def upload(
         if auto_pair:
             files = paired_files + list(single_files)
 
+    total_size = sum(
+        [
+            (_file_size(x[0], uncompressed=True) + _file_size(x[1], uncompressed=True))
+            if isinstance(x, tuple)
+            else _file_size(x, uncompressed=False)
+            for x in files
+        ]
+    )
+
     upload_kwargs = {
-        "threads": max_threads,
         "metadata": appendables["valid_metadata"],
         "tags": appendables["valid_tags"],
         "project": project_id,
         "coerce_ascii": coerce_ascii,
-        "log": log,
-        "progressbar": True,
+        "progressbar": progressbar(length=total_size, label="Uploading..."),
     }
 
-    # do the uploading
-    ctx.obj["API"].Samples.upload(files, **upload_kwargs)
+    run_via_threadpool(
+        ctx.obj["API"].Samples.upload,
+        files,
+        upload_kwargs,
+        max_threads=max_threads,
+        graceful_exit=False,
+    )
 
 
 @onecodex.command("login")
