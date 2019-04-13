@@ -17,6 +17,7 @@ from onecodex.metadata_upload import validate_appendables
 from onecodex.scripts import subset_reads
 from onecodex.utils import (
     cli_resource_fetcher,
+    CliLogFormatter,
     download_file_helper,
     valid_api_key,
     OPTION_HELP,
@@ -35,10 +36,10 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 # Modify the root logger directly
 log = logging.getLogger()
-
-# TODO: Consider different logging formats for different levels: https://stackoverflow.com/questions/1343227/can-pythons-logging-format-be-modified-depending-on-the-message-log-level
 log.setLevel(logging.INFO)
-log_formatter = logging.Formatter("\n%(levelname)s: %(message)s")
+
+# Setup log formatter. TODO: Evaluate click-log instead
+log_formatter = CliLogFormatter()
 stream_handler = logging.StreamHandler(sys.stderr)
 stream_handler.setFormatter(log_formatter)
 log.addHandler(stream_handler)

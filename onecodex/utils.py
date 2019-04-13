@@ -121,6 +121,25 @@ def pprint(j, no_pretty):
         click.echo(j)
 
 
+class CliLogFormatter(logging.Formatter):
+    formats = {logging.DEBUG: "DEBUG: %(module)s: %(lineno)d: %(msg)s", logging.INFO: "\n%(msg)s"}
+
+    def __init__(self):
+        # Note: only style="%" is supported in Python 2 and so we cannot pass style= here
+        super(CliLogFormatter, self).__init__(fmt="\n%(levelname)d: %(msg)s", datefmt=None)
+        self.original_format = self._style._fmt if hasattr(self, "_style") else self._fmt
+
+    def format(self, record):
+        if hasattr(self, "_style"):
+            # Python 3
+            self._style._fmt = self.formats.get(record.levelno, self.original_format)
+        else:
+            # Python 3
+            self._fmt = self.formats.get(record.levelno, self.original_format)
+        result = logging.Formatter.format(self, record)
+        return result
+
+
 def cli_resource_fetcher(ctx, resource, uris, print_results=True):
     try:
         # analyses is passed, want Analyses
