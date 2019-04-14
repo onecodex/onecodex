@@ -58,6 +58,51 @@ Multiple files can be uploaded in a single command as well:
 onecodex upload file1.fq.gz file2.fq.gz ...
 ```
 
+You can also upload files using the Python client library:
+
+
+```python
+uploaded_sample1 = ocx.Samples.upload("/path/to/file.fastq")
+
+# Or upload a tuple of paired end files
+uploaded_sample2 = ocx.Samples.upload(("/path/to/R1.fastq", "/path/to/R2.fastq"))
+```
+
+Which returns a `Samples` resource (as of `0.5.0`). Samples can be associated with tags, metadata, and projects at upload timing using those respective keyword arguments:
+
+```python
+# Note format must match the schema defined for our API, with arbitrary
+# metadata allowed as a single-level dictionary in the `custom` field.
+# See https://docs.onecodex.com/reference#the-metadata-resource for details.
+metadata = {
+    "platform": "Illumina NovaSeq 6000",
+    "date_collected": "2019-04-14T00:51:54.832048+00:00",
+    "external_sample_id": "my-lims-ID-or-similar",
+    "custom": {
+        "my-string-field": "A most interesting sample...",
+        "my-boolean-field": True,
+        "my-number-field-1": 1,
+        "my-number-field-2": 2.0,
+    }
+}
+```
+
+
+Uploads can be made in parallel using Python threads (or multiple processes), e.g.:
+
+```python
+import concurrent.futures
+uploaded_samples = []
+
+with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+    futures = {executor.submit(ocx.Samples.upload, file) for file in LIST_OF_FILES}
+    for future in concurrent.futures.as_completed(futures):
+        try:
+            uploaded_samples.append(future.result())
+        except Exception as e:
+            print("An execption occurred during your upload: {}".format(e))
+```
+
 
 ## Resources
 The CLI supports retrieving your One Codex samples and analyses. The following resources may be queried:
@@ -107,7 +152,7 @@ ocx = Api(api_key="YOUR_API_KEY_HERE")
 Resources are exposed as attributes on the API object. You can fetch a resource directly by its ID or you can fetch it using the query interface. Currently you can access resources using either `get()` or `where()`. If you need help finding the ID for a sample, its identifier is part of its url on our webpage: e.g. for an analysis at `https://app.onecodex.com/analysis/public/1d9491c5c31345b6`, the ID is `1d9491c5c31345b6`. IDs are all short unique identifiers, consisting of 16 hexadecimal characters (`0-9a-f`).
 
 ```python
-sample_analysis = ocx.Classifications.get("1d9491c5c31345b6")	# Fetch an individual classification
+sample_analysis = ocx.Classifications.get("1d9491c5c31345b6")   # Fetch an individual classification
 sample_analysis.results()  # Returns classification results as JSON object
 sample_analysis.table()    # Returns a pandas dataframe
 ```
