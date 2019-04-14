@@ -33,6 +33,12 @@ except ImportError:
     timezone.utc = timezone(timedelta(0), 'UTC')
 
 
+try:
+    import pandas as pd
+except ImportError:
+    pd = None
+
+
 class PotionJSONEncoder(JSONEncoder):
     def encode(self, o):
         root_id = id(o)
@@ -67,6 +73,12 @@ class PotionJSONEncoder(JSONEncoder):
             if isinstance(o, Reference):
                 # FIXME if reference is not saved, save it first here
                 return {"$ref": o._uri}
+
+            if pd and pd.api.types.is_integer(o):
+                return int(o)
+
+            if pd and pd.api.types.is_float(o):
+                return float(o)
 
             return o
 
