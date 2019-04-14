@@ -1,4 +1,3 @@
-import json
 from requests.exceptions import HTTPError
 from six import string_types
 import warnings
@@ -193,19 +192,6 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
 
 class Metadata(OneCodexBase):
     _resource_path = "/api/v1/metadata"
-
-    def __setattr__(self, key, value):
-        # At some point we should validate that these match the schema
-        if key == "custom":
-            try:
-                import pandas as pd
-
-                if isinstance(value, pd.Series):
-                    value = json.loads(value.to_json())
-            except ImportError:
-                pass
-
-        super(Metadata, self).__setattr__(key, value)
 
     def save(self):
         if self.id is None:
