@@ -1,6 +1,3 @@
-import altair as alt
-import pandas as pd
-
 from onecodex.exceptions import OneCodexException
 
 
@@ -69,6 +66,10 @@ class VizHeatmapMixin(object):
 
         >>> plot_heatmap(rank='family', top_n=10)
         """
+        # Deferred imports
+        import altair as alt
+        import pandas as pd
+
         if rank is None:
             raise OneCodexException("Please specify a rank or 'auto' to choose automatically")
 

@@ -1,4 +1,3 @@
-import altair as alt
 from onecodex.exceptions import OneCodexException
 
 
@@ -61,6 +60,9 @@ class VizBargraphMixin(object):
 
         >>> plot_bargraph(rank='genus', top_n=10)
         """
+        # Deferred imports
+        import altair as alt
+
         if rank is None:
             raise OneCodexException("Please specify a rank or 'auto' to choose automatically")
 
