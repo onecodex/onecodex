@@ -33,12 +33,6 @@ except ImportError:
     timezone.utc = timezone(timedelta(0), 'UTC')
 
 
-try:
-    import pandas as pd
-except ImportError:
-    pd = None
-
-
 class PotionJSONEncoder(JSONEncoder):
     def encode(self, o):
         root_id = id(o)
@@ -48,6 +42,11 @@ class PotionJSONEncoder(JSONEncoder):
             markers = None
 
         def _encode(o):
+            try:
+                import pandas as pd
+            except ImportError:
+                pd = None
+
             if isinstance(o, (list, tuple, dict)):
                 if markers is not None:
                     marker_id = id(o)

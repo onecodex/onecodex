@@ -10,7 +10,6 @@ import warnings
 
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.auth import BearerTokenAuth
-from onecodex.models import _model_lookup
 from onecodex.utils import get_raven_client, collapse_user
 from onecodex.vendored.potion_client import Client as PotionClient
 from onecodex.vendored.potion_client.converter import (
@@ -128,6 +127,7 @@ class Api(object):
 
         -return: populates self with a pointer to each ._client.Resource
         """
+        from onecodex.models import _model_lookup
 
         for resource in self._client._resources:
             # set the name param, the keys now have / in them
