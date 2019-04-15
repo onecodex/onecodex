@@ -1,8 +1,3 @@
-import altair as alt
-import numpy as np
-import pandas as pd
-from sklearn.decomposition import PCA
-
 from onecodex.exceptions import OneCodexException
 
 
@@ -72,6 +67,12 @@ class VizPCAMixin(object):
 
         >>> plot_pca(tooltip=['Bacteroides', 'Prevotella', 'Bifidobacterium'])
         """
+        # Deferred imports
+        import altair as alt
+        import numpy as np
+        import pandas as pd
+        from sklearn.decomposition import PCA
+
         if rank is None:
             raise OneCodexException("Please specify a rank or 'auto' to choose automatically")
 

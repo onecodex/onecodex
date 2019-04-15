@@ -1,8 +1,4 @@
-import altair as alt
-import pandas as pd
-
 from onecodex.exceptions import OneCodexException
-from onecodex.viz import boxplot
 
 
 class VizMetadataMixin(object):
@@ -67,6 +63,11 @@ class VizMetadataMixin(object):
 
         >>> plot_metadata(haxis=('allergy_dogs', 'allergy_cats'), vaxis='Bacteroides')
         """
+        # Deferred imports
+        import altair as alt
+        import pandas as pd
+        from onecodex.viz import boxplot
+
         if rank is None:
             raise OneCodexException("Please specify a rank or 'auto' to choose automatically")
 

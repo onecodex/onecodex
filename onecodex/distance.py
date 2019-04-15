@@ -1,5 +1,4 @@
 import pandas as pd
-import skbio.diversity
 
 from onecodex.exceptions import OneCodexException
 from onecodex.taxonomy import TaxonomyMixin
@@ -20,6 +19,8 @@ class DistanceMixin(TaxonomyMixin):
         -------
         pandas.DataFrame, a distance matrix.
         """
+        import skbio.diversity
+
         if metric not in ("simpson", "chao1", "shannon"):
             raise OneCodexException(
                 "For alpha diversity, metric must be one of: simpson, chao1, shannon"
@@ -55,6 +56,8 @@ class DistanceMixin(TaxonomyMixin):
         -------
         skbio.stats.distance.DistanceMatrix, a distance matrix.
         """
+        import skbio.diversity
+
         if metric not in ("jaccard", "braycurtis", "cityblock"):
             raise OneCodexException(
                 "For beta diversity, metric must be one of: jaccard, braycurtis, cityblock"
@@ -88,6 +91,8 @@ class DistanceMixin(TaxonomyMixin):
         skbio.stats.distance.DistanceMatrix, a distance matrix.
         """
         # needs read counts, not relative abundances
+        import skbio.diversity
+
         if self._guess_normalized():
             raise OneCodexException("UniFrac requires unnormalized read counts.")
 

@@ -1,19 +1,9 @@
 # -*- coding: utf-8 -*-
-import altair as alt
 from itertools import chain
-import numpy as np
-import pandas as pd
-from scipy.cluster import hierarchy
-from scipy.spatial.distance import squareform
-from scipy.stats import pearsonr
-from skbio.stats import ordination
-from sklearn import manifold
-from sklearn.metrics.pairwise import euclidean_distances
 import warnings
 
 from onecodex.exceptions import OneCodexException
 from onecodex.distance import DistanceMixin
-from onecodex.viz import dendrogram
 
 
 class VizDistanceMixin(DistanceMixin):
@@ -43,6 +33,10 @@ class VizDistanceMixin(DistanceMixin):
         return distances
 
     def _cluster_by_sample(self, rank="auto", metric="braycurtis", linkage="average"):
+        from scipy.cluster import hierarchy
+        from scipy.spatial.distance import squareform
+        from sklearn.metrics.pairwise import euclidean_distances
+
         if metric == "euclidean":
             dist_matrix = euclidean_distances(self._results).round(6)
         else:
@@ -59,6 +53,10 @@ class VizDistanceMixin(DistanceMixin):
         }
 
     def _cluster_by_taxa(self, linkage="average"):
+        from scipy.cluster import hierarchy
+        from scipy.spatial.distance import squareform
+        from sklearn.metrics.pairwise import euclidean_distances
+
         dist_matrix = euclidean_distances(self._results.T).round(6)
         clustering = hierarchy.linkage(squareform(dist_matrix), method=linkage)
         scipy_tree = hierarchy.dendrogram(clustering, no_plot=True)
@@ -116,6 +114,11 @@ class VizDistanceMixin(DistanceMixin):
 
         >>> plot_distance(rank='genus', metric='unifrac')
         """
+        import altair as alt
+        import numpy as np
+        import pandas as pd
+        from onecodex.viz import dendrogram
+
         if len(self._results) < 2:
             raise OneCodexException(
                 "`plot_distance` requires 2 or more valid classification results."
@@ -263,6 +266,15 @@ class VizDistanceMixin(DistanceMixin):
         they truly represent the calculated distances. They do not reflect how well the distance
         metric captures similarities between the underlying data (in this case, an OTU table).
         """
+        import altair as alt
+        import numpy as np
+        import pandas as pd
+        from scipy.spatial.distance import squareform
+        from scipy.stats import pearsonr
+        from skbio.stats import ordination
+        from sklearn import manifold
+        from sklearn.metrics.pairwise import euclidean_distances
+
         if len(self._results) < 2:
             raise OneCodexException("`plot_mds` requires 2 or more valid classification results.")
 
