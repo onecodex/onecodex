@@ -224,7 +224,7 @@ def test_subset_reads(
         )
 
         # run without validation (faster)
-        result = runner.invoke(Cli, args + ["--no-validate"], catch_exceptions=False)
+        result = runner.invoke(Cli, args + ["--do-not-validate"], catch_exceptions=False)
         assert "Using cached read-level results" in result.output
 
         results_digests = []

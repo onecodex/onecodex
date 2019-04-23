@@ -137,10 +137,10 @@ def too_many_fastx_records():
 )
 @click.option("-r", "--reverse", type=click.Path(), help="The reverse (R2) read file, optionally.")
 @click.option(
-    "--validate/--no-validate",
+    "--validate/--do-not-validate",
     is_flag=True,
-    default=True,
-    help="By default, validate FASTQ records (slow). Disable to drastically increase speed",
+    default=False,
+    help="By default, skip validation of FASTQ records (which is slow). Enable if you are uncertain you are working with a valid FASTQ file",
 )
 @click.option(
     "--with-children",
