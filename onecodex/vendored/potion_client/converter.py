@@ -74,11 +74,18 @@ class PotionJSONEncoder(JSONEncoder):
                 # FIXME if reference is not saved, save it first here
                 return {"$ref": o._uri}
 
-            if pd and pd.api.types.is_integer(o):
-                return int(o)
+            try:
+                if pd and pd.api.types.is_integer(o):
+                    return int(o)
+            except AttributeError:
+                # some versions of pandas may not have this API
+                pass
 
-            if pd and pd.api.types.is_float(o):
-                return float(o)
+            try:
+                if pd and pd.api.types.is_float(o):
+                    return float(o)
+            except AttributeError:
+                pass
 
             return o
 
