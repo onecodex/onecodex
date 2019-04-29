@@ -126,7 +126,7 @@ class CliLogFormatter(logging.Formatter):
 
     def __init__(self):
         # Note: only style="%" is supported in Python 2 and so we cannot pass style= here
-        super(CliLogFormatter, self).__init__(fmt="\n%(levelname)d: %(msg)s", datefmt=None)
+        super(CliLogFormatter, self).__init__(fmt="\n%(levelname)s: %(msg)s", datefmt=None)
         self.original_format = self._style._fmt if hasattr(self, "_style") else self._fmt
 
     def format(self, record):
