@@ -573,24 +573,25 @@ def _direct_upload(file_obj, file_name, fields, session, samples_resource):
         pass
 
     # If we expect a status *always* try to check it,
-    # waiting up to 15 minutes for buffering to complete
+    # waiting up to 4 hours for buffering to complete (~30-50GB file gzipped)
     if "status_url" in fields["additional_fields"]:
         now = time.time()
-        while time.time() < (now + 60 * 15):
+        while time.time() < (now + 60 * 60 * 4):
             try:
                 resp = session.post(
                     fields["additional_fields"]["status_url"],
                     json={"sample_id": fields["sample_id"]},
                 )
                 resp.raise_for_status()
-            except (ValueError, requests.exceptions.RequestException):
+            except (ValueError, requests.exceptions.RequestException) as e:
+                logging.debug("Retrying due to error: {}".format(e))
                 raise RetryableUploadException(
                     "Unexpected failure of direct upload proxy. Retrying..."
                 )
 
             if resp.json() and resp.json().get("complete", True) is False:
                 logging.debug("Blocking on waiting for proxy to complete (in progress)...")
-                time.sleep(5)
+                time.sleep(30)
             else:
                 break
 
@@ -599,7 +600,8 @@ def _direct_upload(file_obj, file_name, fields, session, samples_resource):
             file_obj.close()
             return
         elif resp.json().get("code") == 500:
-            raise RetryableUploadException("Proxy failed. Retrying...")
+            logging.debug("Retrying due to 500 from proxy...")
+            raise RetryableUploadException("Unexpected issue with direct upload proxy. Retrying...")
         else:
             raise_api_error(resp, state="upload")
 
