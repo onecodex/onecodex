@@ -661,7 +661,11 @@ def upload_sequence_fileobj(file_obj, file_name, fields, retry_fields, session, 
         _direct_upload(file_obj, file_name, fields, session, samples_resource)
         sample_id = fields["sample_id"]
     except RetryableUploadException:
-        # upload failed--retry direct upload to S3 intermediate
+        # upload failed -- retry direct upload to S3 intermediate; first try to cancel pending upload
+        try:
+            samples_resource.cancel_upload({"sample_id": sample_id})
+        except Exception as e:
+            logging.debug("Failed to cancel upload: {}".format(e))
         logging.error("{}: Connectivity issue, trying direct upload...".format(file_name))
         file_obj.seek(0)  # reset file_obj back to start
 
