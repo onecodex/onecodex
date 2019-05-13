@@ -9,19 +9,19 @@ from onecodex.models.helpers import truncate_string, ResourceDownloadMixin
 class Tags(OneCodexBase):
     _resource_path = "/api/v1/tags"
 
-    def __init__(self, _resource=None, **kwargs):
-        if kwargs:
+    def __init__(self, _resource=None, name=None, sample=None):
+        if name:
             # try to lookup Tags with a where call using kwargs
-            results = self.where(**kwargs)
+            results = self.where(name=name)
 
             if len(results) == 0:
-                super(Tags, self).__init__(_resource=_resource, **kwargs)
+                super(Tags, self).__init__(name=name, sample=sample)
             elif len(results) == 1:
                 self._resource = results[0]._resource
             elif len(results) > 1:
                 raise OneCodexException("Multiple matches found for given criteria")
         else:
-            super(Tags, self).__init__(_resource=_resource, **kwargs)
+            super(Tags, self).__init__(_resource=_resource)
 
     def __repr__(self):
         return '<{} {}: "{}">'.format(
