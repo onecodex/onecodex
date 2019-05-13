@@ -141,6 +141,9 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
             number of records. Paths to single files will be uploaded as-is.
         metadata : `dict`, optional
         tags : `list`, optional
+            A list of optional tags to create. Tags must be passed as dictionaries with a single key
+            `name` and the tag name, e.g., {"name": "my tag"}. New tags will be created on-the-fly
+            as needed.
         project : `string`, optional
             UUID of project to associate this sample with.
         coerce_ascii : `bool`, optional
