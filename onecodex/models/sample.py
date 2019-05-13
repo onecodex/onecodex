@@ -128,7 +128,15 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
         Persist changes on this Samples object back to the One Codex server along with any changes
         on its metadata (if it has any).
         """
+        # any newly-created tags should be associated with this sample and saved
+        if self.tags:
+            for tag in self.tags:
+                if tag.id is None:
+                    tag._resource.__dict__["_Reference__properties"]["sample"] = self._resource
+                    tag._resource.save()
+
         super(Samples, self).save()
+
         if self.metadata is not None:
             self.metadata.save()
 
