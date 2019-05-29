@@ -609,7 +609,7 @@ def _direct_upload(file_obj, file_name, fields, session, samples_resource):
     else:
         file_obj.close()
         if upload_request.status_code not in [200, 201]:
-            raise RetryableUploadException("Unknown connectivity issue with proxy upload.")
+            raise UploadException("Unknown connectivity issue with direct upload.")
 
         # Issue a callback -- this only happens in the direct-to-S3 case
         try:
