@@ -61,14 +61,14 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
         # we can only search metadata on our own samples currently
         # FIXME: we need to add `instances_public` and `instances_project` metadata routes to
         # mirror the ones on the samples
-        metadata_samples = []
+        md_search_keywords = {}
         if not public:
             md_schema = next(
                 l for l in Metadata._resource._schema["links"] if l["rel"] == instances_route
             )
 
             md_where_schema = md_schema["schema"]["properties"]["where"]["properties"]
-            md_search_keywords = {}
+
             for keyword in list(keyword_filters):
                 # skip out on $uri to prevent duplicate field searches and the others to
                 # simplify the checking below
@@ -92,22 +92,27 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
             #         passthrough_sort.append(keyword)
             # keyword_filters['sort'] = passthrough_sort
 
-            if len(md_search_keywords) > 0:
+            if md_search_keywords:
                 metadata_samples = [md.sample for md in Metadata.where(**md_search_keywords)]
 
-        samples = []
-        if len(metadata_samples) == 0:
+        if md_search_keywords:
+            # we tried searching by metadata fields
+            if not metadata_samples:
+                # there were no results, so don't bother with a slower query on Samples
+                samples = []
+            elif not (filters or keyword_filters):
+                # there were results, and there are no other filters to apply, so return them
+                samples = metadata_samples
+            else:
+                # there were results, and we want to return the intersection of those with a query
+                # on Samples using any non-metadata filters
+                metadata_sample_ids = {s.id for s in metadata_samples}
+                samples = super(Samples, cls).where(*filters, **keyword_filters)
+                samples = [s for s in samples if s.id in metadata_sample_ids]
+        else:
+            # we did not try searching by metadata fields, so return whatever this gives us. in the
+            # case that no filters/keyword_filters are specified, this is identical to Samples.all()
             samples = super(Samples, cls).where(*filters, **keyword_filters)
-
-        if len(samples) > 0 and len(metadata_samples) > 0:
-            # we need to filter samples to just include stuff from metadata_samples
-            metadata_sample_ids = {s.id for s in metadata_samples}
-            samples = [s for s in samples if s.id in metadata_sample_ids]
-        elif len(metadata_samples) > 0:
-            # we have to sort the metadata samples manually using the
-            # sort parameters for the samples (and then the metadata parameters?)
-            # TODO: implement this (see above block)
-            samples = metadata_samples
 
         return SampleCollection([s._resource for s in samples[:limit]], Samples)
 
