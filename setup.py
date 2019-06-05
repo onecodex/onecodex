@@ -67,7 +67,7 @@ setup(
     extras_require={
         ':python_version == "2.7"': ["futures"],
         'all': [
-            'altair==2.3.0',
+            'altair==3.0.1',
             'networkx>=1.11,<2.0',
             'numpy>=1.11.0',
             'pandas>=0.23.0',
