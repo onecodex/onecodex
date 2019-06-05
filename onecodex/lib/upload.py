@@ -655,11 +655,18 @@ def upload_sequence_fileobj(file_obj, file_name, fields, retry_fields, session, 
     -------
     `string` containing sample ID of newly uploaded file.
     """
-
     # First attempt to upload via our validating proxy
     try:
-        _direct_upload(file_obj, file_name, fields, session, samples_resource)
         sample_id = fields["sample_id"]
+
+        # Are we being directed to skip the proxy? If so, don't try to upload >5GB files
+        if (
+            "AWSAccessKeyId" in fields["additional_fields"]
+            and getattr(file_obj, "_fsize", 0) > 5 * 1024 ** 3
+        ):
+            raise RetryableUploadException
+
+        _direct_upload(file_obj, file_name, fields, session, samples_resource)
     except RetryableUploadException:
         # upload failed -- retry direct upload to S3 intermediate; first try to cancel pending upload
         try:
