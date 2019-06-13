@@ -21,6 +21,8 @@ class VizHeatmapMixin(object):
         metric="euclidean",
         legend="auto",
         label=None,
+        sort_x=None,
+        sort_y=None,
     ):
         """Plot heatmap of taxa abundance/count data for several samples.
 
@@ -62,6 +64,12 @@ class VizHeatmapMixin(object):
             A metadata field (or function) used to label each analysis. If passing a function, a
             dict containing the metadata for each analysis is passed as the first and only
             positional argument. The callable function must return a string.
+        sort_x : `callable`, optional
+            Function will be called with a list of x-axis labels as the only argument, and must
+            return the same list in a user-specified order.
+        sort_y : `callable`, optional
+            Function will be called with a list of y-axis labels as the only argument, and must
+            return the same list in a user-specified order.
 
         Examples
         --------
@@ -137,14 +145,21 @@ class VizHeatmapMixin(object):
                 rank=rank, normalize=normalize, top_n=top_n, threshold=threshold
             )
 
-        if haxis is None:
-            # cluster only once
-            sample_cluster = df_sample_cluster.ocx._cluster_by_sample(
-                rank=rank, metric=metric, linkage=linkage
-            )
+        # applying clustering to determine order of taxa, or use custom sorting function if given
+        if sort_y is None:
             taxa_cluster = df_taxa_cluster.ocx._cluster_by_taxa(linkage=linkage)
+        else:
+            taxa_cluster = {"labels_in_order": sort_y(df["tax_name"])}
 
-            labels_in_order = magic_metadata["Label"][sample_cluster["ids_in_order"]].tolist()
+        if haxis is None:
+            if sort_x is None:
+                # cluster samples only once
+                sample_cluster = df_sample_cluster.ocx._cluster_by_sample(
+                    rank=rank, metric=metric, linkage=linkage
+                )
+                labels_in_order = magic_metadata["Label"][sample_cluster["ids_in_order"]].tolist()
+            else:
+                labels_in_order = sort_x(magic_metadata["Label"].tolist())
         else:
             if not (
                 pd.api.types.is_bool_dtype(df[magic_fields[haxis]])
@@ -153,10 +168,7 @@ class VizHeatmapMixin(object):
             ):  # noqa
                 raise OneCodexException("Metadata field on horizontal axis can not be numerical")
 
-            # taxa clustered only once
-            taxa_cluster = df_taxa_cluster.ocx._cluster_by_taxa(linkage=linkage)
-
-            # cluster samples for every group of metadata
+            # cluster or sort samples separately for every group of metadata
             groups = magic_metadata[magic_fields[haxis]].unique()
             cluster_by_group = {}
 
@@ -181,19 +193,25 @@ class VizHeatmapMixin(object):
 
                 sample_slice = df_sample_cluster.loc[c_ids_in_group]
 
-                if len(c_ids_in_group) < 3:
-                    # clustering not possible in this case
-                    cluster_by_group[group] = {"ids_in_order": c_ids_in_group}
-                else:
-                    cluster_by_group[group] = sample_slice.ocx._cluster_by_sample(
-                        rank=rank, metric=metric, linkage=linkage
-                    )
-
                 plot_data["x"].append(len(labels_in_order) + 0.25)
 
-                labels_in_order.extend(
-                    magic_metadata["Label"][cluster_by_group[group]["ids_in_order"]].tolist()
-                )
+                if sort_x is None:
+                    if len(c_ids_in_group) < 3:
+                        # clustering not possible in this case
+                        cluster_by_group[group] = {"ids_in_order": c_ids_in_group}
+                    else:
+                        cluster_by_group[group] = sample_slice.ocx._cluster_by_sample(
+                            rank=rank, metric=metric, linkage=linkage
+                        )
+
+                    labels_in_order.extend(
+                        magic_metadata["Label"][cluster_by_group[group]["ids_in_order"]].tolist()
+                    )
+                else:
+                    cluster_by_group[group] = sort_x(
+                        magic_metadata["Label"][c_ids_in_group].tolist()
+                    )
+                    labels_in_order.extend(cluster_by_group[group])
 
                 plot_data["x"].append(len(labels_in_order) - 0.25)
                 plot_data["y"].extend([0, 0])
