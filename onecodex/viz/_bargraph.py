@@ -17,6 +17,7 @@ class VizBargraphMixin(object):
         haxis=None,
         legend="auto",
         label=None,
+        sort_x=None,
     ):
         """Plot a bargraph of relative abundance of taxa for multiple samples.
 
@@ -54,6 +55,9 @@ class VizBargraphMixin(object):
             A metadata field (or function) used to label each analysis. If passing a function, a
             dict containing the metadata for each analysis is passed as the first and only
             positional argument. The callable function must return a string.
+        sort_x : `callable`, optional
+            Function will be called with a list of x-axis labels as the only argument, and must
+            return the same list in a user-specified order.
 
         Examples
         --------
@@ -160,6 +164,9 @@ class VizBargraphMixin(object):
         charts = []
 
         for plot_num, plot_df in enumerate(dfs_to_plot):
+            if sort_x:
+                sort_order = sort_x(plot_df["Label"].tolist())
+
             chart = (
                 alt.Chart(plot_df)
                 .mark_bar()

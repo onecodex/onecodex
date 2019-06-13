@@ -17,6 +17,7 @@ class VizMetadataMixin(object):
         return_chart=False,
         plot_type="auto",
         label=None,
+        sort_x=None,
     ):
         """Plot an arbitrary metadata field versus an arbitrary quantity as a boxplot or scatter plot.
 
@@ -54,6 +55,10 @@ class VizMetadataMixin(object):
             A metadata field (or function) used to label each analysis. If passing a function, a
             dict containing the metadata for each analysis is passed as the first and only
             positional argument. The callable function must return a string.
+
+        sort_x : `callable`, optional
+            Function will be called with a list of x-axis labels as the only argument, and must
+            return the same list in a user-specified order.
 
         Examples
         --------
@@ -142,7 +147,11 @@ class VizMetadataMixin(object):
             df = df.reset_index()
 
             alt_kwargs = dict(
-                x=alt.X(magic_fields[haxis], axis=alt.Axis(title=xlabel)),
+                x=alt.X(
+                    magic_fields[haxis],
+                    axis=alt.Axis(title=xlabel),
+                    sort=sort_x(df[magic_fields[haxis]].tolist()) if sort_x else None,
+                ),
                 y=alt.Y(magic_fields[vaxis], axis=alt.Axis(title=ylabel)),
                 tooltip=["Label", "{}:Q".format(vaxis)],
                 href="url:N",
@@ -159,6 +168,9 @@ class VizMetadataMixin(object):
             if title:
                 chart = chart.properties(title=title)
         elif plot_type == "boxplot":
+            if sort_x:
+                raise OneCodexException("Must not specify sort_x when plot_type is boxplot")
+
             chart = boxplot(
                 df,
                 magic_fields[haxis],
