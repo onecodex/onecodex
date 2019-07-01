@@ -829,7 +829,7 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):
     )
 
     # if boto uses threads, ctrl+c won't work
-    config = TransferConfig(use_threads=False)
+    config = TransferConfig(use_threads=False, multipart_chunksize=26214400)
 
     # let boto3 update our progressbar rather than our FASTX wrappers, if applicable
     boto_kwargs = {}
