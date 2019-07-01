@@ -374,6 +374,13 @@ def upload(
         paired_files = []
         single_files = set(files)
 
+        if single_files.symmetric_difference(files):
+            click.echo(
+                "Duplicate filenames detected in command line--please specific each file only once",
+                err=True,
+            )
+            ctx.exit(1)
+
         for filename in files:
             # convert "read 1" filenames into "read 2" and check that they exist; if they do
             # upload the files as a pair, autointerleaving them
