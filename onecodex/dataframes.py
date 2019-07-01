@@ -97,7 +97,7 @@ class ClassificationsDataFrame(pd.DataFrame):
         kwargs["max_cols"] = 10
 
         # round abundances to avoid long trails of zeros, and sort taxa in order of abundance
-        if "classification_id" in self.columns:
+        if "classification_id" in self.columns and "tax_id" in self.columns:
             # long format
             df = self.copy()
             df[self.ocx_field] = df[self.ocx_field].round(6)
