@@ -10,6 +10,7 @@ from requests.exceptions import HTTPError
 
 from onecodex.exceptions import OneCodexException, UploadException
 from onecodex.lib.upload import (
+    _choose_boto3_chunksize,
     _file_stats,
     raise_connectivity_error,
     FASTXInterleave,
@@ -415,3 +416,25 @@ def test_multipart_encoder_interleave():
     MAGIC_HEADER_LEN = 170  # shorter because of text/plain mime-type
     encodertext = encoder.read()
     assert len(encodertext) - MAGIC_HEADER_LEN == len(wrappertext)
+
+
+def test_boto3_chunksize():
+    # test file that is too large to upload
+    pair = ("tests/data/files/test_R1_L001.fq.gz", "tests/data/files/test_R2_L001.fq.gz")
+    fname, fsize, fformat = _file_stats(pair)
+    wrapper = FASTXInterleave(pair, 1024 ** 4, fformat)  # 1 TB
+
+    with pytest.raises(OneCodexException) as e:
+        _choose_boto3_chunksize(wrapper)
+    assert "too large to upload" in str(e.value)
+
+    # test file with no known size
+    assert (
+        _choose_boto3_chunksize(open("tests/data/files/test_R1_L001.fq.gz", "r")) == 25 * 1024 ** 2
+    )
+
+    # test file with intermediate size
+    pair = ("tests/data/files/test_R1_L001.fq.gz", "tests/data/files/test_R2_L001.fq.gz")
+    fname, fsize, fformat = _file_stats(pair)
+    wrapper = FASTXInterleave(pair, 100 * 1024 ** 3, fformat)  # 100 GB
+    assert _choose_boto3_chunksize(wrapper) == 20 * 1024 ** 2
