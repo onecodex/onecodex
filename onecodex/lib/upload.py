@@ -4,6 +4,7 @@ import bz2
 from collections import deque, OrderedDict
 import gzip
 import logging
+import math
 import os
 import re
 import requests
@@ -307,6 +308,51 @@ def _file_stats(file_path, enforce_fastx=True):
         raise UploadException("{}: empty files can not be uploaded".format(final_filename))
 
     return final_filename, file_size, file_format
+
+
+def _choose_boto3_chunksize(file_obj):
+    """Choose the minimum chunk size for a boto3 direct-to-S3 upload that will result in less than
+    10000 chunks (the maximum).
+
+    This function will raise if there is no allowed chunk size big enough to accomodate the file.
+
+    Parameters
+    ----------
+    file_obj : `FASTXInterleave`, `FilePassthru`, or a file-like object
+        A wrapper around a pair of fastx files (`FASTXInterleave`) or a single fastx file. In the
+        case of paired files, they will be interleaved and uploaded uncompressed. In the case of a
+        single file, it will simply be passed through (`FilePassthru`) to One Codex, compressed
+        or otherwise.
+
+    Returns
+    -------
+    `int`
+        The minimum multipart chunk size in bytes.
+    """
+    file_obj_size = getattr(file_obj, "_fsize", None)
+
+    if file_obj_size:
+        allowed_chunk_sizes = [size * 1024 ** 2 for size in range(10, 110, 10)]
+
+        for chunk_size in allowed_chunk_sizes:
+            if math.ceil(file_obj_size / chunk_size) < 10000:
+                break
+        else:
+            max_file_size = chunk_size * 10000
+            uncompressed = "uncompressed " if isinstance(file_obj, FASTXInterleave) else ""
+
+            raise OneCodexException(
+                "File is too large to upload ({}size: {}, max: {})".format(
+                    uncompressed, file_obj_size, max_file_size
+                )
+            )
+
+        multipart_chunksize = chunk_size
+    else:
+        # default to 25 mb
+        multipart_chunksize = 25 * 1024 ** 2
+
+    return multipart_chunksize
 
 
 # this lets us turn off the click progressbar context manager and is python2 compatible
@@ -828,8 +874,10 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):
         aws_secret_access_key=fields["upload_aws_secret_access_key"],
     )
 
+    multipart_chunksize = _choose_boto3_chunksize(file_obj)
+
     # if boto uses threads, ctrl+c won't work
-    config = TransferConfig(use_threads=False, multipart_chunksize=26214400)
+    config = TransferConfig(use_threads=False, multipart_chunksize=multipart_chunksize)
 
     # let boto3 update our progressbar rather than our FASTX wrappers, if applicable
     boto_kwargs = {}
