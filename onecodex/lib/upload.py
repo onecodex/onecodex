@@ -85,12 +85,15 @@ class FASTXInterleave(object):
         if file_path[0].endswith(".gz") or file_path[1].endswith(".gz"):
             self._fp_left = gzip.GzipFile(file_path[0], mode="rb")
             self._fp_right = gzip.GzipFile(file_path[1], mode="rb")
+            self.compressed = True
         elif file_path[0].endswith(".bz2") or file_path[1].endswith(".bz2"):
             self._fp_left = bz2.BZ2File(file_path[0], mode="rb")
             self._fp_right = bz2.BZ2File(file_path[1], mode="rb")
+            self.compressed = True
         else:
             self._fp_left = open(file_path[0], mode="rb")
             self._fp_right = open(file_path[1], mode="rb")
+            self.compressed = False
 
         if file_format == "fasta":
             raise OneCodexException("Interleaving FASTA files is currently unsupported")
@@ -105,6 +108,9 @@ class FASTXInterleave(object):
 
         self.progressbar = progressbar
         self.mime_type = "text/plain"
+
+    def size(self):
+        return self._fsize
 
     @property
     def len(self):
@@ -179,10 +185,13 @@ class FilePassthru(object):
 
         if ext in {".gz", ".gzip"}:
             self.mime_type = "application/x-gzip"
+            self.compressed = True
         elif ext in {".bz", ".bz2", ".bzip", ".bzip2"}:
             self.mime_type = "application/x-bzip2"
+            self.compressed = True
         else:
             self.mime_type = "text/plain"
+            self.compressed = False
 
     def read(self, size=-1):
         bytes_read = self._fp.read(size)
@@ -191,6 +200,9 @@ class FilePassthru(object):
             self.progressbar.update(len(bytes_read))
 
         return bytes_read
+
+    def size(self):
+        return self._fsize
 
     @property
     def len(self):
@@ -705,10 +717,28 @@ def upload_sequence_fileobj(file_obj, file_name, fields, retry_fields, session, 
     try:
         sample_id = fields["sample_id"]
 
-        # Are we being directed to skip the proxy? If so, don't try to upload >5GB files
+        # Are we being directed to skip the proxy? If so, only do it if files ares <5GB since that's the limit for
+        # direct uploads to S3
         if (
             "AWSAccessKeyId" in fields["additional_fields"]
             and getattr(file_obj, "_fsize", 0) > 5 * 1024 ** 3
+        ):
+            raise RetryableUploadException
+
+        # Big files are going to skip the proxy even if the backend told us the opposite
+        # 100GB for uncompressed files and 50GB for compressed files are considered big enough to defer the validation
+        # In some cases, file_obj might be a BytesIO object instead of one of our file object so we filter them out
+        # by checking for a `write` attribute
+        if (
+            not hasattr(file_obj, "write")
+            and not file_obj.compressed
+            and file_obj.size() > 100 * 1024 ** 3
+        ):
+            raise RetryableUploadException
+        if (
+            not hasattr(file_obj, "write")
+            and file_obj.compressed
+            and file_obj.size() > 50 * 1024 ** 3
         ):
             raise RetryableUploadException
 
