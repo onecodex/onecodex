@@ -7,6 +7,7 @@ import json
 from nbconvert.exporters.html import HTMLExporter
 import os
 import pytz
+import subprocess
 from traitlets import default
 
 from onecodex.exceptions import UploadException
@@ -16,6 +17,24 @@ from onecodex.notebooks import report
 ASSETS_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "assets"))
 HTML_TEMPLATE_FILE = "notebook_template.tpl"
 CSS_TEMPLATE_FILE = "notebook_template.css"
+
+
+def render_vega_with_node(spec):
+    if subprocess.call(["which", "vg2svg"]) > 0:
+        return False
+
+    # note that as of this writing --vegaLite is only available in our patched version of vega-cli,
+    # which is in docker-onecodex-notebook/notebook/vega-cli.patch
+    p = subprocess.Popen(["vg2svg", "--vegaLite"], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    p.stdin.write(bytes(spec, encoding="UTF-8"))
+    p.stdin.close()
+
+    while p.poll():
+        pass
+
+    result = p.stdout.read()
+
+    return result
 
 
 class OneCodexHTMLExporter(HTMLExporter):
@@ -82,6 +101,19 @@ class OneCodexHTMLExporter(HTMLExporter):
                                     "text/html": '<img src="{}"'.format(out["data"]["image/png"])
                                 }
                                 break
+                            elif mimetype == "application/vnd.vegalite.v2+json":
+                                vega_svg = render_vega_with_node(
+                                    out["data"]["application/vnd.vegalite.v2+json"]
+                                )
+
+                                if vega_svg:
+                                    img = b64encode(vega_svg).decode()
+                                    out["data"] = {
+                                        "text/html": '<img src="data:image/svg+xml;charset=utf-8;base64,{}">'.format(
+                                            img
+                                        )
+                                    }
+                                    break
                         else:
                             out["data"] = {}
                     # transfer text/css blocks to HTML <head> tag
