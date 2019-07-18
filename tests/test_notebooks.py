@@ -333,7 +333,7 @@ def test_html_export(mock_reports, mock_notebook):
 
     # svg gets encoded for embedding in HTML
     assert (
-        output.cells[0]["outputs"][0]["data"]["image/svg+xml"]
+        output.cells[0]["outputs"][0]["data"]["text/html"]
         == '<img src="data:image/svg+xml;charset=utf-8;base64,MTIzNDU2Nzg5MA==">'
     )
 
@@ -379,7 +379,7 @@ def test_pdf_export(mock_reports, mock_notebook):
     output, resources = obj.from_notebook_node(mock_notebook)
 
     # not much to do here without actually importing weasyprint
-    assert len(output) == 609
+    assert len(output) == 605
 
 
 def test_doc_portal_export():
