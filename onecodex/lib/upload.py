@@ -67,7 +67,7 @@ class Buffer(object):
 
 class FASTXInterleave(object):
     """Wrapper around two `file` objects that decompresses gzip or bz2, where applicable, and
-    interleaves the two files either two or four lines at a time Yields uncompressed data.
+    interleaves the two files either two or four lines at a time. Yields uncompressed data.
 
     Parameters
     ----------
@@ -576,8 +576,8 @@ def upload_sequence(
 
 
 def _direct_upload(file_obj, file_name, fields, session, samples_resource):
-    """Uploads a single file-like object via our validating proxy. Maintains compatibility with direct upload
-    to a user's S3 bucket as well in case we disable our validating proxy.
+    """Uploads a single file-like object via our validating proxy. Maintains compatibility with
+    direct upload to a user's S3 bucket as well in case we disable our validating proxy.
 
     Parameters
     ----------
@@ -734,7 +734,7 @@ def upload_sequence_fileobj(file_obj, file_name, fields, retry_fields, session, 
             samples_resource.cancel_upload({"sample_id": sample_id})
         except Exception as e:
             log.debug("Failed to cancel upload: {}".format(e))
-        log.error("{}: Connectivity issue, trying direct upload...".format(file_name))
+        log.error("{}: Connectivity issue, trying upload via intermediary...".format(file_name))
         file_obj.seek(0)  # reset file_obj back to start
 
         try:
@@ -872,7 +872,8 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):
     Raises
     ------
     UploadException
-        In the case of a fatal exception during an upload. Note we rely on boto3 to handle its own retry logic.
+        In the case of a fatal exception during an upload. Note we rely on boto3 to handle its own
+        retry logic.
 
     Returns
     -------
@@ -899,18 +900,37 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):
 
     if hasattr(file_obj, "progressbar"):
         boto_kwargs["Callback"] = file_obj.progressbar.update
+        file_obj._progressbar = file_obj.progressbar
         file_obj.progressbar = None
 
-    try:
-        client.upload_fileobj(
-            file_obj,
-            fields["s3_bucket"],
-            fields["file_id"],
-            ExtraArgs={"ServerSideEncryption": "AES256"},
-            Config=config,
-            **boto_kwargs
-        )
-    except S3UploadFailedError:
+    for attempt in range(1, 4):
+        try:
+            client.upload_fileobj(
+                file_obj,
+                fields["s3_bucket"],
+                fields["file_id"],
+                ExtraArgs={"ServerSideEncryption": "AES256"},
+                Config=config,
+                **boto_kwargs
+            )
+            break
+        except S3UploadFailedError as e:
+            logging.debug("Caught S3UploadFailedError on attempt {}/3: {}".format(attempt, str(e)))
+            logging.error(
+                "{}: Connectivity issue, retrying upload via intermediary ({}/3)...".format(
+                    file_name, attempt
+                )
+            )
+
+            # rewind the progressbar if possible, then remove so boto3 can update the bar directly
+            if hasattr(file_obj, "_progressbar"):
+                file_obj.progressbar = file_obj._progressbar
+                file_obj.seek(0)
+                file_obj.progressbar = None
+            else:
+                file_obj.seek(0)
+    else:
+        logging.debug("{}: exhausted all retries via intermediary")
         raise_connectivity_error(file_name)
 
     # issue a callback
