@@ -62,18 +62,25 @@ class OneCodexHTMLExporter(HTMLExporter):
         for cell in nb.cells:
             if cell["cell_type"] == "code":
                 for out in cell["outputs"]:
-                    # base64 encode SVGs otherwise Weasyprint can't render them. delete other
-                    # types of output in jupyter-vega cells (e.g., image/png, or javascript)
+                    # handle transforming images into a format Weasyprint can render. prefer SVGs
+                    # over PNGs. SVGs must be base64 encoded, while PNGs come encoded already. drop
+                    # other Vega output cells (like JavaScript)
                     if out.get("metadata") and out["metadata"].get("jupyter-vega"):
                         for mimetype in out.get("data", []):
                             if mimetype == "image/svg+xml":
                                 img = b64encode(
                                     bytes(out["data"]["image/svg+xml"], encoding="UTF-8")
                                 ).decode()
-                                img = '<img src="data:image/svg+xml;charset=utf-8;base64,%s">' % (
-                                    img,
-                                )
-                                out["data"] = {"image/svg+xml": img}
+                                out["data"] = {
+                                    "text/html": '<img src="data:image/svg+xml;charset=utf-8;base64,{}">'.format(
+                                        img
+                                    )
+                                }
+                                break
+                            elif mimetype == "image/png":
+                                out["data"] = {
+                                    "text/html": '<img src="{}"'.format(out["data"]["image/png"])
+                                }
                                 break
                         else:
                             out["data"] = {}
