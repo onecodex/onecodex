@@ -14,7 +14,7 @@ from onecodex.utils import collapse_user
 from onecodex.version import __version__
 
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("onecodex")
 DATE_FORMAT = "%Y-%m-%d %H:%M"
 API_KEY_LEN = 32
 

@@ -26,8 +26,7 @@ from onecodex.exceptions import OneCodexException, UploadException
 from onecodex.version import __version__
 
 
-log = logging.getLogger(__name__)
-cli_log = logging.getLogger("onecodex.cli")
+log = logging.getLogger("onecodex")
 
 OPTION_HELP = {
     "api_key": "Manually provide a One Codex API key",
@@ -147,13 +146,13 @@ def cli_resource_fetcher(ctx, resource, uris, print_results=True):
         if len(uris) == 0:
 
             # if non given fetch all
-            cli_log.debug("No %s IDs given, fetching all...", resource_name)
+            log.debug("No %s IDs given, fetching all...", resource_name)
             instances = getattr(ctx.obj["API"], resource_name).all()
-            cli_log.debug("Fetched %i %ss", len(instances), resource)
+            log.debug("Fetched %i %ss", len(instances), resource)
             objs_to_return = [x._resource._properties for x in instances]
         else:
             uris = list(set(uris))
-            cli_log.debug("Fetching %s: %s", resource_name, ",".join(uris))
+            log.debug("Fetching %s: %s", resource_name, ",".join(uris))
 
             instances = []
             for uri in uris:
@@ -162,11 +161,11 @@ def cli_resource_fetcher(ctx, resource, uris, print_results=True):
                     if instance is not None:
                         instances.append(instance._resource._properties)
                     else:
-                        cli_log.error(
+                        log.error(
                             "Could not find {} {} (404 status code)".format(resource_name, uri)
                         )
                 except requests.exceptions.HTTPError as e:
-                    cli_log.error(
+                    log.error(
                         "Could not find %s %s (%d status code)".format(
                             resource_name, uri, e.response.status_code
                         )
@@ -229,7 +228,7 @@ def warn_if_insecure_platform():
         click.echo(m, err=True)
         return True
     else:
-        cli_log.debug("Python SSLContext passed")
+        log.debug("Python SSLContext passed")
         return False
 
 
@@ -248,7 +247,7 @@ def download_file_helper(url, input_path):
     """
     r = requests.get(url, stream=True)
     if r.status_code != 200:
-        cli_log.error("Failed to download file: %s" % r.json()["message"])
+        log.error("Failed to download file: %s" % r.json()["message"])
     local_full_path = get_download_dest(input_path, r.url)
     original_filename = os.path.split(local_full_path)[-1]
     with open(local_full_path, "wb") as f:

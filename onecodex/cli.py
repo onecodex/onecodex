@@ -5,7 +5,6 @@ import dateutil
 import logging
 import os
 import re
-import sys
 import time
 import warnings
 
@@ -33,16 +32,7 @@ from onecodex.version import __version__
 
 # set the context for getting -h also
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
-
-# Modify the root logger directly
-log = logging.getLogger()
-log.setLevel(logging.INFO)
-
-# Setup log formatter. TODO: Evaluate click-log instead
-log_formatter = CliLogFormatter()
-stream_handler = logging.StreamHandler(sys.stderr)
-stream_handler.setFormatter(log_formatter)
-log.addHandler(stream_handler)
+log = logging.getLogger("onecodex")
 
 
 def warning_msg(message, category, filename, lineno, file=None, line=None):
@@ -67,6 +57,11 @@ warnings.showwarning = warning_msg
 @telemetry
 def onecodex(ctx, api_key, no_pprint, verbose, telemetry):
     """One Codex v1 API command line interface"""
+    # Setup log formatter. TODO: Evaluate click-log instead
+    log_formatter = CliLogFormatter()
+    log.setLevel(logging.INFO)
+    log.handlers[0].setFormatter(log_formatter)
+
     # set up the context for sub commands
     click.Context.get_usage = click.Context.get_help
     ctx.obj = {}
