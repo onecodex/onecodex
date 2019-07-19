@@ -22,7 +22,7 @@ from onecodex.vendored.potion_client.utils import upper_camel_case
 from onecodex.version import __version__
 
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("onecodex")
 
 
 class Api(object):

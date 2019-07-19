@@ -24,6 +24,7 @@ from onecodex.exceptions import (
 from onecodex.utils import atexit_register, atexit_unregister, snake_case
 
 
+log = logging.getLogger("onecodex")
 DEFAULT_THREADS = 4
 
 
@@ -516,7 +517,7 @@ def upload_sequence(
     if filename != ascii_fname:
         if coerce_ascii:
             # TODO: Consider warnings.warn here instead
-            logging.warn(
+            log.warn(
                 "Renaming {} to {}, must be ASCII\n".format(filename.encode("utf-8"), ascii_fname)
             )
             filename = ascii_fname
@@ -545,7 +546,7 @@ def upload_sequence(
         def cancel_atexit():
             bar.canceled = True
             bar.update(1)
-            logging.info("Canceled upload for sample: {}".format(fields["sample_id"]))
+            log.info("Canceled upload for sample: {}".format(fields["sample_id"]))
             samples_resource.cancel_upload({"sample_id": fields["sample_id"]})
 
         atexit_register(cancel_atexit)
@@ -630,13 +631,13 @@ def _direct_upload(file_obj, file_name, fields, session, samples_resource):
                 )
                 resp.raise_for_status()
             except (ValueError, requests.exceptions.RequestException) as e:
-                logging.debug("Retrying due to error: {}".format(e))
+                log.debug("Retrying due to error: {}".format(e))
                 raise RetryableUploadException(
                     "Unexpected failure of direct upload proxy. Retrying..."
                 )
 
             if resp.json() and resp.json().get("complete", True) is False:
-                logging.debug("Blocking on waiting for proxy to complete (in progress)...")
+                log.debug("Blocking on waiting for proxy to complete (in progress)...")
                 time.sleep(30)
             else:
                 break
@@ -646,7 +647,7 @@ def _direct_upload(file_obj, file_name, fields, session, samples_resource):
             file_obj.close()
             return
         elif resp.json().get("code") == 500:
-            logging.debug("Retrying due to 500 from proxy...")
+            log.debug("Retrying due to 500 from proxy...")
             raise RetryableUploadException("Unexpected issue with direct upload proxy. Retrying...")
         else:
             raise_api_error(resp, state="upload")
@@ -718,8 +719,8 @@ def upload_sequence_fileobj(file_obj, file_name, fields, retry_fields, session, 
         try:
             samples_resource.cancel_upload({"sample_id": sample_id})
         except Exception as e:
-            logging.debug("Failed to cancel upload: {}".format(e))
-        logging.error("{}: Connectivity issue, trying direct upload...".format(file_name))
+            log.debug("Failed to cancel upload: {}".format(e))
+        log.error("{}: Connectivity issue, trying direct upload...".format(file_name))
         file_obj.seek(0)  # reset file_obj back to start
 
         try:
@@ -738,7 +739,7 @@ def upload_sequence_fileobj(file_obj, file_name, fields, retry_fields, session, 
         )
         sample_id = s3_upload.get("sample_id", "<UUID not yet assigned>")
 
-    logging.info("{}: finished as sample {}".format(file_name, sample_id))
+    log.info("{}: finished as sample {}".format(file_name, sample_id))
     return sample_id
 
 
@@ -784,7 +785,7 @@ def upload_document(file_path, session, documents_resource, progressbar=None):
         return document_id
 
 
-def upload_document_fileobj(file_obj, file_name, session, documents_resource, log=None):
+def upload_document_fileobj(file_obj, file_name, session, documents_resource):
     """Uploads a single file-like object to the One Codex server directly to S3.
 
     Parameters
@@ -832,7 +833,7 @@ def upload_document_fileobj(file_obj, file_name, session, documents_resource, lo
 
     document_id = s3_upload.get("document_id", "<UUID not yet assigned>")
 
-    logging.info("{}: finished as document {}".format(file_name, document_id))
+    log.info("{}: finished as document {}".format(file_name, document_id))
     return document_id
 
 
