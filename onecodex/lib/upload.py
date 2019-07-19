@@ -106,6 +106,9 @@ class FASTXInterleave(object):
         self.progressbar = progressbar
         self.mime_type = "text/plain"
 
+    def size(self):
+        return self._fsize
+
     @property
     def len(self):
         """Size of data left to be read.
@@ -191,6 +194,9 @@ class FilePassthru(object):
             self.progressbar.update(len(bytes_read))
 
         return bytes_read
+
+    def size(self):
+        return self._fsize
 
     @property
     def len(self):
@@ -705,11 +711,19 @@ def upload_sequence_fileobj(file_obj, file_name, fields, retry_fields, session, 
     try:
         sample_id = fields["sample_id"]
 
-        # Are we being directed to skip the proxy? If so, don't try to upload >5GB files
+        # Are we being directed to skip the proxy? If so, only do it if files ares <5GB since that's the limit for
+        # direct uploads to S3
         if (
             "AWSAccessKeyId" in fields["additional_fields"]
             and getattr(file_obj, "_fsize", 0) > 5 * 1024 ** 3
         ):
+            raise RetryableUploadException
+
+        # Big files are going to skip the proxy even if the backend told us the opposite
+        # 100GB is considered big enough to defer the validation
+        # In some cases, file_obj might be a BytesIO object instead of one of our file object so we
+        # filter them out by checking for a `write` attribute
+        if not hasattr(file_obj, "write") and file_obj.size() > 100 * 1024 ** 3:
             raise RetryableUploadException
 
         _direct_upload(file_obj, file_name, fields, session, samples_resource)
