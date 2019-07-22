@@ -1,6 +1,6 @@
 # One Codex API - Python Client Library and CLI
 
-[![Circle CI](https://circleci.com/gh/onecodex/onecodex.png?style=shield&circle-token=d86a8fc55e54a645ee515387db9acee32068a6ad)](https://circleci.com/gh/onecodex/onecodex) [![Coverage Status](https://coveralls.io/repos/github/onecodex/onecodex/badge.svg)](https://coveralls.io/github/onecodex/onecodex) ![Black Code Style](https://camo.githubusercontent.com/28a51fe3a2c05048d8ca8ecd039d6b1619037326/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f636f64652532307374796c652d626c61636b2d3030303030302e737667)
+[![Circle CI](https://circleci.com/gh/onecodex/onecodex.png?style=shield&circle-token=d86a8fc55e54a645ee515387db9acee32068a6ad)](https://circleci.com/gh/onecodex/onecodex) [![codecov](https://codecov.io/gh/onecodex/onecodex/branch/master/graph/badge.svg)](https://codecov.io/gh/onecodex/onecodex) ![Black Code Style](https://camo.githubusercontent.com/28a51fe3a2c05048d8ca8ecd039d6b1619037326/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f636f64652532307374796c652d626c61636b2d3030303030302e737667)
 
 Command line interface (CLI) and Python client library for interacting with the One Codex v1 API ([API docs](https://docs.onecodex.com)).
 
