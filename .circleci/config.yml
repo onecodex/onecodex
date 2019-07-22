@@ -119,5 +119,5 @@ jobs:
           command: |
             . venv/bin/activate
             py.test -v -W ignore::DeprecationWarning --cov-report=html --cov=onecodex tests/
-            coveralls
+            codecov
 
