@@ -115,18 +115,42 @@ class ResourceDownloadMixin(object):
         passed file-like object. If `path` given, will download the file to the path provided,
         but will not overwrite any existing files.
         """
+        return self._download(
+            "download_uri",
+            self.filename,
+            use_potion_session=False,
+            path=path,
+            file_obj=file_obj,
+            progressbar=progressbar,
+        )
+
+    def _download(
+        self,
+        _resource_method,
+        _filename,
+        use_potion_session=False,
+        path=None,
+        file_obj=None,
+        progressbar=False,
+    ):
         if path and file_obj:
             raise OneCodexException("Please specify only one of: path, file_obj")
 
         if path is None and file_obj is None:
-            path = os.path.join(os.getcwd(), self.filename)
+            path = os.path.join(os.getcwd(), _filename)
 
         if path and os.path.exists(path):
             raise OneCodexException("{} already exists! Will not overwrite.".format(path))
 
         try:
-            url_data = self._resource.download_uri()
-            resp = requests.get(url_data["download_uri"], stream=True)
+            method_to_call = getattr(self._resource, _resource_method)
+
+            if use_potion_session:
+                resp = self._resource._client.session.get(
+                    method_to_call()["download_uri"], stream=True
+                )
+            else:
+                resp = requests.get(method_to_call()["download_uri"], stream=True)
 
             with (open(path, "wb") if path else file_obj) as f_out:
                 if progressbar:

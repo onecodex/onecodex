@@ -36,12 +36,20 @@ class Api(object):
         base_url=None,
         telemetry=None,
         schema_path="/api/v1/schema",
+        **kwargs
     ):
 
         if base_url is None:
             base_url = os.environ.get("ONE_CODEX_API_BASE", "https://app.onecodex.com")
             if base_url != "https://app.onecodex.com":
                 warnings.warn("Using base API URL: {}".format(base_url))
+
+        if kwargs.get("experimental", False):
+            warnings.warn(
+                "Experimental API mode enabled. Features of the experimental API are subject to "
+                "change without notice and should not be relied upon in a production enviroment."
+            )
+            schema_path = "/api/v1_experimental/schema"
 
         self._req_args = {}
         self._base_url = base_url
@@ -122,12 +130,30 @@ class Api(object):
         return os.environ.get("ONE_CODEX_USER_EMAIL", os.environ.get("ONE_CODEX_USER_UUID"))
 
     def _copy_resources(self):
-        """
-        Copy all of the resources over to the toplevel client
+        """Copies available subclassed potion resources (e.g., onecodex.models.Samples) into this
+        instance of Api().
 
-        -return: populates self with a pointer to each ._client.Resource
+        Notes
+        -----
+        Will only make available any objects that were listed in the REST API schema, either cached
+        or retrieved from the server. If a non-standard schema_path was given, make sure we match
+        e.g., /api/v1_experimental/samples up with /api/v1/samples.
+
+        Returns
+        -------
+        `None`
         """
         from onecodex.models import _model_lookup
+
+        if self._schema_path != "/api/v1/schema":
+            new_schema_base = self._schema_path.rstrip("schema")
+
+            aliased_resources = {}
+
+            for resource, oc_cls in _model_lookup.items():
+                aliased_resources[resource.replace("/api/v1/", new_schema_base)] = oc_cls
+
+            _model_lookup.update(aliased_resources)
 
         for resource in self._client._resources:
             # set the name param, the keys now have / in them

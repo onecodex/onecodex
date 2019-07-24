@@ -580,6 +580,11 @@ __all__ = [
     "Users",
 ]
 
+# import and expose experimental models
+from onecodex.models.experimental import AnnotationSets, Assemblies, Genomes, Taxa  # noqa
+
+__all__.extend(["AnnotationSets", "Assemblies", "Genomes", "Taxa"])
+
 
 def pretty_print_error(err_json):
     """Pretty print Flask-Potion error messages for the user."""

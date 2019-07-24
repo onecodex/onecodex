@@ -1,0 +1,13 @@
+coverage:
+  status:
+    project:
+      default: false  # disable the default status that measures entire project
+      onecodex:
+        paths: "onecodex/"
+        threshold: 2.5%
+    patch:
+      default:
+        target: 0%
+
+ignore:
+  - "onecodex/vendored/"
