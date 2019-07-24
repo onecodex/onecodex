@@ -580,8 +580,8 @@ __all__ = [
     "Users",
 ]
 
-# import and expose experimental darwin models
-from onecodex.models.darwin import AnnotationSets, Assemblies, Genomes, Taxa  # noqa
+# import and expose experimental models
+from onecodex.models.experimental import AnnotationSets, Assemblies, Genomes, Taxa  # noqa
 
 __all__.extend(["AnnotationSets", "Assemblies", "Genomes", "Taxa"])
 

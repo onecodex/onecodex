@@ -36,6 +36,7 @@ class Api(object):
         base_url=None,
         telemetry=None,
         schema_path="/api/v1/schema",
+        **kwargs
     ):
 
         if base_url is None:
@@ -43,8 +44,12 @@ class Api(object):
             if base_url != "https://app.onecodex.com":
                 warnings.warn("Using base API URL: {}".format(base_url))
 
-        if schema_path != "/api/v1/schema":
-            warnings.warn("Using schema path: {}".format(schema_path))
+        if kwargs.get("experimental", False):
+            warnings.warn(
+                "Experimental API mode enabled. Features of the experimental API are subject to "
+                "change without notice and should not be relied upon in a production enviroment."
+            )
+            schema_path = "/api/v1_experimental/schema"
 
         self._req_args = {}
         self._base_url = base_url

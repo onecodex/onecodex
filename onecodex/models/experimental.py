@@ -3,7 +3,7 @@ from onecodex.models.helpers import ResourceDownloadMixin
 
 
 class AnnotationSets(OneCodexBase, ResourceDownloadMixin):
-    _resource_path = "/api/v1/annotation_sets"
+    _resource_path = "/api/v1_experimental/annotation_sets"
 
     def download(self, path=None, file_obj=None, progressbar=False):
         """Downloads an AnnotationSet in GenBank format.
@@ -76,18 +76,18 @@ class AnnotationSets(OneCodexBase, ResourceDownloadMixin):
 
 
 class Assemblies(OneCodexBase, ResourceDownloadMixin):
-    _resource_path = "/api/v1/assemblies"
+    _resource_path = "/api/v1_experimental/assemblies"
 
 
 class Genomes(OneCodexBase):
-    _resource_path = "/api/v1/genomes"
+    _resource_path = "/api/v1_experimental/genomes"
 
     def __repr__(self):
         return "<Genome {} {} ({})>".format(self.id, self.taxon.name, self.name)
 
 
 class Taxa(OneCodexBase):
-    _resource_path = "/api/v1/taxa"
+    _resource_path = "/api/v1_experimental/taxa"
 
     def __repr__(self):
         return "<Taxa {} {} ({})>".format(self.taxon_id, self.name, self.rank)
