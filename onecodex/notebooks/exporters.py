@@ -85,35 +85,29 @@ class OneCodexHTMLExporter(HTMLExporter):
                     # over PNGs. SVGs must be base64 encoded, while PNGs come encoded already. drop
                     # other Vega output cells (like JavaScript)
                     if out.get("metadata") and out["metadata"].get("jupyter-vega"):
-                        for mimetype in out.get("data", []):
-                            if mimetype == "image/svg+xml":
-                                img = b64encode(
-                                    bytes(out["data"]["image/svg+xml"], encoding="UTF-8")
-                                ).decode()
+                        data = out.get("data", [])
+
+                        if "image/svg+xml" in data:
+                            img = b64encode(bytes(data["image/svg+xml"], encoding="UTF-8")).decode()
+                            out["data"] = {
+                                "text/html": '<img src="data:image/svg+xml;charset=utf-8;base64,{}">'.format(
+                                    img
+                                )
+                            }
+                        elif "image/png" in data:
+                            out["data"] = {"text/html": '<img src="{}"'.format(data["image/png"])}
+                        elif "application/vnd.vegalite.v2+json" in data:
+                            vega_svg = render_vega_with_node(
+                                data["application/vnd.vegalite.v2+json"]
+                            )
+
+                            if vega_svg:
+                                img = b64encode(vega_svg).decode()
                                 out["data"] = {
                                     "text/html": '<img src="data:image/svg+xml;charset=utf-8;base64,{}">'.format(
                                         img
                                     )
                                 }
-                                break
-                            elif mimetype == "image/png":
-                                out["data"] = {
-                                    "text/html": '<img src="{}"'.format(out["data"]["image/png"])
-                                }
-                                break
-                            elif mimetype == "application/vnd.vegalite.v2+json":
-                                vega_svg = render_vega_with_node(
-                                    out["data"]["application/vnd.vegalite.v2+json"]
-                                )
-
-                                if vega_svg:
-                                    img = b64encode(vega_svg).decode()
-                                    out["data"] = {
-                                        "text/html": '<img src="data:image/svg+xml;charset=utf-8;base64,{}">'.format(
-                                            img
-                                        )
-                                    }
-                                    break
                         else:
                             out["data"] = {}
                     # transfer text/css blocks to HTML <head> tag
