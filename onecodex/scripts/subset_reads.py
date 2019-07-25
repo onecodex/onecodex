@@ -306,14 +306,26 @@ def cli(
                                     rev_out_file.write(rev)
                         else:
                             if exclude_reads:
-                                if row["Passed Filter"] == "T" and row["Tax ID"] not in tax_ids:
+                                if (
+                                    row.get("Passed Filter", "T") == "T"
+                                    and row["Tax ID"] not in tax_ids
+                                ):
                                     out_file.write(fwd)
-                                if row2["Passed Filter"] == "T" and row2["Tax ID"] not in tax_ids:
+                                if (
+                                    row2.get("Passed Filter", "T") == "T"
+                                    and row2["Tax ID"] not in tax_ids
+                                ):
                                     rev_out_file.write(rev)
                             else:
-                                if row["Passed Filter"] == "T" and row["Tax ID"] in tax_ids:
+                                if (
+                                    row.get("Passed Filter", "T") == "T"
+                                    and row["Tax ID"] in tax_ids
+                                ):
                                     out_file.write(fwd)
-                                if row2["Passed Filter"] == "T" and row2["Tax ID"] in tax_ids:
+                                if (
+                                    row2.get("Passed Filter", "T") == "T"
+                                    and row2["Tax ID"] in tax_ids
+                                ):
                                     rev_out_file.write(rev)
                     else:
                         if include_lowconf:
@@ -328,15 +340,21 @@ def cli(
                         else:
                             if exclude_reads:
                                 if (
-                                    row["Passed Filter"] == "T" and row["Tax ID"] not in tax_ids
+                                    row.get("Passed Filter", "T") == "T"
+                                    and row["Tax ID"] not in tax_ids
                                 ) or (
-                                    row2["Passed Filter"] == "T" and row2["Tax ID"] not in tax_ids
+                                    row2.get("Passed Filter", "T") == "T"
+                                    and row2["Tax ID"] not in tax_ids
                                 ):
                                     out_file.write(fwd)
                                     rev_out_file.write(rev)
                             else:
-                                if (row["Passed Filter"] == "T" and row["Tax ID"] in tax_ids) or (
-                                    row2["Passed Filter"] == "T" and row2["Tax ID"] in tax_ids
+                                if (
+                                    row.get("Passed Filter", "T") == "T"
+                                    and row["Tax ID"] in tax_ids
+                                ) or (
+                                    row2.get("Passed Filter", "T") == "T"
+                                    and row2["Tax ID"] in tax_ids
                                 ):
                                     out_file.write(fwd)
                                     rev_out_file.write(rev)
@@ -361,10 +379,13 @@ def cli(
                                 out_file.write(fwd)
                     else:
                         if exclude_reads:
-                            if row["Passed Filter"] == "T" and row["Tax ID"] not in tax_ids:
+                            if (
+                                row.get("Passed Filter", "T") == "T"
+                                and row["Tax ID"] not in tax_ids
+                            ):
                                 out_file.write(fwd)
                         else:
-                            if row["Passed Filter"] == "T" and row["Tax ID"] in tax_ids:
+                            if row.get("Passed Filter", "T") == "T" and row["Tax ID"] in tax_ids:
                                 out_file.write(fwd)
 
         if idx < tsv_row_count - 1:  # 0-based idx, 1-based tsv_row_count
