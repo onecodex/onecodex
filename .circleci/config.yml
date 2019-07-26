@@ -3,6 +3,7 @@ workflows:
   all-tests:
     jobs:
       - test-py3
+      - test-import-times
       - test-py2
       - test-minimal
       - test-simplejson
@@ -28,7 +29,31 @@ jobs:
           name: Run tests
           command: |
             . venv/bin/activate
-            py.test -v -W ignore::DeprecationWarning tests/
+            py.test -v -W ignore::DeprecationWarning --ignore tests/test_speed.py tests/
+  test-import-times:
+    docker:
+      - image: circleci/python:3.7-stretch
+    steps:
+      - checkout
+      - run:
+          name: Install Python deps in virtual environment
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -q -U pip
+            pip install --progress-bar=off numpy tuna
+            pip install --progress-bar=off .[all,testing]
+      - run:
+          name: Run tests
+          command: |
+            . venv/bin/activate
+            py.test -v tests/test_speed.py
+            python -X importtime -c 'import onecodex; onecodex.cli.onecodex()' 2> import.log
+            mkdir tuna && mkdir tuna/static
+            tuna -o tuna/ import.log
+      - store_artifacts:
+          path: tuna/
+          prefix: tuna
   test-py2:
     docker:
       - image: circleci/python:2.7-stretch
@@ -82,7 +107,7 @@ jobs:
           name: Run tests
           command: |
             . venv/bin/activate
-            py.test -v -W ignore::DeprecationWarning tests/
+            py.test -v -W ignore::DeprecationWarning --ignore tests/test_speed.py tests/
   lint:
     docker:
       - image: circleci/python:3.7-stretch
@@ -118,6 +143,6 @@ jobs:
           name: Run tests
           command: |
             . venv/bin/activate
-            py.test -v -W ignore::DeprecationWarning --cov-report=html --cov=onecodex tests/
+            py.test -v -W ignore::DeprecationWarning --ignore tests/test_speed.py tests/
             codecov
 
