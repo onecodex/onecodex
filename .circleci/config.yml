@@ -13,7 +13,7 @@ version: 2
 jobs:
   test-py3:
     docker:
-      - image: circleci/python:3.6.7-stretch
+      - image: circleci/python:3.7-stretch
     steps:
       - checkout
       - run:
@@ -31,7 +31,7 @@ jobs:
             py.test -v -W ignore::DeprecationWarning tests/
   test-py2:
     docker:
-      - image: circleci/python:2.7.15-stretch
+      - image: circleci/python:2.7-stretch
     steps:
       - checkout
       - run:
@@ -66,7 +66,7 @@ jobs:
             py.test -v -W ignore::DeprecationWarning tests/
   test-simplejson:
     docker:
-      - image: circleci/python:3.6.7-stretch
+      - image: circleci/python:3.7-stretch
     steps:
       - checkout
       - run:
@@ -85,7 +85,7 @@ jobs:
             py.test -v -W ignore::DeprecationWarning tests/
   lint:
     docker:
-      - image: circleci/python:3.6.7-stretch
+      - image: circleci/python:3.7-stretch
     steps:
       - checkout
       - run:
@@ -103,7 +103,7 @@ jobs:
             make lint
   coverage:
     docker:
-      - image: circleci/python:3.6.7-stretch
+      - image: circleci/python:3.7-stretch
     steps:
       - checkout
       - run:
