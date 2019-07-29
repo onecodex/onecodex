@@ -175,7 +175,7 @@ def test_results_filtering_other(ocx, api_data):
     assert sum(wide_tbl.columns.astype(int).tolist()) == 109170075
 
     long_tbl = samples.to_df(table_format="long", normalize=False)
-    assert long_tbl["readcount_w_children"].sum() == 38034443
+    assert long_tbl["Reads"].sum() == 38034443
     assert long_tbl["tax_id"].astype(int).sum() / 3 == 109170075
 
     # should fail if format is not wide or long
