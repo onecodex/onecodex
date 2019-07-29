@@ -99,9 +99,10 @@ class ClassificationsDataFrame(pd.DataFrame):
         # round abundances to avoid long trails of zeros, and sort taxa in order of abundance
         if "classification_id" in self.columns and "tax_id" in self.columns:
             # long format
+            field_name = set(self.columns).difference({"classification_id", "tax_id"}).pop()
             df = self.copy()
-            df[self.ocx_field] = df[self.ocx_field].round(6)
-            df = df.sort_values(self.ocx_field, ascending=False)
+            df[field_name] = df[field_name].round(6)
+            df = df.sort_values(field_name, ascending=False)
         else:
             # wide format
             df = self.round(6).reindex(columns=self.sum().sort_values(ascending=False).index)
@@ -191,13 +192,17 @@ class OneCodexAccessor(AnalysisMixin):
         self._rank = pandas_obj.ocx_rank
         self._results = pandas_obj
 
-        # prune back _taxonomy df to contain only taxa present in the ClassificationsDataFrame (and parents)
+        # prune back _taxonomy df to contain only taxa and parents in the ClassificationsDataFrame
         tree = self.tree_build()
-        tree = self.tree_prune_tax_ids(tree, self._results.keys())
+
+        if "classification_id" in self._results.columns and "tax_id" in self._results.columns:
+            tree = self.tree_prune_tax_ids(tree, self._results["tax_id"].drop_duplicates())
+
+            # similarly restrict _metadata df to contain only data relevant to samples in the df
+            self.metadata = self.metadata.loc[self._results["classification_id"].drop_duplicates()]
+        else:
+            tree = self.tree_prune_tax_ids(tree, self._results.columns)
+            self.metadata = self.metadata.loc[self._results.index]
 
         tax_ids_to_keep = [x.name for x in tree.traverse()]
-
         self.taxonomy = self.taxonomy.loc[tax_ids_to_keep]
-
-        # similarly restrict _metadata df to contain only data relevant to samples currently in ClassificationsDataFrame
-        self.metadata = self.metadata.loc[self._results.index]

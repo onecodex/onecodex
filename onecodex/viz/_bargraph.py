@@ -81,12 +81,12 @@ class VizBargraphMixin(object):
         elif top_n != "auto" and threshold == "auto":
             threshold = None
 
-        if legend == "auto":
-            legend = self._field
-
         df = self.to_df(
             rank=rank, normalize=normalize, top_n=top_n, threshold=threshold, table_format="long"
         )
+
+        if legend == "auto":
+            legend = df.ocx.field
 
         if tooltip:
             if not isinstance(tooltip, list):
@@ -134,13 +134,13 @@ class VizBargraphMixin(object):
         # OCX this should be okay)
         #
 
-        ylabel = self._field if ylabel is None else ylabel
+        ylabel = df.ocx.field if ylabel is None else ylabel
         xlabel = "" if xlabel is None else xlabel
 
         # should ultimately be Label, tax_name, readcount_w_children, then custom fields
         tooltip_for_altair = [magic_fields[f] for f in tooltip]
         tooltip_for_altair.insert(1, "tax_name")
-        tooltip_for_altair.insert(2, "{}:Q".format(self._field))
+        tooltip_for_altair.insert(2, "{}:Q".format(df.ocx.field))
 
         # generate dataframes to plot, one per facet
         dfs_to_plot = []
@@ -148,7 +148,7 @@ class VizBargraphMixin(object):
         if haxis:
             # if using facets, first facet is just the vertical axis
             blank_df = df.iloc[:1].copy()
-            blank_df[self._field] = 0
+            blank_df[df.ocx.field] = 0
 
             dfs_to_plot.append(blank_df)
 
@@ -175,7 +175,7 @@ class VizBargraphMixin(object):
                 .encode(
                     x=alt.X("Label", axis=alt.Axis(title=xlabel), sort=sort_order),
                     y=alt.Y(
-                        self._field,
+                        df.ocx.field,
                         axis=alt.Axis(title=ylabel),
                         scale=alt.Scale(domain=[0, 1], zero=True, nice=False),
                     ),

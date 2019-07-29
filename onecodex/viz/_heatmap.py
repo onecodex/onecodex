@@ -97,12 +97,12 @@ class VizHeatmapMixin(object):
         elif top_n != "auto" and threshold == "auto":
             threshold = None
 
-        if legend == "auto":
-            legend = self._field
-
         df = self.to_df(
             rank=rank, normalize=normalize, top_n=top_n, threshold=threshold, table_format="long"
         )
+
+        if legend == "auto":
+            legend = df.ocx.field
 
         if tooltip:
             if not isinstance(tooltip, list):
@@ -271,14 +271,14 @@ class VizHeatmapMixin(object):
         # should ultimately be Label, tax_name, readcount_w_children, then custom fields
         tooltip_for_altair = [magic_fields[f] for f in tooltip]
         tooltip_for_altair.insert(1, "tax_name")
-        tooltip_for_altair.insert(2, "{}:Q".format(self._field))
+        tooltip_for_altair.insert(2, "{}:Q".format(df.ocx.field))
 
         alt_kwargs = dict(
             x=alt.X("Label:N", axis=alt.Axis(title=xlabel), sort=labels_in_order),
             y=alt.Y(
                 "tax_name:N", axis=alt.Axis(title=ylabel), sort=taxa_cluster["labels_in_order"]
             ),
-            color=alt.Color("{}:Q".format(self._field), legend=alt.Legend(title=legend)),
+            color=alt.Color("{}:Q".format(df.ocx.field), legend=alt.Legend(title=legend)),
             tooltip=tooltip_for_altair,
             href="url:N",
             url="https://app.onecodex.com/classification/" + alt.datum.classification_id,

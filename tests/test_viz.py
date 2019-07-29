@@ -140,16 +140,16 @@ def test_plot_heatmap(ocx, api_data):
     assert chart.encoding.x.axis.title == "my xlabel"
     assert chart.encoding.y.axis.title == "my ylabel"
     assert len(chart.data["tax_id"].unique()) == 10
-    assert chart.data["readcount_w_children"].sum().round(6) == 2.613775
+    assert chart.data["Reads (Normalized)"].sum().round(6) == 2.613775
 
     chart = samples.plot_heatmap(threshold=0.1, haxis="eggs", return_chart=True)
     assert len(chart.vconcat) == 2
     assert chart.vconcat[1].mark == "rect"
-    assert all(chart.vconcat[1].data.groupby("tax_id").max()["readcount_w_children"] > 0.1)
+    assert all(chart.vconcat[1].data.groupby("tax_id").max()["Reads (Normalized)"] > 0.1)
 
     chart = samples.plot_heatmap(top_n=10, threshold=0.01, return_chart=True)
     assert len(chart.data["tax_id"].unique()) == 10
-    assert all(chart.data.groupby("tax_id").max()["readcount_w_children"] > 0.01)
+    assert all(chart.data.groupby("tax_id").max()["Reads (Normalized)"] > 0.01)
 
 
 def test_plot_heatmap_exceptions(ocx, api_data):
@@ -306,5 +306,5 @@ def test_plot_bargraph_chart_result(ocx, api_data):
     assert chart.title == "Glorious Bargraph"
     assert chart.encoding.x.shorthand == "Label"
     assert chart.encoding.x.axis.title == "Exemplary Samples"
-    assert chart.encoding.y.shorthand == "readcount_w_children"
+    assert chart.encoding.y.shorthand == "Reads (Normalized)"
     assert chart.encoding.y.axis.title == "Glorious Abundances"

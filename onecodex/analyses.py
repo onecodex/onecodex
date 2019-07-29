@@ -312,13 +312,15 @@ class AnalysisMixin(
 
         # generate long-format table
         if table_format == "long":
-            long_df = {"classification_id": [], "tax_id": [], self._field: []}
+            pretty_field_name = self._make_pretty_field_name(self._field, normalize)
+
+            long_df = {"classification_id": [], "tax_id": [], pretty_field_name: []}
 
             for t_id in df:
                 for c_id, count in df[t_id].iteritems():
                     long_df["classification_id"].append(c_id)
                     long_df["tax_id"].append(t_id)
-                    long_df[self._field].append(count)
+                    long_df[pretty_field_name].append(count)
 
             results_df = ClassificationsDataFrame(long_df, **ocx_data)
         elif table_format == "wide":
@@ -327,3 +329,19 @@ class AnalysisMixin(
             raise OneCodexException("table_format must be one of: long, wide")
 
         return results_df
+
+    @staticmethod
+    def _make_pretty_field_name(field, normalized):
+        if field in {"readcount", "readcount_w_children"}:
+            if normalized:
+                return "Reads (Normalized)"
+            else:
+                return "Reads"
+        elif field == "abundance":
+            return "Relative Abundance"
+
+        return field
+
+    @property
+    def field(self):
+        return self._make_pretty_field_name(self._field, self._guess_normalized())
