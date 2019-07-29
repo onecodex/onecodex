@@ -262,8 +262,28 @@ class ExtendedPotionClient(PotionClient):
         # pulled it from the API and serialized it. now, we unserialize it and put it where it
         # needs to be.
         base_schema = serialized_schema.pop(self._schema_url, None)
+
+        if base_schema is None:
+            other_schema_url = [ref for ref in serialized_schema if not ref.endswith("#")]
+
+            if len(other_schema_url) == 1:
+                schema_url = other_schema_url[0]
+                base_schema = serialized_schema.pop(schema_url)
+                warnings.warn(
+                    "Using cached schema for {}, which does not match {}".format(
+                        schema_url, self._schema_url
+                    )
+                )
+            else:
+                raise OneCodexException(
+                    "Could not find schema for {} in ~/.onecodex. Please delete this file, "
+                    "re-login and try again, or pass cache_schema=False.".format(self._schema_url)
+                )
+        else:
+            schema_url = self._schema_url
+
         base_schema = json.loads(
-            base_schema, cls=PotionJSONSchemaDecoder, referrer=self._schema_url, client=self
+            base_schema, cls=PotionJSONSchemaDecoder, referrer=schema_url, client=self
         )
 
         for name, schema_ref in base_schema["properties"].items():
