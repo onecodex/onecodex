@@ -673,7 +673,7 @@ def _direct_upload(file_obj, file_name, fields, session, samples_resource):
         except requests.exceptions.HTTPError as e:
             raise_api_error(e.response, state="callback")
         except requests.exceptions.ConnectionError:
-            raise_connectivity_error()
+            raise_connectivity_error(file_name)
 
 
 def upload_sequence_fileobj(file_obj, file_name, fields, retry_fields, session, samples_resource):
