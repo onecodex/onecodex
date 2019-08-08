@@ -52,7 +52,7 @@ setup(
     packages=find_packages(exclude=["*test*"]),
     install_requires=[
         "boto3>=1.4.2",
-        "click>=6.6",
+        "click>=7.0",
         "jsonschema>=2.4",
         "python-dateutil>=2.5.3",
         "pytz>=2014.1",
