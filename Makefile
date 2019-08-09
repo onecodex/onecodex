@@ -6,6 +6,7 @@ lint:
 	flake8 onecodex/
 	flake8 tests/
 	black --check -l 100 --exclude vendored/* onecodex/ tests/
+	pydocstyle --convention=numpy --add-ignore=D100,D101,D102,D103,D104,D105,D202 --match-dir='[^vendored].*' onecodex/
 	@echo "Successfully linted all files."
 
 coverage:
