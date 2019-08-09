@@ -91,7 +91,7 @@ def truncate_string(s, length=24):
 
 class ResourceDownloadMixin(object):
     def download(self, path=None, file_obj=None, progressbar=False):
-        """Downloads files from One Codex.
+        """Download files from One Codex.
 
         Parameters
         ----------

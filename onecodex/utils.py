@@ -97,9 +97,7 @@ SUPPORTED_EXTENSIONS = [
 
 
 def valid_api_key(ctx, param, value):
-    """
-    Ensures an API has valid length (this is a click callback)
-    """
+    """Ensure an API has valid length (this is a click callback)."""
     if value is not None and len(value) != 32:
         raise click.BadParameter(
             "API Key must be 32 characters long, not {}".format(str(len(value)))
@@ -109,9 +107,7 @@ def valid_api_key(ctx, param, value):
 
 
 def pprint(j, no_pretty):
-    """
-    Prints as formatted JSON
-    """
+    """Print as formatted JSON."""
     if not no_pretty:
         click.echo(
             json.dumps(j, cls=PotionJSONEncoder, sort_keys=True, indent=4, separators=(",", ": "))
@@ -185,9 +181,7 @@ def cli_resource_fetcher(ctx, resource, uris, print_results=True):
 
 
 def is_insecure_platform():
-    """
-    Checks if the current system is missing an SSLContext object
-    """
+    """Check if the current system is missing an SSLContext object."""
     v = sys.version_info
     if v.major == 3:
         return False  # Python 2 issue
@@ -205,10 +199,11 @@ def is_insecure_platform():
 
 
 def warn_if_insecure_platform():
-    """
-    Produces a nice message if SSLContext object is not available.
-    Also returns True -> platform is insecure
-                 False -> platform is secure
+    """Produce a nice message if SSLContext object is not available.
+
+    Returns
+    -------
+    `True` if platform is insecure, `False` if platform is secure.
     """
     m = (
         "\n"
@@ -242,9 +237,7 @@ def get_download_dest(input_path, url):
 
 
 def download_file_helper(url, input_path):
-    """
-    Manages the chunked downloading of a file given an url
-    """
+    """Manage the chunked downloading of a file given an url."""
     r = requests.get(url, stream=True)
     if r.status_code != 200:
         log.error("Failed to download file: %s" % r.json()["message"])
@@ -260,9 +253,7 @@ def download_file_helper(url, input_path):
 
 
 def check_for_allowed_file(f):
-    """
-    Checks a file extension against a list of seq file exts
-    """
+    """Check a file extension against a list of supporting sequence file extensions."""
     for ext in SUPPORTED_EXTENSIONS:
         if f.endswith(ext):
             return True
@@ -271,9 +262,7 @@ def check_for_allowed_file(f):
 
 
 def collapse_user(fp):
-    """
-    Converts a path back to ~/ from expanduser()
-    """
+    """Convert a path back to ~/ from expanduser()."""
     home_dir = os.path.expanduser("~")
     abs_path = os.path.abspath(fp)
     return abs_path.replace(home_dir, "~")
@@ -350,14 +339,20 @@ def get_raven_client(user_context=None, extra_context=None):
 
 
 def telemetry(fn):
-    """
-    Decorator for CLI and other functions that need special Sentry client handling.
-    This function is only required for functions that may exit *before* we set up
-    the ._raven_client object on the Api instance *or* that specifically catch and re-raise
-    exceptions or call sys.exit directly.
+    """Decorate CLI and other functions that need special Sentry client handling.
 
-    Note that this also overwrites verbose Raven logs on exit ("Sentry is waiting to send..."),
-    see https://github.com/getsentry/raven-python/issues/904 for more details.
+    This decorator is only required on functions that:
+        1) May exit *before* we set up a ._raven_client object on the Api() instance.
+        2) Specifically catch and re-raise exceptions.
+        3) Call sys.exit() directly.
+
+    Notes
+    -----
+    This overwrites verbose Raven logs on exit ("Sentry is waiting to send..."). See:
+
+        https://github.com/getsentry/raven-python/issues/904
+
+    for more details.
     """
 
     @wraps(fn)
@@ -393,11 +388,10 @@ def telemetry(fn):
 
 
 def pretty_errors(fn):
-    """
-    Decorator for the CLI for catching errors and then calling sys.exit(1).
+    """Decorate CLI functions, catching errors and then calling sys.exit(1).
 
-    For now, this is intended for use with the CLI and scripts where we only use
-    OneCodexExceptions (incl. ValidationError) and UploadException.
+    This is intended for use with the CLI and scripts where we only use OneCodexException and its
+    subclasses, e.g. ValidationError or UploadException.
     """
 
     @wraps(fn)

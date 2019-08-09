@@ -24,8 +24,10 @@ log = logging.getLogger("onecodex")
 
 
 class Api(object):
-    """This is the base One Codex Api object class. It instantiates a Potion-Client object under the
-    hood for making requests."""
+    """One Codex Base API object class.
+
+    Instantiates a Potion-Client object under the hood for making requests.
+    """
 
     def __init__(
         self,
@@ -130,8 +132,7 @@ class Api(object):
         return os.environ.get("ONE_CODEX_USER_EMAIL", os.environ.get("ONE_CODEX_USER_UUID"))
 
     def _copy_resources(self):
-        """Copies available subclassed potion resources (e.g., onecodex.models.Samples) into this
-        instance of Api().
+        """Copy subclassed potion resources into this instance of Api().
 
         Notes
         -----
@@ -169,9 +170,7 @@ class Api(object):
 
 
 class ExtendedPotionClient(PotionClient):
-    """
-    An extention of the PotionClient that caches schema
-    """
+    """Extend PotionClient to support caching API schema."""
 
     DATE_FORMAT = "%Y-%m-%d %H:%M"
     SCHEMA_SAVE_DURATION = 1  # day

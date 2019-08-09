@@ -56,7 +56,7 @@ warnings.showwarning = warning_msg
 @click.pass_context
 @telemetry
 def onecodex(ctx, api_key, no_pprint, verbose, telemetry):
-    """One Codex v1 API command line interface"""
+    """One Codex v1 API command line interface."""
     # Setup log formatter. TODO: Evaluate click-log instead
     log_formatter = CliLogFormatter()
     log.setLevel(logging.INFO)
@@ -169,7 +169,7 @@ def documents_list(ctx, json):
 @telemetry
 @login_required
 def documents_upload(ctx, max_threads, files):
-    """Upload a document file (of any type) to One Codex"""
+    """Upload a document file (of any type) to One Codex."""
     if len(files) == 0:
         click.echo(ctx.get_help())
         return
@@ -226,7 +226,7 @@ documents.add_command(documents_download, "download")
 @telemetry
 @login_required
 def analyses(ctx, analyses):
-    """Retrieve performed analyses"""
+    """Retrieve performed analyses."""
     cli_resource_fetcher(ctx, "analyses", analyses)
 
 
@@ -245,7 +245,7 @@ def analyses(ctx, analyses):
 @telemetry
 @login_required
 def classifications(ctx, classifications, results, readlevel, readlevel_path):
-    """Retrieve performed metagenomic classifications"""
+    """Retrieve performed metagenomic classifications."""
 
     # basic operation -- just print
     if not readlevel and not results:
@@ -291,7 +291,7 @@ def classifications(ctx, classifications, results, readlevel, readlevel_path):
 @telemetry
 @login_required
 def panels(ctx, panels):
-    """Retrieve performed in silico panel results"""
+    """Retrieve performed in silico panel results."""
     cli_resource_fetcher(ctx, "panels", panels)
 
 
@@ -301,7 +301,7 @@ def panels(ctx, panels):
 @telemetry
 @login_required
 def samples(ctx, samples):
-    """Retrieve uploaded samples"""
+    """Retrieve uploaded samples."""
     cli_resource_fetcher(ctx, "samples", samples)
 
 
@@ -328,8 +328,7 @@ def samples(ctx, samples):
 def upload(
     ctx, files, max_threads, prompt, forward, reverse, tags, metadata, project_id, coerce_ascii
 ):
-    """Upload a FASTA or FASTQ (optionally gzip'd) to One Codex"""
-
+    """Upload a FASTA or FASTQ (optionally gzip'd) to One Codex."""
     appendables = {}
     if tags:
         appendables["tags"] = []
@@ -445,7 +444,7 @@ def upload(
 @click.pass_context
 @telemetry
 def login(ctx):
-    """Add an API key (saved in ~/.onecodex)"""
+    """Add an API key (saved in ~/.onecodex)."""
     base_url = os.environ.get("ONE_CODEX_API_BASE", "https://app.onecodex.com")
     if not ctx.obj["API_KEY"]:
         _login(base_url)
@@ -465,5 +464,5 @@ def login(ctx):
 @click.pass_context
 @telemetry
 def logout(ctx):
-    """Delete your API key (saved in ~/.onecodex)"""
+    """Delete an API key (saved in ~/.onecodex)."""
     _logout()

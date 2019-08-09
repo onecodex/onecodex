@@ -56,7 +56,7 @@ class Documents(OneCodexBase, ResourceDownloadMixin):
 
     @classmethod
     def upload(cls, file_path, progressbar=None):
-        """Uploads a series of files to the One Codex server.
+        """Upload a series of files to the One Codex server.
 
         Parameters
         ----------

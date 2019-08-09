@@ -3,7 +3,7 @@ import requests
 
 
 class BearerTokenAuth(requests.auth.AuthBase):
-    """Attaches Bearer Auth headers to a given Request object."""
+    """Attache Bearer Auth headers to the given Request object."""
 
     def __init__(self, token):
         self.token = token
@@ -14,9 +14,7 @@ class BearerTokenAuth(requests.auth.AuthBase):
 
 
 def fetch_api_key_from_uname(username, password, server_url):
-    """
-    Retrieves an API key from the One Codex webpage given the username and password
-    """
+    """Retrieve an API key from the One Codex webpage given the username and password."""
     # TODO: Hit programmatic endpoint to fetch JWT key, not API key
     with requests.Session() as session:
         # get the login page normally
@@ -60,8 +58,8 @@ def check_version(version, server):
     def version_inadequate(client_version, server_version):
         """Simple, fast check for version inequality.
 
-        Could use python package `semver` if we need more precise checks in
-        edge cases, but this generally works for now.
+        Could use python package `semver` if we need more precise checks in edge cases, but this
+        generally works for now.
         """
         client_version = tuple([int(x) for x in client_version.split("-")[0].split(".")])
         server_version = tuple([int(x) for x in server_version.split(".")])
