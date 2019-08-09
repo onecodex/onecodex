@@ -553,7 +553,20 @@ def upload_sequence(
             bar.canceled = True
             bar.update(1)
             log.info("Canceled upload for sample: {}".format(fields["sample_id"]))
-            samples_resource.cancel_upload({"sample_id": fields["sample_id"]})
+
+            try:
+                samples_resource.cancel_upload({"sample_id": fields["sample_id"]})
+            except requests.exceptions.HTTPError as e:
+                # onecodex #298: it's possible to have this trigger after an upload has
+                # already succeeded. try to catch that instead of blowing up
+                if e.response and e.response.get("message") == "Upload already successful":
+                    log.debug(
+                        "Fail to cancel sample {}, upload already successful".format(
+                            fields["sample_id"]
+                        )
+                    )
+                else:
+                    raise
 
         atexit_register(cancel_atexit)
 
@@ -563,16 +576,11 @@ def upload_sequence(
         # exist on mainline: the failed fastx-proxy upload and the successful s3 intermediate.
         retry_fields = _make_retry_fields(filename, metadata, tags, project)
 
-        try:
-            sample_id = upload_sequence_fileobj(
-                fobj, filename, fields, retry_fields, session, samples_resource
-            )
-            atexit_unregister(cancel_atexit)
-            return sample_id
-        except KeyboardInterrupt:
-            cancel_atexit()
-            atexit_unregister(cancel_atexit)
-            raise
+        sample_id = upload_sequence_fileobj(
+            fobj, filename, fields, retry_fields, session, samples_resource
+        )
+        atexit_unregister(cancel_atexit)
+        return sample_id
 
 
 def _direct_upload(file_obj, file_name, fields, session, samples_resource):
