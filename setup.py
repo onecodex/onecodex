@@ -78,6 +78,7 @@ setup(
             "coverage~=4.5",
             "codecov~=2.0",
             "flake8",
+            "pydocstyle>=3.0.0",
             "pytest~=4.1",
             "pytest-cov~=2.6",
             "responses",
