@@ -5,7 +5,9 @@ from onecodex.analyses import AnalysisMixin
 
 
 class ClassificationsDataFrame(pd.DataFrame):
-    """A subclassed `pandas.DataFrame` containing additional metadata pertinent to analysis of
+    """A DataFrame containing additional One Codex metadata.
+
+    A subclassed `pandas.DataFrame` containing additional metadata pertinent to analysis of
     One Codex Classifications results. These fields, once part of the DataFrame, will no longer be
     updated when the contents of the associated `SampleCollection` change. In comparison, the
     corresponding attributes `_rank`, `_field`, `taxonomy` and `metadata` in a `SampleCollection`
@@ -111,7 +113,9 @@ class ClassificationsDataFrame(pd.DataFrame):
 
 
 class ClassificationsSeries(pd.Series):
-    """A subclassed `pandas.Series` containing additional metadata pertinent to analysis of
+    """A Series containing additional One Codex metadata.
+
+    A subclassed `pandas.Series` containing additional metadata pertinent to analysis of
     One Codex Classifications results. See the docstring for `ClassificationsDataFrame`.
     """
 
@@ -171,7 +175,9 @@ class ClassificationsSeries(pd.Series):
 
 @pd.api.extensions.register_dataframe_accessor("ocx")
 class OneCodexAccessor(AnalysisMixin):
-    """Accessor object alllowing access of `AnalysisMixin` methods from the 'ocx' namespace of a
+    """A pandas accessor object with One Codex methods and metadata.
+
+    Accessor object alllowing access of `AnalysisMixin` methods from the 'ocx' namespace of a
     `ClassificationsDataFrame`.
 
     Notes

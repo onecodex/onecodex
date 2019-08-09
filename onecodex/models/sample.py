@@ -124,9 +124,9 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
         return cls.where(*filters, **keyword_filters)
 
     def save(self):
-        """
-        Persist changes on this Samples object back to the One Codex server along with any changes
-        on its metadata (if it has any).
+        """Send changes on this Samples object to the One Codex server.
+
+        Changes to the metadata object and tags list are passed as well.
         """
         # any newly-created tags should be associated with this sample and saved
         if self.tags:
@@ -144,7 +144,7 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
     def upload(
         cls, files, metadata=None, tags=None, project=None, coerce_ascii=False, progressbar=None
     ):
-        """Uploads a series of files to the One Codex server.
+        """Upload a series of files to the One Codex server.
 
         Parameters
         ----------

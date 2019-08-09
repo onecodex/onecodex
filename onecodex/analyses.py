@@ -25,7 +25,7 @@ class AnalysisMixin(
     """
 
     def _get_auto_rank(self, rank):
-        """Tries to figure out what rank we should use for analyses"""
+        """Attempt to figure out what rank we should use for analyses."""
 
         if rank == "auto":
             # if we're an accessor for a ClassificationsDataFrame, use its _rank property
@@ -40,7 +40,7 @@ class AnalysisMixin(
             return rank
 
     def _guess_normalized(self):
-        """Returns true if the collated counts in `self._results` appear to be normalized.
+        """Return True if the collated counts in `self._results` appear to be normalized.
 
         Notes
         -----
@@ -54,7 +54,9 @@ class AnalysisMixin(
         )  # noqa
 
     def _metadata_fetch(self, metadata_fields, label=None):
-        """Takes a list of metadata fields, some of which can contain taxon names or taxon IDs, and
+        """Fetch and transform given metadata fields from `self.metadata`.
+
+        Takes a list of metadata fields, some of which can contain taxon names or taxon IDs, and
         returns a DataFrame with transformed data that can be used for plotting.
 
         Parameters
@@ -232,7 +234,9 @@ class AnalysisMixin(
         normalize="auto",
         table_format="wide",
     ):
-        """Takes the ClassificationsDataFrame associated with these samples, or SampleCollection,
+        """Generate a ClassificationDataFrame, performing any specified transformations.
+
+        Takes the ClassificationsDataFrame associated with these samples, or SampleCollection,
         does some filtering, and returns a ClassificationsDataFrame copy.
 
         Parameters

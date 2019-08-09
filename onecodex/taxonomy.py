@@ -3,8 +3,9 @@ import warnings
 
 class TaxonomyMixin(object):
     def tree_build(self):
-        """Build a tree from the taxonomy data present in this `ClassificationsDataFrame` or
-        `SampleCollection`.
+        """Build a tree from the taxonomy data present in this object.
+
+        This is designed for use with `ClassificationsDataFrame` or `SampleCollection`.
 
         Returns
         -------
@@ -42,7 +43,7 @@ class TaxonomyMixin(object):
         return nodes["1"]
 
     def tree_prune_tax_ids(self, tree, tax_ids):
-        """Prunes a tree back to contain only the tax_ids in the list and their parents.
+        """Prune a tree back to contain only the tax_ids in the list and their parents.
 
         Parameters
         ----------
@@ -68,8 +69,10 @@ class TaxonomyMixin(object):
         return tree
 
     def tree_prune_rank(self, tree, rank="species"):
-        """Takes a TreeNode tree and prunes off any tips not at the specified rank and backwards up
-        until all of the tips are at the specified rank.
+        """Prune tips off a TreeNode tree not at specified rank.
+
+        Takes a TreeNode tree and prunes off any tips below the specified rank, leaving behind all
+        nodes /at/ the specified rank and their parents.
 
         Parameters
         ----------

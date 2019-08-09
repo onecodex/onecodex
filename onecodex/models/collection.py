@@ -17,8 +17,9 @@ from onecodex.models import OneCodexBase, ResourceList
 
 
 class SampleCollection(ResourceList, AnalysisMixin):
-    """A collection of `Samples` or `Classifications` objects with many methods for analysis of
-    classifications results.
+    """A collection of `Samples` or `Classifications` objects.
+
+    Includes lots of methods for analysis of classifications results.
 
     Notes
     -----
@@ -121,8 +122,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         super(SampleCollection, self)._update()
 
     def _classification_fetch(self, skip_missing=None):
-        """Turns a list of objects associated with a classification result into a list of
-        Classifications objects.
+        """Transform a list of Samples or Classifications into a list of Classifications objects.
 
         Parameters
         ----------
@@ -163,8 +163,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         return self._cached["classifications"]
 
     def _collate_metadata(self):
-        """Turns a list of objects associated with a classification result into a DataFrame of
-        metadata.
+        """Transform a list of Samples or Classifications into a `pd.DataFrame` of metadata.
 
         Returns
         -------
@@ -210,8 +209,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         return self._cached["metadata"]
 
     def _collate_results(self, field=None):
-        """For a list of objects associated with a classification result, return the results as a
-        DataFrame and dict of taxa info.
+        """Transform a list of Classifications into `pd.DataFrames` of taxonomy and results data.
 
         Parameters
         ----------
@@ -292,8 +290,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         return self._cached["taxonomy"]
 
     def to_otu(self, biom_id=None):
-        """Converts a list of objects associated with a classification result into a `dict` resembling
-        an OTU table.
+        """Transform a list of Classifications objects into a `dict` resembling an OTU table.
 
         Parameters
         ----------

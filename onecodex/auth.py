@@ -20,10 +20,7 @@ API_KEY_LEN = 32
 
 
 def login_uname_pwd(server, api_key=None):
-    """
-    Prompts user for username and password, gets API key from server
-    if not provided.
-    """
+    """Prompts user for username and password, gets API key from server if not provided."""
     username = click.prompt("Please enter your One Codex (email)")
     if api_key is not None:
         return username, api_key
@@ -36,9 +33,7 @@ def login_uname_pwd(server, api_key=None):
 
 
 def _login(server, creds_file=None, api_key=None, silent=False):
-    """
-    Login main function
-    """
+    """Login main function."""
     # fetch_api_key and check_version expect server to end in /
     if server[-1] != "/":
         server = server + "/"
@@ -139,9 +134,7 @@ def _login(server, creds_file=None, api_key=None, silent=False):
 
 
 def _remove_creds(creds_file=None):
-    """
-    Remove ~/.onecodex file, returning True if successul or False if the file didn't exist
-    """
+    """Remove ~/.onecodex file, returning True if successul or False if the file didn't exist."""
     if creds_file is None:
         creds_file = os.path.expanduser("~/.onecodex")
 
@@ -162,9 +155,7 @@ def _remove_creds(creds_file=None):
 
 
 def _logout(creds_file=None):
-    """
-    Logout main function, just rm ~/.onecodex more or less
-    """
+    """Logout main function, just rm ~/.onecodex more or less."""
     if _remove_creds(creds_file=creds_file):
         click.echo("Successfully removed One Codex credentials.", err=True)
         sys.exit(0)
@@ -174,8 +165,9 @@ def _logout(creds_file=None):
 
 
 def login_required(fn):
-    """Requires login before proceeding, but does not prompt the user to login. Decorator should
-    be used only on Click CLI commands.
+    """Require login before proceeding, but does not prompt the user to login.
+
+    Decorator should be used only on Click CLI commands.
 
     Notes
     -----

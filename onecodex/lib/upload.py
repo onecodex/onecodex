@@ -66,7 +66,9 @@ class Buffer(object):
 
 
 class FASTXInterleave(object):
-    """Wrapper around two `file` objects that decompresses gzip or bz2, where applicable, and
+    """Decompress and interleave two FASTX files.
+
+    Wrapper around two `file` objects that decompresses gzip or bz2, where applicable, and
     interleaves the two files either two or four lines at a time. Yields uncompressed data.
 
     Parameters
@@ -143,7 +145,12 @@ class FASTXInterleave(object):
         return bytes_read
 
     def seek(self, loc):
-        """Called if upload fails and must be retried."""
+        """Seek to a position in the file.
+
+        Notes
+        -----
+        This is called if an upload fails and must be retried.
+        """
         assert loc == 0
 
         # rewind progress bar
@@ -205,7 +212,12 @@ class FilePassthru(object):
         return self._fsize - self._fp.tell()
 
     def seek(self, loc):
-        """Called if upload fails and must be retried."""
+        """Seek to a position in the file.
+
+        Notes
+        -----
+        This is called if an upload fails and must be retried.
+        """
         assert loc == 0
 
         # rewind progress bar
@@ -219,8 +231,10 @@ class FilePassthru(object):
 
 
 def interleaved_filename(file_path):
-    """Return filename used to represent a set of paired-end files. Assumes Illumina-style naming
-    conventions where each file has _R1_ or _R2_ in its name."""
+    """Return filename used to represent a set of paired-end files.
+
+    Assumes Illumina-style naming conventions where each file has _R1_ or _R2_ in its name.
+    """
     if not isinstance(file_path, tuple):
         raise OneCodexException("Cannot get the interleaved filename without a tuple.")
     if re.match(".*[._][Rr][12][_.].*", file_path[0]):
@@ -231,7 +245,7 @@ def interleaved_filename(file_path):
 
 
 def _file_size(file_path, uncompressed=False):
-    """Return size of a single file, compressed or uncompressed"""
+    """Return size of a single file, compressed or uncompressed."""
     _, ext = os.path.splitext(file_path)
 
     if uncompressed:
@@ -318,10 +332,11 @@ def _file_stats(file_path, enforce_fastx=True):
 
 
 def _choose_boto3_chunksize(file_obj):
-    """Choose the minimum chunk size for a boto3 direct-to-S3 upload that will result in less than
-    10000 chunks (the maximum).
+    """Return the appropriate chunksize for use in uploading the given file object.
 
-    This function will raise if there is no allowed chunk size big enough to accomodate the file.
+    Choose the minimum chunk size for a boto3 direct-to-S3 upload that will result in less than
+    10000 chunks (the maximum). This function will raise if there is no allowed chunk size big
+    enough to accomodate the file.
 
     Parameters
     ----------
@@ -438,8 +453,9 @@ def _call_init_upload(file_name, file_size, metadata, tags, project, samples_res
 
 
 def _make_retry_fields(file_name, metadata, tags, project):
-    """Generate fields to send to init_multipart_upload in the case that a Sample upload via
-    fastx-proxy fails.
+    """Generate fields to send to init_multipart_upload.
+
+    The fields returned by this function are used when a Sample upload via fastx-proxy fails.
 
     Parameters
     ----------
@@ -486,7 +502,7 @@ def upload_sequence(
     coerce_ascii=False,
     progressbar=None,
 ):
-    """Uploads a sequence file (or pair of files) to the One Codex server via either our proxy or directly to S3.
+    """Upload a sequence file (or pair of files) to One Codex via our proxy or directly to S3.
 
     Parameters
     ----------
@@ -584,8 +600,10 @@ def upload_sequence(
 
 
 def _direct_upload(file_obj, file_name, fields, session, samples_resource):
-    """Uploads a single file-like object via our validating proxy. Maintains compatibility with
-    direct upload to a user's S3 bucket as well in case we disable our validating proxy.
+    """Upload a single file-like object via our validating proxy.
+
+    Maintains compatibility with direct upload to a user's S3 bucket in case our validating proxy
+    is disabled for this user.
 
     Parameters
     ----------
@@ -685,8 +703,7 @@ def _direct_upload(file_obj, file_name, fields, session, samples_resource):
 
 
 def upload_sequence_fileobj(file_obj, file_name, fields, retry_fields, session, samples_resource):
-    """Uploads a single file-like object to the One Codex server via either fastx-proxy or directly
-    to S3.
+    """Upload a single file-like object to One Codex via either fastx-proxy or directly to S3.
 
     Parameters
     ----------
@@ -766,8 +783,7 @@ def upload_sequence_fileobj(file_obj, file_name, fields, retry_fields, session, 
 
 
 def upload_document(file_path, session, documents_resource, progressbar=None):
-    """Uploads multiple document files to the One Codex server directly to S3 via an intermediate
-    bucket.
+    """Upload multiple document files to One Codex directly to S3 via an intermediate bucket.
 
     Parameters
     ----------
@@ -808,7 +824,7 @@ def upload_document(file_path, session, documents_resource, progressbar=None):
 
 
 def upload_document_fileobj(file_obj, file_name, session, documents_resource):
-    """Uploads a single file-like object to the One Codex server directly to S3.
+    """Upload a single file-like object to One Codex directly to S3 via an intermediate bucket.
 
     Parameters
     ----------
@@ -860,8 +876,9 @@ def upload_document_fileobj(file_obj, file_name, session, documents_resource):
 
 
 def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):
-    """Uploads a single file-like object to an intermediate S3 bucket which One Codex can pull from
-    after receiving a callback.
+    """Upload a single file-like object to an intermediate S3 bucket.
+
+    One Codex will pull the file from S3 after receiving a callback.
 
     Parameters
     ----------

@@ -6,8 +6,7 @@ class Analyses(OneCodexBase):
     _cached_result = None
 
     def results(self, json=True):
-        """
-        Fetch the results for an Analyses resource.
+        """Fetch the results of an Analyses resource.
 
         Parameters
         ----------
@@ -16,8 +15,8 @@ class Analyses(OneCodexBase):
 
         Returns
         -------
-        Return type varies by Analyses resource sub-type. See, e.g.,
-        Classifications or Panels for documentation.
+        Return type varies by Analyses resource sub-type. See, e.g., Classifications or Panels for
+        documentation.
         """
         if json is True:
             return self._results()
@@ -42,19 +41,17 @@ class Classifications(Analyses):
     _cached_table = None
 
     def results(self, json=True):
-        """
-        Returns the complete results table for the classification.
+        """Return the complete results table for a classification.
 
         Parameters
         ----------
-        json : bool, optional
+        json : `bool`, optional
             Return result as JSON? Default True.
 
         Returns
         -------
-        table : dict | DataFrame
-            Return a JSON object with the classification results or a Pandas DataFrame
-            if json=False.
+        table : `dict` or `pd.DataFrame`
+            Return a JSON object with the classification results or a `pd.DataFrame` if json=False.
         """
         if json is True:
             return self._results()
@@ -72,20 +69,17 @@ class Classifications(Analyses):
         return self._cached_table
 
     def table(self):
-        """
-        Returns the complete results table for the classification.
+        """Return the complete results table for the classification.
 
         Returns
         -------
-        table : DataFrame
+        table : `pd.DataFrame`
             A Pandas DataFrame of the classification results.
         """
         return self.results(json=False)
 
     def abundances(self, ids=None):
-        """
-        Query the results table to get abundance data for all or some tax ids
-        """
+        """Query the results table to get abundance data for all or some tax ids."""
         # TODO: Consider removing this method... since it's kind of trivial
         #       May want to replace with something that actually gets genome-size adjusted
         #       abundances from the results table

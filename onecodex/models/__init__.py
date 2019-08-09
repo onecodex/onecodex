@@ -188,9 +188,7 @@ class ResourceList(object):
 
 
 class OneCodexBase(object):
-    """A parent object for all the One Codex objects that wraps the Potion-Client API and makes
-    access and usage easier.
-    """
+    """Parent of all the One Codex objects that wraps the Potion-Client API."""
 
     def __init__(self, _resource=None, **kwargs):
         # FIXME: allow setting properties via kwargs?
@@ -343,8 +341,9 @@ class OneCodexBase(object):
         return self._resource._uri == other._resource._uri
 
     def _to_json(self, include_references=True):
-        """Convert the model to JSON using the PotionJSONEncode and automatically
-        resolving the resource as needed (`_properties` call handles this).
+        """Convert model to JSON using the PotionJSONEncode.
+
+        Automatically resolves the resource as needed (`_properties` call handles this).
         """
         if include_references:
             return json.dumps(self._resource._properties, cls=PotionJSONEncoder)
@@ -377,7 +376,7 @@ class OneCodexBase(object):
 
     @classmethod
     def all(cls, sort=None, limit=None):
-        """Returns all objects of this type. Alias for where() (without filter arguments).
+        """Return all objects of this type. Alias for where() (without filter arguments).
 
         See `where` for documentation on the `sort` and `limit` parameters.
         """
@@ -385,21 +384,21 @@ class OneCodexBase(object):
 
     @classmethod
     def where(cls, *filters, **keyword_filters):
-        """Retrieves objects (Samples, Classifications, etc.) from the One Codex server.
+        """Retrieve objects (Samples, Classifications, etc.) from the One Codex server.
 
         Parameters
         ----------
-        filters : objects
+        filters : `object`
             Advanced filters to use (not implemented)
-        sort : string | list, optional
+        sort : `str` or `list`, optional
             Sort the results by this field (or list of fields). By default in descending order,
             but if any of the fields start with the special character ^, sort in ascending order.
             For example, sort=['size', '^filename'] will sort by size from largest to smallest and
             filename from A-Z for items with the same size.
-        limit : integer, optional
+        limit : `int`, optional
             Number of records to return. For smaller searches, this can reduce the number of
             network requests made.
-        keyword_filters : strings | objects
+        keyword_filters : `str` or `object`
             Filter the results by specific keywords (or filter objects, in advanced usage)
 
         Examples
@@ -411,7 +410,7 @@ class OneCodexBase(object):
 
         Returns
         -------
-        list
+        `list`
             A list of all objects matching these filters. If no filters are passed, this
             matches all objects.
         """
@@ -478,17 +477,18 @@ class OneCodexBase(object):
 
     @classmethod
     def get(cls, uuid):
-        """Retrieve one specific object from the server by its UUID (unique 16-character id). UUIDs
-        can be found in the web browser's address bar while viewing analyses and other objects.
+        """Retrieve one specific object from the server by its UUID (unique 16-character id).
+
+        UUIDs are found in the web browser's address bar while viewing analyses and other objects.
 
         Parameters
         ----------
-        uuid : string
+        uuid : `str`
             UUID of the object to retrieve.
 
         Returns
         -------
-        OneCodexBase | None
+        `OneCodexBase` or `None`
             The object with that UUID or None if no object could be found.
 
         Examples

@@ -3,9 +3,7 @@ class OneCodexException(Exception):
 
 
 class MethodNotSupported(OneCodexException):
-    """
-    The object does not support this operation.
-    """
+    """The object does not support this operation."""
 
     pass
 
@@ -19,9 +17,7 @@ class ServerError(OneCodexException):
 
 
 class UnboundObject(OneCodexException):
-    """
-    To use against the One Codex server, all classes must be derived from an Api instance.
-    """
+    """To use against the One Codex server, all classes must be derived from an Api() instance."""
 
     pass
 
@@ -31,9 +27,7 @@ class ValidationError(OneCodexException):
 
 
 class UploadException(Exception):
-    """
-    An exception for when things go wrong with uploading
-    """
+    """An exception for when things go wrong with uploading."""
 
     pass
 
@@ -43,7 +37,7 @@ class RetryableUploadException(UploadException):
 
 
 def raise_api_error(resp, state=None):
-    """Raise an exception with a pretty message in various states of upload"""
+    """Raise an exception with a pretty message in various states of upload."""
     # TODO: Refactor into an Exception class
     error_code = resp.status_code
 

@@ -6,7 +6,7 @@ class AnnotationSets(OneCodexBase, ResourceDownloadMixin):
     _resource_path = "/api/v1_experimental/annotation_sets"
 
     def download(self, path=None, file_obj=None, progressbar=False):
-        """Downloads an AnnotationSet in GenBank format.
+        """Download an AnnotationSet in GenBank format.
 
         Parameters
         ----------
@@ -40,8 +40,9 @@ class AnnotationSets(OneCodexBase, ResourceDownloadMixin):
         )
 
     def download_csv(self, path=None, file_obj=None, progressbar=False):
-        """Downloads an AnnotationSet in CSV format, including Annotation coordinates and sequences
-        in both amino acid and nucleotide space.
+        """Download an AnnotationSet in CSV format.
+
+        Includes Annotation coordinates and sequences in both amino acid and nucleotide space.
 
         Parameters
         ----------
@@ -93,9 +94,9 @@ class Taxa(OneCodexBase):
         return "<Taxa {} {} ({})>".format(self.taxon_id, self.name, self.rank)
 
     def genomes(self):
-        """Returns a list of all Genomes belonging to descendants of this Taxon."""
+        """Return a list of all Genomes belonging to descendants of this Taxon."""
         return ResourceList(self._resource.genomes(), Genomes)
 
     def parents(self):
-        """Returns a list of all parents of this Taxon, at all ranks."""
+        """Return a list of all parents of this Taxon, at all ranks."""
         return ResourceList(self._resource.parents(), Taxa)

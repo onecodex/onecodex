@@ -6,7 +6,7 @@ from onecodex.taxonomy import TaxonomyMixin
 
 class DistanceMixin(TaxonomyMixin):
     def alpha_diversity(self, metric="simpson", rank="auto"):
-        """Caculate the diversity within a community.
+        """Calculate the diversity within a community.
 
         Parameters
         ----------
@@ -76,8 +76,10 @@ class DistanceMixin(TaxonomyMixin):
         return skbio.diversity.beta_diversity(metric, counts, df.index.tolist())
 
     def unifrac(self, weighted=True, rank="auto"):
-        """A beta diversity metric that takes into account the relative relatedness of community
-        members. Weighted UniFrac looks at abundances, unweighted UniFrac looks at presence.
+        """Calculate the UniFrac beta diversity metric.
+
+        UniFrac takes into account the relatedness of community members. Weighted UniFrac considers
+        abundances, unweighted UniFrac considers presence.
 
         Parameters
         ----------

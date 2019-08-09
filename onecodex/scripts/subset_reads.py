@@ -61,11 +61,11 @@ def get_filtered_filename(file_path):
 
 
 def make_taxonomy_dict(classification, parent=False):
-    """
-    Takes a classification data frame returned by the API and parses it
-    into a dictionary mapping a tax_id to its children (or parent).
-    Restricted to tax_id's that are represented in the classification
-    results.
+    """Parse a Classification object into a `dict` mapping a tax_id to its children or parent.
+
+    Notes
+    -----
+    Restricted to taxonomic IDs that are represented in the classification results.
     """
 
     tax_id_map = {}
@@ -86,15 +86,23 @@ def make_taxonomy_dict(classification, parent=False):
 
 
 def recurse_taxonomy_map(tax_id_map, tax_id, parent=False):
-    """
-    Takes the output dict from make_taxonomy_map and an input tax_id
-    and recurses either up or down through the tree to get /all/ children
-    (or parents) of the given tax_id.
+    """Traverse up or down through a taxonomic tree.
+
+    Finds all children (or parents) of the given tax_id.
+
+    Parameters
+    ----------
+    tax_id_map : `dict`
+        The output of make_taxonomy_map().
+    tax_id : `int`
+        The taxonomic ID of the node to begin the traversal from.
+    parent : `bool`
+        Return parents of the taxonomic node rather than children.
     """
 
     if parent:
         # TODO: allow filtering on tax_id and its parents, too
-        pass
+        raise NotImplementedError
     else:
 
         def _child_recurse(tax_id, visited):
