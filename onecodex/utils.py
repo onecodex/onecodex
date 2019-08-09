@@ -474,3 +474,47 @@ def atexit_unregister(func, *args, **kwargs):
             if atexit._exithandlers[i] == (func, args, kwargs):
                 atexit._exithandlers[i] = (lambda: None, [], {})
                 break
+
+
+def click_path_autocomplete_helper(ctx, args, incomplete, filename=True, directory=True):
+    """Suggest paths to complete a partially typed filename or directory.
+
+    Parameters
+    ----------
+    ctx : `click.Context`
+    args : `list`
+    incomplete : `str`
+        A partially typed path to a file or directory.
+    filename : `bool`
+        If True, include filenames in the list of suggestions.
+    directory : `bool`
+        If True, include directories in the list of suggestions.
+
+    Returns
+    -------
+    A list of suggestions for completing the path.
+    """
+    dir_name = os.path.dirname(incomplete)
+    file_name = os.path.basename(incomplete)
+
+    if dir_name.startswith("~"):
+        abs_dir_name = os.path.expanduser(dir_name)
+    else:
+        abs_dir_name = os.path.abspath(dir_name)
+
+    if not os.path.exists(abs_dir_name):
+        return []
+
+    suggestions = []
+
+    for item in os.listdir(abs_dir_name):
+        if item.startswith(file_name):
+            abs_item_path = os.path.join(abs_dir_name, item)
+            item_path = os.path.join(dir_name, item)
+
+            if directory and os.path.isdir(abs_item_path):
+                suggestions.append(item_path)
+            elif filename and os.path.isfile(abs_item_path):
+                suggestions.append(item_path)
+
+    return suggestions
