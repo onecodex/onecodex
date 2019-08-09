@@ -2,12 +2,12 @@ from __future__ import print_function
 import click
 import copy
 import dateutil
+from functools import partial
 import logging
 import os
 import re
 import time
 import warnings
-
 
 from onecodex.api import Api
 from onecodex.auth import _login, _logout, _remove_creds, login_required
@@ -15,6 +15,7 @@ from onecodex.lib.upload import DEFAULT_THREADS, _file_size
 from onecodex.metadata_upload import validate_appendables
 from onecodex.scripts import subset_reads
 from onecodex.utils import (
+    click_path_autocomplete_helper,
     cli_resource_fetcher,
     CliLogFormatter,
     download_file_helper,
@@ -163,7 +164,13 @@ def documents_list(ctx, json):
     help=OPTION_HELP["max_threads"],
     metavar="<int:threads>",
 )
-@click.argument("files", nargs=-1, required=False, type=click.Path(exists=True))
+@click.argument(
+    "files",
+    nargs=-1,
+    required=False,
+    type=click.Path(exists=True),
+    autocompletion=partial(click_path_autocomplete_helper, directory=False),
+)
 @click.pass_context
 @pretty_errors
 @telemetry
@@ -195,6 +202,7 @@ def documents_upload(ctx, max_threads, files):
     help="Write document to PATH",
     required=False,
     type=click.Path(dir_okay=False, allow_dash=True),
+    autocompletion=partial(click_path_autocomplete_helper, filename=False),
 )
 @click.pass_context
 @pretty_errors
@@ -238,6 +246,7 @@ def analyses(ctx, analyses):
     type=click.Path(),
     default="./",
     help=OPTION_HELP["readlevel_path"],
+    autocompletion=partial(click_path_autocomplete_helper, filename=False),
 )
 @click.option("--results", "results", is_flag=True, help=OPTION_HELP["results"])
 @click.pass_context
@@ -308,15 +317,31 @@ def samples(ctx, samples):
 # utilites
 @onecodex.command("upload")
 @click.option("--max-threads", default=4, help=OPTION_HELP["max_threads"], metavar="<int:threads>")
-@click.argument("files", nargs=-1, required=False, type=click.Path(exists=True))
+@click.argument(
+    "files",
+    nargs=-1,
+    required=False,
+    type=click.Path(exists=True),
+    autocompletion=partial(click_path_autocomplete_helper, directory=False),
+)
 @click.option(
     "--coerce-ascii",
     is_flag=True,
     default=False,
     help="automatically rename unicode filenames to ASCII",
 )
-@click.option("--forward", type=click.Path(exists=True), help=OPTION_HELP["forward"])
-@click.option("--reverse", type=click.Path(exists=True), help=OPTION_HELP["reverse"])
+@click.option(
+    "--forward",
+    type=click.Path(exists=True),
+    help=OPTION_HELP["forward"],
+    autocompletion=partial(click_path_autocomplete_helper, directory=False),
+)
+@click.option(
+    "--reverse",
+    type=click.Path(exists=True),
+    help=OPTION_HELP["reverse"],
+    autocompletion=partial(click_path_autocomplete_helper, directory=False),
+)
 @click.option("--prompt/--no-prompt", is_flag=True, help=OPTION_HELP["prompt"], default=True)
 @click.option("--tag", "-t", "tags", multiple=True, help=OPTION_HELP["tag"])
 @click.option("--metadata", "-md", multiple=True, help=OPTION_HELP["metadata"])
