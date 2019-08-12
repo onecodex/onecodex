@@ -617,6 +617,8 @@ def _direct_upload(file_obj, file_name, fields, session, samples_resource):
     fields : `dict`
         Additional data fields to include as JSON in the POST. Must include 'sample_id' and
         'upload_url' at a minimum.
+    session : `requests.Session`
+        Use this session for direct uploads (via proxy or direct to a user's S3 bucket).
     samples_resource : `onecodex.models.Samples`
         Wrapped potion-client object exposing `init_upload` and `confirm_upload` routes to mainline.
 
@@ -720,7 +722,7 @@ def upload_sequence_fileobj(file_obj, file_name, fields, retry_fields, session, 
     retry_fields : `dict`
         Metadata sent to `init_multipart_upload` in the case that the upload via fastx-proxy fails.
     session : `requests.Session`
-        Connection to One Codex API.
+        Use this session for direct uploads (via proxy or direct to a user's S3 bucket).
     samples_resource : `onecodex.models.Samples`
         Wrapped potion-client object exposing `init_upload` and `confirm_upload` routes to mainline.
 
@@ -773,7 +775,7 @@ def upload_sequence_fileobj(file_obj, file_name, fields, retry_fields, session, 
             file_obj,
             file_name,
             retry_fields,
-            session,
+            samples_resource._client.session,
             samples_resource._client._root_url + retry_fields["callback_url"],  # full callback url
         )
         sample_id = s3_upload.get("sample_id", "<UUID not yet assigned>")
@@ -782,15 +784,13 @@ def upload_sequence_fileobj(file_obj, file_name, fields, retry_fields, session, 
     return sample_id
 
 
-def upload_document(file_path, session, documents_resource, progressbar=None):
+def upload_document(file_path, documents_resource, progressbar=None):
     """Upload multiple document files to One Codex directly to S3 via an intermediate bucket.
 
     Parameters
     ----------
     file_path : `str`
         A path to a file on the system.
-    session : `requests.Session`
-        Connection to One Codex API.
     documents_resource : `onecodex.models.Documents`
         Wrapped potion-client object exposing `init_upload` and `confirm_upload` methods.
     progressbar : `click.progressbar`, optional
@@ -818,12 +818,12 @@ def upload_document(file_path, session, documents_resource, progressbar=None):
 
     with progressbar as bar:
         fobj = FilePassthru(file_path, file_size, bar)
-        document_id = upload_document_fileobj(fobj, file_name, session, documents_resource)
+        document_id = upload_document_fileobj(fobj, file_name, documents_resource)
         bar.finish()
         return document_id
 
 
-def upload_document_fileobj(file_obj, file_name, session, documents_resource):
+def upload_document_fileobj(file_obj, file_name, documents_resource):
     """Upload a single file-like object to One Codex directly to S3 via an intermediate bucket.
 
     Parameters
@@ -835,8 +835,6 @@ def upload_document_fileobj(file_obj, file_name, session, documents_resource):
         The file_name you wish to associate this file with at One Codex.
     fields : `dict`
         Additional data fields to include as JSON in the POST.
-    session : `requests.Session`
-        Connection to One Codex API.
     documents_resource : `onecodex.models.Documents`
         Wrapped potion-client object exposing `init_upload` and `confirm_upload` routes to mainline.
 
@@ -865,7 +863,7 @@ def upload_document_fileobj(file_obj, file_name, session, documents_resource):
         file_obj,
         file_name,
         fields,
-        session,
+        documents_resource._client.session,
         documents_resource._client._root_url + fields["callback_url"],  # full callback url
     )
 
@@ -891,6 +889,8 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):
         The file_name you wish to associate this fastx file with at One Codex.
     fields : `dict`
         Additional data fields to include as JSON in the POST.
+    session : `requests.Session`
+        Authenticated connection to One Codex API used to POST callback.
     callback_url : `string`
         API callback at One Codex which will trigger a pull from this S3 bucket.
 
