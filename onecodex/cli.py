@@ -188,7 +188,7 @@ def documents_upload(ctx, max_threads, files):
         ctx.obj["API"].Documents.upload,
         files,
         {"progressbar": bar},
-        max_threads=max_threads,
+        max_threads=8 if max_threads > 8 else max_threads,
         graceful_exit=False,
     )
 
@@ -460,7 +460,7 @@ def upload(
         ctx.obj["API"].Samples.upload,
         files,
         upload_kwargs,
-        max_threads=max_threads,
+        max_threads=8 if max_threads > 8 else max_threads,
         graceful_exit=False,
     )
 
