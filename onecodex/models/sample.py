@@ -1,3 +1,4 @@
+import requests
 from requests.exceptions import HTTPError
 from six import string_types
 import warnings
@@ -189,9 +190,12 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
             if isinstance(project_search, list):
                 project = project_search[0]
 
+        # setup a requests session to use for uploading data
+        session = requests.Session()
+
         sample_id = upload_sequence(
             files,
-            res._client.session,
+            session,
             res,
             metadata=metadata,
             tags=tags,

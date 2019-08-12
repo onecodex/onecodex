@@ -80,6 +80,59 @@ def test_fastxinterleave():
     assert "must be one of" in str(e.value)
 
 
+class FakeAPISession:
+    def post(self, url, **kwargs):
+        if "data" in kwargs:
+            kwargs["data"].read()  # So multipart uploader will close properly
+        resp = lambda: None  # noqa
+        resp.json = lambda: {"code": 200}
+        resp.status_code = 201 if "auth" in kwargs else 200
+        resp.raise_for_status = lambda: None  # noqa
+
+        if url.endswith("s3_confirm"):
+            resp.status_code = 200
+            resp.json = lambda: {"sample_id": "s3_confirm_sample_id"}  # noqa
+
+        return resp
+
+
+class FakeProxySession:
+    def __init__(self, status_code, no_msg=False):
+        self.status_code = status_code
+        self.no_msg = no_msg
+
+    # proxy upload will fail and fall through to S3
+    def post(self, url, **kwargs):
+        if "data" in kwargs:
+            kwargs["data"].read()  # So multipart uploader will close properly
+        resp = lambda: None  # noqa
+        resp.raise_for_status = lambda: None  # noqa
+
+        if url.endswith("fastx_proxy"):
+            resp.status_code = self.status_code
+            if self.no_msg:
+                resp.json = lambda: {}  # noqa
+            else:
+                resp.json = lambda: {"message": "FASTX Proxy Error Message"}  # noqa
+        elif "auth" in kwargs:
+            resp.status_code = 201
+        else:
+            resp.status_code = 200
+
+        # support for callback for more info on fastx-proxy errors
+        if url.endswith("errors") or url.endswith("status"):
+            if self.no_msg:
+                resp.status_code = self.status_code
+                resp.json = lambda: {"code": self.status_code}
+            else:
+                resp.json = lambda: {
+                    "message": "Additional error message",
+                    "code": self.status_code,
+                }
+
+        return resp
+
+
 class FakeSamplesResource:
     def __init__(self, what_fails=None, via_proxy=True):
         self.what_fails = what_fails
@@ -137,6 +190,7 @@ class FakeSamplesResource:
 
     class _client(object):
         _root_url = "http://localhost:3000"
+        session = FakeAPISession()
 
 
 class FakeDocumentsResource:
@@ -171,57 +225,7 @@ class FakeDocumentsResource:
 
     class _client(object):
         _root_url = "http://localhost:3000"
-
-
-class FakeSession:
-    def post(self, url, **kwargs):
-        if "data" in kwargs:
-            kwargs["data"].read()  # So multipart uploader will close properly
-        resp = lambda: None  # noqa
-        resp.json = lambda: {"code": 200}
-        resp.status_code = 201 if "auth" in kwargs else 200
-        resp.raise_for_status = lambda: None  # noqa
-        return resp
-
-
-class FakeSessionProxyFails:
-    def __init__(self, failure_code, no_msg=False):
-        self.failure_code = failure_code
-        self.no_msg = no_msg
-
-    # proxy upload will fail and fall through to S3
-    def post(self, url, **kwargs):
-        if "data" in kwargs:
-            kwargs["data"].read()  # So multipart uploader will close properly
-        resp = lambda: None  # noqa
-        resp.raise_for_status = lambda: None  # noqa
-
-        if url.endswith("fastx_proxy"):
-            resp.status_code = self.failure_code
-            if self.no_msg:
-                resp.json = lambda: {}  # noqa
-            else:
-                resp.json = lambda: {"message": "FASTX Proxy Error Message"}  # noqa
-        elif url.endswith("s3_confirm"):
-            resp.status_code = 200
-            resp.json = lambda: {"sample_id": "s3_confirm_sample_id"}  # noqa
-        elif "auth" in kwargs:
-            resp.status_code = 201
-        else:
-            resp.status_code = 200
-
-        # support for callback for more info on fastx-proxy errors
-        if url.endswith("errors") or url.endswith("status"):
-            if self.no_msg:
-                resp.status_code = self.failure_code
-                resp.json = lambda: {"code": self.failure_code}
-            else:
-                resp.json = lambda: {
-                    "message": "Additional error message",
-                    "code": self.failure_code,
-                }
-
-        return resp
+        session = FakeAPISession()
 
 
 @pytest.mark.parametrize(
@@ -246,7 +250,7 @@ def test_upload_lots_of_files(files, n_uploads, fxi_calls, fxp_calls, size_calls
 
     with patch(uso) as upload_sequence_fileobj, patch(fxi) as interleave, patch(fxp) as passthru:
         with patch(sz, size_effect=fake_size) as size:
-            upload_sequence(files, FakeSession(), FakeSamplesResource())
+            upload_sequence(files, FakeProxySession(200), FakeSamplesResource())
 
             assert upload_sequence_fileobj.call_count == n_uploads
             assert interleave.call_count == fxi_calls
@@ -256,7 +260,7 @@ def test_upload_lots_of_files(files, n_uploads, fxi_calls, fxp_calls, size_calls
     with patch(udo) as upload_document_fileobj, patch(fxp) as passthru:
         with patch(sz, size_effect=fake_size) as size:
             files = files[0] if isinstance(files, tuple) else files
-            upload_document(files, FakeSession(), FakeDocumentsResource())
+            upload_document(files, FakeDocumentsResource())
 
             assert upload_document_fileobj.call_count == n_uploads
             assert passthru.call_count == fxp_calls + fxi_calls
@@ -267,19 +271,21 @@ def test_api_failures(caplog):
     files = ("tests/data/files/test_R1_L001.fq.gz", "tests/data/files/test_R2_L001.fq.gz")
 
     with pytest.raises(UploadException) as e:
-        upload_sequence(files, FakeSession(), FakeSamplesResource("init"))
+        upload_sequence(files, FakeProxySession(200), FakeSamplesResource("init"))
     assert "Could not initialize upload" in str(e.value)
 
     # Test direct upload not via the proxy
     with pytest.raises(UploadException) as e:
         with patch("boto3.client") as b3:
-            upload_sequence(files, FakeSession(), FakeSamplesResource("confirm", via_proxy=False))
+            upload_sequence(
+                files, FakeProxySession(200), FakeSamplesResource("confirm", via_proxy=False)
+            )
             assert b3.call_count == 1
     assert "Callback could not be completed" in str(e.value)
 
     # Test 400 on proxy
     with pytest.raises(UploadException) as e:
-        upload_sequence(files, FakeSessionProxyFails(400, no_msg=True), FakeSamplesResource())
+        upload_sequence(files, FakeProxySession(400, no_msg=True), FakeSamplesResource())
     assert "File could not be uploaded" in str(e.value)
 
     # Test 500 on proxy
@@ -300,25 +306,27 @@ def test_unicode_filenames(caplog):
     # should raise if --coerce-ascii not passed
     for before, after in file_list:
         with pytest.raises(OneCodexException) as e:
-            upload_sequence(before, FakeSession(), FakeSamplesResource())
+            upload_sequence(before, FakeProxySession(200), FakeSamplesResource())
         assert "must be ascii" in str(e.value)
 
     # make sure log gets warnings when we rename files
     for before, after in file_list:
-        upload_sequence(before, FakeSession(), FakeSamplesResource(), coerce_ascii=True)
+        upload_sequence(before, FakeProxySession(200), FakeSamplesResource(), coerce_ascii=True)
 
     for _, after in file_list:
         assert after in caplog.text
 
 
 def test_single_end_files():
-    upload_sequence("tests/data/files/test_R1_L001.fq.gz", FakeSession(), FakeSamplesResource())
+    upload_sequence(
+        "tests/data/files/test_R1_L001.fq.gz", FakeProxySession(200), FakeSamplesResource()
+    )
 
 
 def test_paired_end_files():
     upload_sequence(
         ("tests/data/files/test_R1_L001.fq.gz", "tests/data/files/test_R2_L001.fq.gz"),
-        FakeSession(),
+        FakeProxySession(200),
         FakeSamplesResource(),
     )
 
@@ -328,7 +336,7 @@ def test_upload_sequence_fileobj():
     file_obj = BytesIO(b">test\nACGT\n")
     init_upload_fields = FakeSamplesResource().init_upload(["filename", "size", "upload_type"])
     upload_sequence_fileobj(
-        file_obj, "test.fa", init_upload_fields, {}, FakeSession(), FakeSamplesResource()
+        file_obj, "test.fa", init_upload_fields, {}, FakeProxySession(200), FakeSamplesResource()
     )
     file_obj.close()
 
@@ -341,7 +349,7 @@ def test_upload_sequence_fileobj():
             "test.fa",
             init_upload_fields,
             {},
-            FakeSessionProxyFails(500),
+            FakeProxySession(500),
             FakeSamplesResource(),
         )
         file_obj.close()
@@ -359,7 +367,7 @@ def test_upload_sequence_fileobj():
             "test.fa",
             init_upload_fields,
             {},
-            FakeSessionProxyFails(400),
+            FakeProxySession(400),
             FakeSamplesResource(),
         )
         file_obj.close()
@@ -369,16 +377,14 @@ def test_upload_sequence_fileobj():
 def test_upload_document_fileobj():
     with patch("boto3.client") as b3:
         file_obj = BytesIO(b"MY_SPOON_IS_TOO_BIG\n")
-        upload_document_fileobj(file_obj, "spoon.pdf", FakeSession(), FakeDocumentsResource())
+        upload_document_fileobj(file_obj, "spoon.pdf", FakeDocumentsResource())
         file_obj.close()
 
         assert b3.call_count == 1
 
     with pytest.raises(UploadException) as e:
         file_obj = BytesIO(b"MY_SPOON_IS_TOO_BIG\n")
-        upload_document_fileobj(
-            file_obj, "spoon.pdf", FakeSession(), FakeDocumentsResource("init_multipart")
-        )
+        upload_document_fileobj(file_obj, "spoon.pdf", FakeDocumentsResource("init_multipart"))
         file_obj.close()
     assert "Could not initialize" in str(e.value)
 

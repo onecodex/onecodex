@@ -67,9 +67,8 @@ class Documents(OneCodexBase, ResourceDownloadMixin):
 
         Returns
         -------
-        A `Samples` object upon successful upload. None if the upload failed.
+        A `Documents` object upon successful upload. None if the upload failed.
         """
-        res = cls._resource
-        doc_id = upload_document(file_path, res._client.session, res, progressbar=progressbar)
+        doc_id = upload_document(file_path, cls._resource, progressbar=progressbar)
 
         return cls.get(doc_id)
