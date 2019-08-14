@@ -399,34 +399,11 @@ class FakeProgressBar(object):
         pass
 
 
-def _call_init_upload(file_name, file_size, metadata, tags, project, samples_resource):
-    """Call init_upload at the One Codex API and return data used to upload the file.
-
-    Parameters
-    ----------
-    file_name : `string`
-        The file_name you wish to associate this fastx file with at One Codex.
-    file_size : `integer`
-        Accurate size of file to be uploaded, in bytes.
-    metadata : `dict`, optional
-    tags : `list`, optional
-    project : `string`, optional
-        UUID of project to associate this sample with.
-    samples_resource : `onecodex.models.Samples`
-        Wrapped potion-client object exposing `init_upload` and `confirm_upload` routes to mainline.
-
-    Returns
-    -------
-    `dict`
-        Contains, at a minimum, 'upload_url' and 'sample_id'. Should also contain various additional
-        data used to upload the file to fastx-proxy, a user's S3 bucket, or an intermediate bucket.
+def build_upload_dict(metadata, tags, project):
     """
-    upload_args = {
-        "filename": file_name,
-        "size": file_size,
-        "upload_type": "standard",  # this is multipart form data
-    }
-
+    Build the metadata/tags/projects in a dict compatible with what the OneCodex backend expects
+    """
+    upload_args = {}
     if metadata:
         # format metadata keys as snake case
         new_metadata = {}
@@ -442,14 +419,55 @@ def _call_init_upload(file_name, file_size, metadata, tags, project, samples_res
     if project:
         upload_args["project"] = getattr(project, "id", project)
 
+    return upload_args
+
+
+def _call_init_upload(
+    file_name, file_size, metadata, tags, project, samples_resource, sample_id, external_sample_id
+):
+    """Call init_upload at the One Codex API and return data used to upload the file.
+
+    Parameters
+    ----------
+    file_name : `string`
+        The file_name you wish to associate this fastx file with at One Codex.
+    file_size : `integer`
+        Accurate size of file to be uploaded, in bytes.
+    metadata : `dict`, optional
+    tags : `list`, optional
+    project : `string`, optional
+        UUID of project to associate this sample with.
+    samples_resource : `onecodex.models.Samples`
+        Wrapped potion-client object exposing `init_upload` and `confirm_upload` routes to mainline.
+    sample_id : `string`, optional
+        If passed, will upload the file(s) to the sample with that id. Only works if the sample was pre-uploaded
+    external_sample_id : `string`, optional
+        If passed, will upload the file(s) to the sample with that metadata external id. Only works if the sample was pre-uploaded
+
+    Returns
+    -------
+    `dict`
+        Contains, at a minimum, 'upload_url' and 'sample_id'. Should also contain various additional
+        data used to upload the file to fastx-proxy, a user's S3 bucket, or an intermediate bucket.
+    """
+    upload_args = {
+        "filename": file_name,
+        "size": file_size,
+        "upload_type": "standard",  # this is multipart form data
+    }
+
+    upload_args.update(build_upload_dict(metadata, tags, project))
+    if sample_id:
+        upload_args["sample_id"] = sample_id
+    if external_sample_id:
+        upload_args["external_sample_id"] = external_sample_id
+
     try:
-        upload_info = samples_resource.init_upload(upload_args)
+        return samples_resource.init_upload(upload_args)
     except requests.exceptions.HTTPError as e:
         raise_api_error(e.response, state="init")
     except requests.exceptions.ConnectionError:
         raise_connectivity_error(file_name)
-
-    return upload_info
 
 
 def _make_retry_fields(file_name, metadata, tags, project):
@@ -473,23 +491,32 @@ def _make_retry_fields(file_name, metadata, tags, project):
         init_multipart_upload is called.
     """
     upload_args = {"filename": file_name}
-
-    if metadata:
-        # format metadata keys as snake case
-        new_metadata = {}
-
-        for md_key, md_val in metadata.items():
-            new_metadata[snake_case(md_key)] = md_val
-
-        upload_args["metadata"] = new_metadata
-
-    if tags:
-        upload_args["tags"] = tags
-
-    if project:
-        upload_args["project"] = getattr(project, "id", project)
-
+    upload_args.update(build_upload_dict(metadata, tags, project))
     return upload_args
+
+
+def preupload_sample(samples_resource, metadata=None, tags=None, project=None):
+    """Call init_preupload at the One Codex API and return the sample id
+
+    Parameters
+    ----------
+    metadata : `dict`, optional
+    tags : `list`, optional
+    project : `string`, optional
+        UUID of project to associate this sample with.
+
+    Returns
+    -------
+    `dict`
+        Contains, at a minimum 'sample_id'.
+    """
+    upload_args = build_upload_dict(metadata, tags, project)
+    try:
+        res = samples_resource.init_preupload(upload_args)
+    except requests.exceptions.HTTPError as e:
+        raise_api_error(e.response, state="init_preupload")
+
+    return res["sample_id"]
 
 
 def upload_sequence(
@@ -501,6 +528,8 @@ def upload_sequence(
     project=None,
     coerce_ascii=False,
     progressbar=None,
+    sample_id=None,
+    external_sample_id=None,
 ):
     """Upload a sequence file (or pair of files) to One Codex via our proxy or directly to S3.
 
@@ -522,6 +551,10 @@ def upload_sequence(
         If true, rename unicode filenames to ASCII and issue warning.
     progressbar : `click.progressbar`, optional
         If passed, display a progress bar using Click.
+    sample_id : `string`, optional
+        If passed, will upload the file(s) to the sample with that id. Only works if the sample was pre-uploaded
+    external_sample_id : `string`, optional
+        If passed, will upload the file(s) to the sample with that metadata external id. Only works if the sample was pre-uploaded
 
     Returns
     -------
@@ -563,7 +596,16 @@ def upload_sequence(
 
         # must call init_upload in this loop in order to get a sample uuid we can call
         # cancel_upload on later if user hits ctrl+c
-        fields = _call_init_upload(filename, file_size, metadata, tags, project, samples_resource)
+        fields = _call_init_upload(
+            filename,
+            file_size,
+            metadata,
+            tags,
+            project,
+            samples_resource,
+            sample_id,
+            external_sample_id,
+        )
 
         def cancel_atexit():
             bar.canceled = True

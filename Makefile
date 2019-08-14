@@ -17,3 +17,6 @@ coveragehtml:
 
 install:
 	python setup.py install
+
+format:
+	black -l 100 --exclude vendored/* onecodex/ tests/

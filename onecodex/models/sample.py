@@ -4,9 +4,31 @@ from six import string_types
 import warnings
 
 from onecodex.exceptions import OneCodexException
-from onecodex.lib.upload import upload_sequence
+from onecodex.lib.upload import upload_sequence, preupload_sample
 from onecodex.models import OneCodexBase, Projects, Tags
 from onecodex.models.helpers import truncate_string, ResourceDownloadMixin
+
+
+def get_project(project):
+    """
+    Gets the actual project instance if the argument is not None and not already
+    a Project. Raises an exception if the project can't be found.
+    """
+    if not isinstance(project, Projects) and project is not None:
+        project_search = Projects.get(project)
+        if not project_search:
+            project_search = Projects.where(name=project)
+        if not project_search:
+            try:
+                project_search = Projects.where(project_name=project)
+            except HTTPError:
+                project_search = None
+        if not project_search:
+            raise OneCodexException("{} is not a valid project UUID".format(project))
+
+        if isinstance(project_search, list):
+            return project_search[0]
+    return project
 
 
 class Samples(OneCodexBase, ResourceDownloadMixin):
@@ -142,8 +164,36 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
             self.metadata.save()
 
     @classmethod
+    def preupload(cls, metadata=None, tags=None, project=None):
+        """Create a sample in a waiting state where the files will be sent later on
+
+        Parameters
+        ----------
+        metadata : `dict`, optional
+        tags : `list`, optional
+            A list of optional tags to create. Tags must be passed as dictionaries with a single key
+            `name` and the tag name, e.g., {"name": "my tag"}. New tags will be created on-the-fly
+            as needed.
+        project : `string`, optional
+            UUID of project to associate this sample with.
+        """
+        res = cls._resource
+        project = get_project(project)
+
+        sample_id = preupload_sample(res, metadata, tags, project)
+        return cls.get(sample_id)
+
+    @classmethod
     def upload(
-        cls, files, metadata=None, tags=None, project=None, coerce_ascii=False, progressbar=None
+        cls,
+        files,
+        metadata=None,
+        tags=None,
+        project=None,
+        coerce_ascii=False,
+        progressbar=None,
+        sample_id=None,
+        external_sample_id=None,
     ):
         """Upload a series of files to the One Codex server.
 
@@ -164,6 +214,10 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
             If true, rename unicode filenames to ASCII and issue warning.
         progressbar : `click.progressbar`, optional
             If passed, display a progress bar using Click.
+        sample_id : `string`, optional
+            If passed, will upload the file(s) to the sample with that id. Only works if the sample was pre-uploaded
+        external_sample_id : `string`, optional
+            If passed, will upload the file(s) to the sample with that metadata external id. Only works if the sample was pre-uploaded
 
         Returns
         -------
@@ -175,21 +229,10 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
                 "Please pass a string or tuple or forward and reverse filepaths."
             )
 
-        if not isinstance(project, Projects) and project is not None:
-            project_search = Projects.get(project)
-            if not project_search:
-                project_search = Projects.where(name=project)
-            if not project_search:
-                try:
-                    project_search = Projects.where(project_name=project)
-                except HTTPError:
-                    project_search = None
-            if not project_search:
-                raise OneCodexException("{} is not a valid project UUID".format(project))
+        if sample_id and external_sample_id:
+            raise OneCodexException("Only pass sample_id OR external_sample_id, not both.")
 
-            if isinstance(project_search, list):
-                project = project_search[0]
-
+        project = get_project(project)
         # setup a requests session to use for uploading data
         session = requests.Session()
 
@@ -202,6 +245,8 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
             project=project,
             coerce_ascii=coerce_ascii,
             progressbar=progressbar,
+            sample_id=sample_id,
+            external_sample_id=external_sample_id,
         )
 
         return cls.get(sample_id)
