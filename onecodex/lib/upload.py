@@ -400,9 +400,7 @@ class FakeProgressBar(object):
 
 
 def build_upload_dict(metadata, tags, project):
-    """
-    Build the metadata/tags/projects in a dict compatible with what the OneCodex backend expects
-    """
+    """Build the metadata/tags/projects in a dict compatible with what the OneCodex backend expects."""
     upload_args = {}
     if metadata:
         # format metadata keys as snake case
@@ -496,7 +494,7 @@ def _make_retry_fields(file_name, metadata, tags, project):
 
 
 def preupload_sample(samples_resource, metadata=None, tags=None, project=None):
-    """Call init_preupload at the One Codex API and return the sample id
+    """Call init_preupload at the One Codex API and return the sample id.
 
     Parameters
     ----------
@@ -512,7 +510,7 @@ def preupload_sample(samples_resource, metadata=None, tags=None, project=None):
     """
     upload_args = build_upload_dict(metadata, tags, project)
     try:
-        res = samples_resource.init_preupload(upload_args)
+        res = samples_resource.preupload(upload_args)
     except requests.exceptions.HTTPError as e:
         raise_api_error(e.response, state="init_preupload")
 
