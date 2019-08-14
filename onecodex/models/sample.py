@@ -11,8 +11,9 @@ from onecodex.models.helpers import truncate_string, ResourceDownloadMixin
 
 def get_project(project):
     """
-    Gets the actual project instance if the argument is not None and not already
-    a Project. Raises an exception if the project can't be found.
+    Get the actual project instance if the argument is not None and not already a Project.
+
+    Raises an exception if the project can't be found.
     """
     if not isinstance(project, Projects) and project is not None:
         project_search = Projects.get(project)
@@ -165,7 +166,7 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
 
     @classmethod
     def preupload(cls, metadata=None, tags=None, project=None):
-        """Create a sample in a waiting state where the files will be sent later on
+        """Create a sample in a waiting state where the files will be sent later on.
 
         Parameters
         ----------
