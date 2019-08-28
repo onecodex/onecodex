@@ -452,13 +452,11 @@ def _call_init_upload(
         "filename": file_name,
         "size": file_size,
         "upload_type": "standard",  # this is multipart form data
+        "sample_id": sample_id,
+        "external_sample_id": external_sample_id,
     }
 
     upload_args.update(build_upload_dict(metadata, tags, project))
-    if sample_id:
-        upload_args["sample_id"] = sample_id
-    if external_sample_id:
-        upload_args["external_sample_id"] = external_sample_id
 
     try:
         return samples_resource.init_upload(upload_args)
@@ -468,7 +466,7 @@ def _call_init_upload(
         raise_connectivity_error(file_name)
 
 
-def _make_retry_fields(file_name, metadata, tags, project):
+def _make_retry_fields(file_name, metadata, tags, project, sample_id=None, external_sample_id=None):
     """Generate fields to send to init_multipart_upload.
 
     The fields returned by this function are used when a Sample upload via fastx-proxy fails.
@@ -488,13 +486,17 @@ def _make_retry_fields(file_name, metadata, tags, project):
         Contains metadata fields that will be integrated into the Sample model created when
         init_multipart_upload is called.
     """
-    upload_args = {"filename": file_name}
+    upload_args = {
+        "filename": file_name,
+        "sample_id": sample_id,
+        "external_sample_id": external_sample_id,
+    }
     upload_args.update(build_upload_dict(metadata, tags, project))
     return upload_args
 
 
 def preupload_sample(samples_resource, metadata=None, tags=None, project=None):
-    """Call init_preupload at the One Codex API and return the sample id.
+    """Make preupload request to the One Codex API and return the sample id.
 
     Parameters
     ----------
@@ -506,7 +508,7 @@ def preupload_sample(samples_resource, metadata=None, tags=None, project=None):
     Returns
     -------
     `dict`
-        Contains, at a minimum 'sample_id'.
+        Contains 'sample_id' field.
     """
     upload_args = build_upload_dict(metadata, tags, project)
     try:
@@ -630,7 +632,16 @@ def upload_sequence(
         # init_multipart_upload, which accepts metadata to be integrated into a newly-created
         # Sample model. if the s3 intermediate route is used, two Sample models will ultimately
         # exist on mainline: the failed fastx-proxy upload and the successful s3 intermediate.
-        retry_fields = _make_retry_fields(filename, metadata, tags, project)
+        # We also pass the `sample_id` and `external_sample_id`, which are typically None, to
+        # support retries of pre-uploaded samples
+        retry_fields = _make_retry_fields(
+            filename,
+            metadata,
+            tags,
+            project,
+            sample_id=sample_id,
+            external_sample_id=external_sample_id,
+        )
 
         sample_id = upload_sequence_fileobj(
             fobj, filename, fields, retry_fields, session, samples_resource
