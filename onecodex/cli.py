@@ -316,7 +316,6 @@ def samples(ctx, samples):
 
 # utilites
 @onecodex.command("upload")
-@click.option("--max-threads", default=4, help=OPTION_HELP["max_threads"], metavar="<int:threads>")
 @click.argument(
     "files",
     nargs=-1,
@@ -324,6 +323,7 @@ def samples(ctx, samples):
     type=click.Path(exists=True),
     autocompletion=partial(click_path_autocomplete_helper, directory=False),
 )
+@click.option("--max-threads", default=4, help=OPTION_HELP["max_threads"], metavar="<int:threads>")
 @click.option(
     "--coerce-ascii",
     is_flag=True,
@@ -346,12 +346,25 @@ def samples(ctx, samples):
 @click.option("--tag", "-t", "tags", multiple=True, help=OPTION_HELP["tag"])
 @click.option("--metadata", "-md", multiple=True, help=OPTION_HELP["metadata"])
 @click.option("--project", "-p", "project_id", help=OPTION_HELP["project"])
+@click.option("--sample-id", help=OPTION_HELP["sample_id"])
+@click.option("--external-sample-id", help=OPTION_HELP["external_sample_id"])
 @click.pass_context
 @pretty_errors
 @telemetry
 @login_required
 def upload(
-    ctx, files, max_threads, prompt, forward, reverse, tags, metadata, project_id, coerce_ascii
+    ctx,
+    files,
+    max_threads,
+    coerce_ascii,
+    forward,
+    reverse,
+    prompt,
+    tags,
+    metadata,
+    project_id,
+    sample_id,
+    external_sample_id,
 ):
     """Upload a FASTA or FASTQ (optionally gzip'd) to One Codex."""
     appendables = {}
@@ -454,7 +467,16 @@ def upload(
         "project": project_id,
         "coerce_ascii": coerce_ascii,
         "progressbar": progressbar(length=total_size, label="Uploading..."),
+        "sample_id": sample_id,
+        "external_sample_id": external_sample_id,
     }
+
+    if (sample_id or external_sample_id) and len(files) > 1:
+        click.echo(
+            "Please only specify a single file or pair of files to upload if using `sample_id` or `external_sample_id`",
+            err=True,
+        )
+        ctx.exit(1)
 
     run_via_threadpool(
         ctx.obj["API"].Samples.upload,

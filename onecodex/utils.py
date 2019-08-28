@@ -78,6 +78,8 @@ OPTION_HELP = {
     "upload. NOTE: does not currently support adding a sample to "
     "a public project. Projects are searched by UUID, then name, "
     "then short name in that order.",
+    "sample_id": "Provide an ID for a sample that was previously 'pre-uploaded' along with metadata.",
+    "external_sample_id": "Provide an external sample ID for a sample that was previously 'pre-uploaded' along with metadata.",
 }
 
 SUPPORTED_EXTENSIONS = [
