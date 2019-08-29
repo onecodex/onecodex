@@ -48,6 +48,6 @@
     "title": "One Codex API (v1)",
     "version_info": {
         "api_version": "v1",
-        "cli_version": "0.2.0"
+        "cli_version": "0.5.5"
     }
 }

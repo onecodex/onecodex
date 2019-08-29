@@ -128,7 +128,25 @@ def update_metadata_callback(req):
 API_DATA = {
     # These are overrides for non-GET calls, which we don't auto-mock
     "DELETE::api/v1/samples/761bc54b97f64980": {},
-    "GET::api/v1/samples/public": {},
+    "GET::api/v1/samples/public": [],
+    "GET::api/v1/samples/organization": [
+        {
+            "$uri": "/api/v1/samples/7428cca4a3a04a8e",
+            "created_at": "2015-09-25T17:27:19.596555-07:00",
+            "filename": "SRR2352185.fastq.gz",
+            "metadata": {"$ref": "/api/v1/metadata/a7fc7e430e704e2e"},
+            "owner": {"$ref": "/api/v1/users/4ada56103d9a48b8"},
+            "primary_classification": {"$ref": "/api/v1/classifications/464a7ebcf9f84050"},
+            "project": None,
+            "size": 181687821,
+            "tags": [
+                {"$ref": "/api/v1/tags/42997b7a62634985"},
+                {"$ref": "/api/v1/tags/fb8e3b693c874f9e"},
+                {"$ref": "/api/v1/tags/ff4e81909a4348d9"},
+            ],
+            "visibility": "private",
+        }
+    ],
     "GET::api/v1/projects/public": {},
     "GET::api/v1/analyses/public": [
         {
