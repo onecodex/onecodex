@@ -37,7 +37,7 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
 
     def __repr__(self):
         return '<{} {}: "{}">'.format(
-            self.__class__.__name__, self.id, truncate_string(self.filename, 24)
+            self.__class__.__name__, self.id, truncate_string(self.filename or "(N/A)", 24)
         )
 
     @classmethod
