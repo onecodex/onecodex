@@ -19,11 +19,43 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
 
     @classmethod
     def where(cls, *filters, **keyword_filters):
+        """Query and retrieve a set of samples.
+
+        Parameters
+        ----------
+        limit : `int`, optional
+            If set, retrieve a maximum of `limit` samples. Note a limit of 1000 samples is automatically
+            enforced for queries of all public samples (`public=True`)
+        organization : `bool`, optional
+            If True, search all samples within your organization (including your samples). May not be combined with `public=True`.
+        public : `bool`, optional
+            If True, search all public samples (limited to 1000 results). May not be combined with `organization=True`.
+        tags : `list`, optional
+            A list of optional Tags to filter by. Tags should be `Tag` objects retrieved
+            with `ocx.Tags.get()` or `ocx.Tags.where()`
+        project : `Project`, optional
+            Filter by a Project
+        **keyword_filters : dict, optional
+            Pass any additional sample or metadata attribute to filter by that attribute. Metadata filtering
+            is *not* currently supported for
+
+        Returns
+        -------
+        A `SampleCollection` object with samples matching the query
+        """
         from onecodex.models.collection import SampleCollection
 
-        public = keyword_filters.get("public", False)
-        instances_route = "instances" if not public else "instances_public"
-        limit = keyword_filters.get("limit", None if not public else 1000)
+        public = keyword_filters.pop("public", False)
+        organization = keyword_filters.pop("organization", False)
+        instances_route = "instances"
+        if organization is True:
+            instances_route = "instances_organization"
+        if public is True:
+            instances_route = "instances_public"
+
+        # Set default filters
+        keyword_filters["_instances"] = instances_route
+        keyword_filters.setdefault("limit", 1000 if public else None)
 
         # handle conversion of tag UUIDs or names to Tags objects
         tags = keyword_filters.pop("tags", [])
@@ -63,7 +95,7 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
         # FIXME: we need to add `instances_public` and `instances_project` metadata routes to
         # mirror the ones on the samples
         md_search_keywords = {}
-        if not public:
+        if not public and not organization:
             md_schema = next(
                 l for l in Metadata._resource._schema["links"] if l["rel"] == instances_route
             )
@@ -115,13 +147,12 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
             # case that no filters/keyword_filters are specified, this is identical to Samples.all()
             samples = super(Samples, cls).where(*filters, **keyword_filters)
 
-        return SampleCollection([s._resource for s in samples[:limit]], Samples)
+        return SampleCollection([s._resource for s in samples[: keyword_filters["limit"]]], Samples)
 
     @classmethod
     def search_public(cls, *filters, **keyword_filters):
         warnings.warn("Now supported via `where(..., public=True)`", DeprecationWarning)
         keyword_filters["public"] = True
-        keyword_filters["limit"] = 1000
         return cls.where(*filters, **keyword_filters)
 
     def save(self):

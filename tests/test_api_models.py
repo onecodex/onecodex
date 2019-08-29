@@ -311,6 +311,11 @@ def test_public_search(ocx, api_data):
     assert len(samples) == 0
 
 
+def test_where_organization(ocx, api_data):
+    samples = ocx.Samples.where(organization=True)
+    assert len(samples) == 1
+
+
 def test_public_project(ocx, api_data):
     with pytest.warns(DeprecationWarning):
         projs = ocx.Projects.search_public(name="One Codex Project")
