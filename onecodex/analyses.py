@@ -83,9 +83,6 @@ class AnalysisMixin(
         Multiple metadata fields in a tuple must both be categorical. That is, a numerical field and
         boolean can not be joined, or the result would be something like '87.4_True'.
 
-        The 'Label' field name is transformed to '_display_name'. This lets us label points in plots
-        by the name generated for each sample in `SampleCollection._collate_metadata`.
-
         Returns
         -------
         `pandas.DataFrame`
@@ -149,7 +146,7 @@ class AnalysisMixin(
 
                     if isinstance(label, six.string_types):
                         if label in self.metadata.columns:
-                            magic_metadata[str_f] = self.metadata[label]
+                            magic_metadata[str_f] = self.metadata[label].astype(str)
                         else:
                             raise OneCodexException(
                                 "Label field {} not found. Choose from: {}".format(
@@ -176,6 +173,25 @@ class AnalysisMixin(
                                 type(label).__name__
                             )
                         )
+
+                    # add an incremented number to duplicate labels (e.g., same filename)
+                    duplicate_labels = (
+                        magic_metadata[str_f]
+                        .where(magic_metadata[str_f].duplicated(keep=False))
+                        .dropna()
+                    )
+
+                    if not duplicate_labels.empty:
+                        duplicate_counts = {label: 1 for label in duplicate_labels}
+
+                        for c_id in magic_metadata.index:
+                            label = magic_metadata[str_f][c_id]
+
+                            if duplicate_labels.isin([label]).any():
+                                magic_metadata[str_f][c_id] = "{} ({})".format(
+                                    label, duplicate_counts[label]
+                                )
+                                duplicate_counts[label] += 1
                 elif str_f in self.metadata:
                     # exactly matches existing metadata field
                     magic_metadata[f] = self.metadata[str_f]

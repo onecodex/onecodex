@@ -73,10 +73,10 @@ def test_metadata_fetch(ocx, api_data):
 
     # label is a metadata field or callable
     df, fields = samples._metadata_fetch(["Label"], label="eggs")
-    assert df["Label"].tolist() == [True, True, True]
+    assert df["Label"].tolist() == ["True (1)", "True (2)", "True (3)"]
 
     df, fields = samples._metadata_fetch(["Label"], label=lambda x: str(x["eggs"]) + "_foo")
-    assert df["Label"].tolist() == ["True_foo", "True_foo", "True_foo"]
+    assert df["Label"].tolist() == ["True_foo (1)", "True_foo (2)", "True_foo (3)"]
 
     # label must be a string or callable
     with pytest.raises(OneCodexException) as e:
