@@ -150,11 +150,11 @@ def test_results_filtering_other(ocx, api_data):
 
     # remove columns where every value is zero
     results = samples.to_df(rank=None, normalize=False, remove_zeros=False)
-    assert len(results.columns) == 3157
+    assert len(results.columns) == 3156
     results["1279"] = 0
     results["1280"] = 0
     results = results.ocx.to_df(rank=None, normalize=False, remove_zeros=True)
-    assert len(results.columns) == 3155
+    assert len(results.columns) == 3154
 
     # return only taxa with at least 100 reads in one or more samples
     assert (

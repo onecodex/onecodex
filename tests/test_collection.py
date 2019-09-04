@@ -127,7 +127,7 @@ def test_collate_results(ocx, api_data):
 
     assert (
         sha256(string_to_hash.encode()).hexdigest()
-        == "5353e7ada1db22624db3604f80e3d6b2c15ca476c9d47881d0e8123b7e6c009d"
+        == "dbe3adf601ca9584a49b1b5fcb1873dec5ea33986afa3f614e96609f9320c8ba"
     )
 
     # check contents of taxonomy df
