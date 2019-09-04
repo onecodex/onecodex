@@ -63,17 +63,16 @@ class DistanceMixin(TaxonomyMixin):
                 "For beta diversity, metric must be one of: jaccard, braycurtis, cityblock"
             )
 
-        # needs read counts, not relative abundances
-        if self._guess_normalized():
-            raise OneCodexException("Beta diversity requires unnormalized read counts.")
-
-        df = self.to_df(rank=rank, normalize=False)
+        df = self.to_df(rank=rank, normalize=self._guess_normalized())
 
         counts = []
         for c_id in df.index:
             counts.append(df.loc[c_id].tolist())
 
-        return skbio.diversity.beta_diversity(metric, counts, df.index.tolist())
+        # NOTE: see #291 for a discussion on using these metrics with normalized read counts. we are
+        # explicitly disabling skbio's check for a counts matrix to allow normalized data to make
+        # its way into this function.
+        return skbio.diversity.beta_diversity(metric, counts, df.index.tolist(), validate=False)
 
     def unifrac(self, weighted=True, rank="auto"):
         """Calculate the UniFrac beta diversity metric.
