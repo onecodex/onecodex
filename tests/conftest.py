@@ -247,6 +247,13 @@ API_DATA = {
     "POST::api/v1/documents/a4f6727a840a4df0/download_uri": {
         "download_uri": "http://localhost:3000/mock/download/url"
     },
+    "GET::api/v1/jobs/cc1d331e1ee54bac": {
+        "$uri": "/api/v1/jobs/cc1d331e1ee54bac",
+        "analysis_type": "classification",
+        "created_at": "2016-05-05T17:27:02.116480+00:00",
+        "name": "One Codex Database (2017)",
+        "public": True,
+    },
 }
 
 # explicitly load classification results for testing subset_reads
