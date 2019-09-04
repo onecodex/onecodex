@@ -45,6 +45,9 @@ class SampleCollection(ResourceList, AnalysisMixin):
             - 'readcount': total reads of this taxon
             - 'abundance': genome size-normalized relative abundances, from shotgun sequencing
 
+        include_host : `bool`, optional
+            If True, keep (rather than drop) count/abundance data for host taxa
+
         Examples
         --------
         Given a list of Samples, create a new SampleCollection using abundances:
@@ -62,11 +65,15 @@ class SampleCollection(ResourceList, AnalysisMixin):
         else:
             self._sample_collection_constructor(*args, **kwargs)
 
-    def _resource_list_constructor(self, _resource, oc_model, skip_missing=True, field="auto"):
-        self._kwargs = {"skip_missing": skip_missing, "field": field}
+    def _resource_list_constructor(
+        self, _resource, oc_model, skip_missing=True, field="auto", include_host=False
+    ):
+        self._kwargs = {"skip_missing": skip_missing, "field": field, "include_host": include_host}
         super(SampleCollection, self).__init__(_resource, oc_model, **self._kwargs)
 
-    def _sample_collection_constructor(self, objects, skip_missing=True, field="auto"):
+    def _sample_collection_constructor(
+        self, objects, skip_missing=True, field="auto", include_host=False
+    ):
         # are they all wrapped potion resources?
         if not all([hasattr(obj, "_resource") for obj in objects]):
             raise OneCodexException(
@@ -84,7 +91,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         resources = [obj._resource for obj in objects]
         model = objects[0].__class__
 
-        self._kwargs = {"skip_missing": skip_missing, "field": field}
+        self._kwargs = {"skip_missing": skip_missing, "field": field, "include_host": include_host}
         super(SampleCollection, self).__init__(resources, model, **self._kwargs)
 
     def filter(self, filter_func):
@@ -208,7 +215,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         return self._cached["metadata"]
 
-    def _collate_results(self, field=None):
+    def _collate_results(self, field=None, include_host=None):
         """Transform a list of Classifications into `pd.DataFrames` of taxonomy and results data.
 
         Parameters
@@ -220,6 +227,9 @@ class SampleCollection(ResourceList, AnalysisMixin):
             - 'readcount': total reads of this taxon
             - 'abundance': genome size-normalized relative abundances, from shotgun sequencing
 
+        include_host : `bool`, optional
+            If True, keep (rather than drop) count/abundance data for host taxa
+
         Returns
         -------
         None, but stores a result in self._cached.
@@ -227,6 +237,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         import pandas as pd
 
         field = field if field else self._kwargs["field"]
+        include_host = include_host if include_host else self._kwargs["include_host"]
 
         if field not in ("auto", "abundance", "readcount", "readcount_w_children"):
             raise OneCodexException("Specified field ({}) not valid.".format(field))
@@ -243,11 +254,16 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         for c_idx, c in enumerate(self._classifications):
             # pulling results from mainline is the slowest part of the function
-            result = c.results()["table"]
+            results = c.results()
+            table = results["table"]
+            host_tax_ids = results.get("host_tax_ids", [])
 
             # d contains info about a taxon in result, including name, id, counts, rank, etc.
-            for d in result:
+            for d in table:
                 d_tax_id = d["tax_id"]
+
+                if not include_host and d_tax_id in host_tax_ids:
+                    continue
 
                 if d_tax_id not in tax_info["tax_id"]:
                     for k in ("tax_id", "name", "rank", "parent_tax_id"):
