@@ -160,6 +160,22 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
             new_classifications.append(c)
 
+        # warn if some of the classifications in this collection are not alike
+        job_names_to_ids = {}
+
+        for obj in new_classifications:
+            try:
+                job_names_to_ids[obj.job.name].append(obj.job.id)
+            except KeyError:
+                job_names_to_ids[obj.job.name] = [obj.job.id]
+
+        if len(job_names_to_ids) > 1:
+            warnings.warn(
+                "SampleCollection contains multiple analysis types: {}".format(
+                    ", ".join(job_names_to_ids.keys())
+                )
+            )
+
         self._cached["classifications"] = new_classifications
 
     @property
