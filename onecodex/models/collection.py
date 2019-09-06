@@ -3,6 +3,7 @@ from datetime import datetime
 import json
 import warnings
 
+from onecodex import log
 from onecodex.exceptions import OneCodexException
 
 try:
@@ -264,7 +265,47 @@ class SampleCollection(ResourceList, AnalysisMixin):
         tax_info = {"tax_id": [], "name": [], "rank": [], "parent_tax_id": []}
 
         if field == "auto":
-            field = "readcount_w_children"
+            # if abundances are available for all samples in this collection, use them. if they are
+            # not available for any samples in this collection, use readcount_w_children. if they
+            # are available for some (but not all), warn and fallback to readcount_w_children.
+            field_availability = {}
+
+            for c_idx, c in enumerate(self._classifications):
+                results = c.results()
+                table = results["table"]
+
+                if table[0]["abundance"] is None:
+                    field_availability[c.id] = "readcount_w_children"
+                else:
+                    field_availability[c.id] = "abundance"
+
+            fields_present = set(field_availability.values())
+
+            if len(fields_present) == 1:
+                field = fields_present.pop()
+            else:
+                classifications_without_abundances = [
+                    c_id
+                    for c_id in field_availability
+                    if field_availability[c_id] == "readcount_w_children"
+                ]
+
+                log.warning(
+                    "Classification{} {} lack{} abundance data, which One Codex calculates from "
+                    "metagenomic short reads. If this Sample is targeted loci sequencing (e.g., "
+                    "16S), we are unable to perform abundance estimation and can only calculate "
+                    "relative abundances from read counts. To facilitate the fair comparison of "
+                    "this Sample to others in this SampleCollection (some of which are "
+                    "metagenomes), read counts will be used for all Samples.".format(
+                        "s" if len(classifications_without_abundances) > 1 else "",
+                        ", ".join(classifications_without_abundances)[::-1].replace(",", "dna ", 1)[
+                            ::-1
+                        ],
+                        "s" if len(classifications_without_abundances) == 1 else "",
+                    )
+                )
+
+                field = "readcount_w_children"
 
         self._cached["field"] = field
 
