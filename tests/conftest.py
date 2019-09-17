@@ -344,6 +344,7 @@ def upload_mocks():
         "POST:multipart/form-data:fake_aws_callback": upload_callback,
         "POST::api/v1/samples/init_upload": {
             "upload_url": "http://localhost:3000/fake_aws_callback",
+            "upload_pair_url": "http://localhost:3000/fake_aws_callback",
             "sample_id": "7428cca4a3a04a8e",
             "additional_fields": {
                 "AWSAccessKeyId": "AKIAI36HUSHZTL3A7ORQ",
@@ -354,6 +355,7 @@ def upload_mocks():
                 "policy": "123123123",
                 "x-amz-server-side-encryption": "AES256",
             },
+            "additional_pair_fields": {},
         },
         "GET::api/v1/samples/7428cca4a3a04a8e": {
             "$uri": "/api/v1/samples/7428cca4a3a04a8e",

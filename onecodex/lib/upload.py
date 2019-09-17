@@ -1,18 +1,12 @@
 from __future__ import print_function, division
 
-import bz2
-from collections import deque, OrderedDict
-import gzip
+from collections import OrderedDict
 import logging
 import math
-import os
-import re
 import requests
 from requests_toolbelt import MultipartEncoder
 import six
 import time
-from unidecode import unidecode
-import warnings
 
 from onecodex.exceptions import (
     OneCodexException,
@@ -22,313 +16,11 @@ from onecodex.exceptions import (
     raise_api_error,
 )
 from onecodex.utils import atexit_register, atexit_unregister, snake_case
+from onecodex.lib.files import FilePassthru, get_file_wrapper
 
 
 log = logging.getLogger("onecodex")
 DEFAULT_THREADS = 4
-
-
-# buffer code from
-# http://stackoverflow.com/questions/2192529/python-creating-a-streaming-gzipd-file-like/2193508
-class Buffer(object):
-    def __init__(self):
-        self._buf = deque()
-        self._size = 0
-        self.closed = False
-
-    def __len__(self):
-        return self._size
-
-    def write(self, data):
-        self._buf.append(data)
-        self._size += len(data)
-
-    def read(self, size=-1):
-        if size < 0:
-            size = self._size
-        ret_list = []
-        while size > 0 and len(self._buf):
-            s = self._buf.popleft()
-            size -= len(s)
-            ret_list.append(s)
-        if size < 0:
-            ret_list[-1], remainder = ret_list[-1][:size], ret_list[-1][size:]
-            self._buf.appendleft(remainder)
-        ret = b"".join(ret_list)
-        self._size -= len(ret)
-        return ret
-
-    def flush(self):
-        pass
-
-    def close(self):
-        self.closed = True
-
-
-class FASTXInterleave(object):
-    """Decompress and interleave two FASTX files.
-
-    Wrapper around two `file` objects that decompresses gzip or bz2, where applicable, and
-    interleaves the two files either two or four lines at a time. Yields uncompressed data.
-
-    Parameters
-    ----------
-    file_path : `string`
-        Path to file.
-    file_size : `integer`
-        Accurate size of file on disk. Used by `requests_toolbelt.MultipartEncoder` when
-        determining how much data is left to read.
-    file_format : {'fasta', 'fastq'}, optional
-        Determines how many lines to read from each file. FASTA reads two, FASTQ reads four.
-    progressbar : `click.progressbar`, optional
-        The progress bar to update.
-    """
-
-    def __init__(self, file_path, file_size, file_format="fastq", progressbar=None):
-        if file_path[0].endswith(".gz") or file_path[1].endswith(".gz"):
-            self._fp_left = gzip.GzipFile(file_path[0], mode="rb")
-            self._fp_right = gzip.GzipFile(file_path[1], mode="rb")
-        elif file_path[0].endswith(".bz2") or file_path[1].endswith(".bz2"):
-            self._fp_left = bz2.BZ2File(file_path[0], mode="rb")
-            self._fp_right = bz2.BZ2File(file_path[1], mode="rb")
-        else:
-            self._fp_left = open(file_path[0], mode="rb")
-            self._fp_right = open(file_path[1], mode="rb")
-
-        if file_format == "fasta":
-            raise OneCodexException("Interleaving FASTA files is currently unsupported")
-        elif file_format == "fastq":
-            self._lines_per_record = 4
-        else:
-            raise OneCodexException("file_format must be one of: fastq, fasta")
-
-        self._tell = 0
-        self._fsize = file_size
-        self._buf = Buffer()
-
-        self.progressbar = progressbar
-        self.mime_type = "text/plain"
-
-    def size(self):
-        return self._fsize
-
-    @property
-    def len(self):
-        """Size of data left to be read.
-
-        Notes
-        -----
-        `_fsize` is the uncompressed size of both files in the pair, summed. `_tell` is the amount
-        of uncompressed data that has been read from this wrapper thus far.
-        """
-        return self._fsize - self._tell
-
-    def read(self, size=-1):
-        while len(self._buf) < size or size < 0:
-            for fp in [self._fp_left, self._fp_right]:
-                count = 0
-                for line in fp:
-                    self._buf.write(line)
-                    count += 1
-                    if count == self._lines_per_record:
-                        break
-
-            if count == 0:
-                break
-
-        bytes_read = self._buf.read(size)
-        self._tell += len(bytes_read)
-
-        if self.progressbar:
-            self.progressbar.update(len(bytes_read))
-
-        return bytes_read
-
-    def seek(self, loc):
-        """Seek to a position in the file.
-
-        Notes
-        -----
-        This is called if an upload fails and must be retried.
-        """
-        assert loc == 0
-
-        # rewind progress bar
-        if self.progressbar:
-            self.progressbar.update(-self._tell)
-
-        self._fp_left.seek(loc)
-        self._fp_right.seek(loc)
-        self._tell = loc
-        self._buf = Buffer()
-
-    def close(self):
-        self._fp_left.close()
-        self._fp_right.close()
-
-
-class FilePassthru(object):
-    """Wrapper around `file` object that updates a progress bar and guesses mime-type.
-
-    Parameters
-    ----------
-    file_path : `string`
-        Path to file.
-    file_size : `integer`
-        Accurate size of file on disk. Used by `requests_toolbelt.MultipartEncoder` when
-        determining how much data is left to read.
-    progressbar : `click.progressbar`, optional
-        The progress bar to update.
-    """
-
-    def __init__(self, file_path, file_size, progressbar=None):
-        self._fp = open(file_path, mode="rb")
-        self._fsize = file_size
-        self.progressbar = progressbar
-
-        _, ext = os.path.splitext(file_path)
-
-        if ext in {".gz", ".gzip"}:
-            self.mime_type = "application/x-gzip"
-        elif ext in {".bz", ".bz2", ".bzip", ".bzip2"}:
-            self.mime_type = "application/x-bzip2"
-        else:
-            self.mime_type = "text/plain"
-
-    def read(self, size=-1):
-        bytes_read = self._fp.read(size)
-
-        if self.progressbar:
-            self.progressbar.update(len(bytes_read))
-
-        return bytes_read
-
-    def size(self):
-        return self._fsize
-
-    @property
-    def len(self):
-        """Size of data left to be read."""
-        return self._fsize - self._fp.tell()
-
-    def seek(self, loc):
-        """Seek to a position in the file.
-
-        Notes
-        -----
-        This is called if an upload fails and must be retried.
-        """
-        assert loc == 0
-
-        # rewind progress bar
-        if self.progressbar:
-            self.progressbar.update(-self._fp.tell())
-
-        self._fp.seek(loc)
-
-    def close(self):
-        self._fp.close()
-
-
-def interleaved_filename(file_path):
-    """Return filename used to represent a set of paired-end files.
-
-    Assumes Illumina-style naming conventions where each file has _R1_ or _R2_ in its name.
-    """
-    if not isinstance(file_path, tuple):
-        raise OneCodexException("Cannot get the interleaved filename without a tuple.")
-    if re.match(".*[._][Rr][12][_.].*", file_path[0]):
-        return re.sub("[._][Rr][12]", "", file_path[0])
-    else:
-        warnings.warn("Paired-end filenames do not match--are you sure they are correct?")
-        return file_path[0]
-
-
-def _file_size(file_path, uncompressed=False):
-    """Return size of a single file, compressed or uncompressed."""
-    _, ext = os.path.splitext(file_path)
-
-    if uncompressed:
-        if ext in {".gz", ".gzip"}:
-            with gzip.GzipFile(file_path, mode="rb") as fp:
-                try:
-                    fp.seek(0, os.SEEK_END)
-                    return fp.tell()
-                except ValueError:
-                    # on python2, cannot seek from end and must instead read to end
-                    fp.seek(0)
-                    while len(fp.read(8192)) != 0:
-                        pass
-                    return fp.tell()
-        elif ext in {".bz", ".bz2", ".bzip", ".bzip2"}:
-            with bz2.BZ2File(file_path, mode="rb") as fp:
-                fp.seek(0, os.SEEK_END)
-                return fp.tell()
-
-    return os.path.getsize(file_path)
-
-
-def _file_stats(file_path, enforce_fastx=True):
-    """Return information about the file path (or paths, if paired), prior to upload.
-
-    Parameters
-    ----------
-    file_path : `string` or `tuple`
-        System path to the file(s) to be uploaded
-
-    Returns
-    -------
-    `string`
-        Filename, minus compressed extension (.gz or .bz2). If paired, use first path to generate
-        the filename that will be used to represent both paths in the pair.
-    `integer`
-        If paired, the uncompressed file size of both files in the path. If single, the raw file
-        size whether compressed or not. Pairs are always uploaded uncompressed, whereas single files
-        are uploaded in whatever format they're in. One Codex will uncompress and re-compress as
-        appropriate.
-    {'fasta', 'fastq'}
-        The format of the file being uploaded, guessed only by its extension. If paired, this
-        determines how many lines to pull from each file during interleaving.
-    """
-    if isinstance(file_path, tuple):
-        assert len(file_path) == 2
-        file_size = sum(_file_size(f, uncompressed=True) for f in file_path)
-        file_path = interleaved_filename(file_path)
-        paired = True
-    else:
-        file_size = _file_size(file_path, uncompressed=False)
-        paired = False
-
-    new_filename, ext = os.path.splitext(os.path.basename(file_path))
-
-    if ext in {".gz", ".gzip", ".bz", ".bz2", ".bzip"}:
-        compressed = ext
-        new_filename, ext = os.path.splitext(new_filename)
-    else:
-        compressed = ""
-
-    # strip compressed extension if paired-end, since we're going to upload uncompressed
-    if paired and compressed:
-        final_filename = new_filename + ext
-    else:
-        final_filename = new_filename + ext + compressed
-
-    if enforce_fastx:
-        if ext in {".fa", ".fna", ".fasta"}:
-            file_format = "fasta"
-        elif ext in {".fq", ".fastq"}:
-            file_format = "fastq"
-        else:
-            raise UploadException(
-                "{}: extension must be one of .fa, .fna, .fasta, .fq, .fastq".format(final_filename)
-            )
-    else:
-        file_format = None
-
-    if file_size == 0:
-        raise UploadException("{}: empty files can not be uploaded".format(final_filename))
-
-    return final_filename, file_size, file_format
 
 
 def _choose_boto3_chunksize(file_obj):
@@ -340,10 +32,8 @@ def _choose_boto3_chunksize(file_obj):
 
     Parameters
     ----------
-    file_obj : `FASTXInterleave`, `FilePassthru`, or a file-like object
-        A wrapper around a pair of fastx files (`FASTXInterleave`) or a single fastx file. In the
-        case of paired files, they will be interleaved and uploaded uncompressed. In the case of a
-        single file, it will simply be passed through (`FilePassthru`) to One Codex, compressed
+    file_obj : `FilePassthru`, or a file-like object
+        In the case of a single file, it will simply be passed through (`FilePassthru`) to One Codex, compressed
         or otherwise.
 
     Returns
@@ -361,11 +51,10 @@ def _choose_boto3_chunksize(file_obj):
                 break
         else:
             max_file_size = chunk_size * 10000
-            uncompressed = "uncompressed " if isinstance(file_obj, FASTXInterleave) else ""
 
             raise OneCodexException(
-                "File is too large to upload ({}size: {}, max: {})".format(
-                    uncompressed, file_obj_size, max_file_size
+                "File is too large to upload (size: {}, max: {})".format(
+                    file_obj_size, max_file_size
                 )
             )
 
@@ -421,16 +110,15 @@ def build_upload_dict(metadata, tags, project):
 
 
 def _call_init_upload(
-    file_name, file_size, metadata, tags, project, samples_resource, sample_id, external_sample_id
+    fobj, is_paired, metadata, tags, project, samples_resource, sample_id, external_sample_id
 ):
     """Call init_upload at the One Codex API and return data used to upload the file.
 
     Parameters
     ----------
-    file_name : `string`
-        The file_name you wish to associate this fastx file with at One Codex.
-    file_size : `integer`
-        Accurate size of file to be uploaded, in bytes.
+    fobj : `PairedEndFiles` or `FilePassthru`
+        A file object-like wrapper around the local file(s)
+    is_paired: `bool`
     metadata : `dict`, optional
     tags : `list`, optional
     project : `string`, optional
@@ -447,14 +135,20 @@ def _call_init_upload(
     `dict`
         Contains, at a minimum, 'upload_url' and 'sample_id'. Should also contain various additional
         data used to upload the file to fastx-proxy, a user's S3 bucket, or an intermediate bucket.
+        If the input was some paired end files, it will also contain `paired_end_upload_url` and `paired_end_additional_fields` in
+        order to upload the second file.
     """
     upload_args = {
-        "filename": file_name,
-        "size": file_size,
         "upload_type": "standard",  # this is multipart form data
         "sample_id": sample_id,
         "external_sample_id": external_sample_id,
     }
+    if is_paired:
+        upload_args.update(
+            {"filename": fobj.r1.filename, "paired_end_filename": fobj.r2.filename, "size": 1}
+        )
+    else:
+        upload_args.update({"filename": fobj.filename, "size": fobj.size()})
 
     upload_args.update(build_upload_dict(metadata, tags, project))
 
@@ -463,18 +157,21 @@ def _call_init_upload(
     except requests.exceptions.HTTPError as e:
         raise_api_error(e.response, state="init")
     except requests.exceptions.ConnectionError:
-        raise_connectivity_error(file_name)
+        raise_connectivity_error(upload_args["filename"])
 
 
-def _make_retry_fields(file_name, metadata, tags, project, sample_id=None, external_sample_id=None):
+def _make_retry_fields(
+    fobj, is_paired, metadata, tags, project, sample_id=None, external_sample_id=None
+):
     """Generate fields to send to init_multipart_upload.
 
     The fields returned by this function are used when a Sample upload via fastx-proxy fails.
 
     Parameters
     ----------
-    file_name : `string`
-        The file_name you wish to associate this fastx file with at One Codex.
+    fobj : `PairedEndFiles` or `FilePassthru`
+        A file object-like wrapper around the local files
+    is_paired: `bool`
     metadata : `dict`, optional
     tags : `list`, optional
     project : `string`, optional
@@ -486,11 +183,13 @@ def _make_retry_fields(file_name, metadata, tags, project, sample_id=None, exter
         Contains metadata fields that will be integrated into the Sample model created when
         init_multipart_upload is called.
     """
-    upload_args = {
-        "filename": file_name,
-        "sample_id": sample_id,
-        "external_sample_id": external_sample_id,
-    }
+    upload_args = {"sample_id": sample_id, "external_sample_id": external_sample_id}
+
+    if is_paired:
+        upload_args.update({"filename": fobj.r1.filename, "paired_end_filename": fobj.r2.filename})
+    else:
+        upload_args["filename"] = fobj.filename
+
     upload_args.update(build_upload_dict(metadata, tags, project))
     return upload_args
 
@@ -520,7 +219,7 @@ def preupload_sample(samples_resource, metadata=None, tags=None, project=None):
 
 
 def upload_sequence(
-    files,
+    file,
     session,
     samples_resource,
     metadata=None,
@@ -535,10 +234,8 @@ def upload_sequence(
 
     Parameters
     ----------
-    files : `list`
-        A list of paths to files on the system, or tuples containing pairs of paths. Tuples will be
-        interleaved as paired-end reads and both files should contain the same number of records.
-        Paths to single files will be uploaded as-is.
+    file : `str` | `tuple(str, str)`
+        A single file path or a tuple of paths for paired ends
     session : `requests.Session`
         Connection to One Codex API.
     samples_resource : `onecodex.models.Samples`
@@ -560,25 +257,6 @@ def upload_sequence(
     -------
     A Sample object for the completed upload.
     """
-    filename, file_size, file_format = _file_stats(files)
-
-    # if filename cannot be represented as ascii, raise and suggest renaming
-    try:
-        # python2
-        ascii_fname = unidecode(unicode(filename))
-    except NameError:
-        ascii_fname = unidecode(filename)
-
-    if filename != ascii_fname:
-        if coerce_ascii:
-            # TODO: Consider warnings.warn here instead
-            log.warn(
-                "Renaming {} to {}, must be ASCII\n".format(filename.encode("utf-8"), ascii_fname)
-            )
-            filename = ascii_fname
-        else:
-            raise OneCodexException("Filenames must be ascii. Try using --coerce-ascii")
-
     # disable progressbar while keeping context manager
     if not progressbar:
         progressbar = FakeProgressBar()
@@ -589,16 +267,15 @@ def upload_sequence(
     # size on disk. unpaired files are uploaded as-is. paired files are decompressed, interleaved,
     # and uploaded as uncompressed data.
     with progressbar as bar:
-        if isinstance(files, tuple):
-            fobj = FASTXInterleave(files, file_size, file_format, bar)
-        else:
-            fobj = FilePassthru(files, file_size, bar)
+        fobj = get_file_wrapper(file, coerce_ascii, bar)
+        # So we don't have to check with isinstance which is going to be some mocks in tests
+        is_paired = isinstance(file, tuple)
 
         # must call init_upload in this loop in order to get a sample uuid we can call
         # cancel_upload on later if user hits ctrl+c
         fields = _call_init_upload(
-            filename,
-            file_size,
+            fobj,
+            is_paired,
             metadata,
             tags,
             project,
@@ -635,7 +312,8 @@ def upload_sequence(
         # We also pass the `sample_id` and `external_sample_id`, which are typically None, to
         # support retries of pre-uploaded samples
         retry_fields = _make_retry_fields(
-            filename,
+            fobj,
+            is_paired,
             metadata,
             tags,
             project,
@@ -643,9 +321,22 @@ def upload_sequence(
             external_sample_id=external_sample_id,
         )
 
-        sample_id = upload_sequence_fileobj(
-            fobj, filename, fields, retry_fields, session, samples_resource
-        )
+        if is_paired:
+            # 2 files to upload
+            upload_sequence_fileobj(
+                fobj.r1, fobj.r1.filename, fields, retry_fields, session, samples_resource
+            )
+            # TODO: check if we need to replace more and replace also in retry_fields
+            fields["upload_url"] = fields["paired_end_upload_url"]
+            fields["additional_fields"] = fields["paired_end_additional_fields"]
+            sample_id = upload_sequence_fileobj(
+                fobj.r2, fobj.r2.filename, fields, retry_fields, session, samples_resource
+            )
+        else:
+            sample_id = upload_sequence_fileobj(
+                fobj, fobj.filename, fields, retry_fields, session, samples_resource
+            )
+
         atexit_unregister(cancel_atexit)
         return sample_id
 
@@ -658,10 +349,8 @@ def _direct_upload(file_obj, file_name, fields, session, samples_resource):
 
     Parameters
     ----------
-    file_obj : `FASTXInterleave`, `FilePassthru`, or a file-like object
-        A wrapper around a pair of fastx files (`FASTXInterleave`) or a single fastx file. In the
-        case of paired files, they will be interleaved and uploaded uncompressed. In the case of a
-        single file, it will simply be passed through (`FilePassthru`) to One Codex, compressed
+    file_obj : `FilePassthru`, or a file-like object
+        In the case of a single file, it will simply be passed through (`FilePassthru`) to One Codex, compressed
         or otherwise. If a file-like object is given, its mime-type will be sent as 'text/plain'.
     file_name : `string`
         The file_name you wish to associate this fastx file with at One Codex.
@@ -688,7 +377,7 @@ def _direct_upload(file_obj, file_name, fields, session, samples_resource):
     for k, v in fields["additional_fields"].items():
         multipart_fields[str(k)] = str(v)
 
-    # this attribute is only in FASTXInterleave and FilePassthru
+    # this attribute is only in FilePassthru
     mime_type = getattr(file_obj, "mime_type", "text/plain")
     multipart_fields["file"] = (file_name, file_obj, mime_type)
     encoder = MultipartEncoder(multipart_fields)
@@ -760,10 +449,8 @@ def upload_sequence_fileobj(file_obj, file_name, fields, retry_fields, session, 
 
     Parameters
     ----------
-    file_obj : `FASTXInterleave`, `FilePassthru`, or a file-like object
-        A wrapper around a pair of fastx files (`FASTXInterleave`) or a single fastx file. In the
-        case of paired files, they will be interleaved and uploaded uncompressed. In the case of a
-        single file, it will simply be passed through (`FilePassthru`) to One Codex, compressed
+    file_obj : `FilePassthru`, or a file-like object
+        In the case of a single file, it will simply be passed through (`FilePassthru`) to One Codex, compressed
         or otherwise. If a file-like object is given, its mime-type will be sent as 'text/plain'.
     file_name : `string`
         The file_name you wish to associate this fastx file with at One Codex.
@@ -861,15 +548,13 @@ def upload_document(file_path, documents_resource, progressbar=None):
             "Expected file_path to be a string, got {}".format(type(file_path).__name__)
         )
 
-    file_name, file_size, _ = _file_stats(file_path, enforce_fastx=False)
-
     # disable progressbar while keeping context manager
     if not progressbar:
         progressbar = FakeProgressBar()
 
     with progressbar as bar:
-        fobj = FilePassthru(file_path, file_size, bar)
-        document_id = upload_document_fileobj(fobj, file_name, documents_resource)
+        fobj = FilePassthru(file_path, bar)
+        document_id = upload_document_fileobj(fobj, fobj.filename, documents_resource)
         bar.finish()
         return document_id
 
@@ -931,10 +616,8 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):
 
     Parameters
     ----------
-    file_obj : `FASTXInterleave`, `FilePassthru`, or a file-like object
-        A wrapper around a pair of fastx files (`FASTXInterleave`) or a single fastx file. In the
-        case of paired files, they will be interleaved and uploaded uncompressed. In the case of a
-        single file, it will simply be passed through (`FilePassthru`) to One Codex, compressed
+    file_obj : `FilePassthru`, or a file-like object
+        In the case of a single file, it will simply be passed through (`FilePassthru`) to One Codex, compressed
         or otherwise. If a file-like object is given, its mime-type will be sent as 'text/plain'.
     file_name : `string`
         The file_name you wish to associate this fastx file with at One Codex.
