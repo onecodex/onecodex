@@ -1,0 +1,82 @@
+steps:
+  # Linting
+  - label: ":mag: Lint"
+    command:
+      - "python3 -m venv venv"
+      - ". venv/bin/activate"
+      - "pip install black flake8 pydocstyle"
+      - "make lint"
+      # - "pip install pre-commit"
+      # - "pre-commit run --all-files"
+    plugins:
+      - docker#v3.3.0:
+          image: "python:3.7-stretch"
+
+  # Python 2.7 tests
+  - label: ":python: Tests (2.7)"
+    command:
+      - "virtualenv venv"
+      - ". venv/bin/activate"
+      - "pip install --quiet numpy"
+      - "pip install --quiet .[all,testing]"
+      - "py.test -v -W ignore::DeprecationWarning --ignore tests/test_speed.py tests/"
+    plugins:
+      - docker#v3.3.0:
+          image: "python:2.7-stretch"
+
+  # Python 3.7 tests (coverage generated here)
+  - label: ":python: Tests (3.7)"
+    command:
+      - "python3 -m venv venv"
+      - ". venv/bin/activate"
+      - "pip install --quiet numpy"
+      - "pip install --quiet .[all,testing]"
+      - "py.test -v -W ignore::DeprecationWarning --ignore tests/test_speed.py --cov-config .coveragerc --cov=onecodex tests/"
+      - "codecov"
+    env:
+
+    plugins:
+      - docker#v3.3.0:
+          image: "python:3.7-stretch"
+          environment:
+            - "CODECOV_TOKEN"
+
+  # w/ simplejson installed
+  - label: ":python: Tests (3.7, simplejson)"
+    command:
+      - "python3 -m venv venv"
+      - ". venv/bin/activate"
+      - "pip install --quiet numpy"
+      - "pip install --quiet simplejson"
+      - "pip install --quiet .[all,testing]"
+      - "py.test -v -W ignore::DeprecationWarning --ignore tests/test_speed.py tests/"
+    plugins:
+      - docker#v3.3.0:
+          image: "python:3.7-stretch"
+
+  # Minimal environment (i.e., not numpy + pandas)
+  - label: ":python: Tests (3.4, minimal)"
+    command:
+      - "python3 -m venv venv"
+      - ". venv/bin/activate"
+      - "pip install -q -U pip"
+      - "pip install --quiet .[testing]"
+      - "py.test -v -W ignore::DeprecationWarning --ignore tests/test_speed.py tests/"
+    plugins:
+      - docker#v3.3.0:
+          image: "python:3.4.9-stretch"
+
+  # Import times
+  - label: ":stopwatch: Import speed tests"
+    command:
+      - "python3 -m venv venv"
+      - ". venv/bin/activate"
+      - "pip install --quiet numpy tuna"
+      - "pip install --quiet .[all,testing]"
+      - "py.test -v tests/test_speed.py"
+      - "python -X importtime -c 'import onecodex; onecodex.cli.onecodex()' 2> import.log && mkdir tuna && mkdir tuna/static && tuna -o tuna/ import.log"
+    artifact_paths:
+      - "tuna/**/*"
+    plugins:
+      - docker#v3.3.0:
+          image: "python:3.7-stretch"
