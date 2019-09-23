@@ -222,7 +222,7 @@ class OneCodexDocumentExporter(OneCodexPDFExporter):
         )
 
         from onecodex import Api
-        from onecodex.lib.upload import upload_document_fileobj
+        from onecodex.lib.upload import _upload_document_fileobj
 
         ocx = Api()
 
@@ -233,7 +233,7 @@ class OneCodexDocumentExporter(OneCodexPDFExporter):
         file_name = resources["metadata"].get("one_codex_doc_portal_filename", default_filename)
 
         try:
-            document_id = upload_document_fileobj(
+            document_id = _upload_document_fileobj(
                 BytesIO(output), file_name, ocx._client.session, ocx.Documents._resource
             )
         except UploadException as exc:

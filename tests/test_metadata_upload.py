@@ -239,14 +239,14 @@ def test_pandas_and_numpy_type_coercions(ocx, upload_mocks):
         "external_sample_id": "my-lims-ID-or-similar",
         "custom": series.to_dict(),
     }
-    init_payload = ocx.Samples._resource.init_upload(
+    # This works
+    ocx.Samples._resource.init_multipart_upload(
         filename="SRR2352185.fastq.gz", size=181687821, metadata=metadata
     )
-    assert "additional_fields" in init_payload
 
     # Now try to serialize something really not supported, so we can get the Exception
     with pytest.raises(TypeError):
         metadata["custom"]["bad_field"] = ocx.Samples  # not JSON serializable
-        ocx.Samples._resource.init_upload(
+        ocx.Samples._resource.init_multipart_upload(
             filename="SRR2352185.fastq.gz", size=181687821, metadata=metadata
         )
