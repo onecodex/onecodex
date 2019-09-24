@@ -5,8 +5,8 @@ from unidecode import unidecode
 
 from onecodex.exceptions import OneCodexException, UploadException
 
-R1_FILENAME_RE = re.compile(".*[._][Rr][1][_.].*")
-R2_FILENAME_RE = re.compile(".*[._][Rr][2][_.].*")
+R1_FILENAME_RE = re.compile(".*[._][Rr]?[1][_.].*")
+R2_FILENAME_RE = re.compile(".*[._][Rr]?[2][_.].*")
 log = logging.getLogger("onecodex")
 
 

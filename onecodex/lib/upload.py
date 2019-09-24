@@ -248,6 +248,7 @@ def upload_sequence(
 
         if is_paired:
             # 2 files to upload
+            # The backend will check for the r1 file in the callback so we upload r2 first
             fields_pe = copy.deepcopy(fields)
             fields_pe["file_id"] = fields_pe["paired_end_file_id"]
             _upload_sequence_fileobj(
@@ -467,7 +468,7 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):
         logging.debug("{}: exhausted all retries via intermediary")
         raise_connectivity_error(file_name)
 
-    #
+    # In paired uploads, we only want to call the callback url once both files are uploaded
     if not callback_url:
         return {}
 
