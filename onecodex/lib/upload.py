@@ -1,5 +1,6 @@
 from __future__ import print_function, division
 
+import copy
 import logging
 import math
 import requests
@@ -247,10 +248,13 @@ def upload_sequence(
 
         if is_paired:
             # 2 files to upload
-            _upload_sequence_fileobj(fobj.r1, fobj.r1.filename, fields, samples_resource)
-            fields["file_id"] = fields["paired_end_file_id"]
+            fields_pe = copy.deepcopy(fields)
+            fields_pe["file_id"] = fields_pe["paired_end_file_id"]
+            _upload_sequence_fileobj(
+                fobj.r2, fobj.r2.filename, fields, samples_resource, callback=False
+            )
             sample_id = _upload_sequence_fileobj(
-                fobj.r2, fobj.r2.filename, fields, samples_resource
+                fobj.r1, fobj.r1.filename, fields, samples_resource
             )
         else:
             sample_id = _upload_sequence_fileobj(fobj, fobj.filename, fields, samples_resource)
@@ -259,7 +263,7 @@ def upload_sequence(
         return sample_id
 
 
-def _upload_sequence_fileobj(file_obj, file_name, fields, samples_resource):
+def _upload_sequence_fileobj(file_obj, file_name, fields, samples_resource, callback=True):
     """Upload a single file-like object to One Codex to S3.
 
     Parameters
@@ -288,7 +292,9 @@ def _upload_sequence_fileobj(file_obj, file_name, fields, samples_resource):
         file_name,
         fields,
         samples_resource._client.session,
-        samples_resource._client._root_url + fields["callback_url"],  # full callback url
+        samples_resource._client._root_url + fields["callback_url"]
+        if callback
+        else None,  # full callback url
     )
     sample_id = s3_upload.get("sample_id", "<UUID not yet assigned>")
 
@@ -460,6 +466,10 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):
     else:
         logging.debug("{}: exhausted all retries via intermediary")
         raise_connectivity_error(file_name)
+
+    #
+    if not callback_url:
+        return {}
 
     # issue a callback
     try:
