@@ -252,7 +252,7 @@ def upload_sequence(
             fields_pe = copy.deepcopy(fields)
             fields_pe["file_id"] = fields_pe["paired_end_file_id"]
             _upload_sequence_fileobj(
-                fobj.r2, fobj.r2.filename, fields, samples_resource, callback=False
+                fobj.r2, fobj.r2.filename, fields_pe, samples_resource, callback=False
             )
             sample_id = _upload_sequence_fileobj(
                 fobj.r1, fobj.r1.filename, fields, samples_resource
