@@ -297,9 +297,13 @@ def _upload_sequence_fileobj(file_obj, file_name, fields, samples_resource, call
         if callback
         else None,  # full callback url
     )
-    sample_id = s3_upload.get("sample_id", "<UUID not yet assigned>")
+    sample_id = s3_upload.get("sample_id")
 
-    log.info("{}: finished as sample {}".format(file_name, sample_id))
+    msg = "{}: upload finished".format(file_name)
+    if sample_id is not None:
+        msg += " as sample {}".format(sample_id)
+
+    log.info(msg)
     return sample_id
 
 
@@ -379,9 +383,12 @@ def _upload_document_fileobj(file_obj, file_name, documents_resource):
         documents_resource._client._root_url + fields["callback_url"],  # full callback url
     )
 
-    document_id = s3_upload.get("document_id", "<UUID not yet assigned>")
+    msg = "{}: finished".format(file_name)
+    document_id = s3_upload.get("document_id")
+    if document_id is not None:
+        msg += " as document {}".format(document_id)
 
-    log.info("{}: finished as document {}".format(file_name, document_id))
+    log.info(msg)
     return document_id
 
 
@@ -446,7 +453,7 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):
                 fields["file_id"],
                 ExtraArgs={"ServerSideEncryption": "AES256"},
                 Config=config,
-                **boto_kwargs
+                **boto_kwargs,
             )
             break
         except S3UploadFailedError as e:
@@ -478,7 +485,7 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):
             callback_url,
             json={
                 "s3_path": "s3://{}/{}".format(fields["s3_bucket"], fields["file_id"]),
-                "filename": file_name,
+                "filename": file_name,  #
                 "import_as_document": fields.get("import_as_document", False),
             },
         )
