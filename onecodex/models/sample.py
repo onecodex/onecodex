@@ -25,7 +25,11 @@ def get_project(project):
             except HTTPError:
                 project_search = None
         if not project_search:
-            raise OneCodexException("Project {} does not exist. Please create the project in One Codex then try again.".format(project))
+            raise OneCodexException(
+                "Project {} does not exist. Please create the project in One Codex then try again.".format(
+                    project
+                )
+            )
 
         if isinstance(project_search, list):
             return project_search[0]

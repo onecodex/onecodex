@@ -167,9 +167,7 @@ class VizDistanceMixin(DistanceMixin):
         # obtained from scipy
         alt_kwargs = dict(
             x=alt.X("1) Label:N", axis=alt.Axis(title=label), sort=labels_in_order),
-            y=alt.Y(
-                "2) Label:N", axis=alt.Axis(title=label, orient="right"), sort=labels_in_order
-            ),
+            y=alt.Y("2) Label:N", axis=alt.Axis(title=label, orient="right"), sort=labels_in_order),
             color="Distance:Q",
             tooltip=list(chain.from_iterable(formatted_fields)) + ["Distance:Q"],
             href="url:N",
