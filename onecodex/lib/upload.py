@@ -453,7 +453,7 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):
                 fields["file_id"],
                 ExtraArgs={"ServerSideEncryption": "AES256"},
                 Config=config,
-                **boto_kwargs,
+                **boto_kwargs
             )
             break
         except S3UploadFailedError as e:
