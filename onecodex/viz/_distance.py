@@ -76,8 +76,6 @@ class VizDistanceMixin(DistanceMixin):
         rank="auto",
         metric="braycurtis",
         title=None,
-        xlabel=None,
-        ylabel=None,
         tooltip=None,
         return_chart=False,
         linkage="average",
@@ -95,10 +93,6 @@ class VizDistanceMixin(DistanceMixin):
             The type of linkage to use when clustering axes.
         title : `string`, optional
             Text label at the top of the plot.
-        xlabel : `string`, optional
-            Text label along the horizontal axis.
-        ylabel : `string`, optional
-            Text label along the vertical axis.
         tooltip : `string` or `list`, optional
             A string or list containing strings representing metadata fields. When a point in the
             plot is hovered over, the value of the metadata associated with that sample will be
@@ -172,10 +166,8 @@ class VizDistanceMixin(DistanceMixin):
         # it's important to tell altair to order the cells in the heatmap according to the clustering
         # obtained from scipy
         alt_kwargs = dict(
-            x=alt.X("1) Label:N", axis=alt.Axis(title=xlabel), sort=labels_in_order),
-            y=alt.Y(
-                "2) Label:N", axis=alt.Axis(title=ylabel, orient="right"), sort=labels_in_order
-            ),
+            x=alt.X("1) Label:N", axis=alt.Axis(title=label), sort=labels_in_order),
+            y=alt.Y("2) Label:N", axis=alt.Axis(title=label, orient="right"), sort=labels_in_order),
             color="Distance:Q",
             tooltip=list(chain.from_iterable(formatted_fields)) + ["Distance:Q"],
             href="url:N",
