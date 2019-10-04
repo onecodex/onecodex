@@ -182,6 +182,12 @@ SEQUENCE = (
     "ACGTGTCGTAGCTACGACGTAGCTAGGGACGTGTCGTAGCTACGACGTAGCTAG\n"
 )
 
+FASTQ_SEQUENCE = """
+@cluster_2:UMI_ATTCCG
+TTTCCGGGGCACATAATCTTCAGCCGGGCGC
++
+9C;=;=<9@4868>9:67AA<9>65<=>591"""
+
 
 @pytest.mark.parametrize(
     "files,threads",
@@ -198,7 +204,8 @@ def test_standard_uploads(runner, mocked_creds_path, caplog, upload_mocks, files
     """
     with runner.isolated_filesystem(), mock.patch(
         "onecodex.models.Projects.get", side_effect=lambda _: None
-    ):
+    ), mock.patch("onecodex.lib.upload._s3_intermediate_upload") as s3_upload_mock:
+        s3_upload_mock.return_value = {"sample_id": "7428cca4a3a04a8e"}
         args = [
             "--api-key",
             "01234567890123456789012345678901",
@@ -225,7 +232,7 @@ def test_standard_uploads(runner, mocked_creds_path, caplog, upload_mocks, files
 
 
 def test_empty_upload(runner, mocked_creds_path, upload_mocks):
-    with runner.isolated_filesystem():
+    with runner.isolated_filesystem(), mock.patch("boto3.client"):
         f = "tmp.fa"
         f_out = open(f, mode="w")
         f_out.close()
@@ -235,26 +242,22 @@ def test_empty_upload(runner, mocked_creds_path, upload_mocks):
 
 
 def test_paired_files(runner, mocked_creds_path, upload_mocks):
-    with runner.isolated_filesystem():
-        f, f2 = "temp_R1.fa", "temp_R2.fa"
+    with runner.isolated_filesystem(), mock.patch("boto3.client"):
+        f, f2 = "temp_R1.fq", "temp_R2.fq"
         with open(f, mode="w") as f_out, open(f2, mode="w") as f_out2:
-            f_out.write(">Test fasta\n")
-            f_out.write(SEQUENCE)
-            f_out2.write(">Test fasta\n")
-            f_out2.write(SEQUENCE)
+            f_out.write(FASTQ_SEQUENCE)
+            f_out2.write(FASTQ_SEQUENCE)
 
         args = ["--api-key", "01234567890123456789012345678901", "upload", f, f2]
-        # check that only one upload is kicked off for the pair of files
-        patch1 = "onecodex.lib.upload.upload_sequence_fileobj"
-        patch2 = "onecodex.lib.upload.FASTXInterleave"
-        patch3 = "onecodex.models.sample.Samples.get"
-        with mock.patch(patch1) as mp, mock.patch(patch2) as mp2, mock.patch(patch3) as mp3:
-            result = runner.invoke(Cli, args)
-            assert mp.call_count == 1
+        # check that 2 uploads are kicked off for the pair of files
+        patch1 = "onecodex.lib.upload._upload_sequence_fileobj"
+        patch2 = "onecodex.models.sample.Samples.get"
+        with mock.patch(patch1) as mp, mock.patch(patch2) as mp2:
+            result = runner.invoke(Cli, args, catch_exceptions=False)
+            assert mp.call_count == 2
             assert mp2.call_count == 1
-            assert mp3.call_count == 1
-        assert "It appears there are paired files" in result.output
-        assert result.exit_code == 0
+            assert "It appears there are paired files" in result.output
+            assert result.exit_code == 0
 
         # Check with --forward and --reverse, should succeed
         args = [
@@ -266,13 +269,12 @@ def test_paired_files(runner, mocked_creds_path, upload_mocks):
             "--reverse",
             f2,
         ]
-        with mock.patch(patch1) as mp, mock.patch(patch2) as mp2, mock.patch(patch3) as mp3:
+        with mock.patch(patch1) as mp, mock.patch(patch2) as mp2:
             result4 = runner.invoke(Cli, args, input="Y")
-            assert mp.call_count == 1
+            assert mp.call_count == 2
             assert mp2.call_count == 1
-            assert mp3.call_count == 1
-        assert "It appears there are paired files" not in result4.output
-        assert result4.exit_code == 0
+            assert "It appears there are paired files" not in result4.output
+            assert result4.exit_code == 0
 
         # Check with only --forward, should fail
         args = ["--api-key", "01234567890123456789012345678901", "upload", "--forward", f]
@@ -297,7 +299,7 @@ def test_paired_files(runner, mocked_creds_path, upload_mocks):
             f2,
             f2,
         ]
-        with mock.patch(patch1) as mp, mock.patch(patch2) as mp2, mock.patch(patch3) as mp3:
+        with mock.patch(patch1), mock.patch(patch2):
             result7 = runner.invoke(Cli, args)
         assert "You may not pass a FILES argument" in result7.output
         assert result7.exit_code != 0

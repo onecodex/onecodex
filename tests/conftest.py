@@ -342,19 +342,6 @@ def upload_mocks():
 
     json_data = {
         "POST:multipart/form-data:fake_aws_callback": upload_callback,
-        "POST::api/v1/samples/init_upload": {
-            "upload_url": "http://localhost:3000/fake_aws_callback",
-            "sample_id": "7428cca4a3a04a8e",
-            "additional_fields": {
-                "AWSAccessKeyId": "AKIAI36HUSHZTL3A7ORQ",
-                "success_action_status": 201,
-                "acl": "private",
-                "key": "asd/file_7428cca4a3a04a8e/myfile.fastq",
-                "signature": "asdjsa",
-                "policy": "123123123",
-                "x-amz-server-side-encryption": "AES256",
-            },
-        },
         "GET::api/v1/samples/7428cca4a3a04a8e": {
             "$uri": "/api/v1/samples/7428cca4a3a04a8e",
             "created_at": "2015-09-25T17:27:19.596555-07:00",
@@ -372,9 +359,10 @@ def upload_mocks():
             "visibility": "private",
         },
         "POST::api/v1/samples/confirm_upload": "",
-        "GET::api/v1/samples/init_multipart_upload": {
+        "POST::api/v1/samples/init_multipart_upload": {
             "callback_url": "/api/import_file_from_s3",
             "file_id": "abcdef0987654321",
+            "paired_end_file_id": "abcdefg0987654321",
             "s3_bucket": "onecodex-multipart-uploads-encrypted",
             "upload_aws_access_key_id": "aws_key",
             "upload_aws_secret_access_key": "aws_secret_key",

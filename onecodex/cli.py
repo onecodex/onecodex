@@ -11,7 +11,7 @@ import warnings
 
 from onecodex.api import Api
 from onecodex.auth import _login, _logout, _remove_creds, login_required
-from onecodex.lib.upload import DEFAULT_THREADS, _file_size
+from onecodex.lib.upload import DEFAULT_THREADS
 from onecodex.metadata_upload import validate_appendables
 from onecodex.scripts import subset_reads
 from onecodex.utils import (
@@ -183,7 +183,7 @@ def documents_upload(ctx, max_threads, files):
 
     files = list(files)
 
-    bar = click.progressbar(length=sum([_file_size(x) for x in files]), label="Uploading... ")
+    bar = click.progressbar(length=sum([os.path.getsize(x) for x in files]), label="Uploading... ")
     run_via_threadpool(
         ctx.obj["API"].Documents.upload,
         files,
@@ -454,9 +454,9 @@ def upload(
 
     total_size = sum(
         [
-            (_file_size(x[0], uncompressed=True) + _file_size(x[1], uncompressed=True))
+            (os.path.getsize(x[0]) + os.path.getsize(x[1]))
             if isinstance(x, tuple)
-            else _file_size(x, uncompressed=False)
+            else os.path.getsize(x)
             for x in files
         ]
     )

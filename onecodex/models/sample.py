@@ -1,4 +1,3 @@
-import requests
 from requests.exceptions import HTTPError
 from six import string_types
 import warnings
@@ -255,7 +254,6 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
         -------
         A `Samples` object upon successful upload. None if the upload failed.
         """
-        res = cls._resource
         if not isinstance(files, string_types) and not isinstance(files, tuple):
             raise OneCodexException(
                 "Please pass a string or tuple or forward and reverse filepaths."
@@ -265,13 +263,10 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
             raise OneCodexException("Only pass sample_id OR external_sample_id, not both.")
 
         project = get_project(project)
-        # setup a requests session to use for uploading data
-        session = requests.Session()
 
         sample_id = upload_sequence(
             files,
-            session,
-            res,
+            cls._resource,
             metadata=metadata,
             tags=tags,
             project=project,
