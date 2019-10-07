@@ -228,17 +228,17 @@ def upload_sequence(
         def cancel_atexit():
             bar.canceled = True
             bar.update(1)
-            log.info("Canceled upload for sample: {}".format(payload["sample_id"]))
+            log.info("Canceled upload for sample: {}".format(fields["sample_id"]))
 
             try:
-                samples_resource.cancel_upload({"sample_id": payload["sample_id"]})
+                samples_resource.cancel_upload({"sample_id": fields["sample_id"]})
             except requests.exceptions.HTTPError as e:
                 # onecodex #298: it's possible to have this trigger after an upload has
                 # already succeeded. try to catch that instead of blowing up
                 if e.response and e.response.get("message") == "Upload already successful":
                     log.debug(
                         "Fail to cancel sample {}, upload already successful".format(
-                            payload["sample_id"]
+                            fields["sample_id"]
                         )
                     )
                 else:
