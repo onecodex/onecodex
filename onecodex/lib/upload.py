@@ -425,8 +425,9 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):
     from boto3.s3.transfer import TransferConfig
     from boto3.exceptions import S3UploadFailedError
 
+    boto3_session = boto3.session.Session()
     # actually do the upload
-    client = boto3.client(
+    client = boto3_session.client(
         "s3",
         aws_access_key_id=fields["upload_aws_access_key_id"],
         aws_secret_access_key=fields["upload_aws_secret_access_key"],
