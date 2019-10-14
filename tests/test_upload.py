@@ -160,7 +160,7 @@ class FakeDocumentsResource:
     ],
 )
 def test_upload_lots_of_files(files, n_uploads, fxi_calls, fxp_calls):
-    with patch("boto3.client"):
+    with patch("boto3.session.Session"):
         fake_size = lambda filename: int(float(filename.split(".")[1]))  # noqa
 
         uso = "onecodex.lib.upload._upload_sequence_fileobj"
@@ -194,7 +194,7 @@ def test_upload_lots_of_files(files, n_uploads, fxi_calls, fxp_calls):
 
 
 def test_api_failures(caplog):
-    with patch("boto3.client"):
+    with patch("boto3.session.Session"):
         files = ("tests/data/files/test_R1_L001.fq.gz", "tests/data/files/test_R2_L001.fq.gz")
 
         with pytest.raises(UploadException) as e:
@@ -203,7 +203,7 @@ def test_api_failures(caplog):
 
 
 def test_unicode_filenames(caplog):
-    with patch("boto3.client"):
+    with patch("boto3.session.Session"):
         file_list = [
             (u"tests/data/files/François.fq", "Francois.fq"),
             (u"tests/data/files/Málaga.fasta", "Malaga.fasta"),
@@ -225,13 +225,13 @@ def test_unicode_filenames(caplog):
 
 
 def test_single_end_files():
-    with patch("boto3.client") as b3:
+    with patch("boto3.session.Session") as b3:
         upload_sequence("tests/data/files/test_R1_L001.fq.gz", FakeSamplesResource())
         assert b3.call_count == 1
 
 
 def test_paired_end_files():
-    with patch("boto3.client") as b3:
+    with patch("boto3.session.Session") as b3:
         upload_sequence(
             ("tests/data/files/test_R1_L001.fq.gz", "tests/data/files/test_R2_L001.fq.gz"),
             FakeSamplesResource(),
@@ -240,7 +240,7 @@ def test_paired_end_files():
 
 
 def test_upload_sequence_fileobj():
-    with patch("boto3.client") as b3:
+    with patch("boto3.session.Session") as b3:
         # upload succeeds via multipart
         file_obj = BytesIO(b">test\nACGT\n")
         _upload_sequence_fileobj(
@@ -254,7 +254,7 @@ def test_upload_sequence_fileobj():
 
 
 def test_upload_document_fileobj():
-    with patch("boto3.client") as b3:
+    with patch("boto3.session.Session") as b3:
         file_obj = BytesIO(b"MY_SPOON_IS_TOO_BIG\n")
         _upload_document_fileobj(file_obj, "spoon.pdf", FakeDocumentsResource())
         file_obj.close()
