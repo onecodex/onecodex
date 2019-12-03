@@ -17,6 +17,7 @@ class VizBargraphMixin(object):
         legend="auto",
         label=None,
         sort_x=None,
+        other=False,
     ):
         """Plot a bargraph of relative abundance of taxa for multiple samples.
 
@@ -57,6 +58,8 @@ class VizBargraphMixin(object):
         sort_x : `callable`, optional
             Function will be called with a list of x-axis labels as the only argument, and must
             return the same list in a user-specified order.
+        other : `boolean`, optional
+            Whether to add a bar labelled "Other" making up the remaining proportion of the sample.
 
         Examples
         --------
@@ -85,8 +88,10 @@ class VizBargraphMixin(object):
             rank=rank, normalize=normalize, top_n=top_n, threshold=threshold, table_format="long"
         )
 
+        field = df.ocx.field
+
         if legend == "auto":
-            legend = df.ocx.field
+            legend = field
 
         if tooltip:
             if not isinstance(tooltip, list):
@@ -134,13 +139,13 @@ class VizBargraphMixin(object):
         # OCX this should be okay)
         #
 
-        ylabel = df.ocx.field if ylabel is None else ylabel
+        ylabel = field if ylabel is None else ylabel
         xlabel = "" if xlabel is None else xlabel
 
         # should ultimately be Label, tax_name, readcount_w_children, then custom fields
         tooltip_for_altair = [magic_fields[f] for f in tooltip]
         tooltip_for_altair.insert(1, "tax_name")
-        tooltip_for_altair.insert(2, "{}:Q".format(df.ocx.field))
+        tooltip_for_altair.insert(2, "{}:Q".format(field))
 
         # generate dataframes to plot, one per facet
         dfs_to_plot = []
@@ -148,7 +153,7 @@ class VizBargraphMixin(object):
         if haxis:
             # if using facets, first facet is just the vertical axis
             blank_df = df.iloc[:1].copy()
-            blank_df[df.ocx.field] = 0
+            blank_df[field] = 0
 
             dfs_to_plot.append(blank_df)
 
@@ -173,13 +178,27 @@ class VizBargraphMixin(object):
             if sort_x:
                 sort_order = sort_x(plot_df["Label"].tolist())
 
+            if other and plot_num > 0:
+                other_rows = []
+                for classification_id, sub_df in plot_df.groupby("classification_id"):
+                    row = sub_df.iloc[0].copy()
+                    if normalize:
+                        total = 1
+                    else:
+                        total = self._results.sum(axis=1)[classification_id]
+                    row["tax_name"] = "Other"
+                    row[field] = total - sub_df[field].sum()
+                    print(sub_df[field].sum())
+                    other_rows.append(row)
+                plot_df = plot_df.append(other_rows, ignore_index=True)
+
             chart = (
                 alt.Chart(plot_df)
                 .mark_bar()
                 .encode(
                     x=alt.X("Label", axis=alt.Axis(title=xlabel), sort=sort_order),
                     y=alt.Y(
-                        df.ocx.field,
+                        field,
                         axis=alt.Axis(title=ylabel),
                         scale=alt.Scale(domain=[0, 1], zero=True, nice=False),
                     ),
@@ -193,7 +212,7 @@ class VizBargraphMixin(object):
                 if plot_num == 0:
                     # first plot (blank_df) has vert axis but no horiz axis
                     chart.encoding.x.axis = None
-                elif plot_num > 0:
+                else:
                     # strip vertical axis from subsequent facets
                     chart.encoding.y.axis = None
 
