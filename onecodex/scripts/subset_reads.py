@@ -277,6 +277,9 @@ def cli(
         save_msg += " and {}".format(rev_filtered_filename)
     click.echo(save_msg, err=True)
 
+    # see mainline/#3513. we must set idx=0 here for cases where the fastx file is empty
+    idx = 0
+
     with click.progressbar(length=tsv_row_count) as bar, gzip.open(readlevel_path, "rt") as tsv:
         reader = csv.DictReader(tsv, delimiter="\t")
 
