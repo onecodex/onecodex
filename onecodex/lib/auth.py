@@ -56,7 +56,7 @@ def check_version(version, server):
     """
 
     def version_inadequate(client_version, server_version):
-        """Simple, fast check for version inequality.
+        """Check for version inequality.
 
         Could use python package `semver` if we need more precise checks in edge cases, but this
         generally works for now.
