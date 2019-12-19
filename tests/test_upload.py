@@ -170,7 +170,7 @@ def test_upload_lots_of_files(files, n_uploads, fxi_calls, fxp_calls):
         sz = "os.path.getsize"
 
         with patch(uso) as upload_sequence_fileobj, patch(fxi) as paired, patch(fxp) as passthru:
-            with patch(sz, size_effect=fake_size) as _:
+            with patch(sz, size_effect=fake_size):
                 upload_sequence(files, FakeSamplesResource())
 
                 assert upload_sequence_fileobj.call_count == n_uploads
@@ -181,7 +181,7 @@ def test_upload_lots_of_files(files, n_uploads, fxi_calls, fxp_calls):
         with patch(udo) as upload_document_fileobj, patch(
             "onecodex.lib.upload.FilePassthru"
         ) as passthru:
-            with patch(sz, size_effect=fake_size) as _:
+            with patch(sz, size_effect=fake_size):
                 files = files[0] if isinstance(files, tuple) else files
                 upload_document(files, FakeDocumentsResource())
 
