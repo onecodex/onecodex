@@ -153,7 +153,11 @@ class VizBargraphMixin(object):
             dfs_to_plot.append(blank_df)
 
             for md_val in magic_metadata[magic_fields[haxis]].unique():
-                plot_df = df.where(df[magic_fields[haxis]] == md_val).dropna()
+                # special case where the metadata value is None: must use isnull()
+                if md_val is None:
+                    plot_df = df.where(df[magic_fields[haxis]].isnull()).dropna(how="all")
+                else:
+                    plot_df = df.where(df[magic_fields[haxis]] == md_val).dropna(how="all")
 
                 # preserve booleans
                 if magic_metadata[magic_fields[haxis]].dtype == "bool":
