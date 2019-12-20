@@ -41,7 +41,7 @@ jobs:
             python3 -m venv venv
             . venv/bin/activate
             pip install -q -U pip
-            pip install --progress-bar=off numpy tuna
+            pip install --progress-bar=off numpy tuna==0.3.3
             pip install --progress-bar=off .[all,testing]
       - run:
           name: Run tests
