@@ -180,12 +180,19 @@ def test_plot_distance(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
 
     chart = samples.plot_distance(
-        metric="unifrac", title="my title", tooltip="vegetables", return_chart=True
+        metric="unifrac",
+        xlabel="my xlabel",
+        ylabel="my ylabel",
+        title="my title",
+        tooltip="vegetables",
+        return_chart=True,
     )
     assert len(chart.hconcat) == 2
 
     mainplot = chart.hconcat[1]
     assert mainplot.mark == "rect"
+    assert mainplot.encoding.x.axis.title == "my xlabel"
+    assert mainplot.encoding.y.axis.title == "my ylabel"
     assert sorted([x.shorthand for x in mainplot.encoding.tooltip]) == [
         "1) Label",
         "1) vegetables",
@@ -211,7 +218,9 @@ def test_plot_distance_exceptions(ocx, api_data):
 
     # need more than one analysis
     with pytest.raises(OneCodexException) as e:
-        samples[:1].plot_distance(metric="jaccard", title="my title")
+        samples[:1].plot_distance(
+            metric="jaccard", xlabel="my xlabel", ylabel="my ylabel", title="my title"
+        )
     assert "requires 2 or more" in str(e.value)
 
     # tooltip with invalid metadata fields or taxids
