@@ -151,12 +151,6 @@ class VizBargraphMixin(object):
         dfs_to_plot = []
 
         if haxis:
-            # if using facets, first facet is just the vertical axis
-            blank_df = df.iloc[:1].copy()
-            blank_df[field] = 0
-
-            dfs_to_plot.append(blank_df)
-
             for md_val in magic_metadata[magic_fields[haxis]].unique():
                 # special case where the metadata value is None: must use isnull()
                 if md_val is None:
@@ -174,50 +168,62 @@ class VizBargraphMixin(object):
 
         charts = []
 
+        colour_scale = ["#4c78a8", "#f58518", "#e45756", "#72b7b2", "#54a24b", "#eeca3b", "#b279a2", "#ff9da6", "#9d755d"]
+        other_colour = "#bab0ac"
+
+        domain = list(sorted(df["tax_name"].unique()))
+        range_ = (colour_scale * (len(domain) // len(colour_scale) + 1))[:len(domain)]
+        if other:
+            domain += ["Other"]
+            range_ += [other_colour]
+
         for plot_num, plot_df in enumerate(dfs_to_plot):
             if sort_x:
                 sort_order = sort_x(plot_df["Label"].tolist())
 
-            if other and plot_num > 0:
+            if other:
                 other_rows = []
                 for classification_id, sub_df in plot_df.groupby("classification_id"):
                     row = sub_df.iloc[0].copy()
                     if normalize:
                         total = 1
                     else:
-                        total = self._results.sum(axis=1)[classification_id]
+                        total = self._results.loc[classification_id, "1"]
                     row["tax_name"] = "Other"
                     row[field] = total - sub_df[field].sum()
-                    print(sub_df[field].sum())
                     other_rows.append(row)
                 plot_df = plot_df.append(other_rows, ignore_index=True)
+
+            plot_df["order"] = plot_df["tax_name"].apply(domain.index)
+            scale = [0, 1] if normalize else [0, int(plot_df.groupby("classification_id").sum()[field].max())]
 
             chart = (
                 alt.Chart(plot_df)
                 .mark_bar()
                 .encode(
-                    x=alt.X("Label", axis=alt.Axis(title=xlabel), sort=sort_order),
+                    x=alt.X("Label", title=xlabel, sort=sort_order),
                     y=alt.Y(
                         field,
-                        axis=alt.Axis(title=ylabel),
-                        scale=alt.Scale(domain=[0, 1], zero=True, nice=False),
+                        title=ylabel,
+                        scale=alt.Scale(domain=scale, zero=True, nice=False),
                     ),
-                    color=alt.Color("tax_name", legend=alt.Legend(title=legend)),
+                    color=alt.Color("tax_name", title=legend, scale=alt.Scale(domain=domain, range=range_), sort=domain),
                     tooltip=tooltip_for_altair,
                     href="url:N",
+                    order=alt.Order(
+                        "order",
+                        sort="descending"
+                    )
                 )
             )
 
             if haxis:
-                if plot_num == 0:
-                    # first plot (blank_df) has vert axis but no horiz axis
-                    chart.encoding.x.axis = None
-                else:
+                if plot_num > 0:
                     # strip vertical axis from subsequent facets
                     chart.encoding.y.axis = None
 
-                    # facet's title set to value of metadata in this group
-                    chart.title = str(plot_df[magic_fields[haxis]].tolist()[0])
+                # facet's title set to value of metadata in this group
+                chart.title = str(plot_df[magic_fields[haxis]].tolist()[0])
 
             charts.append(chart)
 
