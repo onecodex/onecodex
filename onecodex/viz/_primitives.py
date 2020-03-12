@@ -55,10 +55,11 @@ def boxplot(df, category, quantity, category_type="N", title=None, xlabel=None, 
 
     middle_tick = (
         alt.Chart(df)
+        .properties(width={"step": 45})
         .mark_tick(color="black", size=35)
         .encode(
             y="median({}):Q".format(quantity),
-            x=alt.X(x_format, axis=alt.Axis(title=xlabel), scale=alt.Scale(rangeStep=45)),
+            x=alt.X(x_format, axis=alt.Axis(title=xlabel)),
             tooltip="median({}):Q".format(quantity),
         )
     )
