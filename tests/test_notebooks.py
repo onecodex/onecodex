@@ -1,8 +1,11 @@
+import pytest
+
+pytest.importorskip("builtins")  # noqa
+
 import builtins
 import json
 import mock
 import os
-import pytest
 import sys
 from xml.etree import ElementTree as ET
 

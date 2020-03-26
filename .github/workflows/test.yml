@@ -1,0 +1,164 @@
+name: test
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  test-matrix:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]  # , windows-latest]
+        python-version: [3.6, 3.7, 3.8]
+        exclude:
+          - os: macos-latest
+            python-version: 3.8
+          - os: windows-latest
+            python-version: 3.6
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Display Python version
+        run: python -c "import sys; print(sys.version)"
+      - name: Cache virtualenv
+        uses: actions/cache@v1
+        id: cache-pip
+        with:
+          path: venv
+          key: venv-${{ hashFiles('setup.py') }}-${{ matrix.python-version }}-${{ matrix.os }}
+      - name: Install dependencies in a venv
+        if: steps.cache-pip.outputs.cache-hit != 'true'
+        run: |
+          python3 -m venv venv
+          . venv/bin/activate
+          pip install -q -U pip
+          pip install --progress-bar=off .[all,reports,testing]
+      - name: Run all tests
+        run: |
+          . venv/bin/activate
+          make test
+
+  test-python2-minimal:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: 2.7
+      - name: Cache virtualenv
+        uses: actions/cache@v1
+        id: cache-pip
+        with:
+          path: venv
+          key: venv-${{ hashFiles('setup.py') }}-test-python2-minimal
+      - name: Install dependencies in a venv
+        if: steps.cache-pip.outputs.cache-hit != 'true'
+        run: |
+          pip install virtualenv
+          virtualenv venv
+          . venv/bin/activate
+          pip install -q -U pip
+          pip install --progress-bar=off .[testing]  # base install only
+      - name: Run python2 tests (note skips notebook and other non-core tests)
+        run: |
+          . venv/bin/activate
+          make test
+
+  test-python3-w-simple-json:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.7
+      - name: Cache virtualenv
+        uses: actions/cache@v1
+        id: cache-pip
+        with:
+          path: venv
+          key: venv-${{ hashFiles('setup.py') }}-test-python3-w-simple-json
+      - name: Install dependencies in a venv
+        if: steps.cache-pip.outputs.cache-hit != 'true'
+        run: |
+          python3 -m venv venv
+          . venv/bin/activate
+          pip install -q -U pip
+          pip install --progress-bar=off simplejson
+          pip install --progress-bar=off .[all,testing]
+      - name: Run tests (w/ simplejson)
+        run: |
+          . venv/bin/activate
+          make test
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.7
+      - name: Cache virtualenv
+        uses: actions/cache@v1
+        id: cache-pip
+        with:
+          path: venv
+          key: venv-${{ hashFiles('setup.py') }}-coverage
+      - name: Install dependencies in a venv
+        if: steps.cache-pip.outputs.cache-hit != 'true'
+        run: |
+          python3 -m venv venv
+          . venv/bin/activate
+          pip install -q -U pip
+          pip install --progress-bar=off simplejson
+          pip install --progress-bar=off .[all,testing]
+      - name: Generate coverage
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        run: |
+          . venv/bin/activate
+          make test
+          codecov
+
+  import-times:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.7
+      - name: Cache virtualenv
+        uses: actions/cache@v1
+        id: cache-pip
+        with:
+          path: venv
+          key: venv-${{ hashFiles('setup.py') }}-import-times
+      - name: Install dependencies in a venv
+        if: steps.cache-pip.outputs.cache-hit != 'true'
+        run: |
+          python3 -m venv venv
+          . venv/bin/activate
+          pip install -q -U pip
+          pip install --progress-bar=off simplejson tuna
+          pip install --progress-bar=off .[all,testing]
+      - name: Test import speeds
+        run: |
+          . venv/bin/activate
+          py.test -v tests/test_speed.py
+          python -X importtime -c 'import onecodex; onecodex.cli.onecodex()' 2> import.log
+          mkdir tuna && mkdir tuna/static
+          tuna -o tuna/ import.log
+      - name: Archive Cypress videos
+        uses: actions/upload-artifact@v1
+        if: failure()
+        with:
+          name: tuna
+          path: tuna/
