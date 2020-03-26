@@ -124,7 +124,7 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: |
           . venv/bin/activate
-          make test
+          make coverage
           codecov
 
   import-times:
