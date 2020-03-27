@@ -46,6 +46,34 @@ with open("README.md") as readme:
     README = readme.read()
 
 
+# Dependencies
+TESTING_DEPS = [
+    "coverage~=4.5",
+    "codecov~=2.0",
+    "flake8",
+    "pydocstyle>=3.0.0",
+    "pytest~=4.1",
+    "pytest-cov~=2.6",
+    "responses",
+    "testfixtures",
+    "tox-pyenv==1.0.3",
+    "tox>=3.5.3",
+    "mock==2.0.0",
+]
+ALL_DEPS = [
+    "altair==4.0.1",
+    "networkx>=1.11,<2.0",
+    "numpy>=1.11.0",
+    "pandas>=0.23.0",
+    "scikit-bio>=0.4.2,<0.5.0",
+    "scikit-learn>=0.19.0",
+]
+REPORT_DEPS = ALL_DEPS + [
+    "notebook==6.0.3",
+    "WeasyPrint==51",
+]
+
+
 setup(
     name="onecodex",
     version=__version__,  # noqa
@@ -66,30 +94,11 @@ setup(
     zip_safe=False,
     extras_require={
         ':python_version == "2.7"': ["futures"],
-        "all": [
-            "altair==3.1.0",
-            "networkx>=1.11,<2.0",
-            "numpy>=1.11.0",
-            "pandas>=0.23.0",
-            "scikit-bio>=0.4.2,<0.5.0",
-            "scikit-learn>=0.19.0",
-        ],
-        "testing": [
-            "coverage~=4.5",
-            "codecov~=2.0",
-            "flake8",
-            "pydocstyle>=3.0.0",
-            "pytest~=4.1",
-            "pytest-cov~=2.6",
-            "responses",
-            "testfixtures",
-            "tox-pyenv==1.0.3",
-            "tox>=3.5.3",
-            "mock==2.0.0",
-        ],
+        "all": ALL_DEPS,
+        "reports": REPORT_DEPS,
+        "testing": TESTING_DEPS,
     },
-    dependency_links=[],
-    author="Kyle McChesney & Nick Greenfield & Roderick Bovee",
+    author="One Codex",
     author_email="opensource@onecodex.com",
     cmdclass={"install": PostInstallCommand},
     description="One Codex API client and Python library",

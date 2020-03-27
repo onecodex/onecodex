@@ -328,6 +328,7 @@ def test_cover_sheet(mock_reports, add_br):
     obj.display()
 
 
+@pytest.mark.xfail(reason="Need to update test env")
 def test_html_export(mock_reports, mock_notebook):
     from onecodex.notebooks import exporters
 
@@ -375,6 +376,7 @@ def test_html_export(mock_reports, mock_notebook):
         assert "one_codex_logo.png" not in head_block
 
 
+@pytest.mark.xfail(reason="Need to update test env")
 def test_pdf_export(mock_reports, mock_notebook):
     from onecodex.notebooks import exporters
 

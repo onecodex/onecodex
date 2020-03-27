@@ -10,6 +10,8 @@ MAINTAINERS: [@polyatail](https://github.com/polyatail), [@bovee](https://github
 
 This package provides 3 major pieces of functionality: (1) a core Python client library; (2) a simple CLI for interacting with the One Codex platform that uses that core library; and (3) optional extensions to the client library, which offers many features aimed at advanced users and provides functionality for use in interactive notebook environments (e.g., IPython notebooks).
 
+Python 2.7 is supported **for the CLI only** (i.e., when doing `pip install onecodex`). Python 3.4 or later is required to use the additional features of the API library, including those related to visualization, microbiome statistics, and data manipulation (i.e., the full set of libraries installed with `pip install onecodex[all]`).
+
 
 ### _Basic installation_
 The CLI (and core Python library) may be simply installed using `pip`. To download a minimal installation (#1 and #2), simply run:
@@ -194,3 +196,21 @@ make test
 ```
 
 We use [`pre-commit`](https://pre-commit.com) for automated linting using [`black`](https://github.com/ambv/black), `flake8`, and various whitespace and newline formatters during development.
+
+# Jupyter Notebook Custom Exporters
+
+We also package custom Jupyter notebook [`nbconvert`](https://nbconvert.readthedocs.io/en/latest/index.html) exporters. These can be tested with the following snippets and the provided `example.ipynb` report.
+
+Our `OneCodexHTMLExporter`:
+
+```sh
+jupyter nbconvert --execute --to onecodex_html --ExecutePreprocessor.timeout=-1 --output="$ONE_CODEX_REPORT_FILENAME" --output-dir="." notebook_examples/example.ipynb && open example.html
+```
+
+And using the `OneCodexPDFExporter`:
+
+```sh
+jupyter nbconvert --execute --to onecodex_pdf --ExecutePreprocessor.timeout=-1 --output="$ONE_CODEX_REPORT_FILENAME" --output-dir="." notebook_examples/example.ipynb && open example.pdf
+```
+
+Note these require the installation of several `npm` packages for headless rendering: `npm install vega-lite vega-cli canvas`. See [altair-saver](`https://github.com/altair-viz/altair_saver`) for more details.
