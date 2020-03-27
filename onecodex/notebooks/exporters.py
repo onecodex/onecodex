@@ -5,9 +5,9 @@ import datetime
 from io import BytesIO
 import json
 from nbconvert.exporters.html import HTMLExporter
+from nbconvert.preprocessors import Preprocessor
 import os
 import pytz
-import subprocess
 from traitlets import default
 
 from onecodex.exceptions import UploadException
@@ -19,22 +19,41 @@ HTML_TEMPLATE_FILE = "notebook_template.tpl"
 CSS_TEMPLATE_FILE = "notebook_template.css"
 
 
-def render_vega_with_node(spec):
-    if subprocess.call(["which", "vg2svg"]) > 0:
-        return False
+class AltairPreprocessor(Preprocessor):
+    """
+    Updates notebook cells that are Altair-generated SVG outputs
+    to be properly encoded for Weasyprint
+    """
 
-    # note that as of this writing --vegaLite is only available in our patched version of vega-cli,
-    # which is in docker-onecodex-notebook/notebook/vega-cli.patch
-    p = subprocess.Popen(["vg2svg", "--vegaLite"], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-    p.stdin.write(bytes(spec, encoding="UTF-8"))
-    p.stdin.close()
+    def convert_cell(self, cell):
+        """
+        Updates any cells with SVGs/PNGs
+        """
+        if cell["cell_type"] != "code":
+            return cell
 
-    while p.poll():
-        pass
+        for out in cell["outputs"]:
+            if "data" not in out:
+                continue
+            if "image/svg+xml" in out["data"]:
+                img = b64encode(bytes(out["data"]["image/svg+xml"], encoding="UTF-8")).decode()
+                out["data"] = {
+                    "text/html": '<img src="data:image/svg+xml;charset=utf-8;base64,{}">'.format(
+                        img
+                    )
+                }
+            elif "image/png" in out["data"]:
+                out["data"] = {"text/html": '<img src="{}"'.format(out["data"]["image/png"])}
+        return cell
 
-    result = p.stdout.read()
+    def preprocess(self, nb, resources):
+        """
+        Preprocessing to apply to each notebook. See base.py for details.
+        """
+        # Filter out cells that meet the conditions
+        nb.cells = [self.convert_cell(cell) for cell in nb.cells]
 
-    return result
+        return nb, resources
 
 
 class OneCodexHTMLExporter(HTMLExporter):
@@ -44,19 +63,20 @@ class OneCodexHTMLExporter(HTMLExporter):
     def __init__(self, config=None, **kw):
         super(OneCodexHTMLExporter, self).__init__(config=config, **kw)
 
+        # this preprocessor converts {{variable}} tags in markdown blocks to their values
+        # see https://jupyter-contrib-nbextensions.readthedocs.io/en/latest/nbextensions/python-
+        # markdown/readme.html
         try:
             from jupyter_contrib_nbextensions.nbconvert_support import (  # noqa
                 PyMarkdownPreprocessor,
             )
+
+            self.register_preprocessor(
+                "jupyter_contrib_nbextensions.nbconvert_support.PyMarkdownPreprocessor",
+                enabled=True,
+            )
         except ImportError:
             return
-
-        # this preprocessor converts {{variable}} tags in markdown blocks to their values
-        # see https://jupyter-contrib-nbextensions.readthedocs.io/en/latest/nbextensions/python-
-        # markdown/readme.html
-        self.register_preprocessor(
-            "jupyter_contrib_nbextensions.nbconvert_support.PyMarkdownPreprocessor", enabled=True
-        )
 
     def from_notebook_node(self, nb, resources=None, **kw):
         """Uses nbconvert's HTMLExporter to generate HTML, with slight modifications.
@@ -77,57 +97,6 @@ class OneCodexHTMLExporter(HTMLExporter):
 
         # iterate over cells in the notebook and transform data as necessary
         do_not_insert_date = False
-
-        for cell in nb.cells:
-            if cell["cell_type"] == "code":
-                for out in cell["outputs"]:
-                    # handle transforming images into a format Weasyprint can render. prefer SVGs
-                    # over PNGs. SVGs must be base64 encoded, while PNGs come encoded already. drop
-                    # other Vega output cells (like JavaScript)
-                    if out.get("metadata") and out["metadata"].get("jupyter-vega"):
-                        data = out.get("data", [])
-
-                        if "image/svg+xml" in data:
-                            img = b64encode(bytes(data["image/svg+xml"], encoding="UTF-8")).decode()
-                            out["data"] = {
-                                "text/html": '<img src="data:image/svg+xml;charset=utf-8;base64,{}">'.format(
-                                    img
-                                )
-                            }
-                        elif "image/png" in data:
-                            out["data"] = {"text/html": '<img src="{}"'.format(data["image/png"])}
-                        elif "application/vnd.vegalite.v2+json" in data:
-                            vega_svg = render_vega_with_node(
-                                data["application/vnd.vegalite.v2+json"]
-                            )
-
-                            if vega_svg:
-                                img = b64encode(vega_svg).decode()
-                                out["data"] = {
-                                    "text/html": '<img src="data:image/svg+xml;charset=utf-8;base64,{}">'.format(
-                                        img
-                                    )
-                                }
-                        else:
-                            out["data"] = {}
-                    # transfer text/css blocks to HTML <head> tag
-                    elif out.get("metadata") and out["metadata"].get("onecodex") == "head.style":
-                        for mimetype in out.get("data", []):
-                            if mimetype == "text/css":
-                                style_block = '<style type="text/css">{}</style>'.format(
-                                    out["data"]["text/css"]
-                                )
-                                head_block = (
-                                    resources["metadata"].get("head_block", "") + style_block
-                                )
-                                resources["metadata"]["head_block"] = head_block
-                                break
-
-                        # we don't want this to be output as text, so clear it
-                        out["data"] = {"text/plain": ""}
-                    # if there's a custom date specified, don't insert it
-                    elif out.get("metadata") and out["metadata"].get("onecodex") == "customdate":
-                        do_not_insert_date = True
 
         # add one codex logo unless told not to
         if not os.environ.get("ONE_CODEX_REPORT_NO_LOGO", False):
@@ -189,6 +158,10 @@ class OneCodexHTMLExporter(HTMLExporter):
 class OneCodexPDFExporter(OneCodexHTMLExporter):
     export_from_notebook = "One Codex PDF Report"
     template_path = [ASSETS_PATH]
+
+    def __init__(self, config=None, **kw):
+        super(OneCodexPDFExporter, self).__init__(config=config, **kw)
+        self.register_preprocessor(AltairPreprocessor, enabled=True)
 
     def from_notebook_node(self, nb, resources=None, **kw):
         """Takes output of OneCodexHTMLExporter and runs Weasyprint to get a PDF."""
