@@ -48,17 +48,19 @@ with open("README.md") as readme:
 
 # Dependencies
 TESTING_DEPS = [
-    "coverage~=4.5",
-    "codecov~=2.0",
+    "coverage",
+    "codecov",
     "flake8",
-    "pydocstyle>=3.0.0",
-    "pytest~=4.1",
-    "pytest-cov~=2.6",
+    "pydocstyle",
+    "pytest",
+    "pytest-cov",
     "responses",
     "testfixtures",
-    "tox-pyenv==1.0.3",
-    "tox>=3.5.3",
-    "mock==2.0.0",
+    "mock",
+    "vega_datasets",
+    "black",
+    "pre-commit",
+    "PyPDF2",
 ]
 ALL_DEPS = [
     "altair==4.0.1",
@@ -71,6 +73,8 @@ ALL_DEPS = [
 REPORT_DEPS = ALL_DEPS + [
     "notebook==6.0.3",
     "WeasyPrint==51",
+    # Fork until pinned 0.5.0 release
+    "altair_saver @ https://github.com/onecodex/altair_saver/tarball/master#egg=altair_saver-0.5.0",
 ]
 
 
