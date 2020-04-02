@@ -104,8 +104,8 @@ def _login(server, creds_file=None, api_key=None, silent=False):
 
     if api_key is None:
         click.echo(
-            "We could not verify your credentials. Either you mistyped your email "
-            "or password, or your account does not currently have API access. "
+            "We could not verify your credentials. Please check your email and password again. "
+            "If you have single sign-on (SSO) enabled, you must login with `onecodex --api-key $API_KEY login`. "
             "Please contact help@onecodex.com if you continue to experience problems."
         )
         sys.exit(1)

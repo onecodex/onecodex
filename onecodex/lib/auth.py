@@ -16,6 +16,8 @@ class BearerTokenAuth(requests.auth.AuthBase):
 def fetch_api_key_from_uname(username, password, server_url):
     """Retrieve an API key from the One Codex webpage given the username and password."""
     # TODO: Hit programmatic endpoint to fetch JWT key, not API key
+    # TODO: Open browser for a login and redirect to the client.
+    #       This would enable a workflow with SSO.
     with requests.Session() as session:
         # get the login page normally
         text = session.get(server_url + "login").text
