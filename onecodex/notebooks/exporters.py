@@ -114,6 +114,15 @@ class OneCodexHTMLExporter(HTMLExporter):
             head_block = resources["metadata"].get("head_block", "") + date_div
             resources["metadata"]["head_block"] = head_block
 
+        # add the report ID and not for diagnostic use footer
+        report_info_div = '<div id="reportinfo">{}</div>'.format(
+            "{} - NOT FOR DIAGNOSTIC USE".format(os.environ["ONE_CODEX_REPORT_UUID"])
+            if os.environ.get("ONE_CODEX_REPORT_UUID")
+            else "NOT FOR DIAGNOSTIC USE"
+        )
+        head_block = resources["metadata"].get("head_block", "") + report_info_div
+        resources["metadata"]["head_block"] = head_block
+
         # embed the default CSS
         css = open(os.path.join(ASSETS_PATH, CSS_TEMPLATE_FILE), "r").read()
         css = '<style type="text/css">{}</style>'.format(css)
