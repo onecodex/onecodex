@@ -1,5 +1,3 @@
-//@import "simple-grid.css";
-
 #reportdate {
 	width: 0;
 	height: 0;
@@ -12,6 +10,13 @@
 	height: 0;
 	visibility: hidden;
 	string-set: centerheader content();
+}
+
+#reportinfo {
+	width: 0;
+	height: 0;
+	visibility: hidden;
+	string-set: reportinfo content();
 }
 
 img.logo {
@@ -48,7 +53,7 @@ img.logo-right {
 	}
 
 	@bottom-center {
-		content: "NOT FOR DIAGNOSTIC USE";
+		content: string(reportinfo);
 		text-align: left;
 		color: #aaa;
 		font-size: 11pt;

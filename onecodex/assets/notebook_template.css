@@ -10,6 +10,12 @@
   visibility: hidden;
   string-set: centerheader content();
 }
+#reportinfo {
+  width: 0;
+  height: 0;
+  visibility: hidden;
+  string-set: reportinfo content();
+}
 img.logo {
   display: block;
   position: fixed;
@@ -38,7 +44,7 @@ img.logo-right {
     font-size: 11pt;
   }
   @bottom-center {
-    content: "NOT FOR DIAGNOSTIC USE";
+    content: string(reportinfo);
     text-align: left;
     color: #aaa;
     font-size: 11pt;
