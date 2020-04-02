@@ -73,8 +73,7 @@ ALL_DEPS = [
 REPORT_DEPS = ALL_DEPS + [
     "notebook==6.0.3",
     "WeasyPrint==51",
-    # Fork until pinned 0.5.0 release
-    "altair_saver @ https://github.com/onecodex/altair_saver/tarball/master#egg=altair_saver-0.5.0",
+    "altair_saver==0.5.0",
 ]
 
 
