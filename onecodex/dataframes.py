@@ -1,4 +1,3 @@
-from functools import partial
 import pandas as pd
 
 from onecodex.analyses import AnalysisMixin
@@ -64,29 +63,11 @@ class ClassificationsDataFrame(pd.DataFrame):
 
     @property
     def _constructor(self):
-        # we explicitly do *not* pass rank on to manipulated ClassificationsDataFrame. we don't know
-        # how the data has been manipulated, and it may no longer be accurate
-        return partial(
-            ClassificationsDataFrame,
-            ocx_rank=None,
-            ocx_field=self.ocx_field,
-            ocx_taxonomy=self.ocx_taxonomy,
-            ocx_metadata=self.ocx_metadata,
-            ocx_normalized=self.ocx_normalized,
-        )
+        return ClassificationsDataFrame
 
     @property
     def _constructor_sliced(self):
-        # we explicitly do *not* pass rank on to manipulated ClassificationsDataFrame. we don't know
-        # how the data has been manipulated, and it may no longer be accurate
-        return partial(
-            ClassificationsSeries,
-            ocx_rank=None,
-            ocx_field=self.ocx_field,
-            ocx_taxonomy=self.ocx_taxonomy,
-            ocx_metadata=self.ocx_metadata,
-            ocx_normalized=self.ocx_normalized,
-        )
+        return ClassificationsSeries
 
     def to_html(self, *args, **kwargs):
         classes = kwargs.pop("classes", [])
@@ -148,29 +129,11 @@ class ClassificationsSeries(pd.Series):
 
     @property
     def _constructor(self):
-        # we explicitly do *not* pass rank on to manipulated ClassificationsDataFrames. we don't know
-        # how the data has been manipulated, and it may no longer be accurate
-        return partial(
-            ClassificationsSeries,
-            ocx_rank=None,
-            ocx_field=self.ocx_field,
-            ocx_taxonomy=self.ocx_taxonomy,
-            ocx_metadata=self.ocx_metadata,
-            ocx_normalized=self.ocx_normalized,
-        )
+        return ClassificationsSeries
 
     @property
     def _constructor_expanddim(self):
-        # we explicitly do *not* pass rank on to manipulated ClassificationsDataFrame. we don't know
-        # how the data has been manipulated, and it may no longer be accurate
-        return partial(
-            ClassificationsDataFrame,
-            ocx_rank=None,
-            ocx_field=self.ocx_field,
-            ocx_taxonomy=self.ocx_taxonomy,
-            ocx_metadata=self.ocx_metadata,
-            ocx_normalized=self.ocx_normalized,
-        )
+        return ClassificationsDataFrame
 
 
 @pd.api.extensions.register_dataframe_accessor("ocx")
