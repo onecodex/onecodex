@@ -467,3 +467,23 @@ def mocked_creds_file(mocked_creds_path):
                 }
             )
         )
+
+
+# Upload mock helpers
+FASTQ_SEQUENCE = """
+@cluster_2:UMI_ATTCCG
+TTTCCGGGGCACATAATCTTCAGCCGGGCGC
++
+9C;=;=<9@4868>9:67AA<9>65<=>591"""
+
+
+@pytest.fixture
+def generate_fastq(tmp_path, runner):
+    def fn(filename):
+        path = str(tmp_path / filename)
+        with runner.isolated_filesystem():
+            with open(path, "w") as fout:
+                fout.write(FASTQ_SEQUENCE)
+        return path
+
+    yield fn
