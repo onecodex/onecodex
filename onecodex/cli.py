@@ -440,8 +440,10 @@ def upload(
                 pair_list += "\n  {}  &  {}".format(os.path.basename(p[0]), os.path.basename(p[1]))
 
             answer = click.confirm(
-                "It appears there are paired files:{}\nInterleave them after upload?".format(
-                    pair_list
+                "It appears there are {n_paired_files} paired files (of {n_files} total):{pair_list}\nInterleave them after upload?".format(
+                    n_paired_files=len(paired_files) * 2,
+                    n_files=len(paired_files) * 2 + len(single_files),
+                    pair_list=pair_list,
                 ),
                 default="Y",
             )
