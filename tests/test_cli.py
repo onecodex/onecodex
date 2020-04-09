@@ -10,6 +10,18 @@ from tests.conftest import API_DATA
 DATE_FORMAT = "%Y-%m-%d %H:%M"
 
 
+@pytest.fixture
+def mock_file_upload():
+    with mock.patch("onecodex.lib.upload._upload_sequence_fileobj") as m:
+        yield m
+
+
+@pytest.fixture
+def mock_sample_get():
+    with mock.patch("onecodex.models.sample.Samples.get") as m:
+        yield m
+
+
 def test_cli_help(runner):
     for args in [None, "-h", "--help"]:
         command = [args] if args is not None else None
@@ -177,18 +189,6 @@ def test_auth_from_env(runner, api_data, mocked_creds_path):
 
 
 # Uploads
-SEQUENCE = (
-    "ACGTGTCGTAGGTAGCTACGACGTAGCTAACGTGTCGTAGCTACGACGTAGCTA"
-    "ACGTGTCGTAGCTACGACGTAGCTAGGGACGTGTCGTAGCTACGACGTAGCTAG\n"
-)
-
-FASTQ_SEQUENCE = """
-@cluster_2:UMI_ATTCCG
-TTTCCGGGGCACATAATCTTCAGCCGGGCGC
-+
-9C;=;=<9@4868>9:67AA<9>65<=>591"""
-
-
 @pytest.mark.parametrize(
     "files,threads",
     [
@@ -198,7 +198,9 @@ TTTCCGGGGCACATAATCTTCAGCCGGGCGC
         (["temp.fa", "temp2.fa"], True),
     ],
 )
-def test_standard_uploads(runner, mocked_creds_path, caplog, upload_mocks, files, threads):
+def test_standard_uploads(
+    runner, mocked_creds_path, caplog, generate_fastq, upload_mocks, files, threads
+):
     """Test single and multi file uploads, with and without threads
        (but not files >5GB)
     """
@@ -221,10 +223,7 @@ def test_standard_uploads(runner, mocked_creds_path, caplog, upload_mocks, files
         if not threads:
             args += ["--max-threads", "1"]
         for f in files:
-            args.append(f)
-            with open(f, mode="w") as f_out:
-                f_out.write(">Test fasta\n")
-                f_out.write(SEQUENCE)
+            args.append(generate_fastq(f))
 
         result = runner.invoke(Cli, args, catch_exceptions=False)
         assert result.exit_code == 0
@@ -232,7 +231,7 @@ def test_standard_uploads(runner, mocked_creds_path, caplog, upload_mocks, files
 
 
 def test_empty_upload(runner, mocked_creds_path, upload_mocks):
-    with runner.isolated_filesystem(), mock.patch("boto3.client"):
+    with runner.isolated_filesystem():
         f = "tmp.fa"
         f_out = open(f, mode="w")
         f_out.close()
@@ -241,68 +240,87 @@ def test_empty_upload(runner, mocked_creds_path, upload_mocks):
         assert result.exit_code != 0
 
 
-def test_paired_files(runner, mocked_creds_path, upload_mocks):
-    with runner.isolated_filesystem(), mock.patch("boto3.client"):
-        f1, f2, f3 = "temp_R1.fq", "temp_R2.fq", "other.fq"
-        with open(f1, mode="w") as f1_out, open(f2, mode="w") as f2_out, open(
-            f3, mode="w"
-        ) as f3_out:
-            f1_out.write(FASTQ_SEQUENCE)
-            f2_out.write(FASTQ_SEQUENCE)
-            f3_out.write(FASTQ_SEQUENCE)
+@pytest.mark.parametrize(
+    "files,n_samples_uploaded",
+    [
+        # 1 files, 1 sample
+        (["test.fq"], 1),
+        # 2 files, 1 sample
+        (["test_R1.fq", "test_R2.fq"], 1),
+        # 3 files, 2 samples
+        (["test_R1.fq", "test_R2.fq", "other.fq"], 2),
+    ],
+)
+def test_paired_files(
+    runner,
+    generate_fastq,
+    mock_file_upload,
+    mock_sample_get,
+    mocked_creds_path,
+    upload_mocks,
+    files,
+    n_samples_uploaded,
+):
+    files = [generate_fastq(x) for x in files]
+    n_paired_files = (len(files) - n_samples_uploaded) * 2
 
-        args = ["--api-key", "01234567890123456789012345678901", "upload", f1, f2, f3]
-        # check that 2 uploads are kicked off for the pair of files
-        patch1 = "onecodex.lib.upload._upload_sequence_fileobj"
-        patch2 = "onecodex.models.sample.Samples.get"
-        with mock.patch(patch1) as mp, mock.patch(patch2) as mp2:
-            result = runner.invoke(Cli, args, catch_exceptions=False)
-            assert mp.call_count == 3
-            assert mp2.call_count == 2
-            assert "It appears there are 2 paired files (of 3 total)" in result.output
-            assert result.exit_code == 0
+    args = ["--api-key", "01234567890123456789012345678901", "upload"] + files
+    # check that 2 uploads are kicked off for the pair of files
+    result = runner.invoke(Cli, args, catch_exceptions=False)
+    assert mock_file_upload.call_count == len(files)
+    assert mock_sample_get.call_count == n_samples_uploaded
+    assert result.exit_code == 0
+    if n_paired_files > 0:
+        assert (
+            "It appears there are {} paired files (of {} total)".format(n_paired_files, len(files))
+            in result.output
+        )
 
-        # Check with --forward and --reverse, should succeed
-        args = [
-            "--api-key",
-            "01234567890123456789012345678901",
-            "upload",
-            "--forward",
-            f1,
-            "--reverse",
-            f2,
-        ]
-        with mock.patch(patch1) as mp, mock.patch(patch2) as mp2:
-            result4 = runner.invoke(Cli, args, input="Y")
-            assert mp.call_count == 2
-            assert mp2.call_count == 1
-            assert "It appears there are 2 paired files" not in result4.output  # skips message
-            assert result4.exit_code == 0
 
-        # Check with only --forward, should fail
-        args = ["--api-key", "01234567890123456789012345678901", "upload", "--forward", f1]
-        result5 = runner.invoke(Cli, args)
-        assert "You must specify both forward and reverse files" in result5.output
-        assert result5.exit_code != 0
+def test_paired_files_with_forward_and_reverse_args(
+    runner, generate_fastq, mock_file_upload, mock_sample_get, mocked_creds_path, upload_mocks
+):
+    f1, f2 = generate_fastq("test_R1.fq"), generate_fastq("test_R2.fq")
 
-        # Check with only --reverse, should fail
-        args = ["--api-key", "01234567890123456789012345678901", "upload", "--reverse", f2]
-        result6 = runner.invoke(Cli, args)
-        assert "You must specify both forward and reverse files" in result6.output
-        assert result6.exit_code != 0
+    # Check with --forward and --reverse, should succeed
+    args = [
+        "--api-key",
+        "01234567890123456789012345678901",
+        "upload",
+        "--forward",
+        f1,
+        "--reverse",
+        f2,
+    ]
+    result = runner.invoke(Cli, args, input="Y")
+    assert mock_file_upload.call_count == 2
+    assert mock_sample_get.call_count == 1
+    assert "It appears there are 2 paired files" not in result.output  # skips message
+    assert result.exit_code == 0
 
-        # Check with --forward, --reverse, and files, should fail
-        args = [
-            "--api-key",
-            "01234567890123456789012345678901",
-            "upload",
-            "--forward",
-            f1,
-            "--reverse",
-            f2,
-            f2,
-        ]
-        with mock.patch(patch1), mock.patch(patch2):
-            result7 = runner.invoke(Cli, args)
-        assert "You may not pass a FILES argument" in result7.output
-        assert result7.exit_code != 0
+    # Check with only --forward, should fail
+    args = ["--api-key", "01234567890123456789012345678901", "upload", "--forward", f1]
+    result = runner.invoke(Cli, args)
+    assert "You must specify both forward and reverse files" in result.output
+    assert result.exit_code != 0
+
+    # Check with only --reverse, should fail
+    args = ["--api-key", "01234567890123456789012345678901", "upload", "--reverse", f2]
+    result = runner.invoke(Cli, args)
+    assert "You must specify both forward and reverse files" in result.output
+    assert result.exit_code != 0
+
+    # Check with --forward, --reverse, and files, should fail
+    args = [
+        "--api-key",
+        "01234567890123456789012345678901",
+        "upload",
+        "--forward",
+        f1,
+        "--reverse",
+        f2,
+        f2,
+    ]
+    result = runner.invoke(Cli, args)
+    assert "You may not pass a FILES argument" in result.output
+    assert result.exit_code != 0
