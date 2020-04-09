@@ -243,20 +243,23 @@ def test_empty_upload(runner, mocked_creds_path, upload_mocks):
 
 def test_paired_files(runner, mocked_creds_path, upload_mocks):
     with runner.isolated_filesystem(), mock.patch("boto3.client"):
-        f, f2 = "temp_R1.fq", "temp_R2.fq"
-        with open(f, mode="w") as f_out, open(f2, mode="w") as f_out2:
-            f_out.write(FASTQ_SEQUENCE)
-            f_out2.write(FASTQ_SEQUENCE)
+        f1, f2, f3 = "temp_R1.fq", "temp_R2.fq", "other.fq"
+        with open(f1, mode="w") as f1_out, open(f2, mode="w") as f2_out, open(
+            f3, mode="w"
+        ) as f3_out:
+            f1_out.write(FASTQ_SEQUENCE)
+            f2_out.write(FASTQ_SEQUENCE)
+            f3_out.write(FASTQ_SEQUENCE)
 
-        args = ["--api-key", "01234567890123456789012345678901", "upload", f, f2]
+        args = ["--api-key", "01234567890123456789012345678901", "upload", f1, f2, f3]
         # check that 2 uploads are kicked off for the pair of files
         patch1 = "onecodex.lib.upload._upload_sequence_fileobj"
         patch2 = "onecodex.models.sample.Samples.get"
         with mock.patch(patch1) as mp, mock.patch(patch2) as mp2:
             result = runner.invoke(Cli, args, catch_exceptions=False)
-            assert mp.call_count == 2
-            assert mp2.call_count == 1
-            assert "It appears there are paired files" in result.output
+            assert mp.call_count == 3
+            assert mp2.call_count == 2
+            assert "It appears there are 2 paired files (of 3 total)" in result.output
             assert result.exit_code == 0
 
         # Check with --forward and --reverse, should succeed
@@ -265,7 +268,7 @@ def test_paired_files(runner, mocked_creds_path, upload_mocks):
             "01234567890123456789012345678901",
             "upload",
             "--forward",
-            f,
+            f1,
             "--reverse",
             f2,
         ]
@@ -273,11 +276,11 @@ def test_paired_files(runner, mocked_creds_path, upload_mocks):
             result4 = runner.invoke(Cli, args, input="Y")
             assert mp.call_count == 2
             assert mp2.call_count == 1
-            assert "It appears there are paired files" not in result4.output
+            assert "It appears there are 2 paired files" not in result4.output  # skips message
             assert result4.exit_code == 0
 
         # Check with only --forward, should fail
-        args = ["--api-key", "01234567890123456789012345678901", "upload", "--forward", f]
+        args = ["--api-key", "01234567890123456789012345678901", "upload", "--forward", f1]
         result5 = runner.invoke(Cli, args)
         assert "You must specify both forward and reverse files" in result5.output
         assert result5.exit_code != 0
@@ -294,7 +297,7 @@ def test_paired_files(runner, mocked_creds_path, upload_mocks):
             "01234567890123456789012345678901",
             "upload",
             "--forward",
-            f,
+            f1,
             "--reverse",
             f2,
             f2,
