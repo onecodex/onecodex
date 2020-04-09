@@ -64,7 +64,6 @@ TESTING_DEPS = [
 ]
 ALL_DEPS = [
     "altair==4.0.1",
-    "networkx>=1.11,<2.0",
     "numpy>=1.11.0",
     "pandas>=0.23.0",
     "scikit-bio>=0.4.2,<0.5.0",
