@@ -140,25 +140,29 @@ class SampleCollection(ResourceList, AnalysisMixin):
         -------
         None, but stores a result in self._cached.
         """
+        from onecodex.models import Classifications, Samples
+
         skip_missing = skip_missing if skip_missing else self._kwargs["skip_missing"]
 
         new_classifications = []
 
-        for a in self._res_list:
-            if a.__class__.__name__ == "Samples":
-                c = a.primary_classification
-            elif a.__class__.__name__ == "Classifications":
-                c = a
+        for obj in self._res_list:
+            if isinstance(obj, Samples):
+                classification = obj.primary_classification
+            elif isinstance(obj, Classifications):
+                classification = obj
             else:
                 raise OneCodexException(
                     "Objects in SampleCollection must be one of: Classifications, Samples"
                 )
 
-            if skip_missing and not c.success:
-                warnings.warn("Classification {} not successful. Skipping.".format(c.id))
+            if skip_missing and not classification.success:
+                warnings.warn(
+                    "Classification {} not successful. Skipping.".format(classification.id)
+                )
                 continue
 
-            new_classifications.append(c)
+            new_classifications.append(classification)
 
         # warn if some of the classifications in this collection are not alike
         job_names_to_ids = {}
