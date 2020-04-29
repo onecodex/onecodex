@@ -1,4 +1,5 @@
 from onecodex.exceptions import OneCodexException
+from onecodex.viz._primitives import sort_helper
 
 
 class VizMetadataMixin(object):
@@ -52,9 +53,9 @@ class VizMetadataMixin(object):
             dict containing the metadata for each analysis is passed as the first and only
             positional argument. The callable function must return a string.
 
-        sort_x : `callable`, optional
-            Function will be called with a list of x-axis labels as the only argument, and must
-            return the same list in a user-specified order.
+        sort_x : `list` or `callable`, optional
+            Either a list of sorted labels or a function that will be called with a list of x-axis labels 
+            as the only argument, and must return the same list in a user-specified order.
 
         Examples
         --------
@@ -147,11 +148,13 @@ class VizMetadataMixin(object):
         if plot_type == "scatter":
             df = df.reset_index()
 
+            sort_order = sort_helper(sort_x, df[magic_fields[haxis]].tolist())
+
             alt_kwargs = dict(
                 x=alt.X(
                     magic_fields[haxis],
                     axis=alt.Axis(title=xlabel),
-                    sort=sort_x(df[magic_fields[haxis]].tolist()) if sort_x else None,
+                    sort=sort_order,
                 ),
                 y=alt.Y(magic_fields[vaxis], axis=alt.Axis(title=ylabel)),
                 tooltip=["Label", "{}:Q".format(magic_fields[vaxis])],

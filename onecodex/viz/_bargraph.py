@@ -1,5 +1,5 @@
 from onecodex.exceptions import OneCodexException
-
+from onecodex.viz._primitives import sort_helper
 
 class VizBargraphMixin(object):
     def plot_bargraph(
@@ -54,9 +54,9 @@ class VizBargraphMixin(object):
             A metadata field (or function) used to label each analysis. If passing a function, a
             dict containing the metadata for each analysis is passed as the first and only
             positional argument. The callable function must return a string.
-        sort_x : `callable`, optional
-            Function will be called with a list of x-axis labels as the only argument, and must
-            return the same list in a user-specified order.
+        sort_x : `list` or `callable`, optional
+            Either a list of sorted labels or a function that will be called with a list of x-axis labels 
+            as the only argument, and must return the same list in a user-specified order.
 
         Examples
         --------
@@ -170,8 +170,8 @@ class VizBargraphMixin(object):
         charts = []
 
         for plot_num, plot_df in enumerate(dfs_to_plot):
-            if sort_x:
-                sort_order = sort_x(plot_df["Label"].tolist())
+            if not sort_order:
+                sort_order = sort_helper(sort_x, plot_df["Label"].tolist())
 
             chart = (
                 alt.Chart(plot_df)

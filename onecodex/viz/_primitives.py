@@ -3,6 +3,19 @@ import pandas as pd
 
 from onecodex.exceptions import OneCodexException
 
+def sort_helper(sort, values):
+    sort_order = None
+    if callable(sort):
+        sort_order = sort(values)
+    elif isinstance(sort, list):
+        if set(sort) != set(values):
+            raise OneCodexException("sort_x must have the same items as your dataset.")
+        sort_order = sort
+    elif sort:
+        raise OneCodexException("Please pass either a sorted list of values matching the axis labels \
+            or a function that returns a sorted list of labels")
+    return sort_order
+
 
 def boxplot(df, category, quantity, category_type="N", title=None, xlabel=None, ylabel=None):
     """Plot a simple boxplot using Altair.
