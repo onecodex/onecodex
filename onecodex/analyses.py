@@ -32,7 +32,7 @@ class AnalysisMixin(
             if self.__class__.__name__ == "OneCodexAccessor":
                 return self._rank
 
-            if self._field == "abundance":
+            if self._field == "abundance" or self._is_metagenomic:
                 return "species"
             else:
                 return "genus"

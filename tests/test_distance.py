@@ -24,11 +24,6 @@ def test_alpha_diversity(ocx, api_data, metric, value, kwargs):
 def test_alpha_diversity_exceptions(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
 
-    # should fail if data has been normalized
-    with pytest.raises(OneCodexException) as e:
-        samples.to_df(normalize=True).ocx.alpha_diversity("simpson")
-    assert "requires unnormalized" in str(e.value)
-
     # must be a metric that exists
     with pytest.raises(OneCodexException) as e:
         samples.alpha_diversity("does_not_exist")

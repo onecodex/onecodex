@@ -68,7 +68,11 @@ class SampleCollection(ResourceList, AnalysisMixin):
     def _resource_list_constructor(
         self, _resource, oc_model, skip_missing=True, field="auto", include_host=False
     ):
-        self._kwargs = {"skip_missing": skip_missing, "field": field, "include_host": include_host}
+        self._kwargs = {
+            "skip_missing": skip_missing,
+            "field": field,
+            "include_host": include_host,
+        }
         super(SampleCollection, self).__init__(_resource, oc_model, **self._kwargs)
 
     def _sample_collection_constructor(
@@ -91,7 +95,11 @@ class SampleCollection(ResourceList, AnalysisMixin):
         resources = [obj._resource for obj in objects]
         model = objects[0].__class__
 
-        self._kwargs = {"skip_missing": skip_missing, "field": field, "include_host": include_host}
+        self._kwargs = {
+            "skip_missing": skip_missing,
+            "field": field,
+            "include_host": include_host,
+        }
         super(SampleCollection, self).__init__(resources, model, **self._kwargs)
 
     def filter(self, filter_func):
@@ -165,20 +173,23 @@ class SampleCollection(ResourceList, AnalysisMixin):
             new_classifications.append(classification)
 
         # warn if some of the classifications in this collection are not alike
-        job_names_to_ids = {}
+        job_names = set([obj.job.name for obj in new_classifications])
+        job_ids = set([obj.job.id for obj in new_classifications])
 
-        for obj in new_classifications:
-            try:
-                job_names_to_ids[obj.job.name].append(obj.job.id)
-            except KeyError:
-                job_names_to_ids[obj.job.name] = [obj.job.id]
-
-        if len(job_names_to_ids) > 1:
+        if len(job_names) > 1:
             warnings.warn(
-                "SampleCollection contains multiple analysis types: {}".format(
-                    ", ".join(job_names_to_ids.keys())
+                "SampleCollection contains multiple analysis types: {}".format(", ".join(job_names))
+            )
+        elif len(job_ids) > 1:
+            warnings.warn(
+                "SampleCollection contains multiple analysis versions: {}".format(
+                    ", ".join(job_ids)
                 )
             )
+
+        self._cached["is_metagenomic"] = False
+        if job_names == {"One Codex Database"}:
+            self._cached["is_metagenomic"] = True
 
         self._cached["classifications"] = new_classifications
 
@@ -270,6 +281,9 @@ class SampleCollection(ResourceList, AnalysisMixin):
         if field == "auto":
             field = "readcount_w_children"
 
+            if self._is_metagenomic:
+                field = "abundance"
+
         self._cached["field"] = field
 
         for c_idx, c in enumerate(self._classifications):
@@ -310,6 +324,13 @@ class SampleCollection(ResourceList, AnalysisMixin):
             self._collate_results()
 
         return self._cached["field"]
+
+    @property
+    def _is_metagenomic(self):
+        if "is_metagenomic" not in self._cached:
+            self._collate_results()
+
+        return self._cached["is_metagenomic"]
 
     @property
     def _results(self):
@@ -394,7 +415,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
             # add the row entry
             row_id = len(otu["rows"])
             otu["rows"].append(
-                {"id": present_taxa, "metadata": {"taxonomy": tax_ids_to_names[present_taxa]}}
+                {"id": present_taxa, "metadata": {"taxonomy": tax_ids_to_names[present_taxa]},}
             )
 
             for sample_with_hit in rows[present_taxa]:
