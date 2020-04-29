@@ -1,6 +1,7 @@
 from onecodex.exceptions import OneCodexException
 from onecodex.viz._primitives import sort_helper
 
+
 class VizBargraphMixin(object):
     def plot_bargraph(
         self,
