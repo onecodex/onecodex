@@ -26,10 +26,6 @@ class DistanceMixin(TaxonomyMixin):
                 "For alpha diversity, metric must be one of: simpson, chao1, shannon"
             )
 
-        # needs read counts, not relative abundances
-        if self._guess_normalized():
-            raise OneCodexException("Alpha diversity requires unnormalized read counts.")
-
         df = self.to_df(rank=rank, normalize=False)
 
         output = {"classification_id": [], metric: []}
