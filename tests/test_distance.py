@@ -36,6 +36,8 @@ def test_alpha_diversity_exceptions(ocx, api_data):
         ("braycurtis", [0.758579937018798, 0.46261493509445945, 0.7603369765359447], {}),
         ("cityblock", [18680367.0, 13918888.0, 16237777.0], {}),
         ("jaccard", [0.9823788546255506, 0.9638242894056848, 0.9678217821782178], {}),
+        ("unweighted_unifrac", [0.380050505050505, 0.3538011695906433, 0.4122448979591837], {}),
+        ("weighted_unifrac", [6.418015325847228, 5.209385639879688, 8.104451028880142], {}),
     ],
 )
 def test_beta_diversity(ocx, api_data, metric, value, kwargs):
@@ -66,12 +68,3 @@ def test_unifrac(ocx, api_data, value, weighted):
     dm = samples.unifrac(weighted=weighted)
     assert isinstance(dm, skbio.stats.distance._base.DistanceMatrix)
     assert dm.condensed_form().tolist() == value
-
-
-def test_unifrac_exceptions(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
-
-    # should fail if data has been normalized
-    with pytest.raises(OneCodexException) as e:
-        samples.to_df(normalize=True).ocx.unifrac()
-    assert "requires unnormalized" in str(e.value)

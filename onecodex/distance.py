@@ -54,9 +54,16 @@ class DistanceMixin(TaxonomyMixin):
         """
         import skbio.diversity
 
-        if metric not in ("jaccard", "braycurtis", "cityblock"):
+        VALID_METRICS = [
+            "jaccard",
+            "braycurtis",
+            "cityblock",
+            "weighted_unifrac",
+            "unweighted_unifrac",
+        ]
+        if metric not in VALID_METRICS:
             raise OneCodexException(
-                "For beta diversity, metric must be one of: jaccard, braycurtis, cityblock"
+                "For beta diversity, metric must be one of: {}".format(", ".join(VALID_METRICS))
             )
 
         df = self.to_df(rank=rank, normalize=self._guess_normalized())
@@ -64,6 +71,11 @@ class DistanceMixin(TaxonomyMixin):
         counts = []
         for c_id in df.index:
             counts.append(df.loc[c_id].tolist())
+
+        if metric == "weighted_unifrac":
+            return self.unifrac(weighted=True, rank=rank)
+        elif metric == "unweighted_unifrac":
+            return self.unifrac(weighted=False, rank=rank)
 
         # NOTE: see #291 for a discussion on using these metrics with normalized read counts. we are
         # explicitly disabling skbio's check for a counts matrix to allow normalized data to make
@@ -90,9 +102,6 @@ class DistanceMixin(TaxonomyMixin):
         # needs read counts, not relative abundances
         import skbio.diversity
 
-        if self._guess_normalized():
-            raise OneCodexException("UniFrac requires unnormalized read counts.")
-
         df = self.to_df(rank=rank, normalize=False)
 
         counts = []
@@ -115,9 +124,19 @@ class DistanceMixin(TaxonomyMixin):
         # then finally run the calculation and return
         if weighted:
             return skbio.diversity.beta_diversity(
-                "weighted_unifrac", counts, df.index.tolist(), tree=new_tree, otu_ids=tax_ids
+                "weighted_unifrac",
+                counts,
+                df.index.tolist(),
+                tree=new_tree,
+                otu_ids=tax_ids,
+                validate=False,
             )
         else:
             return skbio.diversity.beta_diversity(
-                "unweighted_unifrac", counts, df.index.tolist(), tree=new_tree, otu_ids=tax_ids
+                "unweighted_unifrac",
+                counts,
+                df.index.tolist(),
+                tree=new_tree,
+                otu_ids=tax_ids,
+                validate=False,
             )
