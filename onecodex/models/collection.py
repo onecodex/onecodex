@@ -118,10 +118,10 @@ class SampleCollection(ResourceList, AnalysisMixin):
             new_collection = samples.filter(lambda s: s.filename.endswith('.fastq.gz'))
         """
         if callable(filter_func):
-            return self.__class__([obj for obj in self if filter_func(obj) is True], **self._kwargs)
+            return self.__class__([obj for obj in self if filter_func(obj)], **self._kwargs)
         else:
             raise OneCodexException(
-                "Expected callable for filter, got: {}".format(type(filter_func).__name__)
+                "Please pass a function to filter: {}".format(type(filter_func).__name__)
             )
 
     def _update(self):
