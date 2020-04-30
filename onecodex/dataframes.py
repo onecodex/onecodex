@@ -1,3 +1,5 @@
+from functools import partial
+
 import pandas as pd
 
 from onecodex.analyses import AnalysisMixin
@@ -42,16 +44,13 @@ class ClassificationsDataFrame(pd.DataFrame):
 
     def __init__(
         self,
-        data=None,
-        index=None,
-        columns=None,
-        dtype=None,
-        copy=False,
+        *args,
         ocx_rank=None,
         ocx_field=None,
         ocx_taxonomy=None,
         ocx_metadata=None,
         ocx_normalized=None,
+        **kwargs,
     ):
         self.ocx_rank = ocx_rank
         self.ocx_field = ocx_field
@@ -59,15 +58,29 @@ class ClassificationsDataFrame(pd.DataFrame):
         self.ocx_metadata = ocx_metadata
         self.ocx_normalized = ocx_normalized
 
-        pd.DataFrame.__init__(self, data=data, index=index, columns=columns, dtype=dtype, copy=copy)
+        pd.DataFrame.__init__(self, *args, **kwargs)
 
     @property
     def _constructor(self):
-        return ClassificationsDataFrame
+        return partial(
+            ClassificationsDataFrame,
+            ocx_rank=self.ocx_rank,
+            ocx_field=self.ocx_field,
+            ocx_taxonomy=self.ocx_taxonomy,
+            ocx_metadata=self.ocx_metadata,
+            ocx_normalized=self.ocx_normalized,
+        )
 
     @property
     def _constructor_sliced(self):
-        return ClassificationsSeries
+        return partial(
+            ClassificationsSeries,
+            ocx_rank=self.ocx_rank,
+            ocx_field=self.ocx_field,
+            ocx_taxonomy=self.ocx_taxonomy,
+            ocx_metadata=self.ocx_metadata,
+            ocx_normalized=self.ocx_normalized,
+        )
 
     def to_html(self, *args, **kwargs):
         classes = kwargs.pop("classes", [])
@@ -105,17 +118,13 @@ class ClassificationsSeries(pd.Series):
 
     def __init__(
         self,
-        data=None,
-        index=None,
-        dtype=None,
-        name=None,
-        copy=False,
-        fastpath=False,
+        *args,
         ocx_rank=None,
         ocx_field=None,
         ocx_taxonomy=None,
         ocx_metadata=None,
         ocx_normalized=None,
+        **kwargs,
     ):
         self.ocx_rank = ocx_rank
         self.ocx_field = ocx_field
@@ -123,17 +132,29 @@ class ClassificationsSeries(pd.Series):
         self.ocx_metadata = ocx_metadata
         self.ocx_normalized = ocx_normalized
 
-        pd.Series.__init__(
-            self, data=data, index=index, dtype=dtype, name=name, copy=copy, fastpath=fastpath
-        )
+        pd.Series.__init__(self, *args, **kwargs)
 
     @property
     def _constructor(self):
-        return ClassificationsSeries
+        return partial(
+            ClassificationsSeries,
+            ocx_rank=self.ocx_rank,
+            ocx_field=self.ocx_field,
+            ocx_taxonomy=self.ocx_taxonomy,
+            ocx_metadata=self.ocx_metadata,
+            ocx_normalized=self.ocx_normalized,
+        )
 
     @property
     def _constructor_expanddim(self):
-        return ClassificationsDataFrame
+        return partial(
+            ClassificationsDataFrame,
+            ocx_rank=self.ocx_rank,
+            ocx_field=self.ocx_field,
+            ocx_taxonomy=self.ocx_taxonomy,
+            ocx_metadata=self.ocx_metadata,
+            ocx_normalized=self.ocx_normalized,
+        )
 
 
 @pd.api.extensions.register_dataframe_accessor("ocx")
