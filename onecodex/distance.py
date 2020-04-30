@@ -5,7 +5,7 @@ from onecodex.taxonomy import TaxonomyMixin
 
 
 class DistanceMixin(TaxonomyMixin):
-    def alpha_diversity(self, metric="simpson", rank="auto"):
+    def alpha_diversity(self, metric="shannon", rank="auto"):
         """Calculate the diversity within a community.
 
         Parameters
@@ -26,17 +26,11 @@ class DistanceMixin(TaxonomyMixin):
                 "For alpha diversity, metric must be one of: simpson, chao1, shannon"
             )
 
-        df = self.to_df(rank=rank, normalize=False)
+        df = self.to_df(rank=rank, normalize=self._guess_normalized())
 
-        output = {"classification_id": [], metric: []}
+        output = skbio.diversity.alpha_diversity(metric, df.values, df.index, validate=False)
 
-        for c_id in df.index:
-            output["classification_id"].append(c_id)
-            output[metric].append(
-                skbio.diversity.alpha_diversity(metric, df.loc[c_id].tolist(), [c_id]).values[0]
-            )
-
-        return pd.DataFrame(output).set_index("classification_id")
+        return pd.DataFrame(output, columns=[metric])
 
     def beta_diversity(self, metric="braycurtis", rank="auto"):
         """Calculate the diversity between two communities.
@@ -68,10 +62,6 @@ class DistanceMixin(TaxonomyMixin):
 
         df = self.to_df(rank=rank, normalize=self._guess_normalized())
 
-        counts = []
-        for c_id in df.index:
-            counts.append(df.loc[c_id].tolist())
-
         if metric == "weighted_unifrac":
             return self.unifrac(weighted=True, rank=rank)
         elif metric == "unweighted_unifrac":
@@ -80,7 +70,7 @@ class DistanceMixin(TaxonomyMixin):
         # NOTE: see #291 for a discussion on using these metrics with normalized read counts. we are
         # explicitly disabling skbio's check for a counts matrix to allow normalized data to make
         # its way into this function.
-        return skbio.diversity.beta_diversity(metric, counts, df.index.tolist(), validate=False)
+        return skbio.diversity.beta_diversity(metric, df, df.index, validate=False)
 
     def unifrac(self, weighted=True, rank="auto"):
         """Calculate the UniFrac beta diversity metric.
@@ -99,14 +89,9 @@ class DistanceMixin(TaxonomyMixin):
         -------
         skbio.stats.distance.DistanceMatrix, a distance matrix.
         """
-        # needs read counts, not relative abundances
         import skbio.diversity
 
-        df = self.to_df(rank=rank, normalize=False)
-
-        counts = []
-        for c_id in df.index:
-            counts.append(df.loc[c_id].tolist())
+        df = self.to_df(rank=rank, normalize=self._guess_normalized())
 
         tax_ids = df.keys().tolist()
 
@@ -124,19 +109,9 @@ class DistanceMixin(TaxonomyMixin):
         # then finally run the calculation and return
         if weighted:
             return skbio.diversity.beta_diversity(
-                "weighted_unifrac",
-                counts,
-                df.index.tolist(),
-                tree=new_tree,
-                otu_ids=tax_ids,
-                validate=False,
+                "weighted_unifrac", df, df.index, tree=new_tree, otu_ids=tax_ids, validate=False,
             )
         else:
             return skbio.diversity.beta_diversity(
-                "unweighted_unifrac",
-                counts,
-                df.index.tolist(),
-                tree=new_tree,
-                otu_ids=tax_ids,
-                validate=False,
+                "unweighted_unifrac", df, df.index, tree=new_tree, otu_ids=tax_ids, validate=False,
             )

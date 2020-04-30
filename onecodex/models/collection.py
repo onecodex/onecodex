@@ -66,17 +66,18 @@ class SampleCollection(ResourceList, AnalysisMixin):
             self._sample_collection_constructor(*args, **kwargs)
 
     def _resource_list_constructor(
-        self, _resource, oc_model, skip_missing=True, field="auto", include_host=False
+        self, _resource, oc_model, skip_missing=True, field="auto", include_host=False, job=None
     ):
         self._kwargs = {
             "skip_missing": skip_missing,
             "field": field,
             "include_host": include_host,
+            "job": job,
         }
         super(SampleCollection, self).__init__(_resource, oc_model, **self._kwargs)
 
     def _sample_collection_constructor(
-        self, objects, skip_missing=True, field="auto", include_host=False
+        self, objects, skip_missing=True, field="auto", include_host=False, job=None
     ):
         # are they all wrapped potion resources?
         if not all([hasattr(obj, "_resource") for obj in objects]):
@@ -99,6 +100,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
             "skip_missing": skip_missing,
             "field": field,
             "include_host": include_host,
+            "job": job,
         }
         super(SampleCollection, self).__init__(resources, model, **self._kwargs)
 
@@ -151,6 +153,8 @@ class SampleCollection(ResourceList, AnalysisMixin):
         from onecodex.models import Classifications, Samples
 
         skip_missing = skip_missing if skip_missing else self._kwargs["skip_missing"]
+
+        job = self._kwargs["job"]
 
         new_classifications = []
 
@@ -282,7 +286,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
             field = "readcount_w_children"
 
             if self._is_metagenomic:
-                field = "abundance"
+                field = "abundance_w_children"
 
         self._cached["field"] = field
 
@@ -291,6 +295,25 @@ class SampleCollection(ResourceList, AnalysisMixin):
             results = c.results()
             table = results["table"]
             host_tax_ids = results.get("host_tax_ids", [])
+
+            table = {t.get("tax_id"): t for t in table}
+
+            for tax_id, result in table.items():
+                if "abundance" not in result or result["abundance"] is None:
+                    result["abundance_w_children"] = 0
+                    continue
+                
+                parent = table[result["parent_tax_id"]]
+                result["abundance_w_children"] = result["abundance"]
+
+                while parent:
+                    if "abundance_w_children" not in parent:
+                        parent["abundance_w_children"] = 0
+
+                    parent["abundance_w_children"] += result["abundance"]
+                    parent = table.get(parent["parent_tax_id"])
+
+            table = [v for k, v in table.items()]
 
             # d contains info about a taxon in result, including name, id, counts, rank, etc.
             for d in table:
