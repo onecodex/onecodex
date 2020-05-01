@@ -201,7 +201,7 @@ def login_required(fn):
             click.echo(
                 "The command you specified requires authentication. Please login first.\n", err=True
             )
-            ctx.exit()
+            ctx.exit(1)
 
         ctx.obj["API"] = Api(**api_kwargs)
 
