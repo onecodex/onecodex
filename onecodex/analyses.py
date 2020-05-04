@@ -49,7 +49,7 @@ class AnalysisMixin(
         """
         return (
             getattr(self, "_normalized", False)
-            or getattr(self, "_field", None) == "abundance"
+            or getattr(self, "_field", None) in ["abundance", "abundance_w_children"]
             or bool((self._results.sum(axis=1).round(4) == 1.0).all())
         )  # noqa
 
@@ -303,10 +303,9 @@ class AnalysisMixin(
         if normalize is False and self._guess_normalized():
             raise OneCodexException("Data has already been normalized and this can not be undone.")
 
-        if normalize is True or (
-            normalize == "auto" and rank is not None and self._field != "abundance"
-        ):
-            df = df.div(df.sum(axis=1), axis=0)
+        if normalize is True or (normalize == "auto" and rank):
+            if not self._guess_normalized():
+                df = df.div(df.sum(axis=1), axis=0)
 
         # remove columns (tax_ids) with no values that are > 0
         if remove_zeros:

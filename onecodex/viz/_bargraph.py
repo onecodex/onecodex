@@ -18,6 +18,8 @@ class VizBargraphMixin(object):
         legend="auto",
         label=None,
         sort_x=None,
+        include_taxa_missing_rank=None,
+        include_other=False,
     ):
         """Plot a bargraph of relative abundance of taxa for multiple samples.
 
@@ -58,6 +60,8 @@ class VizBargraphMixin(object):
         sort_x : `list` or `callable`, optional
             Either a list of sorted labels or a function that will be called with a list of x-axis labels 
             as the only argument, and must return the same list in a user-specified order.
+        include_no_level : `bool`, optional
+            Whether or not a row should be plotted for taxa that do not have a designated parent at `rank`.
 
         Examples
         --------
@@ -67,6 +71,7 @@ class VizBargraphMixin(object):
         """
         # Deferred imports
         import altair as alt
+        import pandas as pd
 
         if rank is None:
             raise OneCodexException("Please specify a rank or 'auto' to choose automatically")
@@ -82,12 +87,42 @@ class VizBargraphMixin(object):
         elif top_n != "auto" and threshold == "auto":
             threshold = None
 
-        df = self.to_df(
-            rank=rank, normalize=normalize, top_n=top_n, threshold=threshold, table_format="long"
+        df = self.to_df(rank=rank, normalize=normalize, threshold=threshold, table_format="long")
+
+        field = df.ocx.field
+
+        if field in ["abundance", "abundance_w_children"] and include_taxa_missing_rank is None:
+            include_taxa_missing_rank = True
+
+        if include_taxa_missing_rank:
+            if field != "abundance_w_children":
+                raise OneCodexException(
+                    "No-level data can only be imputed on abundances w/ children"
+                )
+
+            name = "No {}".format(rank)
+
+            missing = pd.DataFrame(1 - df.groupby("classification_id")[field].sum()).reset_index()
+            missing["tax_id"] = name
+
+            df = df.append(missing, ignore_index=True)
+
+        top_n = (
+            df.groupby("tax_id").mean().sort_values(by=field, ascending=False).iloc[:top_n].index
         )
 
+        df = df[df["tax_id"].isin(top_n)]
+
+        if include_other and normalize:
+            other_rows = pd.DataFrame(
+                1 - df.groupby("classification_id")[field].sum()
+            ).reset_index()
+            other_rows["tax_id"] = "Other"
+
+            df = df.append(other_rows, ignore_index=True)
+
         if legend == "auto":
-            legend = df.ocx.field
+            legend = field
 
         if tooltip:
             if not isinstance(tooltip, list):
@@ -135,13 +170,13 @@ class VizBargraphMixin(object):
         # OCX this should be okay)
         #
 
-        ylabel = df.ocx.field if ylabel is None else ylabel
+        ylabel = field if ylabel is None else ylabel
         xlabel = "" if xlabel is None else xlabel
 
         # should ultimately be Label, tax_name, readcount_w_children, then custom fields
         tooltip_for_altair = [magic_fields[f] for f in tooltip]
         tooltip_for_altair.insert(1, "tax_name")
-        tooltip_for_altair.insert(2, "{}:Q".format(df.ocx.field))
+        tooltip_for_altair.insert(2, "{}:Q".format(field))
 
         # generate dataframes to plot, one per facet
         dfs_to_plot = []
@@ -149,7 +184,7 @@ class VizBargraphMixin(object):
         if haxis:
             # if using facets, first facet is just the vertical axis
             blank_df = df.iloc[:1].copy()
-            blank_df[df.ocx.field] = 0
+            blank_df[field] = 0
 
             dfs_to_plot.append(blank_df)
 
@@ -170,9 +205,24 @@ class VizBargraphMixin(object):
 
         charts = []
 
+        df = dfs_to_plot[0]
+
+        domain = sorted(df["tax_name"].unique())
+
+        no_level_name = "No {}".format(rank)
+        if include_taxa_missing_rank and no_level_name in domain:
+            domain.remove(no_level_name)
+            domain += [no_level_name]
+
+        if include_other:
+            domain.remove("Other")
+            domain += ["Other"]
+
         for plot_num, plot_df in enumerate(dfs_to_plot):
             if not sort_order:
                 sort_order = sort_helper(sort_x, plot_df["Label"].tolist())
+
+            plot_df["order"] = plot_df["tax_name"].apply(domain.index)
 
             chart = (
                 alt.Chart(plot_df)
@@ -180,13 +230,14 @@ class VizBargraphMixin(object):
                 .encode(
                     x=alt.X("Label", axis=alt.Axis(title=xlabel), sort=sort_order),
                     y=alt.Y(
-                        df.ocx.field,
+                        field,
                         axis=alt.Axis(title=ylabel),
                         scale=alt.Scale(domain=[0, 1], zero=True, nice=False),
                     ),
-                    color=alt.Color("tax_name", legend=alt.Legend(title=legend)),
+                    color=alt.Color("tax_name", legend=alt.Legend(title=legend), sort=domain),
                     tooltip=tooltip_for_altair,
                     href="url:N",
+                    order=alt.Order("order", sort="descending"),
                 )
             )
 

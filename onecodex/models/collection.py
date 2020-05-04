@@ -302,7 +302,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
                 if "abundance" not in result or result["abundance"] is None:
                     result["abundance_w_children"] = 0
                     continue
-                
+
                 parent = table[result["parent_tax_id"]]
                 result["abundance_w_children"] = result["abundance"]
 
