@@ -70,7 +70,7 @@ class DistanceMixin(TaxonomyMixin):
         # NOTE: see #291 for a discussion on using these metrics with normalized read counts. we are
         # explicitly disabling skbio's check for a counts matrix to allow normalized data to make
         # its way into this function.
-        return skbio.diversity.beta_diversity(metric, df, df.index, validate=False)
+        return skbio.diversity.beta_diversity(metric, df.values, df.index, validate=False)
 
     def unifrac(self, weighted=True, rank="auto"):
         """Calculate the UniFrac beta diversity metric.
