@@ -191,16 +191,16 @@ class VizBargraphMixin(object):
         if height:
             props["height"] = height
 
+        y_scale_kwargs = {"zero": True, "nice": False}
+        if normalize:
+            y_scale_kwargs["domain"] = [0, 1]
+
         chart = (
             alt.Chart(df)
             .mark_bar()
             .encode(
                 x=alt.X("Label", axis=alt.Axis(title=xlabel), sort=sort_order),
-                y=alt.Y(
-                    field,
-                    axis=alt.Axis(title=ylabel),
-                    scale=alt.Scale(domain=[0, 1], zero=True, nice=False),
-                ),
+                y=alt.Y(field, axis=alt.Axis(title=ylabel), scale=alt.Scale(**y_scale_kwargs),),
                 color=alt.Color("tax_name", legend=alt.Legend(title=legend), sort=domain),
                 tooltip=tooltip_for_altair,
                 href="url:N",
