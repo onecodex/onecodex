@@ -20,6 +20,8 @@ class VizBargraphMixin(object):
         sort_x=None,
         include_taxa_missing_rank=None,
         include_other=False,
+        width=None,
+        height=None,
     ):
         """Plot a bargraph of relative abundance of taxa for multiple samples.
 
@@ -87,7 +89,7 @@ class VizBargraphMixin(object):
         elif top_n != "auto" and threshold == "auto":
             threshold = None
 
-        df = self.to_df(rank=rank, normalize=normalize, threshold=threshold, table_format="long")
+        df = self.to_df(rank=rank, normalize=normalize, threshold=threshold)
 
         field = df.ocx.field
 
@@ -102,24 +104,14 @@ class VizBargraphMixin(object):
 
             name = "No {}".format(rank)
 
-            missing = pd.DataFrame(1 - df.groupby("classification_id")[field].sum()).reset_index()
-            missing["tax_id"] = name
+            df[name] = 1 - df.sum(axis=1)
 
-            df = df.append(missing, ignore_index=True)
+        top_n = df.mean().sort_values(ascending=False).iloc[:top_n].index
 
-        top_n = (
-            df.groupby("tax_id").mean().sort_values(by=field, ascending=False).iloc[:top_n].index
-        )
-
-        df = df[df["tax_id"].isin(top_n)]
+        df = df[top_n]
 
         if include_other and normalize:
-            other_rows = pd.DataFrame(
-                1 - df.groupby("classification_id")[field].sum()
-            ).reset_index()
-            other_rows["tax_id"] = "Other"
-
-            df = df.append(other_rows, ignore_index=True)
+            df["Other"] = 1 - df.sum(axis=1)
 
         if legend == "auto":
             legend = field
@@ -139,28 +131,20 @@ class VizBargraphMixin(object):
         # renames columns in the case where columns are taxids
         magic_metadata, magic_fields = self._metadata_fetch(tooltip, label=label)
 
-        # add sort order to long-format df
-        if haxis:
-            sort_order = magic_metadata.sort_values(magic_fields[haxis]).index.tolist()
+        df = df.join(magic_metadata)
 
-            for sort_num, sort_class_id in enumerate(sort_order):
-                magic_metadata.loc[sort_class_id, "sort_order"] = sort_num
-
-            df["sort_order"] = magic_metadata["sort_order"][df["classification_id"]].tolist()
-
-            sort_order = alt.EncodingSortField(field="sort_order", op="mean")
-        else:
-            sort_order = None
-
-        # transfer metadata from wide-format df (magic_metadata) to long-format df
-        for f in tooltip:
-            df[magic_fields[f]] = magic_metadata[magic_fields[f]][df["classification_id"]].tolist()
+        df = df.reset_index().melt(
+            id_vars=["classification_id"] + magic_metadata.columns.tolist(),
+            var_name="tax_id",
+            value_name=field,
+        )
 
         # add taxa names
-        df["tax_name"] = [
-            "{} ({})".format(self.taxonomy["name"][t], t) if t in self.taxonomy["name"] else t
-            for t in df["tax_id"]
-        ]
+        df["tax_name"] = df["tax_id"].apply(
+            lambda t: "{} ({})".format(self.taxonomy["name"][t], t)
+            if t in self.taxonomy["name"]
+            else t
+        )
 
         #
         # TODO: how to sort bars in bargraph
@@ -178,34 +162,10 @@ class VizBargraphMixin(object):
         tooltip_for_altair.insert(1, "tax_name")
         tooltip_for_altair.insert(2, "{}:Q".format(field))
 
-        # generate dataframes to plot, one per facet
-        dfs_to_plot = []
+        kwargs = {}
 
         if haxis:
-            # if using facets, first facet is just the vertical axis
-            blank_df = df.iloc[:1].copy()
-            blank_df[field] = 0
-
-            dfs_to_plot.append(blank_df)
-
-            for md_val in magic_metadata[magic_fields[haxis]].unique():
-                # special case where the metadata value is None: must use isnull()
-                if md_val is None:
-                    plot_df = df.where(df[magic_fields[haxis]].isnull()).dropna(how="all")
-                else:
-                    plot_df = df.where(df[magic_fields[haxis]] == md_val).dropna(how="all")
-
-                # preserve booleans
-                if magic_metadata[magic_fields[haxis]].dtype == "bool":
-                    plot_df[magic_fields[haxis]] = plot_df[magic_fields[haxis]].astype(bool)
-
-                dfs_to_plot.append(plot_df)
-        else:
-            dfs_to_plot.append(df)
-
-        charts = []
-
-        df = dfs_to_plot[0]
+            kwargs["column"] = haxis
 
         domain = sorted(df["tax_name"].unique())
 
@@ -218,50 +178,41 @@ class VizBargraphMixin(object):
             domain.remove("Other")
             domain += ["Other"]
 
-        for plot_num, plot_df in enumerate(dfs_to_plot):
-            if not sort_order:
-                sort_order = sort_helper(sort_x, plot_df["Label"].tolist())
+        sort_order = sort_helper(sort_x, df["Label"].tolist())
 
-            plot_df["order"] = plot_df["tax_name"].apply(domain.index)
+        df["order"] = df["tax_name"].apply(domain.index)
 
-            chart = (
-                alt.Chart(plot_df)
-                .mark_bar()
-                .encode(
-                    x=alt.X("Label", axis=alt.Axis(title=xlabel), sort=sort_order),
-                    y=alt.Y(
-                        field,
-                        axis=alt.Axis(title=ylabel),
-                        scale=alt.Scale(domain=[0, 1], zero=True, nice=False),
-                    ),
-                    color=alt.Color("tax_name", legend=alt.Legend(title=legend), sort=domain),
-                    tooltip=tooltip_for_altair,
-                    href="url:N",
-                    order=alt.Order("order", sort="descending"),
-                )
+        props = {}
+
+        if title:
+            props["title"] = title
+        if width:
+            props["width"] = width
+        if height:
+            props["height"] = height
+
+        chart = (
+            alt.Chart(df)
+            .mark_bar()
+            .encode(
+                x=alt.X("Label", axis=alt.Axis(title=xlabel), sort=sort_order),
+                y=alt.Y(
+                    field,
+                    axis=alt.Axis(title=ylabel),
+                    scale=alt.Scale(domain=[0, 1], zero=True, nice=False),
+                ),
+                color=alt.Color("tax_name", legend=alt.Legend(title=legend), sort=domain),
+                tooltip=tooltip_for_altair,
+                href="url:N",
+                order=alt.Order("order", sort="descending"),
+                **kwargs
             )
+        )
 
-            if haxis:
-                if plot_num == 0:
-                    # first plot (blank_df) has vert axis but no horiz axis
-                    chart.encoding.x.axis = None
-                elif plot_num > 0:
-                    # strip vertical axis from subsequent facets
-                    chart.encoding.y.axis = None
+        if haxis:
+            chart = chart.resolve_scale(x="independent")
 
-                    # facet's title set to value of metadata in this group
-                    chart.title = str(plot_df[magic_fields[haxis]].tolist()[0])
+        if props:
+            chart = chart.properties(**props)
 
-            charts.append(chart)
-
-        # add all the facets together
-        final_chart = charts[0]
-
-        if len(charts) > 1:
-            for chart in charts[1:]:
-                final_chart |= chart
-
-        # add title to chart
-        # (cannot specify None or False for no title)
-        final_chart = final_chart.properties(title=title) if title else final_chart
-        return final_chart if return_chart else final_chart.display()
+        return chart if return_chart else chart.display()
