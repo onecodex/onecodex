@@ -178,17 +178,10 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         # warn if some of the classifications in this collection are not alike
         job_names = set([obj.job.name for obj in new_classifications])
-        job_ids = set([obj.job.id for obj in new_classifications])
 
         if len(job_names) > 1:
             warnings.warn(
                 "SampleCollection contains multiple analysis types: {}".format(", ".join(job_names))
-            )
-        elif len(job_ids) > 1:
-            warnings.warn(
-                "SampleCollection contains multiple analysis versions: {}".format(
-                    ", ".join(job_ids)
-                )
             )
 
         self._cached["is_metagenomic"] = False
