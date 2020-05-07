@@ -307,7 +307,6 @@ class SampleCollection(ResourceList, AnalysisMixin):
                     parent["abundance_w_children"] += result["abundance"]
                     parent = table.get(parent["parent_tax_id"])
 
-
             # d contains info about a taxon in result, including name, id, counts, rank, etc.
             for d in table.values():
                 d_tax_id = d["tax_id"]

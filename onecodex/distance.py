@@ -24,7 +24,9 @@ class DistanceMixin(TaxonomyMixin):
 
         if metric not in ALPHA_DIVERSITY_METRICS:
             raise OneCodexException(
-                "For alpha diversity, metric must be one of: {}".format(", ".join(ALPHA_DIVERSITY_METRICS))
+                "For alpha diversity, metric must be one of: {}".format(
+                    ", ".join(ALPHA_DIVERSITY_METRICS)
+                )
             )
 
         df = self.to_df(rank=rank, normalize=self._guess_normalized())
@@ -51,7 +53,9 @@ class DistanceMixin(TaxonomyMixin):
 
         if metric not in BETA_DIVERSITY_METRICS:
             raise OneCodexException(
-                "For beta diversity, metric must be one of: {}".format(", ".join(BETA_DIVERSITY_METRICS))
+                "For beta diversity, metric must be one of: {}".format(
+                    ", ".join(BETA_DIVERSITY_METRICS)
+                )
             )
 
         df = self.to_df(rank=rank, normalize=self._guess_normalized())
