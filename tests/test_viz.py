@@ -19,12 +19,10 @@ def test_plot_metadata(ocx, api_data):
 
     # try time, boolean, and numerical types for x-axis
     chart = samples.plot_metadata(haxis="date_sequenced", vaxis="chao1", return_chart=True)
-    assert len(chart.layer) == 4
-    assert chart.layer[0].encoding.x.shorthand == "hoursminutes(date_sequenced):T"
+    assert chart.encoding.x.shorthand == "date_sequenced"
 
     chart = samples.plot_metadata(haxis="starred", vaxis="chao1", return_chart=True)
-    assert len(chart.layer) == 4
-    assert chart.layer[0].encoding.x.shorthand == "starred:N"
+    assert chart.encoding.x.shorthand == "starred"
 
     chart = samples.plot_metadata(haxis="totalige", vaxis="chao1", return_chart=True)
     assert chart.mark == "circle"
@@ -32,7 +30,7 @@ def test_plot_metadata(ocx, api_data):
 
     # taxid and taxon on vertical axis
     chart = samples.plot_metadata(vaxis=1279, plot_type="boxplot", return_chart=True)
-    assert len(chart.layer) == 4
+    assert chart.mark.type == "boxplot"
 
     chart = samples.plot_metadata(vaxis="Staphylococcus", plot_type="scatter", return_chart=True)
     assert chart.mark == "circle"

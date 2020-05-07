@@ -2,7 +2,7 @@ import altair as alt
 
 from onecodex.viz._heatmap import VizHeatmapMixin
 from onecodex.viz._pca import VizPCAMixin
-from onecodex.viz._primitives import dendrogram, boxplot
+from onecodex.viz._primitives import dendrogram
 from onecodex.viz._metadata import VizMetadataMixin
 from onecodex.viz._distance import VizDistanceMixin
 from onecodex.viz._bargraph import VizBargraphMixin
@@ -70,6 +70,5 @@ __all__ = [
     "VizMetadataMixin",
     "VizDistanceMixin",
     "dendrogram",
-    "boxplot",
     "VizBargraphMixin",
 ]

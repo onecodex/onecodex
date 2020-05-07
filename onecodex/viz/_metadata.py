@@ -15,6 +15,8 @@ class VizMetadataMixin(object):
         plot_type="auto",
         label=None,
         sort_x=None,
+        width=200,
+        height=400,
     ):
         """Plot an arbitrary metadata field versus an arbitrary quantity as a boxplot or scatter plot.
 
@@ -67,7 +69,6 @@ class VizMetadataMixin(object):
         # Deferred imports
         import altair as alt
         import pandas as pd
-        from onecodex.viz import boxplot
 
         if rank is None:
             raise OneCodexException("Please specify a rank or 'auto' to choose automatically")
@@ -171,15 +172,26 @@ class VizMetadataMixin(object):
             if sort_x:
                 raise OneCodexException("Must not specify sort_x when plot_type is boxplot")
 
-            chart = boxplot(
-                df,
-                magic_fields[haxis],
-                magic_fields[vaxis],
-                category_type=category_type,
-                title=title,
-                xlabel=xlabel,
-                ylabel=ylabel,
+            chart = (
+                alt.Chart(df)
+                .mark_boxplot(size=35)
+                .encode(
+                    x=alt.X(magic_fields[haxis], axis=alt.Axis(title=xlabel)),
+                    y=alt.Y(magic_fields[vaxis], axis=alt.Axis(title=ylabel)),
+                )
             )
+
+        props = {}
+
+        if title:
+            props["title"] = title
+        if width:
+            props["width"] = width
+        if height:
+            props["height"] = height
+
+        if props:
+            chart = chart.properties(**props)
 
         if return_chart:
             return chart
