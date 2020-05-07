@@ -21,6 +21,8 @@ class VizHeatmapMixin(object):
         label=None,
         sort_x=None,
         sort_y=None,
+        width="container",
+        height=None,
     ):
         """Plot heatmap of taxa abundance/count data for several samples.
 
@@ -153,121 +155,23 @@ class VizHeatmapMixin(object):
         else:
             taxa_cluster = {"labels_in_order": sort_helper(sort_y, df["tax_name"])}
 
-        if haxis is None:
-            if sort_x is None:
+        if sort_x is None:
+            if haxis is None:
                 # cluster samples only once
                 sample_cluster = df_sample_cluster.ocx._cluster_by_sample(
                     rank=rank, metric=metric, linkage=linkage
                 )
                 labels_in_order = magic_metadata["Label"][sample_cluster["ids_in_order"]].tolist()
             else:
-                labels_in_order = sort_helper(sort_x, magic_metadata["Label"].tolist())
+                if not (
+                    pd.api.types.is_bool_dtype(df[magic_fields[haxis]])
+                    or pd.api.types.is_categorical_dtype(df[magic_fields[haxis]])  # noqa
+                    or pd.api.types.is_object_dtype(df[magic_fields[haxis]])  # noqa
+                ):  # noqa
+                    raise OneCodexException("Metadata field on horizontal axis can not be numerical")
         else:
-            if not (
-                pd.api.types.is_bool_dtype(df[magic_fields[haxis]])
-                or pd.api.types.is_categorical_dtype(df[magic_fields[haxis]])  # noqa
-                or pd.api.types.is_object_dtype(df[magic_fields[haxis]])  # noqa
-            ):  # noqa
-                raise OneCodexException("Metadata field on horizontal axis can not be numerical")
+            labels_in_order = sort_helper(sort_x, magic_metadata["Label"].tolist())
 
-            # cluster or sort samples separately for every group of metadata
-            groups = magic_metadata[magic_fields[haxis]].unique()
-            cluster_by_group = {}
-
-            labels_in_order = []
-
-            plot_data = {"x": [], "y": [], "o": [], "b": []}
-            label_data = {"x": [], "y": [], "label": []}
-
-            for idx, group in enumerate(groups):
-                # if value of metadata field is 'null', we have to use pd.isnull, can't use 'is None'
-                if pd.isnull(group):
-                    c_ids_in_group = magic_metadata.index[
-                        pd.isnull(magic_metadata[magic_fields[haxis]])
-                    ]
-                else:
-                    c_ids_in_group = magic_metadata.index[
-                        magic_metadata[magic_fields[haxis]] == group
-                    ]
-
-                if len(c_ids_in_group) == 0:
-                    continue
-
-                sample_slice = df_sample_cluster.loc[c_ids_in_group]
-
-                plot_data["x"].append(len(labels_in_order) + 0.25)
-
-                if sort_x is None:
-                    if len(c_ids_in_group) < 3:
-                        # clustering not possible in this case
-                        cluster_by_group[group] = {"ids_in_order": c_ids_in_group}
-                    else:
-                        cluster_by_group[group] = sample_slice.ocx._cluster_by_sample(
-                            rank=rank, metric=metric, linkage=linkage
-                        )
-
-                    labels_in_order.extend(
-                        magic_metadata["Label"][cluster_by_group[group]["ids_in_order"]].tolist()
-                    )
-                else:
-                    cluster_by_group[group] = sort_x(
-                        magic_metadata["Label"][c_ids_in_group].tolist()
-                    )
-                    labels_in_order.extend(cluster_by_group[group])
-
-                plot_data["x"].append(len(labels_in_order) - 0.25)
-                plot_data["y"].extend([0, 0])
-                plot_data["o"].extend([0, 1])
-                plot_data["b"].extend([idx, idx])
-
-                label_data["x"].append(sum(plot_data["x"][-2:]) / 2)
-                label_data["y"].append(1)
-                label_data["label"].append(str(group))
-
-            label_bars = (
-                alt.Chart(
-                    pd.DataFrame(plot_data), width=15 * len(df_sample_cluster.index), height=10
-                )
-                .mark_line(point=False, opacity=0.5)
-                .encode(
-                    x=alt.X(
-                        "x",
-                        axis=None,
-                        scale=alt.Scale(
-                            domain=[0, len(df_sample_cluster.index)], zero=True, nice=False
-                        ),
-                    ),
-                    y=alt.Y("y", axis=None),
-                    order="o",
-                    color=alt.Color(
-                        "b:N",
-                        scale=alt.Scale(domain=list(range(idx + 1)), range=["black"] * (idx + 1)),
-                        legend=None,
-                    ),
-                )
-            )
-
-            label_text = (
-                alt.Chart(
-                    pd.DataFrame(label_data), width=15 * len(df_sample_cluster.index), height=10
-                )
-                .mark_text(align="center", baseline="middle")
-                .encode(
-                    x=alt.X(
-                        "x",
-                        axis=None,
-                        scale=alt.Scale(
-                            domain=[0, len(df_sample_cluster.index)], zero=True, nice=False
-                        ),
-                    ),
-                    y=alt.Y(
-                        "y", axis=alt.Axis(title=haxis, ticks=False, domain=False, labels=False)
-                    ),
-                    text="label",
-                )
-            )
-
-            top_label = alt.layer(label_text, label_bars)
 
         # should ultimately be Label, tax_name, readcount_w_children, then custom fields
         tooltip_for_altair = [magic_fields[f] for f in tooltip]
@@ -285,25 +189,28 @@ class VizHeatmapMixin(object):
             url="https://app.onecodex.com/classification/" + alt.datum.classification_id,
         )
 
+        if haxis:
+            alt_kwargs["column"] = haxis
+
         chart = (
-            alt.Chart(
-                df,
-                width=15 * len(df["classification_id"].unique()),
-                height=15 * len(df["tax_id"].unique()),
-            )
+            alt.Chart(df)
             .transform_calculate(url=alt_kwargs.pop("url"))
             .mark_rect()
             .encode(**alt_kwargs)
         )
 
+        props = {}
+
         if title:
             chart = chart.properties(title=title)
+        if width:
+            props["width"] = width
+        if height:
+            props["height"] = height
 
-        if haxis:
-            if return_chart:
-                return top_label & chart
-            else:
-                (top_label & chart).display()
+        if props:
+            chart = chart.properties(**props)
+
         else:
             if return_chart:
                 return chart
