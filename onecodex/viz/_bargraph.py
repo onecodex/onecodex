@@ -1,4 +1,5 @@
 from onecodex.exceptions import OneCodexException
+from onecodex.lib.enums import ABUNDANCE_FIELDS
 from onecodex.viz._primitives import sort_helper
 
 
@@ -93,7 +94,7 @@ class VizBargraphMixin(object):
 
         field = df.ocx.field
 
-        if field in ["abundance", "abundance_w_children"] and include_taxa_missing_rank is None:
+        if self._field in ABUNDANCE_FIELDS and include_taxa_missing_rank is None:
             include_taxa_missing_rank = True
 
         if include_taxa_missing_rank:
@@ -154,8 +155,8 @@ class VizBargraphMixin(object):
         # OCX this should be okay)
         #
 
-        ylabel = field if ylabel is None else ylabel
-        xlabel = "" if xlabel is None else xlabel
+        ylabel = ylabel or field
+        xlabel = xlabel or ""
 
         # should ultimately be Label, tax_name, readcount_w_children, then custom fields
         tooltip_for_altair = [magic_fields[f] for f in tooltip]

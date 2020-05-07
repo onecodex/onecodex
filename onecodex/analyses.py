@@ -2,6 +2,7 @@ import six
 import warnings
 
 from onecodex.exceptions import OneCodexException
+from onecodex.lib.enums import ABUNDANCE_FIELDS
 from onecodex.viz import (
     VizPCAMixin,
     VizHeatmapMixin,
@@ -49,7 +50,7 @@ class AnalysisMixin(
         """
         return (
             getattr(self, "_normalized", False)
-            or getattr(self, "_field", None) in ["abundance", "abundance_w_children"]
+            or self._field in ABUNDANCE_FIELDS
             or bool((self._results.sum(axis=1).round(4) == 1.0).all())
         )  # noqa
 

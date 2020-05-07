@@ -2,6 +2,7 @@ import pandas as pd
 
 from onecodex.exceptions import OneCodexException
 from onecodex.taxonomy import TaxonomyMixin
+from onecodex.lib.enums import ALPHA_DIVERSITY_METRICS, BETA_DIVERSITY_METRICS
 
 
 class DistanceMixin(TaxonomyMixin):
@@ -21,9 +22,9 @@ class DistanceMixin(TaxonomyMixin):
         """
         import skbio.diversity
 
-        if metric not in ("simpson", "chao1", "shannon"):
+        if metric not in ALPHA_DIVERSITY_METRICS:
             raise OneCodexException(
-                "For alpha diversity, metric must be one of: simpson, chao1, shannon"
+                "For alpha diversity, metric must be one of: {}".format(", ".join(ALPHA_DIVERSITY_METRICS))
             )
 
         df = self.to_df(rank=rank, normalize=self._guess_normalized())
@@ -48,16 +49,9 @@ class DistanceMixin(TaxonomyMixin):
         """
         import skbio.diversity
 
-        VALID_METRICS = [
-            "jaccard",
-            "braycurtis",
-            "cityblock",
-            "weighted_unifrac",
-            "unweighted_unifrac",
-        ]
-        if metric not in VALID_METRICS:
+        if metric not in BETA_DIVERSITY_METRICS:
             raise OneCodexException(
-                "For beta diversity, metric must be one of: {}".format(", ".join(VALID_METRICS))
+                "For beta diversity, metric must be one of: {}".format(", ".join(BETA_DIVERSITY_METRICS))
             )
 
         df = self.to_df(rank=rank, normalize=self._guess_normalized())

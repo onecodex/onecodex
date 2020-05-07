@@ -4,6 +4,7 @@ import json
 import warnings
 
 from onecodex.exceptions import OneCodexException
+from onecodex.lib.enums import FIELDS
 
 try:
     from onecodex.analyses import AnalysisMixin
@@ -267,7 +268,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         field = field if field else self._kwargs["field"]
         include_host = include_host if include_host else self._kwargs["include_host"]
 
-        if field not in ("auto", "abundance", "readcount", "readcount_w_children"):
+        if field not in FIELDS:
             raise OneCodexException("Specified field ({}) not valid.".format(field))
 
         # we'll fill these dicts that eventually turn into DataFrames
@@ -289,7 +290,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
             table = results["table"]
             host_tax_ids = results.get("host_tax_ids", [])
 
-            table = {t.get("tax_id"): t for t in table}
+            table = {t["tax_id"]: t for t in table}
 
             for tax_id, result in table.items():
                 if "abundance" not in result or result["abundance"] is None:
@@ -306,10 +307,9 @@ class SampleCollection(ResourceList, AnalysisMixin):
                     parent["abundance_w_children"] += result["abundance"]
                     parent = table.get(parent["parent_tax_id"])
 
-            table = [v for k, v in table.items()]
 
             # d contains info about a taxon in result, including name, id, counts, rank, etc.
-            for d in table:
+            for d in table.values():
                 d_tax_id = d["tax_id"]
 
                 if not include_host and d_tax_id in host_tax_ids:

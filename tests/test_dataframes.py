@@ -22,7 +22,7 @@ def test_pandas_subclass():
     # we want to be sure that slices of our df are returned as ResultsSeries
     assert type(df["1279"]) is ClassificationsSeries
 
-    # We're mostly interested in whether our metadata is transferred between copies. Here we're just 
+    # We're mostly interested in whether our metadata is transferred between copies. Here we're just
     # testing that the metadata carries over between slicing. There's another test below that tests
     # other mathematical operations. There is currently a bug upstream in pandas where subclass
     # metadata doesn't carry through certain operations, but does on others.
@@ -65,6 +65,7 @@ def test_pandas_extension(ocx, api_data):
         "204441",
         "1783270",
     ]
+
 
 # Current, there's a bug in pandas where these types of operations don't carryover
 # the metadata on the subclass.
