@@ -21,7 +21,7 @@ class VizBargraphMixin(object):
         sort_x=None,
         include_taxa_missing_rank=None,
         include_other=False,
-        width=None,
+        width="container",
         height=None,
     ):
         """Plot a bargraph of relative abundance of taxa for multiple samples.
@@ -183,15 +183,6 @@ class VizBargraphMixin(object):
 
         df["order"] = df["tax_name"].apply(domain.index)
 
-        props = {}
-
-        if title:
-            props["title"] = title
-        if width:
-            props["width"] = width
-        if height:
-            props["height"] = height
-
         y_scale_kwargs = {"zero": True, "nice": False}
         if normalize:
             y_scale_kwargs["domain"] = [0, 1]
@@ -212,6 +203,15 @@ class VizBargraphMixin(object):
 
         if haxis:
             chart = chart.resolve_scale(x="independent")
+
+        props = {}
+
+        if title:
+            props["title"] = title
+        if width:
+            props["width"] = width
+        if height:
+            props["height"] = height
 
         if props:
             chart = chart.properties(**props)

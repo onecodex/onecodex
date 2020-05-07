@@ -299,6 +299,9 @@ def test_plot_bargraph_chart_result(ocx, api_data):
         title="Glorious Bargraph",
         xlabel="Exemplary Samples",
         ylabel="Glorious Abundances",
+        sort_x=sorted,
+        width=200,
+        height=200,
     )
 
     assert chart.title == "Glorious Bargraph"

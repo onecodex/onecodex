@@ -16,6 +16,8 @@ class VizPCAMixin(object):
         tooltip=None,
         return_chart=False,
         label=None,
+        width=None,
+        height=None,
     ):
         """Perform principal component analysis and plot first two axes.
 
@@ -184,6 +186,18 @@ class VizPCAMixin(object):
             )
 
             chart += vector_chart
+
+        props = {}
+
+        if title:
+            props["title"] = title
+        if width:
+            props["width"] = width
+        if height:
+            props["height"] = height
+
+        if props:
+            chart = chart.properties(**props)
 
         if return_chart:
             return chart
