@@ -152,6 +152,7 @@ class VizHeatmapMixin(object):
         # applying clustering to determine order of taxa, or use custom sorting function if given
         if sort_y is None:
             taxa_cluster = df_taxa_cluster.ocx._cluster_by_taxa(linkage=linkage)
+            taxa_cluster = taxa_cluster["labels_in_order"]
         else:
             taxa_cluster = sort_helper(sort_y, df["tax_name"])
 
@@ -197,7 +198,7 @@ class VizHeatmapMixin(object):
         alt_kwargs = dict(
             x=alt.X("Label:N", axis=alt.Axis(title=xlabel), sort=labels_in_order),
             y=alt.Y(
-                "tax_name:N", axis=alt.Axis(title=ylabel), sort=taxa_cluster["labels_in_order"]
+                "tax_name:N", axis=alt.Axis(title=ylabel), sort=taxa_cluster
             ),
             color=alt.Color("{}:Q".format(df.ocx.field), legend=alt.Legend(title=legend)),
             tooltip=tooltip_for_altair,
@@ -215,17 +216,18 @@ class VizHeatmapMixin(object):
             .encode(**alt_kwargs)
         )
 
+        col_count = len(labels_in_order)
+        row_count = len(taxa_cluster)
+
         props = {}
 
         if title:
             chart = chart.properties(title=title)
-        if width:
-            props["width"] = width
-        if height:
-            props["height"] = height
 
-        if props:
-            chart = chart.properties(**props)
+        props["width"] = width or 15 * col_count
+        props["height"] = height or 15 * row_count
+
+        chart = chart.properties(**props)
 
         if haxis:
             chart = chart.resolve_scale(x="independent")

@@ -6,6 +6,7 @@ from onecodex.exceptions import OneCodexException
 
 def sort_helper(sort, values):
     sort_order = None
+    values = list(set(values))
     if callable(sort):
         sort_order = sort(values)
     elif isinstance(sort, list):
