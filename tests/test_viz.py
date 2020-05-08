@@ -141,9 +141,8 @@ def test_plot_heatmap(ocx, api_data):
     assert chart.data["Reads (Normalized)"].sum().round(6) == 2.613775
 
     chart = samples.plot_heatmap(threshold=0.1, haxis="eggs", return_chart=True)
-    assert len(chart.vconcat) == 2
-    assert chart.vconcat[1].mark == "rect"
-    assert all(chart.vconcat[1].data.groupby("tax_id").max()["Reads (Normalized)"] > 0.1)
+    assert chart.mark == "rect"
+    assert all(chart.data.groupby("tax_id").max()["Reads (Normalized)"] > 0.1)
 
     chart = samples.plot_heatmap(top_n=10, threshold=0.01, return_chart=True)
     assert len(chart.data["tax_id"].unique()) == 10
