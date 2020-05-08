@@ -176,7 +176,7 @@ class OneCodexPDFExporter(OneCodexHTMLExporter):
             nb, resources=resources, **kw
         )
         buf = BytesIO()
-        HTML(string=output).write_pdf(
+        HTML(string=output, base_url=ASSETS_PATH).write_pdf(
             buf, stylesheets=[CSS(os.path.join(ASSETS_PATH, CSS_TEMPLATE_FILE))]
         )
         buf.seek(0)
