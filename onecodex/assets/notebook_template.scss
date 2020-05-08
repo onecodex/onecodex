@@ -1,3 +1,46 @@
+$fira-sans-weights: (
+	300: "Light",
+	400: "Regular",
+	500: "Medium",
+	600: "SemiBold",
+);
+$fira-sans-condensed-weights: (
+	400: "Regular",
+	600: "SemiBold",
+);
+
+@each $weight, $name in $fira-sans-weights {
+	@font-face {
+		font-family: "fira-sans";
+		src: url("fonts/FiraSans-#{$name}.ttf");
+		font-weight: $weight;
+		font-style: normal;
+	}
+
+	@font-face {
+		font-family: "fira-sans";
+		src: url("fonts/FiraSans-#{$name}Italic.ttf");
+		font-weight: $weight;
+		font-style: italic;
+	}
+}
+
+@each $weight, $name in $fira-sans-condensed-weights {
+	@font-face {
+		font-family: "fira-sans-condensed";
+		src: url("fonts/FiraSansCondensed-#{$name}.ttf");
+		font-weight: $weight;
+		font-style: normal;
+	}
+
+	@font-face {
+		font-family: "fira-sans-condensed";
+		src: url("fonts/FiraSansCondensed-#{$name}Italic.ttf");
+		font-weight: $weight;
+		font-style: italic;
+	}
+}
+
 #reportdate {
 	width: 0;
 	height: 0;
@@ -176,7 +219,7 @@ pre {
 }
 
 * {
-	font-family: 'Palatino', 'TeX Gyre Pagella', serif;
+	font-family: "fira-sans", sans-serif;
 	line-height: 1.2;
 	letter-spacing: 0px;
 }
@@ -190,7 +233,7 @@ img {
 }
 
 table.dataframe {
-	font-family: 'Palatino', 'TeX Gyre Pagella', serif;
+	font-family: "fira-sans-condensed", sans-serif;
 	font-size: 10pt;
 
 	margin-left: auto;
@@ -204,7 +247,8 @@ table.dataframe {
 	page-break-inside: avoid;
 
 	thead {
-		td, th {
+		td,
+		th {
 			padding: 8px;
 			border-bottom: 2px solid black;
 			border-top: 2px solid black;
@@ -212,7 +256,8 @@ table.dataframe {
 	}
 
 	tbody {
-		td, th {
+		td,
+		th {
 			// width: 50px;
 			padding: 8px;
 			text-align: right;
@@ -221,7 +266,12 @@ table.dataframe {
 	}
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
 	padding-bottom: 0px;
 	margin-bottom: 10px;
 }
