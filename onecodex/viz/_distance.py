@@ -82,6 +82,8 @@ class VizDistanceMixin(DistanceMixin):
         return_chart=False,
         linkage="average",
         label=None,
+        width=None,
+        height=None,
     ):
         """Plot beta diversity distance matrix as a heatmap and dendrogram.
 
@@ -193,10 +195,23 @@ class VizDistanceMixin(DistanceMixin):
             .encode(**alt_kwargs)
         )
 
+        props = {}
+
         if title:
             chart = chart.properties(title=title)
+        if width:
+            props["width"] = width
+        if height:
+            props["height"] = height
+
+        if props:
+            chart = chart.properties(**props)
 
         dendro_chart = dendrogram(clust["scipy_tree"])
+
+        if height:
+            cell_height = height / len(clust["dist_matrix"].index)
+            dendro_chart = dendro_chart.properties(height=height - cell_height / 2)
 
         if return_chart:
             return dendro_chart | chart

@@ -21,7 +21,7 @@ class VizBargraphMixin(object):
         sort_x=None,
         include_taxa_missing_rank=None,
         include_other=False,
-        width="container",
+        width=None,
         height=None,
     ):
         """Plot a bargraph of relative abundance of taxa for multiple samples.
