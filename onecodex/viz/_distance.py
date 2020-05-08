@@ -231,6 +231,8 @@ class VizDistanceMixin(DistanceMixin):
         tooltip=None,
         return_chart=False,
         label=None,
+        width=None,
+        height=None,
     ):
         """Plot beta diversity distance matrix using multidimensional scaling (MDS).
 
