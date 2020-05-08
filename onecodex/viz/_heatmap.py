@@ -21,7 +21,7 @@ class VizHeatmapMixin(object):
         label=None,
         sort_x=None,
         sort_y=None,
-        width="container",
+        width=None,
         height=None,
     ):
         """Plot heatmap of taxa abundance/count data for several samples.
@@ -153,7 +153,7 @@ class VizHeatmapMixin(object):
         if sort_y is None:
             taxa_cluster = df_taxa_cluster.ocx._cluster_by_taxa(linkage=linkage)
         else:
-            taxa_cluster = {"labels_in_order": sort_helper(sort_y, df["tax_name"])}
+            taxa_cluster = sort_helper(sort_y, df["tax_name"])
 
         if sort_x is None:
             if haxis is None:
@@ -169,6 +169,22 @@ class VizHeatmapMixin(object):
                     or pd.api.types.is_object_dtype(df[magic_fields[haxis]])  # noqa
                 ):  # noqa
                     raise OneCodexException("Metadata field on horizontal axis can not be numerical")
+                
+
+                labels_in_order = []
+                df_sample_cluster[haxis] = self.metadata[haxis]
+
+                for group, group_df in df_sample_cluster.groupby(haxis):
+
+                    if group_df.shape[0] <= 3:
+                        # we can't cluster
+                        labels_in_order.extend(sorted(magic_metadata["Label"][group_df.index].tolist()))
+                        continue
+
+                    sample_cluster = group_df.drop(columns=[haxis]).ocx._cluster_by_sample(
+                        rank=rank, metric=metric, linkage=linkage
+                    )
+                    labels_in_order.extend(magic_metadata["Label"][sample_cluster["ids_in_order"]].tolist())
         else:
             labels_in_order = sort_helper(sort_x, magic_metadata["Label"].tolist())
 
@@ -211,8 +227,10 @@ class VizHeatmapMixin(object):
         if props:
             chart = chart.properties(**props)
 
+        if haxis:
+            chart = chart.resolve_scale(x="independent")
+
+        if return_chart:
+            return chart
         else:
-            if return_chart:
-                return chart
-            else:
-                chart.interactive().display()
+            chart.interactive().display()
