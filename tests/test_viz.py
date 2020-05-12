@@ -177,7 +177,7 @@ def test_plot_distance(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
 
     chart = samples.plot_distance(
-        metric="unifrac",
+        metric="weighted_unifrac",
         xlabel="my xlabel",
         ylabel="my ylabel",
         title="my title",
@@ -231,7 +231,7 @@ def test_plot_mds(ocx, api_data):
 
     chart = samples.plot_mds(
         method="pcoa",
-        metric="unifrac",
+        metric="weighted_unifrac",
         xlabel="my xlabel",
         ylabel="my ylabel",
         title="my title",
@@ -245,7 +245,7 @@ def test_plot_mds(ocx, api_data):
     assert chart.encoding.y.axis.title == "my ylabel"
     assert (chart.data["PC1"] * chart.data["PC2"]).sum() == 0.0
 
-    chart = samples.plot_mds(method="smacof", metric="unifrac", return_chart=True)
+    chart = samples.plot_mds(method="smacof", metric="weighted_unifrac", return_chart=True)
     assert (chart.data["MDS1"] * chart.data["MDS2"]).sum().round(6) == -0.319449
 
 

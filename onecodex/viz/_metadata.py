@@ -1,3 +1,4 @@
+from onecodex.lib.enums import AlphaDiversityMetric, Rank
 from onecodex.exceptions import OneCodexException
 from onecodex.viz._primitives import sort_helper
 
@@ -5,9 +6,9 @@ from onecodex.viz._primitives import sort_helper
 class VizMetadataMixin(object):
     def plot_metadata(
         self,
-        rank="auto",
+        rank=Rank.Auto.value,
         haxis="Label",
-        vaxis="simpson",
+        vaxis=AlphaDiversityMetric.Shannon.value,
         title=None,
         xlabel=None,
         ylabel=None,

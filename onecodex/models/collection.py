@@ -4,7 +4,7 @@ import json
 import warnings
 
 from onecodex.exceptions import OneCodexException
-from onecodex.lib.enums import FIELDS
+from onecodex.lib.enums import Field
 
 try:
     from onecodex.analyses import AnalysisMixin
@@ -268,7 +268,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         field = field if field else self._kwargs["field"]
         include_host = include_host if include_host else self._kwargs["include_host"]
 
-        if field not in FIELDS:
+        if field not in Field.values():
             raise OneCodexException("Specified field ({}) not valid.".format(field))
 
         # we'll fill these dicts that eventually turn into DataFrames
@@ -277,10 +277,10 @@ class SampleCollection(ResourceList, AnalysisMixin):
         tax_info = {"tax_id": [], "name": [], "rank": [], "parent_tax_id": []}
 
         if field == "auto":
-            field = "readcount_w_children"
+            field = Field.ReadcountWChildren.value
 
             if self._is_metagenomic:
-                field = "abundance_w_children"
+                field = Field.AbundanceWChildren.value
 
         self._cached["field"] = field
 
@@ -293,18 +293,18 @@ class SampleCollection(ResourceList, AnalysisMixin):
             table = {t["tax_id"]: t for t in table}
 
             for tax_id, result in table.items():
-                if "abundance" not in result or result["abundance"] is None:
-                    result["abundance_w_children"] = 0
+                if Field.Abundance.value not in result or result[Field.Abundance.value] is None:
+                    result[Field.AbundanceWChildren.value] = 0
                     continue
 
                 parent = table[result["parent_tax_id"]]
-                result["abundance_w_children"] = result["abundance"]
+                result[Field.AbundanceWChildren.value] = result[Field.Abundance.value]
 
                 while parent:
-                    if "abundance_w_children" not in parent:
-                        parent["abundance_w_children"] = 0
+                    if Field.AbundanceWChildren.value not in parent:
+                        parent[Field.AbundanceWChildren.value] = 0
 
-                    parent["abundance_w_children"] += result["abundance"]
+                    parent[Field.AbundanceWChildren.value] += result[Field.Abundance.value]
                     parent = table.get(parent["parent_tax_id"])
 
             # d contains info about a taxon in result, including name, id, counts, rank, etc.
@@ -418,7 +418,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
             for row in sample_df.iterrows():
                 tax_id = row[1]["tax_id"]
                 tax_ids_to_names[tax_id] = row[1]["name"]
-                rows[tax_id][col_id] = int(row[1]["readcount"])
+                rows[tax_id][col_id] = int(row[1][Field.Readcount.value])
 
         num_rows = len(rows)
         num_cols = len(otu["columns"])

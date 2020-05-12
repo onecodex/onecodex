@@ -1,13 +1,62 @@
-ABUNDANCE_FIELDS = {"abundance", "abundance_w_children"}
+from enum import Enum
 
-ALPHA_DIVERSITY_METRICS = {"simpson", "chao1", "shannon"}
+__all__ = ["Field", "AbundanceField", "AlphaDiversityMetric", "BetaDiversityMetric"]
 
-BETA_DIVERSITY_METRICS = {
-    "jaccard",
-    "braycurtis",
-    "cityblock",
-    "weighted_unifrac",
-    "unweighted_unifrac",
-}
 
-FIELDS = {"auto", "abundance", "readcount", "readcount_w_children"}
+class BaseEnum(Enum):
+    @classmethod
+    def has_value(cls, value: str):
+        return value in cls.values()
+
+    @classmethod
+    def values(cls):
+        return [e.value for e in cls]
+
+
+class AbundanceField(BaseEnum):
+    Abundance = "abundance"
+    AbundanceWChildren = "abundance_w_children"
+
+class Field(BaseEnum):
+    Auto = "auto"
+    Readcount = "readcount"
+    ReadcountWChildren = "readcount_w_children"
+    Abundance = "abundance"
+    AbundanceWChildren = "abundance_w_children"
+
+
+class AlphaDiversityMetric(BaseEnum):
+    Simpson = "simpson"
+    Chao1 = "chao1"
+    Shannon = "shannon"
+
+
+class BetaDiversityMetric(BaseEnum):
+    Jaccard = "jaccard"
+    BrayCurtis = "braycurtis"
+    CityBlock = "cityblock"
+    WeightedUnifrac = "weighted_unifrac"
+    UnweightedUnifrac = "unweighted_unifrac"
+
+
+class NormalizedRank(BaseEnum):
+    Superkingdom = "superkingdom"
+    Kingdom = "kingdom"
+    Phylum = "phylum"
+    Class = "class"
+    Order = "order"
+    Family = "family"
+    Genus = "genus"
+    Species = "species"
+
+
+class Rank(BaseEnum):
+    Superkingdom = "superkingdom"
+    Kingdom = "kingdom"
+    Phylum = "phylum"
+    Class = "class"
+    Order = "order"
+    Family = "family"
+    Genus = "genus"
+    Species = "species"
+    Auto = "auto"

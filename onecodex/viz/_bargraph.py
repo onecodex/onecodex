@@ -1,12 +1,12 @@
 from onecodex.exceptions import OneCodexException
-from onecodex.lib.enums import ABUNDANCE_FIELDS
+from onecodex.lib.enums import AbundanceField, Rank
 from onecodex.viz._primitives import sort_helper
 
 
 class VizBargraphMixin(object):
     def plot_bargraph(
         self,
-        rank="auto",
+        rank=Rank.Auto.value,
         normalize="auto",
         top_n="auto",
         threshold="auto",
@@ -94,11 +94,11 @@ class VizBargraphMixin(object):
 
         field = df.ocx.field
 
-        if self._field in ABUNDANCE_FIELDS and include_taxa_missing_rank is None:
+        if self._field in AbundanceField.values() and include_taxa_missing_rank is None:
             include_taxa_missing_rank = True
 
         if include_taxa_missing_rank:
-            if field != "abundance_w_children":
+            if field != Field.AbundanceWChildren:
                 raise OneCodexException(
                     "No-level data can only be imputed on abundances w/ children"
                 )

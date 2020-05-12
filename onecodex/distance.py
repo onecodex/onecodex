@@ -2,11 +2,11 @@ import pandas as pd
 
 from onecodex.exceptions import OneCodexException
 from onecodex.taxonomy import TaxonomyMixin
-from onecodex.lib.enums import ALPHA_DIVERSITY_METRICS, BETA_DIVERSITY_METRICS
+from onecodex.lib.enums import AlphaDiversityMetric, BetaDiversityMetric, Rank
 
 
 class DistanceMixin(TaxonomyMixin):
-    def alpha_diversity(self, metric="shannon", rank="auto"):
+    def alpha_diversity(self, metric=AlphaDiversityMetric.Shannon, rank=Rank.Auto.value):
         """Calculate the diversity within a community.
 
         Parameters
@@ -22,10 +22,10 @@ class DistanceMixin(TaxonomyMixin):
         """
         import skbio.diversity
 
-        if metric not in ALPHA_DIVERSITY_METRICS:
+        if metric not in AlphaDiversityMetric.values():
             raise OneCodexException(
                 "For alpha diversity, metric must be one of: {}".format(
-                    ", ".join(ALPHA_DIVERSITY_METRICS)
+                    ", ".join(AlphaDiversityMetric.values())
                 )
             )
 
@@ -35,7 +35,7 @@ class DistanceMixin(TaxonomyMixin):
 
         return pd.DataFrame(output, columns=[metric])
 
-    def beta_diversity(self, metric="braycurtis", rank="auto"):
+    def beta_diversity(self, metric=BetaDiversityMetric.BrayCurtis.value, rank=Rank.Auto.value):
         """Calculate the diversity between two communities.
 
         Parameters
@@ -51,18 +51,18 @@ class DistanceMixin(TaxonomyMixin):
         """
         import skbio.diversity
 
-        if metric not in BETA_DIVERSITY_METRICS:
+        if metric not in BetaDiversityMetric.values():
             raise OneCodexException(
                 "For beta diversity, metric must be one of: {}".format(
-                    ", ".join(BETA_DIVERSITY_METRICS)
+                    ", ".join(BetaDiversityMetric.values())
                 )
             )
 
         df = self.to_df(rank=rank, normalize=self._guess_normalized())
 
-        if metric == "weighted_unifrac":
+        if metric == BetaDiversityMetric.WeightedUnifrac.value:
             return self.unifrac(weighted=True, rank=rank)
-        elif metric == "unweighted_unifrac":
+        elif metric == BetaDiversityMetric.UnweightedUnifrac.value:
             return self.unifrac(weighted=False, rank=rank)
 
         # NOTE: see #291 for a discussion on using these metrics with normalized read counts. we are
@@ -70,7 +70,7 @@ class DistanceMixin(TaxonomyMixin):
         # its way into this function.
         return skbio.diversity.beta_diversity(metric, df.values, df.index, validate=False)
 
-    def unifrac(self, weighted=True, rank="auto"):
+    def unifrac(self, weighted=True, rank=Rank.Auto.value):
         """Calculate the UniFrac beta diversity metric.
 
         UniFrac takes into account the relatedness of community members. Weighted UniFrac considers
@@ -107,9 +107,19 @@ class DistanceMixin(TaxonomyMixin):
         # then finally run the calculation and return
         if weighted:
             return skbio.diversity.beta_diversity(
-                "weighted_unifrac", df, df.index, tree=new_tree, otu_ids=tax_ids, validate=False,
+                BetaDiversityMetric.WeightedUnifrac.value,
+                df,
+                df.index,
+                tree=new_tree,
+                otu_ids=tax_ids,
+                validate=False,
             )
         else:
             return skbio.diversity.beta_diversity(
-                "unweighted_unifrac", df, df.index, tree=new_tree, otu_ids=tax_ids, validate=False,
+                BetaDiversityMetric.UnweightedUnifrac.value,
+                df,
+                df.index,
+                tree=new_tree,
+                otu_ids=tax_ids,
+                validate=False,
             )

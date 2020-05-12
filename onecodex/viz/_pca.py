@@ -1,10 +1,11 @@
+from onecodex.lib.enums import Rank
 from onecodex.exceptions import OneCodexException
 
 
 class VizPCAMixin(object):
     def plot_pca(
         self,
-        rank="auto",
+        rank=Rank.Auto.value,
         normalize="auto",
         org_vectors=0,
         org_vectors_scale=None,

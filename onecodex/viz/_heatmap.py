@@ -1,3 +1,4 @@
+from onecodex.lib.enums import Rank
 from onecodex.exceptions import OneCodexException
 from onecodex.viz._primitives import sort_helper
 
@@ -5,7 +6,7 @@ from onecodex.viz._primitives import sort_helper
 class VizHeatmapMixin(object):
     def plot_heatmap(
         self,
-        rank="auto",
+        rank=Rank.Auto.value,
         normalize="auto",
         top_n="auto",
         threshold="auto",
@@ -169,8 +170,9 @@ class VizHeatmapMixin(object):
                     or pd.api.types.is_categorical_dtype(df[magic_fields[haxis]])  # noqa
                     or pd.api.types.is_object_dtype(df[magic_fields[haxis]])  # noqa
                 ):  # noqa
-                    raise OneCodexException("Metadata field on horizontal axis can not be numerical")
-                
+                    raise OneCodexException(
+                        "Metadata field on horizontal axis can not be numerical"
+                    )
 
                 labels_in_order = []
                 df_sample_cluster[haxis] = self.metadata[haxis]
@@ -179,16 +181,19 @@ class VizHeatmapMixin(object):
 
                     if group_df.shape[0] <= 3:
                         # we can't cluster
-                        labels_in_order.extend(sorted(magic_metadata["Label"][group_df.index].tolist()))
+                        labels_in_order.extend(
+                            sorted(magic_metadata["Label"][group_df.index].tolist())
+                        )
                         continue
 
                     sample_cluster = group_df.drop(columns=[haxis]).ocx._cluster_by_sample(
                         rank=rank, metric=metric, linkage=linkage
                     )
-                    labels_in_order.extend(magic_metadata["Label"][sample_cluster["ids_in_order"]].tolist())
+                    labels_in_order.extend(
+                        magic_metadata["Label"][sample_cluster["ids_in_order"]].tolist()
+                    )
         else:
             labels_in_order = sort_helper(sort_x, magic_metadata["Label"].tolist())
-
 
         # should ultimately be Label, tax_name, readcount_w_children, then custom fields
         tooltip_for_altair = [magic_fields[f] for f in tooltip]
@@ -197,9 +202,7 @@ class VizHeatmapMixin(object):
 
         alt_kwargs = dict(
             x=alt.X("Label:N", axis=alt.Axis(title=xlabel), sort=labels_in_order),
-            y=alt.Y(
-                "tax_name:N", axis=alt.Axis(title=ylabel), sort=taxa_cluster
-            ),
+            y=alt.Y("tax_name:N", axis=alt.Axis(title=ylabel), sort=taxa_cluster),
             color=alt.Color("{}:Q".format(df.ocx.field), legend=alt.Legend(title=legend)),
             tooltip=tooltip_for_altair,
             href="url:N",

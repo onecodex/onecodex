@@ -2,6 +2,7 @@
 from itertools import chain
 import warnings
 
+from onecodex.lib.enums import BetaDiversityMetric, Rank
 from onecodex.exceptions import OneCodexException
 from onecodex.distance import DistanceMixin
 
@@ -15,24 +16,25 @@ class VizDistanceMixin(DistanceMixin):
         if callable(metric):
             distances = metric(self, rank=rank)
         elif metric in ("braycurtis", "bray-curtis", "bray curtis"):
-            distances = self.beta_diversity(metric="braycurtis", rank=rank)
+            distances = self.beta_diversity(metric=BetaDiversityMetric.BrayCurtis.value, rank=rank)
         elif metric in ("manhattan", "cityblock"):
-            distances = self.beta_diversity(metric="cityblock", rank=rank)
+            distances = self.beta_diversity(metric=BetaDiversityMetric.CityBlock.value, rank=rank)
         elif metric == "jaccard":
-            distances = self.beta_diversity(metric="jaccard", rank=rank)
-        elif metric in ("unifrac", "weighted_unifrac"):
+            distances = self.beta_diversity(metric=BetaDiversityMetric.Jaccard.value, rank=rank)
+        elif metric == BetaDiversityMetric.WeightedUnifrac.value:
             distances = self.unifrac(weighted=True, rank=rank)
-        elif metric == "unweighted_unifrac":
+        elif metric == BetaDiversityMetric.UnweightedUnifrac.value:
             distances = self.unifrac(weighted=False, rank=rank)
         else:
             raise OneCodexException(
-                "Metric must be one of: braycurtis, manhattan, jaccard, "
-                "weighted_unifrac, unweighted_unifrac"
+                "Metric must be one of: {}".format(", ".join(BetaDiversityMetric.values()))
             )
 
         return distances
 
-    def _cluster_by_sample(self, rank="auto", metric="braycurtis", linkage="average"):
+    def _cluster_by_sample(
+        self, rank=Rank.Auto.value, metric=BetaDiversityMetric.BrayCurtis.value, linkage="average"
+    ):
         from scipy.cluster import hierarchy
         from scipy.spatial.distance import squareform
         from sklearn.metrics.pairwise import euclidean_distances
@@ -73,8 +75,8 @@ class VizDistanceMixin(DistanceMixin):
 
     def plot_distance(
         self,
-        rank="auto",
-        metric="braycurtis",
+        rank=Rank.Auto.value,
+        metric=BetaDiversityMetric.BrayCurtis.value,
         title=None,
         xlabel=None,
         ylabel=None,
@@ -220,8 +222,8 @@ class VizDistanceMixin(DistanceMixin):
 
     def plot_mds(
         self,
-        rank="auto",
-        metric="braycurtis",
+        rank=Rank.Auto.value,
+        metric=BetaDiversityMetric.BrayCurtis.value,
         method="pcoa",
         title=None,
         xlabel=None,
@@ -391,8 +393,17 @@ class VizDistanceMixin(DistanceMixin):
             .encode(**alt_kwargs)
         )
 
+        props = {}
+
         if title:
             chart = chart.properties(title=title)
+        if width:
+            props["width"] = width
+        if height:
+            props["height"] = height
+
+        if props:
+            chart = chart.properties(**props)
 
         if return_chart:
             return chart
