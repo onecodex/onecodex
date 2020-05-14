@@ -1,6 +1,12 @@
-from onecodex.lib.enums import AlphaDiversityMetric, Rank
+from onecodex.lib.enums import AlphaDiversityMetric, Rank, BaseEnum
 from onecodex.exceptions import OneCodexException
 from onecodex.viz._primitives import sort_helper
+
+
+class PlotType(BaseEnum):
+    Auto = "auto"
+    BoxPlot = "boxplot"
+    Scatter = "scatter"
 
 
 class VizMetadataMixin(object):
@@ -13,7 +19,7 @@ class VizMetadataMixin(object):
         xlabel=None,
         ylabel=None,
         return_chart=False,
-        plot_type="auto",
+        plot_type=PlotType.Auto,
         label=None,
         sort_x=None,
         width=200,
@@ -74,13 +80,13 @@ class VizMetadataMixin(object):
         if rank is None:
             raise OneCodexException("Please specify a rank or 'auto' to choose automatically")
 
-        if plot_type not in ("auto", "boxplot", "scatter"):
+        if plot_type not in PlotType.values():
             raise OneCodexException("Plot type must be one of: auto, boxplot, scatter")
 
         # alpha diversity is only allowed on vertical axis--horizontal can be magically mapped
         df, magic_fields = self._metadata_fetch([haxis, "Label"], label=label)
 
-        if vaxis in ("simpson", "chao1", "shannon"):
+        if vaxis in AlphaDiversityMetric.values():
             df.loc[:, vaxis] = self.alpha_diversity(vaxis, rank=rank)
             magic_fields[vaxis] = vaxis
         else:
@@ -101,15 +107,15 @@ class VizMetadataMixin(object):
 
         # plots can look different depending on what the horizontal axis contains
         if pd.api.types.is_datetime64_any_dtype(df[magic_fields[haxis]]):
-            if plot_type == "auto":
-                plot_type = "boxplot"
+            if plot_type == PlotType.Auto:
+                plot_type = PlotType.BoxPlot
         elif "date" in magic_fields[haxis].split("_"):
             df.loc[:, magic_fields[haxis]] = df.loc[:, magic_fields[haxis]].apply(
                 pd.to_datetime, utc=True
             )
 
-            if plot_type == "auto":
-                plot_type = "boxplot"
+            if plot_type == PlotType.Auto:
+                plot_type = PlotType.BoxPlot
         elif (
             pd.api.types.is_bool_dtype(df[magic_fields[haxis]])
             or pd.api.types.is_categorical_dtype(df[magic_fields[haxis]])
@@ -117,17 +123,17 @@ class VizMetadataMixin(object):
         ):  # noqa
             df = df.fillna({field: "N/A" for field in df.columns})
 
-            if plot_type == "auto":
+            if plot_type == PlotType.Auto:
                 # if data is categorical but there is only one value per sample, scatter plot instead
                 if len(df[magic_fields[haxis]].unique()) == len(df[magic_fields[haxis]]):
-                    plot_type = "scatter"
+                    plot_type = PlotType.Scatter
                 else:
-                    plot_type = "boxplot"
+                    plot_type = PlotType.BoxPlot
         elif pd.api.types.is_numeric_dtype(df[magic_fields[haxis]]):
             df = df.dropna(subset=[magic_fields[vaxis]])
 
-            if plot_type == "auto":
-                plot_type = "scatter"
+            if plot_type == PlotType.Auto:
+                plot_type = PlotType.Scatter
         else:
             raise OneCodexException(
                 "Unplottable column type for horizontal axis ({})".format(haxis)
@@ -161,7 +167,7 @@ class VizMetadataMixin(object):
 
             if title:
                 chart = chart.properties(title=title)
-        elif plot_type == "boxplot":
+        elif plot_type == PlotType.BoxPlot:
             if sort_x:
                 raise OneCodexException("Must not specify sort_x when plot_type is boxplot")
 

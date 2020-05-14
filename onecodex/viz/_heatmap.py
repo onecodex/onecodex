@@ -1,4 +1,4 @@
-from onecodex.lib.enums import Rank
+from onecodex.lib.enums import Rank, Linkage
 from onecodex.exceptions import OneCodexException
 from onecodex.viz._primitives import sort_helper
 
@@ -15,7 +15,7 @@ class VizHeatmapMixin(object):
         ylabel=None,
         tooltip=None,
         return_chart=False,
-        linkage="average",
+        linkage=Linkage.Average,
         haxis=None,
         metric="euclidean",
         legend="auto",
@@ -40,7 +40,7 @@ class VizHeatmapMixin(object):
         haxis : `string`, optional
             The metadata field (or tuple containing multiple categorical fields) used to group
             samples together. Each group of samples will be clustered independently.
-        metric : {'braycurtis', 'manhattan', 'jaccard', 'unifrac', 'unweighted_unifrac}, optional
+        metric : {'euclidean', 'braycurtis', 'manhattan', 'jaccard', 'unifrac', 'unweighted_unifrac}, optional
             Function to use when calculating the distance between two samples.
         linkage : {'average', 'single', 'complete', 'weighted', 'centroid', 'median'}
             The type of linkage to use when clustering axes.

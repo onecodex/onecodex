@@ -52,6 +52,8 @@ class NormalizedRank(BaseEnum):
 
 
 class Rank(BaseEnum):
+    """Python does not allow extending enums so we have to repeat the ranks."""
+
     Superkingdom = "superkingdom"
     Kingdom = "kingdom"
     Phylum = "phylum"
@@ -61,3 +63,12 @@ class Rank(BaseEnum):
     Genus = "genus"
     Species = "species"
     Auto = "auto"
+
+
+class Linkage(BaseEnum):
+    Average = "average"
+    Single = "single"
+    Complete = "complete"
+    Weighted = "weighted"
+    Centroid = "centroid"
+    Median = "median"
