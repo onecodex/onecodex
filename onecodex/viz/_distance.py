@@ -2,7 +2,7 @@
 from itertools import chain
 import warnings
 
-from onecodex.lib.enums import BetaDiversityMetric, Rank
+from onecodex.lib.enums import BetaDiversityMetric, Rank, Linkage
 from onecodex.exceptions import OneCodexException
 from onecodex.distance import DistanceMixin
 
@@ -15,9 +15,9 @@ class VizDistanceMixin(DistanceMixin):
         # if taxonomy trees are inconsistent, unifrac will not work
         if callable(metric):
             distances = metric(self, rank=rank)
-        elif metric in ("braycurtis", "bray-curtis", "bray curtis"):
+        elif metric in (BetaDiversityMetric.BrayCurtis, "bray-curtis", "bray curtis"):
             distances = self.beta_diversity(metric=BetaDiversityMetric.BrayCurtis, rank=rank)
-        elif metric in ("manhattan", "cityblock"):
+        elif metric in ("manhattan", BetaDiversityMetric.CityBlock):
             distances = self.beta_diversity(metric=BetaDiversityMetric.CityBlock, rank=rank)
         elif metric == BetaDiversityMetric.Jaccard:
             distances = self.beta_diversity(metric=BetaDiversityMetric.Jaccard, rank=rank)
@@ -33,7 +33,7 @@ class VizDistanceMixin(DistanceMixin):
         return distances
 
     def _cluster_by_sample(
-        self, rank=Rank.Auto, metric=BetaDiversityMetric.BrayCurtis, linkage="average"
+        self, rank=Rank.Auto, metric=BetaDiversityMetric.BrayCurtis, linkage=Linkage.Average
     ):
         from scipy.cluster import hierarchy
         from scipy.spatial.distance import squareform
@@ -54,7 +54,7 @@ class VizDistanceMixin(DistanceMixin):
             "ids_in_order": ids_in_order,
         }
 
-    def _cluster_by_taxa(self, linkage="average"):
+    def _cluster_by_taxa(self, linkage=Linkage.Average):
         from scipy.cluster import hierarchy
         from scipy.spatial.distance import squareform
         from sklearn.metrics.pairwise import euclidean_distances
@@ -82,7 +82,7 @@ class VizDistanceMixin(DistanceMixin):
         ylabel=None,
         tooltip=None,
         return_chart=False,
-        linkage="average",
+        linkage=Linkage.Average,
         label=None,
         width=None,
         height=None,
