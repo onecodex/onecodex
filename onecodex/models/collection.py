@@ -155,8 +155,6 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         skip_missing = skip_missing if skip_missing else self._kwargs["skip_missing"]
 
-        job = self._kwargs["job"]
-
         new_classifications = []
 
         for obj in self._res_list:

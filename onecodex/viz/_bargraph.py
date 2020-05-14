@@ -1,5 +1,5 @@
 from onecodex.exceptions import OneCodexException
-from onecodex.lib.enums import AbundanceField, Rank
+from onecodex.lib.enums import AbundanceField, Rank, Field
 from onecodex.viz._primitives import sort_helper
 
 
@@ -61,7 +61,7 @@ class VizBargraphMixin(object):
             dict containing the metadata for each analysis is passed as the first and only
             positional argument. The callable function must return a string.
         sort_x : `list` or `callable`, optional
-            Either a list of sorted labels or a function that will be called with a list of x-axis labels 
+            Either a list of sorted labels or a function that will be called with a list of x-axis labels
             as the only argument, and must return the same list in a user-specified order.
         include_no_level : `bool`, optional
             Whether or not a row should be plotted for taxa that do not have a designated parent at `rank`.
@@ -74,7 +74,6 @@ class VizBargraphMixin(object):
         """
         # Deferred imports
         import altair as alt
-        import pandas as pd
 
         if rank is None:
             raise OneCodexException("Please specify a rank or 'auto' to choose automatically")

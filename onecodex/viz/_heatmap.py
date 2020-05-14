@@ -66,10 +66,10 @@ class VizHeatmapMixin(object):
             dict containing the metadata for each analysis is passed as the first and only
             positional argument. The callable function must return a string.
         sort_x : `list` or `callable`, optional
-            Either a list of sorted labels or a function that will be called with a list of x-axis labels 
+            Either a list of sorted labels or a function that will be called with a list of x-axis labels
             as the only argument, and must return the same list in a user-specified order.
         sort_y : `list` or `callable`, optional
-            Either a list of sorted labels or a function that will be called with a list of y-axis labels 
+            Either a list of sorted labels or a function that will be called with a list of y-axis labels
             as the only argument, and must return the same list in a user-specified order.
 
         Examples

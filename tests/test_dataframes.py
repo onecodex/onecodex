@@ -30,7 +30,7 @@ def test_pandas_subclass():
 
     # rank is explicitly /not/ passed on, since we don't know what the user has done to the df and
     # we therefore can't trust the rank to be correct
-    assert new_df.ocx_rank is "jedi"
+    assert new_df.ocx_rank == "jedi"
     assert new_df.ocx_field == "bantha poodoo"
     assert (new_df.ocx_taxonomy == inner_df).all().all()
     assert (new_df.ocx_metadata == inner_df).all().all()
@@ -89,7 +89,7 @@ def test_pandas_subclass_math():
 
     # rank is explicitly /not/ passed on, since we don't know what the user has done to the df and
     # we therefore can't trust the rank to be correct
-    assert new_df.ocx_rank is "jedi"
+    assert new_df.ocx_rank == "jedi"
     assert new_df.ocx_field == "bantha poodoo"
     assert (new_df.ocx_taxonomy == inner_df).all().all()
     assert (new_df.ocx_metadata == inner_df).all().all()

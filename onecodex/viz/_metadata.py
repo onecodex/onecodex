@@ -57,7 +57,7 @@ class VizMetadataMixin(object):
             positional argument. The callable function must return a string.
 
         sort_x : `list` or `callable`, optional
-            Either a list of sorted labels or a function that will be called with a list of x-axis labels 
+            Either a list of sorted labels or a function that will be called with a list of x-axis labels
             as the only argument, and must return the same list in a user-specified order.
 
         Examples
@@ -101,16 +101,12 @@ class VizMetadataMixin(object):
 
         # plots can look different depending on what the horizontal axis contains
         if pd.api.types.is_datetime64_any_dtype(df[magic_fields[haxis]]):
-            category_type = "T"
-
             if plot_type == "auto":
                 plot_type = "boxplot"
         elif "date" in magic_fields[haxis].split("_"):
             df.loc[:, magic_fields[haxis]] = df.loc[:, magic_fields[haxis]].apply(
                 pd.to_datetime, utc=True
             )
-
-            category_type = "T"
 
             if plot_type == "auto":
                 plot_type = "boxplot"
@@ -121,8 +117,6 @@ class VizMetadataMixin(object):
         ):  # noqa
             df = df.fillna({field: "N/A" for field in df.columns})
 
-            category_type = "N"
-
             if plot_type == "auto":
                 # if data is categorical but there is only one value per sample, scatter plot instead
                 if len(df[magic_fields[haxis]].unique()) == len(df[magic_fields[haxis]]):
@@ -131,8 +125,6 @@ class VizMetadataMixin(object):
                     plot_type = "boxplot"
         elif pd.api.types.is_numeric_dtype(df[magic_fields[haxis]]):
             df = df.dropna(subset=[magic_fields[vaxis]])
-
-            category_type = "O"
 
             if plot_type == "auto":
                 plot_type = "scatter"
