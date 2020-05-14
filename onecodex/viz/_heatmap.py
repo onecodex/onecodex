@@ -6,7 +6,7 @@ from onecodex.viz._primitives import sort_helper
 class VizHeatmapMixin(object):
     def plot_heatmap(
         self,
-        rank=Rank.Auto.value,
+        rank=Rank.Auto,
         normalize="auto",
         top_n="auto",
         threshold="auto",

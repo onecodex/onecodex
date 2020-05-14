@@ -6,7 +6,7 @@ from onecodex.viz._primitives import sort_helper
 class VizBargraphMixin(object):
     def plot_bargraph(
         self,
-        rank=Rank.Auto.value,
+        rank=Rank.Auto,
         normalize="auto",
         top_n="auto",
         threshold="auto",
@@ -192,7 +192,7 @@ class VizBargraphMixin(object):
             .mark_bar()
             .encode(
                 x=alt.X("Label", axis=alt.Axis(title=xlabel), sort=sort_order),
-                y=alt.Y(field, axis=alt.Axis(title=ylabel), scale=alt.Scale(**y_scale_kwargs),),
+                y=alt.Y(field, axis=alt.Axis(title=ylabel), scale=alt.Scale(**y_scale_kwargs)),
                 color=alt.Color("tax_name", legend=alt.Legend(title=legend), sort=domain),
                 tooltip=tooltip_for_altair,
                 href="url:N",

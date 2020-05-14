@@ -6,9 +6,9 @@ from onecodex.viz._primitives import sort_helper
 class VizMetadataMixin(object):
     def plot_metadata(
         self,
-        rank=Rank.Auto.value,
+        rank=Rank.Auto,
         haxis="Label",
-        vaxis=AlphaDiversityMetric.Shannon.value,
+        vaxis=AlphaDiversityMetric.Shannon,
         title=None,
         xlabel=None,
         ylabel=None,
@@ -153,7 +153,7 @@ class VizMetadataMixin(object):
             sort_order = sort_helper(sort_x, df[magic_fields[haxis]].tolist())
 
             alt_kwargs = dict(
-                x=alt.X(magic_fields[haxis], axis=alt.Axis(title=xlabel), sort=sort_order,),
+                x=alt.X(magic_fields[haxis], axis=alt.Axis(title=xlabel), sort=sort_order),
                 y=alt.Y(magic_fields[vaxis], axis=alt.Axis(title=ylabel)),
                 tooltip=["Label", "{}:Q".format(magic_fields[vaxis])],
                 href="url:N",

@@ -277,10 +277,10 @@ class SampleCollection(ResourceList, AnalysisMixin):
         tax_info = {"tax_id": [], "name": [], "rank": [], "parent_tax_id": []}
 
         if field == "auto":
-            field = Field.ReadcountWChildren.value
+            field = Field.ReadcountWChildren
 
             if self._is_metagenomic:
-                field = Field.AbundanceWChildren.value
+                field = Field.AbundanceWChildren
 
         self._cached["field"] = field
 
@@ -293,18 +293,18 @@ class SampleCollection(ResourceList, AnalysisMixin):
             table = {t["tax_id"]: t for t in table}
 
             for tax_id, result in table.items():
-                if Field.Abundance.value not in result or result[Field.Abundance.value] is None:
-                    result[Field.AbundanceWChildren.value] = 0
+                if Field.Abundance not in result or result[Field.Abundance] is None:
+                    result[Field.AbundanceWChildren] = 0
                     continue
 
                 parent = table[result["parent_tax_id"]]
-                result[Field.AbundanceWChildren.value] = result[Field.Abundance.value]
+                result[Field.AbundanceWChildren] = result[Field.Abundance]
 
                 while parent:
-                    if Field.AbundanceWChildren.value not in parent:
-                        parent[Field.AbundanceWChildren.value] = 0
+                    if Field.AbundanceWChildren not in parent:
+                        parent[Field.AbundanceWChildren] = 0
 
-                    parent[Field.AbundanceWChildren.value] += result[Field.Abundance.value]
+                    parent[Field.AbundanceWChildren] += result[Field.Abundance]
                     parent = table.get(parent["parent_tax_id"])
 
             # d contains info about a taxon in result, including name, id, counts, rank, etc.
@@ -418,7 +418,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
             for row in sample_df.iterrows():
                 tax_id = row[1]["tax_id"]
                 tax_ids_to_names[tax_id] = row[1]["name"]
-                rows[tax_id][col_id] = int(row[1][Field.Readcount.value])
+                rows[tax_id][col_id] = int(row[1][Field.Readcount])
 
         num_rows = len(rows)
         num_cols = len(otu["columns"])
@@ -430,7 +430,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
             # add the row entry
             row_id = len(otu["rows"])
             otu["rows"].append(
-                {"id": present_taxa, "metadata": {"taxonomy": tax_ids_to_names[present_taxa]},}
+                {"id": present_taxa, "metadata": {"taxonomy": tax_ids_to_names[present_taxa]}}
             )
 
             for sample_with_hit in rows[present_taxa]:

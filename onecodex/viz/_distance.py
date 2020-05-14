@@ -16,14 +16,14 @@ class VizDistanceMixin(DistanceMixin):
         if callable(metric):
             distances = metric(self, rank=rank)
         elif metric in ("braycurtis", "bray-curtis", "bray curtis"):
-            distances = self.beta_diversity(metric=BetaDiversityMetric.BrayCurtis.value, rank=rank)
+            distances = self.beta_diversity(metric=BetaDiversityMetric.BrayCurtis, rank=rank)
         elif metric in ("manhattan", "cityblock"):
-            distances = self.beta_diversity(metric=BetaDiversityMetric.CityBlock.value, rank=rank)
-        elif metric == "jaccard":
-            distances = self.beta_diversity(metric=BetaDiversityMetric.Jaccard.value, rank=rank)
-        elif metric == BetaDiversityMetric.WeightedUnifrac.value:
+            distances = self.beta_diversity(metric=BetaDiversityMetric.CityBlock, rank=rank)
+        elif metric == BetaDiversityMetric.Jaccard:
+            distances = self.beta_diversity(metric=BetaDiversityMetric.Jaccard, rank=rank)
+        elif metric == BetaDiversityMetric.WeightedUnifrac:
             distances = self.unifrac(weighted=True, rank=rank)
-        elif metric == BetaDiversityMetric.UnweightedUnifrac.value:
+        elif metric == BetaDiversityMetric.UnweightedUnifrac:
             distances = self.unifrac(weighted=False, rank=rank)
         else:
             raise OneCodexException(
@@ -33,7 +33,7 @@ class VizDistanceMixin(DistanceMixin):
         return distances
 
     def _cluster_by_sample(
-        self, rank=Rank.Auto.value, metric=BetaDiversityMetric.BrayCurtis.value, linkage="average"
+        self, rank=Rank.Auto, metric=BetaDiversityMetric.BrayCurtis, linkage="average"
     ):
         from scipy.cluster import hierarchy
         from scipy.spatial.distance import squareform
@@ -75,8 +75,8 @@ class VizDistanceMixin(DistanceMixin):
 
     def plot_distance(
         self,
-        rank=Rank.Auto.value,
-        metric=BetaDiversityMetric.BrayCurtis.value,
+        rank=Rank.Auto,
+        metric=BetaDiversityMetric.BrayCurtis,
         title=None,
         xlabel=None,
         ylabel=None,
@@ -222,8 +222,8 @@ class VizDistanceMixin(DistanceMixin):
 
     def plot_mds(
         self,
-        rank=Rank.Auto.value,
-        metric=BetaDiversityMetric.BrayCurtis.value,
+        rank=Rank.Auto,
+        metric=BetaDiversityMetric.BrayCurtis,
         method="pcoa",
         title=None,
         xlabel=None,

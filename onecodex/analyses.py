@@ -2,7 +2,7 @@ import six
 import warnings
 
 from onecodex.exceptions import OneCodexException
-from onecodex.lib.enums import AbundanceField, Rank
+from onecodex.lib.enums import AbundanceField, Rank, Field
 from onecodex.viz import (
     VizPCAMixin,
     VizHeatmapMixin,
@@ -28,15 +28,15 @@ class AnalysisMixin(
     def _get_auto_rank(self, rank):
         """Attempt to figure out what rank we should use for analyses."""
 
-        if rank == Rank.Auto.value:
+        if rank == Rank.Auto:
             # if we're an accessor for a ClassificationsDataFrame, use its _rank property
             if self.__class__.__name__ == "OneCodexAccessor":
                 return self._rank
 
             if self._field in AbundanceField.values() or self._is_metagenomic:
-                return Rank.Species.value
+                return Rank.Species
             else:
-                return Rank.Genus.value
+                return Rank.Genus
         else:
             return rank
 
@@ -244,7 +244,7 @@ class AnalysisMixin(
 
     def to_df(
         self,
-        rank=Rank.Auto.value,
+        rank=Rank.Auto,
         top_n=None,
         threshold=None,
         remove_zeros=True,
@@ -357,7 +357,7 @@ class AnalysisMixin(
                 return "Reads (Normalized)"
             else:
                 return "Reads"
-        elif field == Field.Abundance.value:
+        elif field == Field.Abundance:
             return "Relative Abundance"
 
         return field

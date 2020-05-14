@@ -5,7 +5,7 @@ from onecodex.exceptions import OneCodexException
 class VizPCAMixin(object):
     def plot_pca(
         self,
-        rank=Rank.Auto.value,
+        rank=Rank.Auto,
         normalize="auto",
         org_vectors=0,
         org_vectors_scale=None,

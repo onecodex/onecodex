@@ -3,7 +3,7 @@ from enum import Enum
 __all__ = ["Field", "AbundanceField", "AlphaDiversityMetric", "BetaDiversityMetric"]
 
 
-class BaseEnum(Enum):
+class BaseEnum(str, Enum):
     @classmethod
     def has_value(cls, value: str):
         return value in cls.values()
@@ -16,6 +16,7 @@ class BaseEnum(Enum):
 class AbundanceField(BaseEnum):
     Abundance = "abundance"
     AbundanceWChildren = "abundance_w_children"
+
 
 class Field(BaseEnum):
     Auto = "auto"
