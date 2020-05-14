@@ -69,6 +69,7 @@ def test_pandas_extension(ocx, api_data):
 
 # Current, there's a bug in pandas where these types of operations don't carryover
 # the metadata on the subclass.
+# https://github.com/pandas-dev/pandas/issues/34177
 @pytest.mark.xfail
 def test_pandas_subclass_math():
     inner_df = pd.DataFrame({"datum1": [7, 4, 21], "datum2": [8, 16, 24]})
