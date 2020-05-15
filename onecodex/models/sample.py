@@ -123,7 +123,9 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
         md_search_keywords = {}
         if not public and not organization:
             md_schema = next(
-                l for l in Metadata._resource._schema["links"] if l["rel"] == instances_route
+                link
+                for link in Metadata._resource._schema["links"]
+                if link["rel"] == instances_route
             )
 
             md_where_schema = md_schema["schema"]["properties"]["where"]["properties"]

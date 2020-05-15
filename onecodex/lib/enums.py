@@ -5,7 +5,7 @@ __all__ = ["Field", "AbundanceField", "AlphaDiversityMetric", "BetaDiversityMetr
 
 class BaseEnum(str, Enum):
     @classmethod
-    def has_value(cls, value: str):
+    def has_value(cls, value):
         return value in cls.values()
 
     @classmethod

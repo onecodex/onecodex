@@ -25,18 +25,13 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Display Python version
         run: python -c "import sys; print(sys.version)"
-      - name: Cache virtualenv
-        uses: actions/cache@v1
-        id: cache-pip
-        with:
-          path: venv
-          key: venv-${{ hashFiles('setup.py') }}-${{ matrix.python-version }}-${{ matrix.os }}
       - name: Install dependencies in a venv
-        if: steps.cache-pip.outputs.cache-hit != 'true'
         run: |
           python3 -m venv venv
           . venv/bin/activate
           pip install -q -U pip
+          # scikit-bio requires numpy at build time
+          pip install numpy
           pip install --progress-bar=off .[all,reports,testing]
       - name: Run all tests
         run: |
@@ -51,14 +46,7 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: 2.7
-      - name: Cache virtualenv
-        uses: actions/cache@v1
-        id: cache-pip
-        with:
-          path: venv
-          key: venv-${{ hashFiles('setup.py') }}-test-python2-minimal
       - name: Install dependencies in a venv
-        if: steps.cache-pip.outputs.cache-hit != 'true'
         run: |
           pip install virtualenv
           virtualenv venv
@@ -78,18 +66,13 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: 3.7
-      - name: Cache virtualenv
-        uses: actions/cache@v1
-        id: cache-pip
-        with:
-          path: venv
-          key: venv-${{ hashFiles('setup.py') }}-test-python3-w-simple-json
       - name: Install dependencies in a venv
-        if: steps.cache-pip.outputs.cache-hit != 'true'
         run: |
           python3 -m venv venv
           . venv/bin/activate
           pip install -q -U pip
+          # scikit-bio requires numpy at build time
+          pip install numpy
           pip install --progress-bar=off simplejson
           pip install --progress-bar=off .[all,testing]
       - name: Run tests (w/ simplejson)
@@ -105,12 +88,6 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: 3.7
-      - name: Cache virtualenv
-        uses: actions/cache@v1
-        id: cache-pip
-        with:
-          path: venv
-          key: venv-${{ hashFiles('setup.py') }}-test-python3-w-altair
       - name: Set Up Node
         uses: actions/setup-node@v1
         with:
@@ -119,11 +96,12 @@ jobs:
         run: |
           npm install -g vega-lite vega-cli canvas
       - name: Install dependencies in a venv
-        if: steps.cache-pip.outputs.cache-hit != 'true'
         run: |
           python3 -m venv venv
           . venv/bin/activate
           pip install -q -U pip
+          # scikit-bio requires numpy at build time
+          pip install numpy
           pip install --progress-bar=off .[all,testing,reports]
       - name: Run report tests
         run: |
@@ -138,18 +116,13 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: 3.7
-      - name: Cache virtualenv
-        uses: actions/cache@v1
-        id: cache-pip
-        with:
-          path: venv
-          key: venv-${{ hashFiles('setup.py') }}-coverage
       - name: Install dependencies in a venv
-        if: steps.cache-pip.outputs.cache-hit != 'true'
         run: |
           python3 -m venv venv
           . venv/bin/activate
           pip install -q -U pip
+          # scikit-bio requires numpy at build time
+          pip install numpy
           pip install --progress-bar=off simplejson
           pip install --progress-bar=off .[all,testing]
       - name: Generate coverage
@@ -168,18 +141,13 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: 3.7
-      - name: Cache virtualenv
-        uses: actions/cache@v1
-        id: cache-pip
-        with:
-          path: venv
-          key: venv-${{ hashFiles('setup.py') }}-import-times
       - name: Install dependencies in a venv
-        if: steps.cache-pip.outputs.cache-hit != 'true'
         run: |
           python3 -m venv venv
           . venv/bin/activate
           pip install -q -U pip
+          # scikit-bio requires numpy at build time
+          pip install numpy
           pip install --progress-bar=off simplejson tuna
           pip install --progress-bar=off .[all,testing]
       - name: Test import speeds
