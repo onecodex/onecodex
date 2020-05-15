@@ -9,12 +9,23 @@ jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
-    - uses: actions/setup-python@v1
-    - name: set PY
-      run: echo "::set-env name=PY::$(python -c 'import hashlib, sys;print(hashlib.sha256(sys.version.encode()+sys.executable.encode()).hexdigest())')"
-    - uses: actions/cache@v1
-      with:
-        path: ~/.cache/pre-commit
-        key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
-    - uses: pre-commit/action@v1.0.1
+      - uses: actions/checkout@v2
+      -  uses: actions/setup-python@v1
+      - name: Display Python version
+        run: python -c "import sys; print(sys.version)"
+      - name: Cache virtualenv
+        uses: actions/cache@v1
+        id: cache-pip
+        with:
+          path: venv
+          key: venv-${{ hashFiles('setup.py') }}-${{ matrix.python-version }}-${{ matrix.os }}
+      - name: Install dependencies in a venv
+        if: steps.cache-pip.outputs.cache-hit != 'true'
+        run: |
+          python3 -m venv venv
+          . venv/bin/activate
+          pip install -q -U pip
+          pip install --progress-bar=off .[all,reports,testing]
+
+      - name: Lint
+        run: make lint
