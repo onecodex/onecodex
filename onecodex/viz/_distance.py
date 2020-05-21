@@ -2,7 +2,7 @@
 from itertools import chain
 import warnings
 
-from onecodex.lib.enums import BetaDiversityMetric, Rank, Linkage
+from onecodex.lib.enums import BetaDiversityMetric, Rank, Linkage, OrdinationMethod
 from onecodex.exceptions import OneCodexException
 from onecodex.distance import DistanceMixin
 
@@ -220,11 +220,14 @@ class VizDistanceMixin(DistanceMixin):
         else:
             (dendro_chart | chart).display()
 
+    def plot_pcoa(self, *args, **kwargs):
+        return self.plot_mds(*args, method=OrdinationMethod.Pcoa, **kwargs)
+
     def plot_mds(
         self,
         rank=Rank.Auto,
         metric=BetaDiversityMetric.BrayCurtis,
-        method="pcoa",
+        method=OrdinationMethod.Pcoa,
         title=None,
         xlabel=None,
         ylabel=None,
@@ -233,6 +236,7 @@ class VizDistanceMixin(DistanceMixin):
         tooltip=None,
         return_chart=False,
         label=None,
+        mark_size=100,
         width=None,
         height=None,
     ):
@@ -316,7 +320,7 @@ class VizDistanceMixin(DistanceMixin):
 
         magic_metadata, magic_fields = self._metadata_fetch(tooltip, label=label)
 
-        if method == "smacof":
+        if method == OrdinationMethod.Smacof:
             # adapted from https://scikit-learn.org/stable/auto_examples/manifold/plot_mds.html
             x_field = "MDS1"
             y_field = "MDS2"
@@ -343,7 +347,7 @@ class VizDistanceMixin(DistanceMixin):
             # label the axes
             x_extra_label = "r² = %.02f" % (r_squared[0],)
             y_extra_label = "r² = %.02f" % (r_squared[1],)
-        elif method == "pcoa":
+        elif method == OrdinationMethod.Pcoa:
             # suppress eigenvalue warning from skbio--not because it's an invalid warning, but
             # because lots of folks in the field run pcoa on these distances functions, even if
             # statistically inappropriate. perhaps this will change if we ever become more
@@ -362,7 +366,9 @@ class VizDistanceMixin(DistanceMixin):
             x_extra_label = "%0.02f%%" % (ord_result.proportion_explained[0] * 100,)
             y_extra_label = "%0.02f%%" % (ord_result.proportion_explained[1] * 100,)
         else:
-            raise OneCodexException("MDS method must be one of: smacof, pcoa")
+            raise OneCodexException(
+                "MDS method must be one of: {}".format(", ".join(OrdinationMethod.values))
+            )
 
         # label the axes
         if xlabel is None:
@@ -389,7 +395,7 @@ class VizDistanceMixin(DistanceMixin):
         chart = (
             alt.Chart(plot_data)
             .transform_calculate(url=alt_kwargs.pop("url"))
-            .mark_circle()
+            .mark_circle(size=mark_size)
             .encode(**alt_kwargs)
         )
 

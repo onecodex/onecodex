@@ -72,3 +72,8 @@ class Linkage(BaseEnum):
     Weighted = "weighted"
     Centroid = "centroid"
     Median = "median"
+
+
+class OrdinationMethod(BaseEnum):
+    Pcoa = "pcoa"
+    Smacof = "smacof"

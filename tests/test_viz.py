@@ -237,7 +237,7 @@ def test_plot_mds(ocx, api_data):
         title="my title",
         return_chart=True,
     )
-    assert chart.mark == "circle"
+    assert chart.mark.type == "circle"
     assert chart.title == "my title"
     assert chart.encoding.x.shorthand == "PC1"
     assert chart.encoding.x.axis.title == "my xlabel"
@@ -247,6 +247,20 @@ def test_plot_mds(ocx, api_data):
 
     chart = samples.plot_mds(method="smacof", metric="weighted_unifrac", return_chart=True)
     assert (chart.data["MDS1"] * chart.data["MDS2"]).sum().round(6) == -0.319449
+
+
+def test_plot_pcoa(ocx, api_data):
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+
+    chart = samples.plot_pcoa(
+        metric="weighted_unifrac",
+        xlabel="my xlabel",
+        ylabel="my ylabel",
+        title="my title",
+        return_chart=True,
+    )
+
+    assert (chart.data["PC1"] * chart.data["PC2"]).sum() == 0.0
 
 
 def test_plot_mds_exceptions(ocx, api_data):
