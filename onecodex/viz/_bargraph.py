@@ -93,7 +93,7 @@ class VizBargraphMixin(object):
 
         field = df.ocx.field
 
-        if self._field in AbundanceField.values() and include_taxa_missing_rank is None:
+        if AbundanceField.has_value(self._field) and include_taxa_missing_rank is None:
             include_taxa_missing_rank = True
 
         if include_taxa_missing_rank:

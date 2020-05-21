@@ -22,7 +22,7 @@ class DistanceMixin(TaxonomyMixin):
         """
         import skbio.diversity
 
-        if metric not in AlphaDiversityMetric.values():
+        if not AlphaDiversityMetric.has_value(metric):
             raise OneCodexException(
                 "For alpha diversity, metric must be one of: {}".format(
                     ", ".join(AlphaDiversityMetric.values())
@@ -51,7 +51,7 @@ class DistanceMixin(TaxonomyMixin):
         """
         import skbio.diversity
 
-        if metric not in BetaDiversityMetric.values():
+        if not BetaDiversityMetric.has_value(metric):
             raise OneCodexException(
                 "For beta diversity, metric must be one of: {}".format(
                     ", ".join(BetaDiversityMetric.values())

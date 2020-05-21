@@ -80,13 +80,13 @@ class VizMetadataMixin(object):
         if rank is None:
             raise OneCodexException("Please specify a rank or 'auto' to choose automatically")
 
-        if plot_type not in PlotType.values():
+        if not PlotType.has_value(plot_type):
             raise OneCodexException("Plot type must be one of: auto, boxplot, scatter")
 
         # alpha diversity is only allowed on vertical axis--horizontal can be magically mapped
         df, magic_fields = self._metadata_fetch([haxis, "Label"], label=label)
 
-        if vaxis in AlphaDiversityMetric.values():
+        if AlphaDiversityMetric.has_value(vaxis):
             df.loc[:, vaxis] = self.alpha_diversity(vaxis, rank=rank)
             magic_fields[vaxis] = vaxis
         else:

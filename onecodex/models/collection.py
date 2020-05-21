@@ -266,7 +266,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         field = field if field else self._kwargs["field"]
         include_host = include_host if include_host else self._kwargs["include_host"]
 
-        if field not in Field.values():
+        if not Field.has_value(field):
             raise OneCodexException("Specified field ({}) not valid.".format(field))
 
         # we'll fill these dicts that eventually turn into DataFrames

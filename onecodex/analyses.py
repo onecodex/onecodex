@@ -33,7 +33,7 @@ class AnalysisMixin(
             if self.__class__.__name__ == "OneCodexAccessor":
                 return self._rank
 
-            if self._field in AbundanceField.values() or self._is_metagenomic:
+            if AbundanceField.has_value(self._field) or self._is_metagenomic:
                 return Rank.Species
             else:
                 return Rank.Genus
@@ -50,7 +50,7 @@ class AnalysisMixin(
         """
         return (
             getattr(self, "_normalized", False)
-            or self._field in AbundanceField.values()
+            or AbundanceField.has_value(self._field)
             or bool((self._results.sum(axis=1).round(4) == 1.0).all())
         )  # noqa
 
@@ -352,7 +352,7 @@ class AnalysisMixin(
 
     @staticmethod
     def _make_pretty_field_name(field, normalized):
-        if field in {"readcount", "readcount_w_children"}:
+        if field in {Field.Readcount, Field.ReadcountWChildren}:
             if normalized:
                 return "Reads (Normalized)"
             else:
