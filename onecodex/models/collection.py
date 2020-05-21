@@ -4,7 +4,7 @@ import json
 import warnings
 
 from onecodex.exceptions import OneCodexException
-from onecodex.lib.enums import Field
+from onecodex.lib.enums import Metric
 
 try:
     from onecodex.analyses import AnalysisMixin
@@ -39,8 +39,8 @@ class SampleCollection(ResourceList, AnalysisMixin):
         skip_missing : `bool`, optional
             If an analysis was not successful, exclude it, warn, and keep going
 
-        field : {'readcount_w_children', 'readcount', 'abundance'}, optional
-            Which field to use for the abundance/count of a particular taxon in a sample.
+        metric : {'readcount_w_children', 'readcount', 'abundance'}, optional
+            Which metric to use for the abundance/count of a particular taxon in a sample.
 
             - 'readcount_w_children': total reads of this taxon and all its descendants
             - 'readcount': total reads of this taxon
@@ -54,7 +54,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         Given a list of Samples, create a new SampleCollection using abundances:
 
             samples = [sample1, sample2, sample3]
-            collection = SampleCollection(samples, field='abundance')
+            collection = SampleCollection(samples, metric='abundance')
 
         Notes
         -----
@@ -67,19 +67,34 @@ class SampleCollection(ResourceList, AnalysisMixin):
             self._sample_collection_constructor(*args, **kwargs)
 
     def _resource_list_constructor(
-        self, _resource, oc_model, skip_missing=True, field="auto", include_host=False, job=None
+        self,
+        _resource,
+        oc_model,
+        skip_missing=True,
+        field="auto",
+        metric="auto",
+        include_host=False,
+        job=None,
     ):
+        if field:
+            # raise deprecation warning
+            metric = field
+
         self._kwargs = {
             "skip_missing": skip_missing,
-            "field": field,
+            "metric": metric,
             "include_host": include_host,
             "job": job,
         }
         super(SampleCollection, self).__init__(_resource, oc_model, **self._kwargs)
 
     def _sample_collection_constructor(
-        self, objects, skip_missing=True, field="auto", include_host=False, job=None
+        self, objects, skip_missing=True, field="auto", metric="auto", include_host=False, job=None
     ):
+        if field:
+            # raise deprecation warning
+            metric = field
+
         # are they all wrapped potion resources?
         if not all([hasattr(obj, "_resource") for obj in objects]):
             raise OneCodexException(
@@ -99,7 +114,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         self._kwargs = {
             "skip_missing": skip_missing,
-            "field": field,
+            "metric": metric,
             "include_host": include_host,
             "job": job,
         }
@@ -108,7 +123,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
     def filter(self, filter_func):
         """Return a new SampleCollection containing only samples meeting the filter criteria.
 
-        Will pass any kwargs (e.g., field or skip_missing) used when instantiating the current class
+        Will pass any kwargs (e.g., metric or skip_missing) used when instantiating the current class
         on to the new SampleCollection that is returned.
 
         Parameters
@@ -242,13 +257,13 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         return self._cached["metadata"]
 
-    def _collate_results(self, field=None, include_host=None):
+    def _collate_results(self, metric=None, include_host=None):
         """Transform a list of Classifications into `pd.DataFrames` of taxonomy and results data.
 
         Parameters
         ----------
-        field : {'readcount_w_children', 'readcount', 'abundance'}
-            Which field to use for the abundance/count of a particular taxon in a sample.
+        metric : {'readcount_w_children', 'readcount', 'abundance'}
+            Which metric to use for the abundance/count of a particular taxon in a sample.
 
             - 'readcount_w_children': total reads of this taxon and all its descendants
             - 'readcount': total reads of this taxon
@@ -263,24 +278,24 @@ class SampleCollection(ResourceList, AnalysisMixin):
         """
         import pandas as pd
 
-        field = field if field else self._kwargs["field"]
+        metric = metric if metric else self._kwargs["metric"]
         include_host = include_host if include_host else self._kwargs["include_host"]
 
-        if not Field.has_value(field):
-            raise OneCodexException("Specified field ({}) not valid.".format(field))
+        if not Metric.has_value(metric):
+            raise OneCodexException("Specified metric ({}) not valid.".format(metric))
 
         # we'll fill these dicts that eventually turn into DataFrames
         df = {"classification_id": [c.id for c in self._classifications]}
 
         tax_info = {"tax_id": [], "name": [], "rank": [], "parent_tax_id": []}
 
-        if field == "auto":
-            field = Field.ReadcountWChildren
+        if metric == "auto":
+            metric = Metric.ReadcountWChildren
 
             if self._is_metagenomic:
-                field = Field.AbundanceWChildren
+                metric = Metric.AbundanceWChildren
 
-        self._cached["field"] = field
+        self._cached["metric"] = metric
 
         for c_idx, c in enumerate(self._classifications):
             # pulling results from mainline is the slowest part of the function
@@ -291,18 +306,18 @@ class SampleCollection(ResourceList, AnalysisMixin):
             table = {t["tax_id"]: t for t in table}
 
             for tax_id, result in table.items():
-                if Field.Abundance not in result or result[Field.Abundance] is None:
-                    result[Field.AbundanceWChildren] = 0
+                if Metric.Abundance not in result or result[Metric.Abundance] is None:
+                    result[Metric.AbundanceWChildren] = 0
                     continue
 
                 parent = table[result["parent_tax_id"]]
-                result[Field.AbundanceWChildren] = result[Field.Abundance]
+                result[Metric.AbundanceWChildren] = result[Metric.Abundance]
 
                 while parent:
-                    if Field.AbundanceWChildren not in parent:
-                        parent[Field.AbundanceWChildren] = 0
+                    if Metric.AbundanceWChildren not in parent:
+                        parent[Metric.AbundanceWChildren] = 0
 
-                    parent[Field.AbundanceWChildren] += result[Field.Abundance]
+                    parent[Metric.AbundanceWChildren] += result[Metric.Abundance]
                     parent = table.get(parent["parent_tax_id"])
 
             # d contains info about a taxon in result, including name, id, counts, rank, etc.
@@ -319,7 +334,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
                     # first time we've seen this taxon, so make a vector for it
                     df[d_tax_id] = [0] * len(self._classifications)
 
-                df[d_tax_id][c_idx] = d[field]
+                df[d_tax_id][c_idx] = d[metric]
 
         # format as a Pandas DataFrame
         df = pd.DataFrame(df).set_index("classification_id").fillna(0)
@@ -332,11 +347,11 @@ class SampleCollection(ResourceList, AnalysisMixin):
         self._cached["taxonomy"] = tax_info
 
     @property
-    def _field(self):
-        if "field" not in self._cached:
+    def _metric(self):
+        if "metric" not in self._cached:
             self._collate_results()
 
-        return self._cached["field"]
+        return self._cached["metric"]
 
     @property
     def _is_metagenomic(self):
@@ -416,7 +431,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
             for row in sample_df.iterrows():
                 tax_id = row[1]["tax_id"]
                 tax_ids_to_names[tax_id] = row[1]["name"]
-                rows[tax_id][col_id] = int(row[1][Field.Readcount])
+                rows[tax_id][col_id] = int(row[1][Metric.Readcount])
 
         num_rows = len(rows)
         num_cols = len(otu["columns"])

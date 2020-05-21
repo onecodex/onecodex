@@ -11,7 +11,7 @@ def test_auto_rank(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
 
     # if we re-collate the results using the abundance field, auto rank should choose species
-    samples._collate_results(field="abundance")
+    samples._collate_results(metric="abundance")
     assert samples._get_auto_rank("auto") == "species"
 
     # inside the pandas extension, auto rank should choose that of the ResultsDataFrame

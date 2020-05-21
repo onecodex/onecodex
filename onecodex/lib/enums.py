@@ -1,6 +1,6 @@
 from enum import Enum
 
-__all__ = ["Field", "AbundanceField", "AlphaDiversityMetric", "BetaDiversityMetric"]
+__all__ = ["Metric", "AbundanceMetric", "AlphaDiversityMetric", "BetaDiversityMetric"]
 
 
 class BaseEnum(str, Enum):
@@ -13,12 +13,12 @@ class BaseEnum(str, Enum):
         return [e.value for e in cls]
 
 
-class AbundanceField(BaseEnum):
+class AbundanceMetric(BaseEnum):
     Abundance = "abundance"
     AbundanceWChildren = "abundance_w_children"
 
 
-class Field(BaseEnum):
+class Metric(BaseEnum):
     Auto = "auto"
     Readcount = "readcount"
     ReadcountWChildren = "readcount_w_children"

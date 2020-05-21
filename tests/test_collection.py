@@ -146,5 +146,5 @@ def test_collate_results(ocx, api_data):
 
     # invalid field name
     with pytest.raises(OneCodexException) as e:
-        samples._collate_results(field="does_not_exist")
+        samples._collate_results(metric="does_not_exist")
     assert "not valid" in str(e.value)

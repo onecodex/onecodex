@@ -9,7 +9,7 @@ class ClassificationsDataFrame(pd.DataFrame):
     A subclassed `pandas.DataFrame` containing additional metadata pertinent to analysis of
     One Codex Classifications results. These fields, once part of the DataFrame, will no longer be
     updated when the contents of the associated `SampleCollection` change. In comparison, the
-    corresponding attributes `_rank`, `_field`, `taxonomy` and `metadata` in a `SampleCollection`
+    corresponding attributes `_rank`, `_metric`, `taxonomy` and `metadata` in a `SampleCollection`
     are re-generated whenever members of the `SampleCollection` are added or removed.
 
     Methods from `AnalysisMixin`, such as `to_df`, are available via the `ocx` namespace. For
@@ -20,8 +20,8 @@ class ClassificationsDataFrame(pd.DataFrame):
     ocx_rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
         Analysis was restricted to abundances of taxa at the specified level.
 
-    ocx_field : {'readcount_w_children', 'readcount', 'abundance'}
-        Which field was used for the abundance/count of a particular taxon in a sample.
+    ocx_metric : {'readcount_w_children', 'readcount', 'abundance'}
+        Which metric was used for the abundance/count of a particular taxon in a sample.
 
         - 'readcount_w_children': total reads of this taxon and all its descendants
         - 'readcount': total reads of this taxon
@@ -38,7 +38,7 @@ class ClassificationsDataFrame(pd.DataFrame):
         Whether the results in this DataFrame were normalized, each sample summing to 1.0.
     """
 
-    _metadata = ["ocx_rank", "ocx_field", "ocx_taxonomy", "ocx_metadata", "ocx_normalized"]
+    _metadata = ["ocx_rank", "ocx_metric", "ocx_taxonomy", "ocx_metadata", "ocx_normalized"]
 
     def __init__(
         self,
@@ -48,13 +48,13 @@ class ClassificationsDataFrame(pd.DataFrame):
         dtype=None,
         copy=False,
         ocx_rank=None,
-        ocx_field=None,
+        ocx_metric=None,
         ocx_taxonomy=None,
         ocx_metadata=None,
         ocx_normalized=None,
     ):
         self.ocx_rank = ocx_rank
-        self.ocx_field = ocx_field
+        self.ocx_metric = ocx_metric
         self.ocx_taxonomy = ocx_taxonomy
         self.ocx_metadata = ocx_metadata
         self.ocx_normalized = ocx_normalized
@@ -101,7 +101,7 @@ class ClassificationsSeries(pd.Series):
     """
 
     # 'name' is a piece of metadata specified by pd.Series--it's not ours
-    _metadata = ["name", "ocx_rank", "ocx_field", "ocx_taxonomy", "ocx_metadata", "ocx_normalized"]
+    _metadata = ["name", "ocx_rank", "ocx_metric", "ocx_taxonomy", "ocx_metadata", "ocx_normalized"]
 
     def __init__(
         self,
@@ -112,13 +112,13 @@ class ClassificationsSeries(pd.Series):
         copy=False,
         fastpath=False,
         ocx_rank=None,
-        ocx_field=None,
+        ocx_metric=None,
         ocx_taxonomy=None,
         ocx_metadata=None,
         ocx_normalized=None,
     ):
         self.ocx_rank = ocx_rank
-        self.ocx_field = ocx_field
+        self.ocx_metric = ocx_metric
         self.ocx_taxonomy = ocx_taxonomy
         self.ocx_metadata = ocx_metadata
         self.ocx_normalized = ocx_normalized
@@ -157,7 +157,7 @@ class OneCodexAccessor(AnalysisMixin):
         self.metadata = pandas_obj.ocx_metadata
         self.taxonomy = pandas_obj.ocx_taxonomy
         self._normalized = pandas_obj.ocx_normalized
-        self._field = pandas_obj.ocx_field
+        self._metric = pandas_obj.ocx_metric
         self._rank = pandas_obj.ocx_rank
         self._results = pandas_obj
 

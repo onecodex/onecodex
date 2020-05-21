@@ -1,5 +1,5 @@
 from onecodex.exceptions import OneCodexException
-from onecodex.lib.enums import AbundanceField, Rank, Field
+from onecodex.lib.enums import AbundanceMetric, Rank, Metric
 from onecodex.viz._primitives import sort_helper
 
 
@@ -54,7 +54,7 @@ class VizBargraphMixin(object):
             The metadata field (or tuple containing multiple categorical fields) used to group
             samples together.
         legend: `string`, optional
-            Title for color scale. Defaults to the field used to generate the plot, e.g.
+            Title for color scale. Defaults to the metric used to generate the plot, e.g.
             readcount_w_children or abundance.
         label : `string` or `callable`, optional
             A metadata field (or function) used to label each analysis. If passing a function, a
@@ -91,13 +91,13 @@ class VizBargraphMixin(object):
 
         df = self.to_df(rank=rank, normalize=normalize, threshold=threshold)
 
-        field = df.ocx.field
+        metric = df.ocx.metric
 
-        if AbundanceField.has_value(self._field) and include_taxa_missing_rank is None:
+        if AbundanceMetric.has_value(self._metric) and include_taxa_missing_rank is None:
             include_taxa_missing_rank = True
 
         if include_taxa_missing_rank:
-            if field != Field.AbundanceWChildren:
+            if metric != Metric.AbundanceWChildren:
                 raise OneCodexException(
                     "No-level data can only be imputed on abundances w/ children"
                 )
@@ -114,7 +114,7 @@ class VizBargraphMixin(object):
             df["Other"] = 1 - df.sum(axis=1)
 
         if legend == "auto":
-            legend = field
+            legend = metric
 
         if tooltip:
             if not isinstance(tooltip, list):
@@ -136,7 +136,7 @@ class VizBargraphMixin(object):
         df = df.reset_index().melt(
             id_vars=["classification_id"] + magic_metadata.columns.tolist(),
             var_name="tax_id",
-            value_name=field,
+            value_name=metric,
         )
 
         # add taxa names
@@ -154,13 +154,13 @@ class VizBargraphMixin(object):
         # OCX this should be okay)
         #
 
-        ylabel = ylabel or field
+        ylabel = ylabel or metric
         xlabel = xlabel or ""
 
         # should ultimately be Label, tax_name, readcount_w_children, then custom fields
         tooltip_for_altair = [magic_fields[f] for f in tooltip]
         tooltip_for_altair.insert(1, "tax_name")
-        tooltip_for_altair.insert(2, "{}:Q".format(field))
+        tooltip_for_altair.insert(2, "{}:Q".format(metric))
 
         kwargs = {}
 
@@ -191,7 +191,7 @@ class VizBargraphMixin(object):
             .mark_bar()
             .encode(
                 x=alt.X("Label", axis=alt.Axis(title=xlabel), sort=sort_order),
-                y=alt.Y(field, axis=alt.Axis(title=ylabel), scale=alt.Scale(**y_scale_kwargs)),
+                y=alt.Y(metric, axis=alt.Axis(title=ylabel), scale=alt.Scale(**y_scale_kwargs)),
                 color=alt.Color("tax_name", legend=alt.Legend(title=legend), sort=domain),
                 tooltip=tooltip_for_altair,
                 href="url:N",
