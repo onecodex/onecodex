@@ -102,14 +102,19 @@ def test_collate_metadata(ocx, api_data):
     string_to_hash = ""
     for col in sorted(metadata.columns.tolist()):
         for row in sorted(metadata.index.tolist()):
+            val = metadata.loc[row, col]
+            if isinstance(val, str):
+                string_to_hash += val
+                continue
+
             try:
-                string_to_hash += metadata.loc[row, col].astype(str)
+                string_to_hash += val.astype(str)
             except AttributeError:
                 pass
 
     assert (
         sha256(string_to_hash.encode()).hexdigest()
-        == "6bebbdcc842f5d83d98a02657231093d68a649fc7721cf3a92755260dd45bf3d"
+        == "3ead672171efcb806323a55216683834aa89b5a657da31ab5bf01c6adcd882e6"
     )
 
 

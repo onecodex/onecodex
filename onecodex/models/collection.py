@@ -237,6 +237,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
             metadatum["metadata_id"] = m.id
             metadatum["created_at"] = m.sample.created_at
             metadatum["filename"] = c.sample.filename
+            metadatum["project"] = getattr(c.sample.project, "name")
 
             metadatum.update(m.custom)
             metadata.append(metadatum)
