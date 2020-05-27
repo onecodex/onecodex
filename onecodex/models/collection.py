@@ -76,10 +76,6 @@ class SampleCollection(ResourceList, AnalysisMixin):
         include_host=False,
         job=None,
     ):
-        if field:
-            # raise deprecation warning
-            metric = field
-
         self._kwargs = {
             "skip_missing": skip_missing,
             "metric": metric,
@@ -92,7 +88,10 @@ class SampleCollection(ResourceList, AnalysisMixin):
         self, objects, skip_missing=True, field="auto", metric="auto", include_host=False, job=None
     ):
         if field:
-            # raise deprecation warning
+            warnings.warn(
+                "The `field` parameter has been renamed to `metric`. Passing `field` to a SampleCollection is deprecated and will be removed in a future release.",
+                DeprecationWarning,
+            )
             metric = field
 
         # are they all wrapped potion resources?

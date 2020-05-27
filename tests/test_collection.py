@@ -23,6 +23,17 @@ def test_sample_collection_pandas(ocx, api_data):
     assert class_id not in samples.metadata.index
 
 
+def test_collection_constructor(ocx, api_data):
+    samples = ocx.Samples.where(project="45a573fb7833449a")
+
+    with pytest.deprecated_call():
+        col = SampleCollection(samples, field="readcount_w_children")
+    assert isinstance(col, SampleCollection)
+
+    col = SampleCollection(samples, metric="abundance_w_children")
+    assert isinstance(col, SampleCollection)
+
+
 def test_biom(ocx, api_data):
     c1 = ocx.Classifications.get("45a573fb7833449a")._resource
     c2 = ocx.Classifications.get("593601a797914cbf")._resource
