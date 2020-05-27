@@ -11,7 +11,11 @@ def test_plot_metadata(ocx, api_data):
     chart = samples.plot_metadata(
         vaxis="simpson", title="my title", xlabel="my xlabel", ylabel="my ylabel", return_chart=True
     )
-    assert chart.data["simpson"].round(6).tolist() == [0.788705, 0.845901, 0.372284]
+    assert chart.data["simpson"].tolist() == [
+        0.9194601552055255,
+        0.8918602435339009,
+        0.7805781921054538,
+    ]
     assert chart.mark == "circle"
     assert chart.title == "my title"
     assert chart.encoding.x.axis.title == "my xlabel"
@@ -29,10 +33,12 @@ def test_plot_metadata(ocx, api_data):
     assert chart.encoding.x.shorthand == "totalige"
 
     # taxid and taxon on vertical axis
-    chart = samples.plot_metadata(vaxis=1279, plot_type="boxplot", return_chart=True)
+    chart = samples.plot_metadata(vaxis=853, plot_type="boxplot", return_chart=True)
     assert chart.mark.type == "boxplot"
 
-    chart = samples.plot_metadata(vaxis="Staphylococcus", plot_type="scatter", return_chart=True)
+    chart = samples.plot_metadata(
+        vaxis="Faecalibacterium prausnitzii", plot_type="scatter", return_chart=True
+    )
     assert chart.mark == "circle"
 
 
@@ -55,6 +61,7 @@ def test_plot_metadata_exceptions(ocx, api_data):
 
 def test_plot_pca(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
+    samples._collate_results(metric="readcount_w_children")
 
     chart = samples.plot_pca(
         title="my title",
@@ -62,6 +69,7 @@ def test_plot_pca(ocx, api_data):
         ylabel="my ylabel",
         color="geo_loc_name",
         size="totalige",
+        rank="genus",
         org_vectors=3,
         return_chart=True,
         tooltip=["totalige", "vegetables", "Prevotella", 816],
@@ -138,15 +146,15 @@ def test_plot_heatmap(ocx, api_data):
     assert chart.encoding.x.axis.title == "my xlabel"
     assert chart.encoding.y.axis.title == "my ylabel"
     assert len(chart.data["tax_id"].unique()) == 10
-    assert chart.data["Reads (Normalized)"].sum().round(6) == 2.613775
+    assert chart.data["Relative Abundance"].sum().round(6) == 1.839393
 
     chart = samples.plot_heatmap(threshold=0.1, haxis="eggs", return_chart=True)
     assert chart.mark == "rect"
-    assert all(chart.data.groupby("tax_id").max()["Reads (Normalized)"] > 0.1)
+    assert all(chart.data.groupby("tax_id").max()["Relative Abundance"] > 0.1)
 
     chart = samples.plot_heatmap(top_n=10, threshold=0.01, return_chart=True)
     assert len(chart.data["tax_id"].unique()) == 10
-    assert all(chart.data.groupby("tax_id").max()["Reads (Normalized)"] > 0.01)
+    assert all(chart.data.groupby("tax_id").max()["Relative Abundance"] > 0.01)
 
 
 def test_plot_heatmap_exceptions(ocx, api_data):
@@ -197,7 +205,7 @@ def test_plot_distance(ocx, api_data):
         "2) vegetables",
         "Distance:Q",
     ]
-    assert chart.hconcat[1].data["Distance"].sum().round(6) == 39.463704
+    assert mainplot.data["Distance"].sum() == 3.05156
 
 
 def test_plot_distance_exceptions(ocx, api_data):
@@ -226,12 +234,25 @@ def test_plot_distance_exceptions(ocx, api_data):
     assert "not found" in str(e.value)
 
 
-def test_plot_mds(ocx, api_data):
+@pytest.mark.parametrize(
+    "metric,dissimilarity_metric,smacof",
+    [
+        ("abundance_w_children", "weighted_unifrac", -0.2233),
+        ("abundance_w_children", "unweighted_unifrac", 0.087),
+        ("abundance_w_children", "braycurtis", 0.0039),
+        ("readcount_w_children", "weighted_unifrac", 0.4956),
+        ("readcount_w_children", "unweighted_unifrac", 0.3579),
+        ("readcount_w_children", "braycurtis", 0.1735),
+    ],
+)
+def test_plot_mds(ocx, api_data, metric, dissimilarity_metric, smacof):
     samples = ocx.Samples.where(project="4b53797444f846c4")
+    samples._collate_results(metric=metric)
 
     chart = samples.plot_mds(
+        rank="species",
         method="pcoa",
-        metric="weighted_unifrac",
+        metric=dissimilarity_metric,
         xlabel="my xlabel",
         ylabel="my ylabel",
         title="my title",
@@ -243,10 +264,12 @@ def test_plot_mds(ocx, api_data):
     assert chart.encoding.x.axis.title == "my xlabel"
     assert chart.encoding.y.shorthand == "PC2"
     assert chart.encoding.y.axis.title == "my ylabel"
-    assert (chart.data["PC1"] * chart.data["PC2"]).sum() == 0.0
+    assert (chart.data["PC1"] * chart.data["PC2"]).sum().round(6) == 0.0
 
-    chart = samples.plot_mds(method="smacof", metric="weighted_unifrac", return_chart=True)
-    assert (chart.data["MDS1"] * chart.data["MDS2"]).sum().round(6) == -0.319449
+    chart = samples.plot_mds(
+        method="smacof", rank="species", metric=dissimilarity_metric, return_chart=True
+    )
+    assert (chart.data["MDS1"] * chart.data["MDS2"]).sum().round(4) == smacof
 
 
 def test_plot_pcoa(ocx, api_data):
@@ -260,7 +283,7 @@ def test_plot_pcoa(ocx, api_data):
         return_chart=True,
     )
 
-    assert (chart.data["PC1"] * chart.data["PC2"]).sum() == 0.0
+    assert (chart.data["PC1"] * chart.data["PC2"]).sum().round(6) == 0.0
 
 
 def test_plot_mds_exceptions(ocx, api_data):
@@ -303,11 +326,20 @@ def test_plot_bargraph_arguments(ocx, api_data):
     assert "not found" in str(e.value)
 
 
-def test_plot_bargraph_chart_result(ocx, api_data):
+@pytest.mark.parametrize(
+    "metric,rank,label",
+    [
+        ("abundance_w_children", "genus", "Relative Abundance"),
+        ("abundance_w_children", "species", "Relative Abundance"),
+        ("readcount_w_children", "genus", "Reads"),
+        ("readcount_w_children", "species", "Reads"),
+    ],
+)
+def test_plot_bargraph_chart_result(ocx, api_data, metric, rank, label):
     samples = ocx.Samples.where(project="4b53797444f846c4")
-
+    samples._collate_results(metric=metric)
     chart = samples.plot_bargraph(
-        rank="phylum",
+        rank=rank,
         return_chart=True,
         title="Glorious Bargraph",
         xlabel="Exemplary Samples",
@@ -320,5 +352,5 @@ def test_plot_bargraph_chart_result(ocx, api_data):
     assert chart.title == "Glorious Bargraph"
     assert chart.encoding.x.shorthand == "Label"
     assert chart.encoding.x.axis.title == "Exemplary Samples"
-    assert chart.encoding.y.shorthand == "Reads (Normalized)"
+    assert chart.encoding.y.shorthand == label
     assert chart.encoding.y.axis.title == "Glorious Abundances"

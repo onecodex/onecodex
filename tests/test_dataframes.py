@@ -38,6 +38,7 @@ def test_pandas_subclass():
 
 def test_pandas_extension(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
+    samples._collate_results(metric="readcount_w_children")
     results = samples.to_df()
 
     # extension should be in ocx namespace of ClassificationsDataFrame
@@ -47,7 +48,7 @@ def test_pandas_extension(ocx, api_data):
 
     # changes to contents of results df should affect contents of taxonomy df, by keeping only
     # tax_ids in the results df and their parents
-    results = samples.to_df(top_n=2)
+    results = samples.to_df(top_n=2, rank="genus")
     assert sorted(results.ocx.taxonomy.index.tolist(), key=int) == [
         "1",
         "2",

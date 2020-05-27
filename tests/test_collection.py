@@ -113,8 +113,23 @@ def test_collate_metadata(ocx, api_data):
     )
 
 
-def test_collate_results(ocx, api_data):
+@pytest.mark.parametrize(
+    "metric,sha",
+    [
+        (
+            "readcount_w_children",
+            "dbe3adf601ca9584a49b1b5fcb1873dec5ea33986afa3f614e96609f9320c8ba",
+        ),
+        (
+            "abundance_w_children",
+            "312ed1035742772e94e666a4cd8e8639f2be7cab2a03f2caee2ecbb6d267cb53",
+        ),
+    ],
+)
+def test_collate_results(ocx, api_data, metric, sha):
     samples = ocx.Samples.where(project="4b53797444f846c4")
+
+    samples._collate_results(metric=metric)
 
     # check contents of results df
     string_to_hash = ""
@@ -125,10 +140,7 @@ def test_collate_results(ocx, api_data):
             except AttributeError:
                 pass
 
-    assert (
-        sha256(string_to_hash.encode()).hexdigest()
-        == "dbe3adf601ca9584a49b1b5fcb1873dec5ea33986afa3f614e96609f9320c8ba"
-    )
+    assert sha256(string_to_hash.encode()).hexdigest() == sha
 
     # check contents of taxonomy df
     string_to_hash = ""

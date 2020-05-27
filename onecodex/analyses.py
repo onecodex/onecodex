@@ -2,7 +2,7 @@ import six
 import warnings
 
 from onecodex.exceptions import OneCodexException
-from onecodex.lib.enums import AbundanceMetric, Rank, Metric
+from onecodex.lib.enums import AbundanceMetric, Rank
 from onecodex.viz import (
     VizPCAMixin,
     VizHeatmapMixin,
@@ -352,15 +352,12 @@ class AnalysisMixin(
 
     @staticmethod
     def _make_pretty_metric_name(metric, normalized):
-        if metric in {Metric.Readcount, Metric.ReadcountWChildren}:
-            if normalized:
-                return "Reads (Normalized)"
-            else:
-                return "Reads"
-        elif metric == Metric.Abundance:
+        if AbundanceMetric.has_value(metric):
             return "Relative Abundance"
-
-        return metric
+        if normalized:
+            return "Reads (Normalized)"
+        else:
+            return "Reads"
 
     @property
     def metric(self):

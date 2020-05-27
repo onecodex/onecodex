@@ -199,7 +199,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
             )
 
         self._cached["is_metagenomic"] = False
-        if job_names == {"One Codex Database"}:
+        if len(job_names) == 1 and "One Codex Database" in list(job_names)[0]:
             self._cached["is_metagenomic"] = True
 
         self._cached["classifications"] = new_classifications
@@ -290,10 +290,10 @@ class SampleCollection(ResourceList, AnalysisMixin):
         tax_info = {"tax_id": [], "name": [], "rank": [], "parent_tax_id": []}
 
         if metric == "auto":
-            metric = Metric.ReadcountWChildren
+            metric = Metric.ReadcountWChildren.value
 
             if self._is_metagenomic:
-                metric = Metric.AbundanceWChildren
+                metric = Metric.AbundanceWChildren.value
 
         self._cached["metric"] = metric
 
@@ -303,7 +303,26 @@ class SampleCollection(ResourceList, AnalysisMixin):
             table = results["table"]
             host_tax_ids = results.get("host_tax_ids", [])
 
-            table = {t["tax_id"]: t for t in table}
+            raw_table = {t["tax_id"]: t for t in table}
+
+            table = {}
+
+            # Older results might have a bug where the parent is missing,
+            # so we need to zero-out those results and renormalize the data.
+            renormalize = False
+            for tax_id, result in raw_table.items():
+                table[tax_id] = result
+                if result["parent_tax_id"] not in table:
+                    renormalize = True
+                    table[tax_id][Metric.Abundance] = None
+
+            if renormalize:
+                abundance_sum = sum(
+                    [t.get(Metric.Abundance, 0) or 0 for tax_id, t in table.items()]
+                )
+                for tax_id, result in table.items():
+                    if Metric.Abundance in result and result[Metric.Abundance] is not None:
+                        result[Metric.Abundance] = result[Metric.Abundance] / abundance_sum
 
             for tax_id, result in table.items():
                 if Metric.Abundance not in result or result[Metric.Abundance] is None:

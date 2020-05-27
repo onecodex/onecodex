@@ -91,18 +91,15 @@ class DistanceMixin(TaxonomyMixin):
 
         df = self.to_df(rank=rank, normalize=self._guess_normalized())
 
+        ocx_rank = df.ocx_rank
+        # The scikit-bio implementations of phylogenetic metrics require integer counts
+        if self._guess_normalized():
+            df = df * 10e9
+
         tax_ids = df.keys().tolist()
 
         tree = self.tree_build()
-        tree = self.tree_prune_rank(tree, rank=df.ocx_rank)
-
-        # there's a bug (?) in skbio where it expects the root to only have
-        # one child, so we do a little faking here
-        from skbio.tree import TreeNode
-
-        new_tree = TreeNode(name="fake root")
-        new_tree.rank = "no rank"
-        new_tree.append(tree)
+        tree = self.tree_prune_rank(tree, rank=ocx_rank)
 
         # then finally run the calculation and return
         if weighted:
@@ -110,16 +107,11 @@ class DistanceMixin(TaxonomyMixin):
                 BetaDiversityMetric.WeightedUnifrac,
                 df,
                 df.index,
-                tree=new_tree,
+                tree=tree,
                 otu_ids=tax_ids,
-                validate=False,
+                normalized=True,
             )
         else:
             return skbio.diversity.beta_diversity(
-                BetaDiversityMetric.UnweightedUnifrac,
-                df,
-                df.index,
-                tree=new_tree,
-                otu_ids=tax_ids,
-                validate=False,
+                BetaDiversityMetric.UnweightedUnifrac, df, df.index, tree=tree, otu_ids=tax_ids,
             )

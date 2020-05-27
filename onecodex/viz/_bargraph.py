@@ -91,13 +91,11 @@ class VizBargraphMixin(object):
 
         df = self.to_df(rank=rank, normalize=normalize, threshold=threshold)
 
-        metric = df.ocx.metric
-
         if AbundanceMetric.has_value(self._metric) and include_taxa_missing_rank is None:
             include_taxa_missing_rank = True
 
         if include_taxa_missing_rank:
-            if metric != Metric.AbundanceWChildren:
+            if self._metric != Metric.AbundanceWChildren:
                 raise OneCodexException(
                     "No-level data can only be imputed on abundances w/ children"
                 )
@@ -114,7 +112,7 @@ class VizBargraphMixin(object):
             df["Other"] = 1 - df.sum(axis=1)
 
         if legend == "auto":
-            legend = metric
+            legend = self.metric
 
         if tooltip:
             if not isinstance(tooltip, list):
@@ -136,7 +134,7 @@ class VizBargraphMixin(object):
         df = df.reset_index().melt(
             id_vars=["classification_id"] + magic_metadata.columns.tolist(),
             var_name="tax_id",
-            value_name=metric,
+            value_name=self.metric,
         )
 
         # add taxa names
@@ -154,13 +152,13 @@ class VizBargraphMixin(object):
         # OCX this should be okay)
         #
 
-        ylabel = ylabel or metric
+        ylabel = ylabel or self.metric
         xlabel = xlabel or ""
 
         # should ultimately be Label, tax_name, readcount_w_children, then custom fields
         tooltip_for_altair = [magic_fields[f] for f in tooltip]
         tooltip_for_altair.insert(1, "tax_name")
-        tooltip_for_altair.insert(2, "{}:Q".format(metric))
+        tooltip_for_altair.insert(2, "{}:Q".format(self.metric))
 
         kwargs = {}
 
@@ -191,7 +189,9 @@ class VizBargraphMixin(object):
             .mark_bar()
             .encode(
                 x=alt.X("Label", axis=alt.Axis(title=xlabel), sort=sort_order),
-                y=alt.Y(metric, axis=alt.Axis(title=ylabel), scale=alt.Scale(**y_scale_kwargs)),
+                y=alt.Y(
+                    self.metric, axis=alt.Axis(title=ylabel), scale=alt.Scale(**y_scale_kwargs)
+                ),
                 color=alt.Color("tax_name", legend=alt.Legend(title=legend), sort=domain),
                 tooltip=tooltip_for_altair,
                 href="url:N",
