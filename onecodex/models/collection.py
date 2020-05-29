@@ -312,7 +312,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
             renormalize = False
             for tax_id, result in raw_table.items():
                 table[tax_id] = result
-                if result["parent_tax_id"] not in table:
+                if result[Metric.Abundance] is not None and result["parent_tax_id"] not in table:
                     renormalize = True
                     table[tax_id][Metric.Abundance] = None
 

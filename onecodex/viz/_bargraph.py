@@ -20,7 +20,7 @@ class VizBargraphMixin(object):
         label=None,
         sort_x=None,
         include_taxa_missing_rank=None,
-        include_other=False,
+        include_other=True,
         width=None,
         height=None,
     ):
@@ -167,14 +167,35 @@ class VizBargraphMixin(object):
 
         domain = sorted(df["tax_name"].unique())
 
+        tableau10 = [
+            "#4e79a7",
+            "#f28e2b",
+            "#e15759",
+            "#76b7b2",
+            "#59a14f",
+            "#edc948",
+            "#b07aa1",
+            "#ff9da7",
+            "#9c755f",
+            "#bab0ac",
+        ]
+        other_colour = ["#d0dadb"]
+        no_level_colour = ["#eeefe1"]
+
+        colour_range = (
+            tableau10 * (len(domain) // len(tableau10)) + tableau10[: len(domain) % len(tableau10)]
+        )
+
         no_level_name = "No {}".format(rank)
         if include_taxa_missing_rank and no_level_name in domain:
             domain.remove(no_level_name)
-            domain += [no_level_name]
+            domain = [no_level_name] + domain
+            colour_range = no_level_colour + colour_range
 
         if include_other:
             domain.remove("Other")
-            domain += ["Other"]
+            domain = ["Other"] + domain
+            colour_range = other_colour + colour_range
 
         sort_order = sort_helper(sort_x, df["Label"].tolist())
 
