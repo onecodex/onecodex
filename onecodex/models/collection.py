@@ -236,7 +236,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
             metadatum["metadata_id"] = m.id
             metadatum["created_at"] = m.sample.created_at
             metadatum["filename"] = c.sample.filename
-            metadatum["project"] = getattr(c.sample.project, "name")
+            metadatum["project"] = getattr(c.sample.project, "name", "")
 
             metadatum.update(m.custom)
             metadata.append(metadatum)
@@ -317,6 +317,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
                     table[tax_id][Metric.Abundance] = None
 
             if renormalize:
+                warnings.warn("Taxa with an abundance metric but no assigned reads have been removed. In order to avoid this, re-run your samples on the latest One Codex Database.")
                 abundance_sum = sum(
                     [t.get(Metric.Abundance, 0) or 0 for tax_id, t in table.items()]
                 )
@@ -324,6 +325,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
                     if Metric.Abundance in result and result[Metric.Abundance] is not None:
                         result[Metric.Abundance] = result[Metric.Abundance] / abundance_sum
 
+            # Roll-up abundances to parent taxa
             for tax_id, result in table.items():
                 if Metric.Abundance not in result or result[Metric.Abundance] is None:
                     result[Metric.AbundanceWChildren] = 0
