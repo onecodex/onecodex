@@ -22,6 +22,10 @@
 -   Switches to using a normalized tree for Weighted Unifrac calculations, which gives us Unifrac values in a [0, 1] range
 -   Defaults to using abundances data for metagenomic datasets instead of readcount_w_children
 
+### Deprecated
+
+-   The `field` kwarg on the `SampleCollection` constructor has been renamed to `metric`. We still support passing either, but show a `DeprecationWarning` when passing `field`
+
 ### Removed
 
 -   Removes support for just specifying `unifrac` as a metric

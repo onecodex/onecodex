@@ -317,7 +317,9 @@ class SampleCollection(ResourceList, AnalysisMixin):
                     table[tax_id][Metric.Abundance] = None
 
             if renormalize:
-                warnings.warn("Taxa with an abundance metric but no assigned reads have been removed. In order to avoid this, re-run your samples on the latest One Codex Database.")
+                warnings.warn(
+                    "Taxa with an abundance metric but no assigned reads have been removed. In order to avoid this, re-run your samples on the latest One Codex Database."
+                )
                 abundance_sum = sum(
                     [t.get(Metric.Abundance, 0) or 0 for tax_id, t in table.items()]
                 )
