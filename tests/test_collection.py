@@ -178,7 +178,7 @@ def test_collate_metadata(ocx, api_data):
         ),
         (
             "abundance_w_children",
-            "b24f86dd26a9b8f7b1b8470ca74afb9c1d45351316a2d0140506ae541b2e95f2",
+            "bbd4199745c3ab90dc77a9452739b301bcea3cecca7d5bae6964e96c75a03871",
         ),
     ],
 )

@@ -281,18 +281,23 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         # Roll-up abundances to parent taxa
         for tax_id, result in table.items():
-            if Metric.Abundance not in result or result[Metric.Abundance] is None:
+            if Metric.AbundanceWChildren not in result:
                 result[Metric.AbundanceWChildren] = 0
+
+            if result["parent_tax_id"] not in table:
                 continue
 
             parent = table[result["parent_tax_id"]]
-            result[Metric.AbundanceWChildren] = result[Metric.Abundance]
+            if result[Metric.Abundance] is not None:
+                result[Metric.AbundanceWChildren] += result[Metric.Abundance]
 
             while parent:
                 if Metric.AbundanceWChildren not in parent:
                     parent[Metric.AbundanceWChildren] = 0
 
-                parent[Metric.AbundanceWChildren] += result[Metric.Abundance]
+                if result[Metric.Abundance] is not None:
+                    parent[Metric.AbundanceWChildren] += result[Metric.Abundance]
+
                 parent = table.get(parent["parent_tax_id"])
 
         return table
@@ -340,10 +345,9 @@ class SampleCollection(ResourceList, AnalysisMixin):
         for c_idx, c in enumerate(self._classifications):
             # pulling results from mainline is the slowest part of the function
             results = c.results()
-            table = results["table"]
             host_tax_ids = results.get("host_tax_ids", [])
 
-            raw_table = {t["tax_id"]: t for t in table}
+            raw_table = {t["tax_id"]: t.copy() for t in results["table"]}
 
             table = self._calculate_abundance_rollups(raw_table)
 

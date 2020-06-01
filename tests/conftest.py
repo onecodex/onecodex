@@ -413,6 +413,17 @@ def upload_mocks():
 @pytest.yield_fixture(scope="function")
 def sample_tree_old():
     yield {
+        # this goes first because we had a bug that only occurred if a
+        # species-level result came before its parent in the results dict.
+        "4": {
+            "abundance": 0.3,
+            "name": "species 4",
+            "parent_tax_id": "2",
+            "rank": "species",
+            "readcount": 30,
+            "readcount_w_children": 30,
+            "tax_id": "4",
+        },
         "1": {
             "abundance": None,
             "name": "root",
@@ -439,15 +450,6 @@ def sample_tree_old():
             "readcount": 0,
             "readcount_w_children": 60,
             "tax_id": "3",
-        },
-        "4": {
-            "abundance": 0.3,
-            "name": "species 4",
-            "parent_tax_id": "2",
-            "rank": "species",
-            "readcount": 30,
-            "readcount_w_children": 30,
-            "tax_id": "4",
         },
         "5": {
             "abundance": 0.1,
