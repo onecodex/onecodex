@@ -1,6 +1,3 @@
-import altair as alt
-import pandas as pd
-
 from onecodex.exceptions import OneCodexException
 
 
@@ -49,6 +46,10 @@ def dendrogram(tree):
     -------
     `altair.Chart`
     """
+    # Deferred imports
+    import altair as alt
+    import pandas as pd
+
     plot_data = {
         "x": [],
         "y": [],

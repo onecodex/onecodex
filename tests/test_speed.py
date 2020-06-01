@@ -22,16 +22,16 @@ import pytest
             "from onecodex.viz import VizPCAMixin",
             {
                 "onecodex": 0.25,
-                "onecodex.viz": 1.00,  # TODO: Get this time down
+                "onecodex.viz": 0.20,
                 "onecodex.viz._pca": 0.01,
                 "onecodex.viz._distance": 0.01,
             },
-            1.00,
+            0.25,
         ),
         (
             "from onecodex.analyses import AnalysisMixin",
-            {"onecodex": 0.25, "onecodex.analyses": 1.00},
-            1.00,
+            {"onecodex": 0.25, "onecodex.analyses": 0.20},
+            0.25,
         ),
     ],
 )

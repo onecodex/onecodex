@@ -1,5 +1,3 @@
-import pandas as pd
-
 from onecodex.exceptions import OneCodexException
 from onecodex.taxonomy import TaxonomyMixin
 from onecodex.lib.enums import AlphaDiversityMetric, BetaDiversityMetric, Rank
@@ -20,6 +18,7 @@ class DistanceMixin(TaxonomyMixin):
         -------
         pandas.DataFrame, a distance matrix.
         """
+        import pandas as pd
         import skbio.diversity
 
         if not AlphaDiversityMetric.has_value(metric):
