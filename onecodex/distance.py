@@ -64,6 +64,8 @@ class DistanceMixin(TaxonomyMixin):
             return self.unifrac(weighted=True, rank=rank)
         elif metric == BetaDiversityMetric.UnweightedUnifrac:
             return self.unifrac(weighted=False, rank=rank)
+        elif metric == BetaDiversityMetric.Jaccard:
+            df = df > 0  # Jaccard requires a boolean matrix, otherwise it throws a warning
 
         # NOTE: see #291 for a discussion on using these metrics with normalized read counts. we are
         # explicitly disabling skbio's check for a counts matrix to allow normalized data to make

@@ -23,6 +23,46 @@ def test_sample_collection_pandas(ocx, api_data):
     assert class_id not in samples.metadata.index
 
 
+def test_abundance_rollups(sample_tree_old, sample_tree_new):
+    raw_table = sample_tree_new
+    table = SampleCollection._calculate_abundance_rollups(raw_table)
+
+    all_genera_abund = sum(
+        x["abundance_w_children"] for x in table.values() if x["rank"] == "genus"
+    )
+    all_species_abund = sum(
+        x["abundance_w_children"] for x in table.values() if x["rank"] == "species"
+    )
+
+    assert table["5"]["abundance"] == 0.1
+    assert table["2"]["abundance_w_children"] == 0.4
+
+    assert table["1"]["abundance_w_children"] == 1.0
+    assert all_genera_abund == 1.0
+    assert all_species_abund == 1.0
+
+    raw_table = sample_tree_old
+
+    with pytest.warns(UserWarning, match="no assigned reads"):
+        table = SampleCollection._calculate_abundance_rollups(raw_table)
+
+    all_genera_abund = sum(
+        x["abundance_w_children"] for x in table.values() if x["rank"] == "genus"
+    )
+    all_species_abund = sum(
+        x["abundance_w_children"] for x in table.values() if x["rank"] == "species"
+    )
+
+    assert table["5"]["abundance"] is None
+    assert (
+        round(table["2"]["abundance_w_children"], 4) == 0.3333
+    )  # old abundance / (sum of abundances)
+
+    assert table["1"]["abundance_w_children"] == 1.0
+    assert all_genera_abund == 1.0
+    assert all_species_abund == 1.0
+
+
 def test_collection_constructor(ocx, api_data):
     samples = ocx.Samples.where(project="45a573fb7833449a")
 
@@ -138,7 +178,7 @@ def test_collate_metadata(ocx, api_data):
         ),
         (
             "abundance_w_children",
-            "312ed1035742772e94e666a4cd8e8639f2be7cab2a03f2caee2ecbb6d267cb53",
+            "b24f86dd26a9b8f7b1b8470ca74afb9c1d45351316a2d0140506ae541b2e95f2",
         ),
     ],
 )

@@ -213,7 +213,12 @@ class VizBargraphMixin(object):
                 y=alt.Y(
                     self.metric, axis=alt.Axis(title=ylabel), scale=alt.Scale(**y_scale_kwargs)
                 ),
-                color=alt.Color("tax_name", legend=alt.Legend(title=legend), sort=domain),
+                color=alt.Color(
+                    "tax_name",
+                    legend=alt.Legend(title=legend),
+                    sort=domain,
+                    scale=alt.Scale(domain=domain, range=colour_range),
+                ),
                 tooltip=tooltip_for_altair,
                 href="url:N",
                 order=alt.Order("order", sort="descending"),

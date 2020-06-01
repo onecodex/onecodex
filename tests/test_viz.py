@@ -12,9 +12,9 @@ def test_plot_metadata(ocx, api_data):
         vaxis="simpson", title="my title", xlabel="my xlabel", ylabel="my ylabel", return_chart=True
     )
     assert chart.data["simpson"].tolist() == [
-        0.9194601552055255,
-        0.8918602435339009,
-        0.7805781921054538,
+        0.9232922257199748,
+        0.8930761430647977,
+        0.7865654458730155,
     ]
     assert chart.mark == "circle"
     assert chart.title == "my title"
@@ -146,7 +146,7 @@ def test_plot_heatmap(ocx, api_data):
     assert chart.encoding.x.axis.title == "my xlabel"
     assert chart.encoding.y.axis.title == "my ylabel"
     assert len(chart.data["tax_id"].unique()) == 10
-    assert chart.data["Relative Abundance"].sum().round(6) == 1.839393
+    assert chart.data["Relative Abundance"].sum().round(6) == 1.813541
 
     chart = samples.plot_heatmap(threshold=0.1, haxis="eggs", return_chart=True)
     assert chart.mark == "rect"
@@ -205,7 +205,7 @@ def test_plot_distance(ocx, api_data):
         "2) vegetables",
         "Distance:Q",
     ]
-    assert mainplot.data["Distance"].sum() == 3.05156
+    assert mainplot.data["Distance"].sum() == 3.022956
 
 
 def test_plot_distance_exceptions(ocx, api_data):
@@ -237,9 +237,9 @@ def test_plot_distance_exceptions(ocx, api_data):
 @pytest.mark.parametrize(
     "metric,dissimilarity_metric,smacof",
     [
-        ("abundance_w_children", "weighted_unifrac", -0.2233),
-        ("abundance_w_children", "unweighted_unifrac", 0.087),
-        ("abundance_w_children", "braycurtis", 0.0039),
+        ("abundance_w_children", "weighted_unifrac", 0.7595),
+        ("abundance_w_children", "unweighted_unifrac", 0.1734),
+        ("abundance_w_children", "braycurtis", 0.0143),
         ("readcount_w_children", "weighted_unifrac", 0.4956),
         ("readcount_w_children", "unweighted_unifrac", 0.3579),
         ("readcount_w_children", "braycurtis", 0.1735),

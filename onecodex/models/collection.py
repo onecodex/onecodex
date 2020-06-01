@@ -257,6 +257,46 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         return self._cached["metadata"]
 
+    @staticmethod
+    def _calculate_abundance_rollups(raw_table):
+        table = {}
+
+        # Older results might have a bug where the parent is missing,
+        # so we need to zero-out those results and renormalize the data.
+        renormalize = False
+        for tax_id, result in raw_table.items():
+            table[tax_id] = result
+            if result[Metric.Abundance] is not None and result["parent_tax_id"] not in raw_table:
+                renormalize = True
+                table[tax_id][Metric.Abundance] = None
+
+        if renormalize:
+            warnings.warn(
+                "Taxa with an abundance metric but no assigned reads have been removed. In order to avoid this, re-run your samples on the latest One Codex Database."
+            )
+            abundance_sum = sum([t.get(Metric.Abundance, 0) or 0 for tax_id, t in table.items()])
+            for tax_id, result in table.items():
+                if Metric.Abundance in result and result[Metric.Abundance] is not None:
+                    result[Metric.Abundance] = result[Metric.Abundance] / abundance_sum
+
+        # Roll-up abundances to parent taxa
+        for tax_id, result in table.items():
+            if Metric.Abundance not in result or result[Metric.Abundance] is None:
+                result[Metric.AbundanceWChildren] = 0
+                continue
+
+            parent = table[result["parent_tax_id"]]
+            result[Metric.AbundanceWChildren] = result[Metric.Abundance]
+
+            while parent:
+                if Metric.AbundanceWChildren not in parent:
+                    parent[Metric.AbundanceWChildren] = 0
+
+                parent[Metric.AbundanceWChildren] += result[Metric.Abundance]
+                parent = table.get(parent["parent_tax_id"])
+
+        return table
+
     def _collate_results(self, metric=None, include_host=None):
         """Transform a list of Classifications into `pd.DataFrames` of taxonomy and results data.
 
@@ -305,43 +345,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
             raw_table = {t["tax_id"]: t for t in table}
 
-            table = {}
-
-            # Older results might have a bug where the parent is missing,
-            # so we need to zero-out those results and renormalize the data.
-            renormalize = False
-            for tax_id, result in raw_table.items():
-                table[tax_id] = result
-                if result[Metric.Abundance] is not None and result["parent_tax_id"] not in table:
-                    renormalize = True
-                    table[tax_id][Metric.Abundance] = None
-
-            if renormalize:
-                warnings.warn(
-                    "Taxa with an abundance metric but no assigned reads have been removed. In order to avoid this, re-run your samples on the latest One Codex Database."
-                )
-                abundance_sum = sum(
-                    [t.get(Metric.Abundance, 0) or 0 for tax_id, t in table.items()]
-                )
-                for tax_id, result in table.items():
-                    if Metric.Abundance in result and result[Metric.Abundance] is not None:
-                        result[Metric.Abundance] = result[Metric.Abundance] / abundance_sum
-
-            # Roll-up abundances to parent taxa
-            for tax_id, result in table.items():
-                if Metric.Abundance not in result or result[Metric.Abundance] is None:
-                    result[Metric.AbundanceWChildren] = 0
-                    continue
-
-                parent = table[result["parent_tax_id"]]
-                result[Metric.AbundanceWChildren] = result[Metric.Abundance]
-
-                while parent:
-                    if Metric.AbundanceWChildren not in parent:
-                        parent[Metric.AbundanceWChildren] = 0
-
-                    parent[Metric.AbundanceWChildren] += result[Metric.Abundance]
-                    parent = table.get(parent["parent_tax_id"])
+            table = self._calculate_abundance_rollups(raw_table)
 
             # d contains info about a taxon in result, including name, id, counts, rank, etc.
             for d in table.values():
