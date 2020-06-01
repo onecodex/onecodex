@@ -1,5 +1,3 @@
-import pandas as pd
-
 from onecodex.exceptions import OneCodexException
 from onecodex.taxonomy import TaxonomyMixin
 
@@ -19,6 +17,7 @@ class DistanceMixin(TaxonomyMixin):
         -------
         pandas.DataFrame, a distance matrix.
         """
+        import pandas as pd
         import skbio.diversity
 
         if metric not in ("simpson", "chao1", "shannon"):

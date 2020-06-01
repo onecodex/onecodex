@@ -1,6 +1,3 @@
-import altair as alt
-import pandas as pd
-
 from onecodex.exceptions import OneCodexException
 
 
@@ -28,6 +25,9 @@ def boxplot(df, category, quantity, category_type="N", title=None, xlabel=None, 
     -------
     `altair.Chart`
     """
+    # Deferred imports
+    import altair as alt
+
     # must be one of Nominal, Ordinal, Time per altair
     if category_type not in ("N", "O", "T"):
         raise OneCodexException("If specifying category_type, must be N, O, or T")
@@ -85,6 +85,10 @@ def dendrogram(tree):
     -------
     `altair.Chart`
     """
+    # Deferred imports
+    import altair as alt
+    import pandas as pd
+
     plot_data = {
         "x": [],
         "y": [],
