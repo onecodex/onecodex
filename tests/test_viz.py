@@ -5,6 +5,18 @@ pytest.importorskip("pandas")  # noqa
 from onecodex.exceptions import OneCodexException
 
 
+def test_altair_ocx_theme(ocx, api_data):
+    import altair as alt
+
+    assert alt.themes.active == "onecodex"
+
+
+def test_altair_renderer(ocx, api_data):
+    import altair as alt
+
+    assert alt.renderers.active in {"altair_saver", "html"}
+
+
 def test_plot_metadata(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
 
