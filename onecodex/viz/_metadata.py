@@ -1,6 +1,6 @@
 from onecodex.lib.enums import AlphaDiversityMetric, Rank, BaseEnum
 from onecodex.exceptions import OneCodexException
-from onecodex.viz._primitives import sort_helper
+from onecodex.viz._primitives import prepare_props, sort_helper
 
 
 class PlotType(BaseEnum):
@@ -165,8 +165,6 @@ class VizMetadataMixin(object):
                 .encode(**alt_kwargs)
             )
 
-            if title:
-                chart = chart.properties(title=title)
         elif plot_type == PlotType.BoxPlot:
             if sort_x:
                 raise OneCodexException("Must not specify sort_x when plot_type is boxplot")
@@ -180,17 +178,7 @@ class VizMetadataMixin(object):
                 )
             )
 
-        props = {}
-
-        if title:
-            props["title"] = title
-        if width:
-            props["width"] = width
-        if height:
-            props["height"] = height
-
-        if props:
-            chart = chart.properties(**props)
+        chart = chart.properties(**prepare_props(title=title, height=height, width=width))
 
         if return_chart:
             return chart

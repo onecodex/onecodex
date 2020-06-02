@@ -1,6 +1,6 @@
 from onecodex.lib.enums import Rank, Linkage
 from onecodex.exceptions import OneCodexException
-from onecodex.viz._primitives import sort_helper
+from onecodex.viz._primitives import prepare_props, sort_helper
 
 
 class VizHeatmapMixin(object):
@@ -222,15 +222,11 @@ class VizHeatmapMixin(object):
         col_count = len(labels_in_order)
         row_count = len(taxa_cluster)
 
-        props = {}
-
-        if title:
-            chart = chart.properties(title=title)
-
-        props["width"] = width or 15 * col_count
-        props["height"] = height or 15 * row_count
-
-        chart = chart.properties(**props)
+        chart = chart.properties(
+            **prepare_props(
+                title=title, height=(height or 15 * row_count), width=(width or 15 * col_count)
+            )
+        )
 
         if haxis:
             chart = chart.resolve_scale(x="independent")

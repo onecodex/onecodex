@@ -5,6 +5,7 @@ import warnings
 from onecodex.lib.enums import BetaDiversityMetric, Rank, Linkage, OrdinationMethod
 from onecodex.exceptions import OneCodexException
 from onecodex.distance import DistanceMixin
+from onecodex.viz._primitives import prepare_props
 
 
 class VizDistanceMixin(DistanceMixin):
@@ -197,17 +198,7 @@ class VizDistanceMixin(DistanceMixin):
             .encode(**alt_kwargs)
         )
 
-        props = {}
-
-        if title:
-            chart = chart.properties(title=title)
-        if width:
-            props["width"] = width
-        if height:
-            props["height"] = height
-
-        if props:
-            chart = chart.properties(**props)
+        chart = chart.properties(**prepare_props(title=title, height=height, width=width))
 
         dendro_chart = dendrogram(clust["scipy_tree"])
 
@@ -399,17 +390,7 @@ class VizDistanceMixin(DistanceMixin):
             .encode(**alt_kwargs)
         )
 
-        props = {}
-
-        if title:
-            chart = chart.properties(title=title)
-        if width:
-            props["width"] = width
-        if height:
-            props["height"] = height
-
-        if props:
-            chart = chart.properties(**props)
+        chart = chart.properties(**prepare_props(title=title, height=height, width=width))
 
         if return_chart:
             return chart

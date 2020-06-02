@@ -1,4 +1,5 @@
 from onecodex.lib.enums import Rank
+from onecodex.viz._primitives import prepare_props
 from onecodex.exceptions import OneCodexException
 
 
@@ -142,7 +143,6 @@ class VizPCAMixin(object):
             .mark_circle(size=mark_size)
             .encode(**alt_kwargs)
         )
-
         if title:
             chart = chart.properties(title=title)
 
@@ -191,17 +191,7 @@ class VizPCAMixin(object):
 
             chart += vector_chart
 
-        props = {}
-
-        if title:
-            props["title"] = title
-        if width:
-            props["width"] = width
-        if height:
-            props["height"] = height
-
-        if props:
-            chart = chart.properties(**props)
+        chart = chart.properties(**prepare_props(title=title, height=height, width=width))
 
         if return_chart:
             return chart

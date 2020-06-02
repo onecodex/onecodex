@@ -1,6 +1,6 @@
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.enums import AbundanceMetric, Rank, Metric
-from onecodex.viz._primitives import sort_helper
+from onecodex.viz._primitives import sort_helper, prepare_props
 
 
 class VizBargraphMixin(object):
@@ -229,16 +229,6 @@ class VizBargraphMixin(object):
         if haxis:
             chart = chart.resolve_scale(x="independent")
 
-        props = {}
-
-        if title:
-            props["title"] = title
-        if width:
-            props["width"] = width
-        if height:
-            props["height"] = height
-
-        if props:
-            chart = chart.properties(**props)
+        chart = chart.properties(**prepare_props(title=title, width=width, height=height))
 
         return chart if return_chart else chart.display()

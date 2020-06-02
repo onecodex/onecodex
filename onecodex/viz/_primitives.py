@@ -5,9 +5,11 @@ from onecodex.exceptions import OneCodexException
 
 
 def sort_helper(sort, values):
+    """Return a sorted list of values for the Altair chart axes."""
     sort_order = None
-    values = list(set(values))
+
     if callable(sort):
+        values = list(set(values))
         sort_order = sort(values)
     elif isinstance(sort, list):
         if set(sort) != set(values):
@@ -18,7 +20,20 @@ def sort_helper(sort, values):
             "Please pass either a sorted list of values matching the axis labels \
             or a function that returns a sorted list of labels"
         )
+
     return sort_order
+
+
+def prepare_props(title=None, height=None, width=None):
+    """Prepare key plotting kwargs for passing to Altair, which d/n like None values."""
+    props = {}
+    if title:
+        props["title"] = title  # None gets rendered as `None`
+    if height:
+        props["height"] = height  # None violates Vega JSON Schema
+    if width:
+        props["width"] = width  # None violates Vega JSON Schema
+    return props
 
 
 def dendrogram(tree):
