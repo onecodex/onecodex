@@ -16,7 +16,7 @@ repos:
     rev: 5.0.2
     hooks:
     - id: pydocstyle
-      exclude: "^(onecodex/vendored|tests/)"
+      exclude: "^(onecodex/vendored|tests/|setup.py)"
       args:
       - --convention=numpy
       - --add-ignore=D100,D101,D102,D103,D104,D105,D202

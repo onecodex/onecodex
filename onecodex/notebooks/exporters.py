@@ -20,15 +20,10 @@ CSS_TEMPLATE_FILE = "notebook_template.css"
 
 
 class AltairPreprocessor(Preprocessor):
-    """
-    Updates notebook cells that are Altair-generated SVG outputs
-    to be properly encoded for Weasyprint
-    """
+    """Update Altair-generated SVG cells for Weasyprint-compat encoding."""
 
     def convert_cell(self, cell):
-        """
-        Updates any cells with SVGs/PNGs
-        """
+        """Update any cells with SVGs/PNGs."""
         if cell["cell_type"] != "code":
             return cell
 
@@ -47,9 +42,7 @@ class AltairPreprocessor(Preprocessor):
         return cell
 
     def preprocess(self, nb, resources):
-        """
-        Preprocessing to apply to each notebook. See base.py for details.
-        """
+        """Preprocess each notebook cell. See base.py for details."""
         # Filter out cells that meet the conditions
         nb.cells = [self.convert_cell(cell) for cell in nb.cells]
 
@@ -79,7 +72,7 @@ class OneCodexHTMLExporter(HTMLExporter):
             return
 
     def from_notebook_node(self, nb, resources=None, **kw):
-        """Uses nbconvert's HTMLExporter to generate HTML, with slight modifications.
+        """Apply nbconvert's HTMLExporter to generate HTML, with slight modifications.
 
         Notes
         -----
@@ -173,7 +166,7 @@ class OneCodexPDFExporter(OneCodexHTMLExporter):
         self.register_preprocessor(AltairPreprocessor, enabled=True)
 
     def from_notebook_node(self, nb, resources=None, **kw):
-        """Takes output of OneCodexHTMLExporter and runs Weasyprint to get a PDF."""
+        """Take output of OneCodexHTMLExporter and run Weasyprint to get a PDF."""
         from weasyprint import HTML, CSS
 
         nb = copy.deepcopy(nb)
@@ -198,7 +191,7 @@ class OneCodexDocumentExporter(OneCodexPDFExporter):
     export_from_notebook = None
 
     def from_notebook_node(self, nb, resources=None, **kw):
-        """Takes PDF output from PDFExporter and uploads to One Codex Documents portal."""
+        """Take PDF output from PDFExporter and upload to One Codex Documents portal."""
         output, resources = super(OneCodexDocumentExporter, self).from_notebook_node(
             nb, resources=resources, **kw
         )
