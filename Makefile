@@ -3,10 +3,7 @@ test:
 	@echo "Successfully passed all tests (one environment only, use tox to full suite)."
 
 lint:
-	flake8 onecodex/
-	flake8 tests/
-	black --check -l 100 --exclude vendored/* onecodex/ tests/
-	pydocstyle --convention=numpy --add-ignore=D100,D101,D102,D103,D104,D105,D202 --match-dir='[^vendored].*' onecodex/
+	pre-commit run --all-files
 	@echo "Successfully linted all files."
 
 coverage:
