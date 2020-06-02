@@ -65,15 +65,11 @@ TESTING_DEPS = [
 ALL_DEPS = [
     "altair==4.0.1",
     "numpy>=1.11.0",
-    "pandas>=0.23.0",
-    "scikit-bio>=0.4.2,<0.5.0",
+    "pandas>=1.0.3",
+    "scikit-bio>=0.5.0",
     "scikit-learn>=0.19.0",
 ]
-REPORT_DEPS = ALL_DEPS + [
-    "notebook==6.0.3",
-    "WeasyPrint==51",
-    "altair_saver==0.5.0",
-]
+REPORT_DEPS = ALL_DEPS + ["notebook==6.0.3", "WeasyPrint==51", "altair_saver==0.5.0"]
 
 
 setup(
@@ -95,7 +91,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     extras_require={
-        ':python_version == "2.7"': ["futures"],
+        ':python_version == "2.7"': ["futures", "enum34"],
         "all": ALL_DEPS,
         "reports": REPORT_DEPS,
         "testing": TESTING_DEPS,

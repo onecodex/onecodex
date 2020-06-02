@@ -1,19 +1,29 @@
+from onecodex.lib.enums import AlphaDiversityMetric, Rank, BaseEnum
 from onecodex.exceptions import OneCodexException
+from onecodex.viz._primitives import prepare_props, sort_helper
+
+
+class PlotType(BaseEnum):
+    Auto = "auto"
+    BoxPlot = "boxplot"
+    Scatter = "scatter"
 
 
 class VizMetadataMixin(object):
     def plot_metadata(
         self,
-        rank="auto",
+        rank=Rank.Auto,
         haxis="Label",
-        vaxis="simpson",
+        vaxis=AlphaDiversityMetric.Shannon,
         title=None,
         xlabel=None,
         ylabel=None,
         return_chart=False,
-        plot_type="auto",
+        plot_type=PlotType.Auto,
         label=None,
         sort_x=None,
+        width=200,
+        height=400,
     ):
         """Plot an arbitrary metadata field versus an arbitrary quantity as a boxplot or scatter plot.
 
@@ -52,9 +62,9 @@ class VizMetadataMixin(object):
             dict containing the metadata for each analysis is passed as the first and only
             positional argument. The callable function must return a string.
 
-        sort_x : `callable`, optional
-            Function will be called with a list of x-axis labels as the only argument, and must
-            return the same list in a user-specified order.
+        sort_x : `list` or `callable`, optional
+            Either a list of sorted labels or a function that will be called with a list of x-axis labels
+            as the only argument, and must return the same list in a user-specified order.
 
         Examples
         --------
@@ -66,18 +76,17 @@ class VizMetadataMixin(object):
         # Deferred imports
         import altair as alt
         import pandas as pd
-        from onecodex.viz import boxplot
 
         if rank is None:
             raise OneCodexException("Please specify a rank or 'auto' to choose automatically")
 
-        if plot_type not in ("auto", "boxplot", "scatter"):
+        if not PlotType.has_value(plot_type):
             raise OneCodexException("Plot type must be one of: auto, boxplot, scatter")
 
         # alpha diversity is only allowed on vertical axis--horizontal can be magically mapped
         df, magic_fields = self._metadata_fetch([haxis, "Label"], label=label)
 
-        if vaxis in ("simpson", "chao1", "shannon"):
+        if AlphaDiversityMetric.has_value(vaxis):
             df.loc[:, vaxis] = self.alpha_diversity(vaxis, rank=rank)
             magic_fields[vaxis] = vaxis
         else:
@@ -98,19 +107,15 @@ class VizMetadataMixin(object):
 
         # plots can look different depending on what the horizontal axis contains
         if pd.api.types.is_datetime64_any_dtype(df[magic_fields[haxis]]):
-            category_type = "T"
-
-            if plot_type == "auto":
-                plot_type = "boxplot"
+            if plot_type == PlotType.Auto:
+                plot_type = PlotType.BoxPlot
         elif "date" in magic_fields[haxis].split("_"):
             df.loc[:, magic_fields[haxis]] = df.loc[:, magic_fields[haxis]].apply(
                 pd.to_datetime, utc=True
             )
 
-            category_type = "T"
-
-            if plot_type == "auto":
-                plot_type = "boxplot"
+            if plot_type == PlotType.Auto:
+                plot_type = PlotType.BoxPlot
         elif (
             pd.api.types.is_bool_dtype(df[magic_fields[haxis]])
             or pd.api.types.is_categorical_dtype(df[magic_fields[haxis]])
@@ -118,21 +123,17 @@ class VizMetadataMixin(object):
         ):  # noqa
             df = df.fillna({field: "N/A" for field in df.columns})
 
-            category_type = "N"
-
-            if plot_type == "auto":
+            if plot_type == PlotType.Auto:
                 # if data is categorical but there is only one value per sample, scatter plot instead
                 if len(df[magic_fields[haxis]].unique()) == len(df[magic_fields[haxis]]):
-                    plot_type = "scatter"
+                    plot_type = PlotType.Scatter
                 else:
-                    plot_type = "boxplot"
+                    plot_type = PlotType.BoxPlot
         elif pd.api.types.is_numeric_dtype(df[magic_fields[haxis]]):
             df = df.dropna(subset=[magic_fields[vaxis]])
 
-            category_type = "O"
-
-            if plot_type == "auto":
-                plot_type = "scatter"
+            if plot_type == PlotType.Auto:
+                plot_type = PlotType.Scatter
         else:
             raise OneCodexException(
                 "Unplottable column type for horizontal axis ({})".format(haxis)
@@ -147,12 +148,10 @@ class VizMetadataMixin(object):
         if plot_type == "scatter":
             df = df.reset_index()
 
+            sort_order = sort_helper(sort_x, df[magic_fields[haxis]].tolist())
+
             alt_kwargs = dict(
-                x=alt.X(
-                    magic_fields[haxis],
-                    axis=alt.Axis(title=xlabel),
-                    sort=sort_x(df[magic_fields[haxis]].tolist()) if sort_x else None,
-                ),
+                x=alt.X(magic_fields[haxis], axis=alt.Axis(title=xlabel), sort=sort_order),
                 y=alt.Y(magic_fields[vaxis], axis=alt.Axis(title=ylabel)),
                 tooltip=["Label", "{}:Q".format(magic_fields[vaxis])],
                 href="url:N",
@@ -166,21 +165,20 @@ class VizMetadataMixin(object):
                 .encode(**alt_kwargs)
             )
 
-            if title:
-                chart = chart.properties(title=title)
-        elif plot_type == "boxplot":
+        elif plot_type == PlotType.BoxPlot:
             if sort_x:
                 raise OneCodexException("Must not specify sort_x when plot_type is boxplot")
 
-            chart = boxplot(
-                df,
-                magic_fields[haxis],
-                magic_fields[vaxis],
-                category_type=category_type,
-                title=title,
-                xlabel=xlabel,
-                ylabel=ylabel,
+            chart = (
+                alt.Chart(df)
+                .mark_boxplot(size=35)
+                .encode(
+                    x=alt.X(magic_fields[haxis], axis=alt.Axis(title=xlabel)),
+                    y=alt.Y(magic_fields[vaxis], axis=alt.Axis(title=ylabel)),
+                )
             )
+
+        chart = chart.properties(**prepare_props(title=title, height=height, width=width))
 
         if return_chart:
             return chart

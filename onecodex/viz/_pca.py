@@ -1,10 +1,12 @@
+from onecodex.lib.enums import Rank
+from onecodex.viz._primitives import prepare_props
 from onecodex.exceptions import OneCodexException
 
 
 class VizPCAMixin(object):
     def plot_pca(
         self,
-        rank="auto",
+        rank=Rank.Auto,
         normalize="auto",
         org_vectors=0,
         org_vectors_scale=None,
@@ -16,6 +18,9 @@ class VizPCAMixin(object):
         tooltip=None,
         return_chart=False,
         label=None,
+        mark_size=100,
+        width=None,
+        height=None,
     ):
         """Perform principal component analysis and plot first two axes.
 
@@ -50,6 +55,8 @@ class VizPCAMixin(object):
             A metadata field (or function) used to label each analysis. If passing a function, a
             dict containing the metadata for each analysis is passed as the first and only
             positional argument. The callable function must return a string.
+        mark_size: `int`, optional
+            The size of the points in the scatter plot.
 
         Examples
         --------
@@ -133,10 +140,9 @@ class VizPCAMixin(object):
         chart = (
             alt.Chart(plot_data)
             .transform_calculate(url=alt_kwargs.pop("url"))
-            .mark_circle()
+            .mark_circle(size=mark_size)
             .encode(**alt_kwargs)
         )
-
         if title:
             chart = chart.properties(title=title)
 
@@ -184,6 +190,8 @@ class VizPCAMixin(object):
             )
 
             chart += vector_chart
+
+        chart = chart.properties(**prepare_props(title=title, height=height, width=width))
 
         if return_chart:
             return chart

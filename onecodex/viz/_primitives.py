@@ -4,72 +4,36 @@ import pandas as pd
 from onecodex.exceptions import OneCodexException
 
 
-def boxplot(df, category, quantity, category_type="N", title=None, xlabel=None, ylabel=None):
-    """Plot a simple boxplot using Altair.
+def sort_helper(sort, values):
+    """Return a sorted list of values for the Altair chart axes."""
+    sort_order = None
 
-    Parameters
-    ----------
-    df : `pandas.DataFrame`
-        Contains columns matching 'category' and 'quantity' labels, at a minimum.
-    category : `string`
-        The name of the column in df used to group values on the horizontal axis.
-    quantity : `string`
-        The name of the columm in df of values to plot on the vertical axis. Must be numerical.
-    category_type : {'N', 'O', 'T'}, optional
-        Nominal, ordinal, or time values can be used as categories. Quantitative (Q) values look weird.
-    title : `string`, optional
-        Text label at the top of the plot.
-    xlabel : `string`, optional
-        Text label along the horizontal axis.
-    ylabel : `string`, optional
-        Text label along the vertical axis.
-
-    Returns
-    -------
-    `altair.Chart`
-    """
-    # must be one of Nominal, Ordinal, Time per altair
-    if category_type not in ("N", "O", "T"):
-        raise OneCodexException("If specifying category_type, must be N, O, or T")
-
-    # adapted from https://altair-viz.github.io/gallery/boxplot_max_min.html
-    lower_box = "q1({}):Q".format(quantity)
-    lower_whisker = "min({}):Q".format(quantity)
-    upper_box = "q3({}):Q".format(quantity)
-    upper_whisker = "max({}):Q".format(quantity)
-
-    if category_type == "T":
-        x_format = "hoursminutes({}):{}".format(category, category_type)
-    else:
-        x_format = "{}:{}".format(category, category_type)
-
-    lower_plot = (
-        alt.Chart(df)
-        .mark_rule()
-        .encode(y=alt.Y(lower_whisker, axis=alt.Axis(title=ylabel)), y2=lower_box, x=x_format)
-    )
-
-    middle_plot = alt.Chart(df).mark_bar(size=35).encode(y=lower_box, y2=upper_box, x=x_format)
-
-    upper_plot = alt.Chart(df).mark_rule().encode(y=upper_whisker, y2=upper_box, x=x_format)
-
-    middle_tick = (
-        alt.Chart(df)
-        .mark_tick(color="black", size=35)
-        .encode(
-            y="median({}):Q".format(quantity),
-            x=alt.X(x_format, axis=alt.Axis(title=xlabel)),
-            tooltip="median({}):Q".format(quantity),
+    if callable(sort):
+        values = list(set(values))
+        sort_order = sort(values)
+    elif isinstance(sort, list):
+        if set(sort) != set(values):
+            raise OneCodexException("sort_x must have the same items as your dataset.")
+        sort_order = sort
+    elif sort:
+        raise OneCodexException(
+            "Please pass either a sorted list of values matching the axis labels \
+            or a function that returns a sorted list of labels"
         )
-        .properties(width={"step": 45})
-    )
 
-    chart = lower_plot + middle_plot + upper_plot + middle_tick
+    return sort_order
 
+
+def prepare_props(title=None, height=None, width=None):
+    """Prepare key plotting kwargs for passing to Altair, which d/n like None values."""
+    props = {}
     if title:
-        chart = chart.properties(title=title)
-
-    return chart
+        props["title"] = title  # None gets rendered as `None`
+    if height:
+        props["height"] = height  # None violates Vega JSON Schema
+    if width:
+        props["width"] = width  # None violates Vega JSON Schema
+    return props
 
 
 def dendrogram(tree):

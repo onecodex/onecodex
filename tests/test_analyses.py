@@ -10,8 +10,17 @@ from onecodex.exceptions import OneCodexException
 def test_auto_rank(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
 
-    # if we re-collate the results using the abundance field, auto rank should choose species
-    samples._collate_results(field="abundance")
+    # auto rank should be species for shotgun data
+    samples._collate_results(metric="abundance")
+    assert samples._get_auto_rank("auto") == "species"
+
+    samples._collate_results(metric="abundance_w_children")
+    assert samples._get_auto_rank("auto") == "species"
+
+    samples._collate_results(metric="readcount")
+    assert samples._get_auto_rank("auto") == "species"
+
+    samples._collate_results(metric="readcount_w_children")
     assert samples._get_auto_rank("auto") == "species"
 
     # inside the pandas extension, auto rank should choose that of the ResultsDataFrame
@@ -19,8 +28,24 @@ def test_auto_rank(ocx, api_data):
     assert results.ocx._get_auto_rank("auto") == "phylum"
 
 
+def test_default_metric(ocx, api_data):
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+    assert samples._metric == "abundance_w_children"
+    assert samples.metric == "Relative Abundance"
+
+
 def test_guess_normalization(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
+
+    norm_results = samples.to_df(normalize=True)
+    assert norm_results.ocx._guess_normalized() is True
+
+    with pytest.raises(OneCodexException) as e:
+        unnorm_results = samples.to_df(normalize=False)
+    assert "Data has already been normalized" in str(e.value)
+
+    samples._collate_results(metric="readcount_w_children")
+    assert samples._guess_normalized() is False
 
     norm_results = samples.to_df(normalize=True)
     assert norm_results.ocx._guess_normalized() is True
@@ -31,6 +56,8 @@ def test_guess_normalization(ocx, api_data):
 
 def test_metadata_fetch(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
+
+    samples._collate_results(metric="readcount_w_children")
 
     # tuple with invalid field
     with pytest.raises(OneCodexException) as e:
@@ -97,6 +124,8 @@ def test_metadata_fetch(ocx, api_data):
 def test_results_filtering_rank(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
 
+    samples._collate_results(metric="readcount_w_children")
+
     tree = samples.tree_build()
     tree = samples.tree_prune_tax_ids(tree, ["1279"])
 
@@ -139,6 +168,8 @@ def test_results_filtering_rank(ocx, api_data):
 def test_results_filtering_other(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
 
+    samples._collate_results(metric="readcount_w_children")
+
     # normalize the data
     norm_results = samples.to_df(normalize=True)
     assert norm_results.sum(axis=1).round(6).tolist() == [1.0, 1.0, 1.0]
@@ -165,16 +196,16 @@ def test_results_filtering_other(ocx, api_data):
 
     # top N most abundant taxa
     assert (
-        sha256(samples.to_df(top_n=10).round(6).to_json().encode()).hexdigest()
+        sha256(samples.to_df(top_n=10, rank="genus").round(6).to_json().encode()).hexdigest()
         == "437fcf282b885440571f552bf322056b6633154b247a9382ca074eee4b1ebf59"
     )
 
     # check entire contents of long and wide format tables
-    wide_tbl = samples.to_df(table_format="wide", normalize=False)
+    wide_tbl = samples.to_df(table_format="wide", rank="genus", normalize=False)
     assert wide_tbl.sum().sum() == 38034443
     assert sum(wide_tbl.columns.astype(int).tolist()) == 109170075
 
-    long_tbl = samples.to_df(table_format="long", normalize=False)
+    long_tbl = samples.to_df(table_format="long", rank="genus", normalize=False)
     assert long_tbl["Reads"].sum() == 38034443
     assert long_tbl["tax_id"].astype(int).sum() / 3 == 109170075
 

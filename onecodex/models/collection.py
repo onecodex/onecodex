@@ -4,6 +4,7 @@ import json
 import warnings
 
 from onecodex.exceptions import OneCodexException
+from onecodex.lib.enums import Metric
 
 try:
     from onecodex.analyses import AnalysisMixin
@@ -38,8 +39,8 @@ class SampleCollection(ResourceList, AnalysisMixin):
         skip_missing : `bool`, optional
             If an analysis was not successful, exclude it, warn, and keep going
 
-        field : {'readcount_w_children', 'readcount', 'abundance'}, optional
-            Which field to use for the abundance/count of a particular taxon in a sample.
+        metric : {'readcount_w_children', 'readcount', 'abundance'}, optional
+            Which metric to use for the abundance/count of a particular taxon in a sample.
 
             - 'readcount_w_children': total reads of this taxon and all its descendants
             - 'readcount': total reads of this taxon
@@ -53,7 +54,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         Given a list of Samples, create a new SampleCollection using abundances:
 
             samples = [sample1, sample2, sample3]
-            collection = SampleCollection(samples, field='abundance')
+            collection = SampleCollection(samples, metric='abundance')
 
         Notes
         -----
@@ -66,14 +67,33 @@ class SampleCollection(ResourceList, AnalysisMixin):
             self._sample_collection_constructor(*args, **kwargs)
 
     def _resource_list_constructor(
-        self, _resource, oc_model, skip_missing=True, field="auto", include_host=False
+        self,
+        _resource,
+        oc_model,
+        skip_missing=True,
+        field="auto",
+        metric="auto",
+        include_host=False,
+        job=None,
     ):
-        self._kwargs = {"skip_missing": skip_missing, "field": field, "include_host": include_host}
+        self._kwargs = {
+            "skip_missing": skip_missing,
+            "metric": metric,
+            "include_host": include_host,
+            "job": job,
+        }
         super(SampleCollection, self).__init__(_resource, oc_model, **self._kwargs)
 
     def _sample_collection_constructor(
-        self, objects, skip_missing=True, field="auto", include_host=False
+        self, objects, skip_missing=True, field="auto", metric="auto", include_host=False, job=None
     ):
+        if field:
+            warnings.warn(
+                "The `field` parameter has been renamed to `metric`. Passing `field` to a SampleCollection is deprecated and will be removed in a future release.",
+                DeprecationWarning,
+            )
+            metric = field
+
         # are they all wrapped potion resources?
         if not all([hasattr(obj, "_resource") for obj in objects]):
             raise OneCodexException(
@@ -91,13 +111,18 @@ class SampleCollection(ResourceList, AnalysisMixin):
         resources = [obj._resource for obj in objects]
         model = objects[0].__class__
 
-        self._kwargs = {"skip_missing": skip_missing, "field": field, "include_host": include_host}
+        self._kwargs = {
+            "skip_missing": skip_missing,
+            "metric": metric,
+            "include_host": include_host,
+            "job": job,
+        }
         super(SampleCollection, self).__init__(resources, model, **self._kwargs)
 
     def filter(self, filter_func):
         """Return a new SampleCollection containing only samples meeting the filter criteria.
 
-        Will pass any kwargs (e.g., field or skip_missing) used when instantiating the current class
+        Will pass any kwargs (e.g., metric or skip_missing) used when instantiating the current class
         on to the new SampleCollection that is returned.
 
         Parameters
@@ -118,10 +143,10 @@ class SampleCollection(ResourceList, AnalysisMixin):
             new_collection = samples.filter(lambda s: s.filename.endswith('.fastq.gz'))
         """
         if callable(filter_func):
-            return self.__class__([obj for obj in self if filter_func(obj) is True], **self._kwargs)
+            return self.__class__([obj for obj in self if filter_func(obj)], **self._kwargs)
         else:
             raise OneCodexException(
-                "Expected callable for filter, got: {}".format(type(filter_func).__name__)
+                "Please pass a function to filter: {}".format(type(filter_func).__name__)
             )
 
     def _update(self):
@@ -140,41 +165,41 @@ class SampleCollection(ResourceList, AnalysisMixin):
         -------
         None, but stores a result in self._cached.
         """
+        from onecodex.models import Classifications, Samples
+
         skip_missing = skip_missing if skip_missing else self._kwargs["skip_missing"]
 
         new_classifications = []
 
-        for a in self._res_list:
-            if a.__class__.__name__ == "Samples":
-                c = a.primary_classification
-            elif a.__class__.__name__ == "Classifications":
-                c = a
+        for obj in self._res_list:
+            if isinstance(obj, Samples):
+                classification = obj.primary_classification
+            elif isinstance(obj, Classifications):
+                classification = obj
             else:
                 raise OneCodexException(
                     "Objects in SampleCollection must be one of: Classifications, Samples"
                 )
 
-            if skip_missing and not c.success:
-                warnings.warn("Classification {} not successful. Skipping.".format(c.id))
+            if skip_missing and not classification.success:
+                warnings.warn(
+                    "Classification {} not successful. Skipping.".format(classification.id)
+                )
                 continue
 
-            new_classifications.append(c)
+            new_classifications.append(classification)
 
         # warn if some of the classifications in this collection are not alike
-        job_names_to_ids = {}
+        job_names = set([obj.job.name for obj in new_classifications])
 
-        for obj in new_classifications:
-            try:
-                job_names_to_ids[obj.job.name].append(obj.job.id)
-            except KeyError:
-                job_names_to_ids[obj.job.name] = [obj.job.id]
-
-        if len(job_names_to_ids) > 1:
+        if len(job_names) > 1:
             warnings.warn(
-                "SampleCollection contains multiple analysis types: {}".format(
-                    ", ".join(job_names_to_ids.keys())
-                )
+                "SampleCollection contains multiple analysis types: {}".format(", ".join(job_names))
             )
+
+        self._cached["is_metagenomic"] = False
+        if len(job_names) == 1 and "One Codex Database" in list(job_names)[0]:
+            self._cached["is_metagenomic"] = True
 
         self._cached["classifications"] = new_classifications
 
@@ -211,6 +236,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
             metadatum["metadata_id"] = m.id
             metadatum["created_at"] = m.sample.created_at
             metadatum["filename"] = c.sample.filename
+            metadatum["project"] = getattr(c.sample.project, "name", "")
 
             metadatum.update(m.custom)
             metadata.append(metadatum)
@@ -231,13 +257,13 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         return self._cached["metadata"]
 
-    def _collate_results(self, field=None, include_host=None):
+    def _collate_results(self, metric=None, include_host=None):
         """Transform a list of Classifications into `pd.DataFrames` of taxonomy and results data.
 
         Parameters
         ----------
-        field : {'readcount_w_children', 'readcount', 'abundance'}
-            Which field to use for the abundance/count of a particular taxon in a sample.
+        metric : {'readcount_w_children', 'readcount', 'abundance'}
+            Which metric to use for the abundance/count of a particular taxon in a sample.
 
             - 'readcount_w_children': total reads of this taxon and all its descendants
             - 'readcount': total reads of this taxon
@@ -252,30 +278,32 @@ class SampleCollection(ResourceList, AnalysisMixin):
         """
         import pandas as pd
 
-        field = field if field else self._kwargs["field"]
+        metric = metric if metric else self._kwargs["metric"]
         include_host = include_host if include_host else self._kwargs["include_host"]
 
-        if field not in ("auto", "abundance", "readcount", "readcount_w_children"):
-            raise OneCodexException("Specified field ({}) not valid.".format(field))
+        if not Metric.has_value(metric):
+            raise OneCodexException("Specified metric ({}) not valid.".format(metric))
 
         # we'll fill these dicts that eventually turn into DataFrames
         df = {"classification_id": [c.id for c in self._classifications]}
 
         tax_info = {"tax_id": [], "name": [], "rank": [], "parent_tax_id": []}
 
-        if field == "auto":
-            field = "readcount_w_children"
+        if metric == "auto":
+            metric = Metric.ReadcountWChildren.value
 
-        self._cached["field"] = field
+            if self._is_metagenomic:
+                metric = Metric.AbundanceWChildren.value
+
+        self._cached["metric"] = metric
 
         for c_idx, c in enumerate(self._classifications):
             # pulling results from mainline is the slowest part of the function
             results = c.results()
-            table = results["table"]
             host_tax_ids = results.get("host_tax_ids", [])
 
             # d contains info about a taxon in result, including name, id, counts, rank, etc.
-            for d in table:
+            for d in results["table"]:
                 d_tax_id = d["tax_id"]
 
                 if not include_host and d_tax_id in host_tax_ids:
@@ -288,7 +316,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
                     # first time we've seen this taxon, so make a vector for it
                     df[d_tax_id] = [0] * len(self._classifications)
 
-                df[d_tax_id][c_idx] = d[field]
+                df[d_tax_id][c_idx] = d[metric]
 
         # format as a Pandas DataFrame
         df = pd.DataFrame(df).set_index("classification_id").fillna(0)
@@ -301,11 +329,18 @@ class SampleCollection(ResourceList, AnalysisMixin):
         self._cached["taxonomy"] = tax_info
 
     @property
-    def _field(self):
-        if "field" not in self._cached:
+    def _metric(self):
+        if "metric" not in self._cached:
             self._collate_results()
 
-        return self._cached["field"]
+        return self._cached["metric"]
+
+    @property
+    def _is_metagenomic(self):
+        if "is_metagenomic" not in self._cached:
+            self._collate_results()
+
+        return self._cached["is_metagenomic"]
 
     @property
     def _results(self):
@@ -378,7 +413,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
             for row in sample_df.iterrows():
                 tax_id = row[1]["tax_id"]
                 tax_ids_to_names[tax_id] = row[1]["name"]
-                rows[tax_id][col_id] = int(row[1]["readcount"])
+                rows[tax_id][col_id] = int(row[1][Metric.Readcount])
 
         num_rows = len(rows)
         num_cols = len(otu["columns"])

@@ -2,6 +2,7 @@ import six
 import warnings
 
 from onecodex.exceptions import OneCodexException
+from onecodex.lib.enums import AbundanceMetric, Rank
 from onecodex.viz import (
     VizPCAMixin,
     VizHeatmapMixin,
@@ -27,15 +28,15 @@ class AnalysisMixin(
     def _get_auto_rank(self, rank):
         """Attempt to figure out what rank we should use for analyses."""
 
-        if rank == "auto":
+        if rank == Rank.Auto:
             # if we're an accessor for a ClassificationsDataFrame, use its _rank property
             if self.__class__.__name__ == "OneCodexAccessor":
                 return self._rank
 
-            if self._field == "abundance":
-                return "species"
+            if AbundanceMetric.has_value(self._metric) or self._is_metagenomic:
+                return Rank.Species
             else:
-                return "genus"
+                return Rank.Genus
         else:
             return rank
 
@@ -49,7 +50,7 @@ class AnalysisMixin(
         """
         return (
             getattr(self, "_normalized", False)
-            or getattr(self, "_field", None) == "abundance"
+            or AbundanceMetric.has_value(self._metric)
             or bool((self._results.sum(axis=1).round(4) == 1.0).all())
         )  # noqa
 
@@ -116,7 +117,7 @@ class AnalysisMixin(
                 for field in f:
                     if field not in self.metadata:
                         raise OneCodexException(
-                            "Field {} not found. Choose from: {}".format(field, help_metadata)
+                            "Metric {} not found. Choose from: {}".format(field, help_metadata)
                         )
 
                     if not (
@@ -234,7 +235,7 @@ class AnalysisMixin(
                     else:
                         # matched nothing
                         raise OneCodexException(
-                            "Field or taxon {} not found. Choose from: {}".format(
+                            "Metric or taxon {} not found. Choose from: {}".format(
                                 str_f, help_metadata
                             )
                         )
@@ -243,7 +244,7 @@ class AnalysisMixin(
 
     def to_df(
         self,
-        rank="auto",
+        rank=Rank.Auto,
         top_n=None,
         threshold=None,
         remove_zeros=True,
@@ -303,10 +304,9 @@ class AnalysisMixin(
         if normalize is False and self._guess_normalized():
             raise OneCodexException("Data has already been normalized and this can not be undone.")
 
-        if normalize is True or (
-            normalize == "auto" and rank is not None and self._field != "abundance"
-        ):
-            df = df.div(df.sum(axis=1), axis=0)
+        if normalize is True or (normalize == "auto" and rank):
+            if not self._guess_normalized():
+                df = df.div(df.sum(axis=1), axis=0)
 
         # remove columns (tax_ids) with no values that are > 0
         if remove_zeros:
@@ -325,22 +325,22 @@ class AnalysisMixin(
         ocx_data = {
             "ocx_metadata": self.metadata.copy(),
             "ocx_rank": rank,
-            "ocx_field": self._field,
+            "ocx_metric": self._metric,
             "ocx_taxonomy": self.taxonomy.copy(),
             "ocx_normalized": normalize,
         }
 
         # generate long-format table
         if table_format == "long":
-            pretty_field_name = self._make_pretty_field_name(self._field, normalize)
+            pretty_metric_name = self._make_pretty_metric_name(self._metric, normalize)
 
-            long_df = {"classification_id": [], "tax_id": [], pretty_field_name: []}
+            long_df = {"classification_id": [], "tax_id": [], pretty_metric_name: []}
 
             for t_id in df:
                 for c_id, count in df[t_id].iteritems():
                     long_df["classification_id"].append(c_id)
                     long_df["tax_id"].append(t_id)
-                    long_df[pretty_field_name].append(count)
+                    long_df[pretty_metric_name].append(count)
 
             results_df = ClassificationsDataFrame(long_df, **ocx_data)
         elif table_format == "wide":
@@ -351,17 +351,14 @@ class AnalysisMixin(
         return results_df
 
     @staticmethod
-    def _make_pretty_field_name(field, normalized):
-        if field in {"readcount", "readcount_w_children"}:
-            if normalized:
-                return "Reads (Normalized)"
-            else:
-                return "Reads"
-        elif field == "abundance":
+    def _make_pretty_metric_name(metric, normalized):
+        if AbundanceMetric.has_value(metric):
             return "Relative Abundance"
-
-        return field
+        if normalized:
+            return "Reads (Normalized)"
+        else:
+            return "Reads"
 
     @property
-    def field(self):
-        return self._make_pretty_field_name(self._field, self._guess_normalized())
+    def metric(self):
+        return self._make_pretty_metric_name(self._metric, self._guess_normalized())

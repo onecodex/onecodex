@@ -2,8 +2,10 @@
 from itertools import chain
 import warnings
 
+from onecodex.lib.enums import BetaDiversityMetric, Rank, Linkage, OrdinationMethod
 from onecodex.exceptions import OneCodexException
 from onecodex.distance import DistanceMixin
+from onecodex.viz._primitives import prepare_props
 
 
 class VizDistanceMixin(DistanceMixin):
@@ -14,25 +16,26 @@ class VizDistanceMixin(DistanceMixin):
         # if taxonomy trees are inconsistent, unifrac will not work
         if callable(metric):
             distances = metric(self, rank=rank)
-        elif metric in ("braycurtis", "bray-curtis", "bray curtis"):
-            distances = self.beta_diversity(metric="braycurtis", rank=rank)
-        elif metric in ("manhattan", "cityblock"):
-            distances = self.beta_diversity(metric="cityblock", rank=rank)
-        elif metric == "jaccard":
-            distances = self.beta_diversity(metric="jaccard", rank=rank)
-        elif metric in ("unifrac", "weighted_unifrac"):
+        elif metric in (BetaDiversityMetric.BrayCurtis, "bray-curtis", "bray curtis"):
+            distances = self.beta_diversity(metric=BetaDiversityMetric.BrayCurtis, rank=rank)
+        elif metric in ("manhattan", BetaDiversityMetric.CityBlock):
+            distances = self.beta_diversity(metric=BetaDiversityMetric.CityBlock, rank=rank)
+        elif metric == BetaDiversityMetric.Jaccard:
+            distances = self.beta_diversity(metric=BetaDiversityMetric.Jaccard, rank=rank)
+        elif metric == BetaDiversityMetric.WeightedUnifrac:
             distances = self.unifrac(weighted=True, rank=rank)
-        elif metric == "unweighted_unifrac":
+        elif metric == BetaDiversityMetric.UnweightedUnifrac:
             distances = self.unifrac(weighted=False, rank=rank)
         else:
             raise OneCodexException(
-                "Metric must be one of: braycurtis, manhattan, jaccard, "
-                "weighted_unifrac, unweighted_unifrac"
+                "Metric must be one of: {}".format(", ".join(BetaDiversityMetric.values()))
             )
 
         return distances
 
-    def _cluster_by_sample(self, rank="auto", metric="braycurtis", linkage="average"):
+    def _cluster_by_sample(
+        self, rank=Rank.Auto, metric=BetaDiversityMetric.BrayCurtis, linkage=Linkage.Average
+    ):
         from scipy.cluster import hierarchy
         from scipy.spatial.distance import squareform
         from sklearn.metrics.pairwise import euclidean_distances
@@ -52,7 +55,7 @@ class VizDistanceMixin(DistanceMixin):
             "ids_in_order": ids_in_order,
         }
 
-    def _cluster_by_taxa(self, linkage="average"):
+    def _cluster_by_taxa(self, linkage=Linkage.Average):
         from scipy.cluster import hierarchy
         from scipy.spatial.distance import squareform
         from sklearn.metrics.pairwise import euclidean_distances
@@ -73,15 +76,17 @@ class VizDistanceMixin(DistanceMixin):
 
     def plot_distance(
         self,
-        rank="auto",
-        metric="braycurtis",
+        rank=Rank.Auto,
+        metric=BetaDiversityMetric.BrayCurtis,
         title=None,
         xlabel=None,
         ylabel=None,
         tooltip=None,
         return_chart=False,
-        linkage="average",
+        linkage=Linkage.Average,
         label=None,
+        width=None,
+        height=None,
     ):
         """Plot beta diversity distance matrix as a heatmap and dendrogram.
 
@@ -193,21 +198,27 @@ class VizDistanceMixin(DistanceMixin):
             .encode(**alt_kwargs)
         )
 
-        if title:
-            chart = chart.properties(title=title)
+        chart = chart.properties(**prepare_props(title=title, height=height, width=width))
 
         dendro_chart = dendrogram(clust["scipy_tree"])
+
+        if height:
+            cell_height = height / len(clust["dist_matrix"].index)
+            dendro_chart = dendro_chart.properties(height=height - cell_height / 2)
 
         if return_chart:
             return dendro_chart | chart
         else:
             (dendro_chart | chart).display()
 
+    def plot_pcoa(self, *args, **kwargs):
+        return self.plot_mds(*args, method=OrdinationMethod.Pcoa, **kwargs)
+
     def plot_mds(
         self,
-        rank="auto",
-        metric="braycurtis",
-        method="pcoa",
+        rank=Rank.Auto,
+        metric=BetaDiversityMetric.BrayCurtis,
+        method=OrdinationMethod.Pcoa,
         title=None,
         xlabel=None,
         ylabel=None,
@@ -216,6 +227,9 @@ class VizDistanceMixin(DistanceMixin):
         tooltip=None,
         return_chart=False,
         label=None,
+        mark_size=100,
+        width=None,
+        height=None,
     ):
         """Plot beta diversity distance matrix using multidimensional scaling (MDS).
 
@@ -297,7 +311,7 @@ class VizDistanceMixin(DistanceMixin):
 
         magic_metadata, magic_fields = self._metadata_fetch(tooltip, label=label)
 
-        if method == "smacof":
+        if method == OrdinationMethod.Smacof:
             # adapted from https://scikit-learn.org/stable/auto_examples/manifold/plot_mds.html
             x_field = "MDS1"
             y_field = "MDS2"
@@ -324,7 +338,7 @@ class VizDistanceMixin(DistanceMixin):
             # label the axes
             x_extra_label = "r² = %.02f" % (r_squared[0],)
             y_extra_label = "r² = %.02f" % (r_squared[1],)
-        elif method == "pcoa":
+        elif method == OrdinationMethod.Pcoa:
             # suppress eigenvalue warning from skbio--not because it's an invalid warning, but
             # because lots of folks in the field run pcoa on these distances functions, even if
             # statistically inappropriate. perhaps this will change if we ever become more
@@ -343,7 +357,9 @@ class VizDistanceMixin(DistanceMixin):
             x_extra_label = "%0.02f%%" % (ord_result.proportion_explained[0] * 100,)
             y_extra_label = "%0.02f%%" % (ord_result.proportion_explained[1] * 100,)
         else:
-            raise OneCodexException("MDS method must be one of: smacof, pcoa")
+            raise OneCodexException(
+                "MDS method must be one of: {}".format(", ".join(OrdinationMethod.values))
+            )
 
         # label the axes
         if xlabel is None:
@@ -370,12 +386,11 @@ class VizDistanceMixin(DistanceMixin):
         chart = (
             alt.Chart(plot_data)
             .transform_calculate(url=alt_kwargs.pop("url"))
-            .mark_circle()
+            .mark_circle(size=mark_size)
             .encode(**alt_kwargs)
         )
 
-        if title:
-            chart = chart.properties(title=title)
+        chart = chart.properties(**prepare_props(title=title, height=height, width=width))
 
         if return_chart:
             return chart

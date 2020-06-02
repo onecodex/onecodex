@@ -23,6 +23,17 @@ def test_sample_collection_pandas(ocx, api_data):
     assert class_id not in samples.metadata.index
 
 
+def test_collection_constructor(ocx, api_data):
+    samples = ocx.Samples.where(project="45a573fb7833449a")
+
+    with pytest.deprecated_call():
+        col = SampleCollection(samples, field="readcount_w_children")
+    assert isinstance(col, SampleCollection)
+
+    col = SampleCollection(samples, metric="abundance_w_children")
+    assert isinstance(col, SampleCollection)
+
+
 def test_biom(ocx, api_data):
     c1 = ocx.Classifications.get("45a573fb7833449a")._resource
     c2 = ocx.Classifications.get("593601a797914cbf")._resource
@@ -102,19 +113,39 @@ def test_collate_metadata(ocx, api_data):
     string_to_hash = ""
     for col in sorted(metadata.columns.tolist()):
         for row in sorted(metadata.index.tolist()):
+            val = metadata.loc[row, col]
+            if isinstance(val, str):
+                string_to_hash += val
+                continue
+
             try:
-                string_to_hash += metadata.loc[row, col].astype(str)
+                string_to_hash += val.astype(str)
             except AttributeError:
                 pass
 
     assert (
         sha256(string_to_hash.encode()).hexdigest()
-        == "6bebbdcc842f5d83d98a02657231093d68a649fc7721cf3a92755260dd45bf3d"
+        == "3ead672171efcb806323a55216683834aa89b5a657da31ab5bf01c6adcd882e6"
     )
 
 
-def test_collate_results(ocx, api_data):
+@pytest.mark.parametrize(
+    "metric,sha",
+    [
+        (
+            "readcount_w_children",
+            "dbe3adf601ca9584a49b1b5fcb1873dec5ea33986afa3f614e96609f9320c8ba",
+        ),
+        (
+            "abundance_w_children",
+            "6e08480e867e21a15d7e36a3bae4f772d20b89c1937e6587865b29b66374c483",
+        ),
+    ],
+)
+def test_collate_results(ocx, api_data, metric, sha):
     samples = ocx.Samples.where(project="4b53797444f846c4")
+
+    samples._collate_results(metric=metric)
 
     # check contents of results df
     string_to_hash = ""
@@ -125,10 +156,7 @@ def test_collate_results(ocx, api_data):
             except AttributeError:
                 pass
 
-    assert (
-        sha256(string_to_hash.encode()).hexdigest()
-        == "dbe3adf601ca9584a49b1b5fcb1873dec5ea33986afa3f614e96609f9320c8ba"
-    )
+    assert sha256(string_to_hash.encode()).hexdigest() == sha
 
     # check contents of taxonomy df
     string_to_hash = ""
@@ -146,5 +174,5 @@ def test_collate_results(ocx, api_data):
 
     # invalid field name
     with pytest.raises(OneCodexException) as e:
-        samples._collate_results(field="does_not_exist")
+        samples._collate_results(metric="does_not_exist")
     assert "not valid" in str(e.value)

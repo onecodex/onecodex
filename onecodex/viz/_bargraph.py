@@ -1,10 +1,12 @@
 from onecodex.exceptions import OneCodexException
+from onecodex.lib.enums import AbundanceMetric, Rank, Metric
+from onecodex.viz._primitives import sort_helper, prepare_props
 
 
 class VizBargraphMixin(object):
     def plot_bargraph(
         self,
-        rank="auto",
+        rank=Rank.Auto,
         normalize="auto",
         top_n="auto",
         threshold="auto",
@@ -17,6 +19,10 @@ class VizBargraphMixin(object):
         legend="auto",
         label=None,
         sort_x=None,
+        include_taxa_missing_rank=None,
+        include_other=True,
+        width=None,
+        height=None,
     ):
         """Plot a bargraph of relative abundance of taxa for multiple samples.
 
@@ -48,15 +54,17 @@ class VizBargraphMixin(object):
             The metadata field (or tuple containing multiple categorical fields) used to group
             samples together.
         legend: `string`, optional
-            Title for color scale. Defaults to the field used to generate the plot, e.g.
+            Title for color scale. Defaults to the metric used to generate the plot, e.g.
             readcount_w_children or abundance.
         label : `string` or `callable`, optional
             A metadata field (or function) used to label each analysis. If passing a function, a
             dict containing the metadata for each analysis is passed as the first and only
             positional argument. The callable function must return a string.
-        sort_x : `callable`, optional
-            Function will be called with a list of x-axis labels as the only argument, and must
-            return the same list in a user-specified order.
+        sort_x : `list` or `callable`, optional
+            Either a list of sorted labels or a function that will be called with a list of x-axis labels
+            as the only argument, and must return the same list in a user-specified order.
+        include_no_level : `bool`, optional
+            Whether or not a row should be plotted for taxa that do not have a designated parent at `rank`.
 
         Examples
         --------
@@ -81,12 +89,30 @@ class VizBargraphMixin(object):
         elif top_n != "auto" and threshold == "auto":
             threshold = None
 
-        df = self.to_df(
-            rank=rank, normalize=normalize, top_n=top_n, threshold=threshold, table_format="long"
-        )
+        df = self.to_df(rank=rank, normalize=normalize, threshold=threshold)
+
+        if AbundanceMetric.has_value(self._metric) and include_taxa_missing_rank is None:
+            include_taxa_missing_rank = True
+
+        if include_taxa_missing_rank:
+            if self._metric != Metric.AbundanceWChildren:
+                raise OneCodexException(
+                    "No-level data can only be imputed on abundances w/ children"
+                )
+
+            name = "No {}".format(rank)
+
+            df[name] = 1 - df.sum(axis=1)
+
+        top_n = df.mean().sort_values(ascending=False).iloc[:top_n].index
+
+        df = df[top_n]
+
+        if include_other and normalize:
+            df["Other"] = 1 - df.sum(axis=1)
 
         if legend == "auto":
-            legend = df.ocx.field
+            legend = self.metric
 
         if tooltip:
             if not isinstance(tooltip, list):
@@ -103,28 +129,20 @@ class VizBargraphMixin(object):
         # renames columns in the case where columns are taxids
         magic_metadata, magic_fields = self._metadata_fetch(tooltip, label=label)
 
-        # add sort order to long-format df
-        if haxis:
-            sort_order = magic_metadata.sort_values(magic_fields[haxis]).index.tolist()
+        df = df.join(magic_metadata)
 
-            for sort_num, sort_class_id in enumerate(sort_order):
-                magic_metadata.loc[sort_class_id, "sort_order"] = sort_num
-
-            df["sort_order"] = magic_metadata["sort_order"][df["classification_id"]].tolist()
-
-            sort_order = alt.EncodingSortField(field="sort_order", op="mean")
-        else:
-            sort_order = None
-
-        # transfer metadata from wide-format df (magic_metadata) to long-format df
-        for f in tooltip:
-            df[magic_fields[f]] = magic_metadata[magic_fields[f]][df["classification_id"]].tolist()
+        df = df.reset_index().melt(
+            id_vars=["classification_id"] + magic_metadata.columns.tolist(),
+            var_name="tax_id",
+            value_name=self.metric,
+        )
 
         # add taxa names
-        df["tax_name"] = [
-            "{} ({})".format(self.taxonomy["name"][t], t) if t in self.taxonomy["name"] else t
-            for t in df["tax_id"]
-        ]
+        df["tax_name"] = df["tax_id"].apply(
+            lambda t: "{} ({})".format(self.taxonomy["name"][t], t)
+            if t in self.taxonomy["name"]
+            else t
+        )
 
         #
         # TODO: how to sort bars in bargraph
@@ -134,82 +152,83 @@ class VizBargraphMixin(object):
         # OCX this should be okay)
         #
 
-        ylabel = df.ocx.field if ylabel is None else ylabel
-        xlabel = "" if xlabel is None else xlabel
+        ylabel = ylabel or self.metric
+        xlabel = xlabel or ""
 
         # should ultimately be Label, tax_name, readcount_w_children, then custom fields
         tooltip_for_altair = [magic_fields[f] for f in tooltip]
         tooltip_for_altair.insert(1, "tax_name")
-        tooltip_for_altair.insert(2, "{}:Q".format(df.ocx.field))
+        tooltip_for_altair.insert(2, "{}:Q".format(self.metric))
 
-        # generate dataframes to plot, one per facet
-        dfs_to_plot = []
+        kwargs = {}
 
         if haxis:
-            # if using facets, first facet is just the vertical axis
-            blank_df = df.iloc[:1].copy()
-            blank_df[df.ocx.field] = 0
+            kwargs["column"] = haxis
 
-            dfs_to_plot.append(blank_df)
+        domain = sorted(df["tax_name"].unique())
 
-            for md_val in magic_metadata[magic_fields[haxis]].unique():
-                # special case where the metadata value is None: must use isnull()
-                if md_val is None:
-                    plot_df = df.where(df[magic_fields[haxis]].isnull()).dropna(how="all")
-                else:
-                    plot_df = df.where(df[magic_fields[haxis]] == md_val).dropna(how="all")
+        tableau10 = [
+            "#4e79a7",
+            "#f28e2b",
+            "#e15759",
+            "#76b7b2",
+            "#59a14f",
+            "#edc948",
+            "#b07aa1",
+            "#ff9da7",
+            "#9c755f",
+            "#bab0ac",
+        ]
+        other_color = ["#d0dadb"]
+        no_level_color = ["#eeefe1"]
 
-                # preserve booleans
-                if magic_metadata[magic_fields[haxis]].dtype == "bool":
-                    plot_df[magic_fields[haxis]] = plot_df[magic_fields[haxis]].astype(bool)
+        color_range = (
+            tableau10 * (len(domain) // len(tableau10)) + tableau10[: len(domain) % len(tableau10)]
+        )
 
-                dfs_to_plot.append(plot_df)
-        else:
-            dfs_to_plot.append(df)
+        no_level_name = "No {}".format(rank)
+        if include_taxa_missing_rank and no_level_name in domain:
+            domain.remove(no_level_name)
+            domain = [no_level_name] + domain
+            color_range = no_level_color + color_range
 
-        charts = []
+        if include_other:
+            domain.remove("Other")
+            domain = ["Other"] + domain
+            color_range = other_color + color_range
 
-        for plot_num, plot_df in enumerate(dfs_to_plot):
-            if sort_x:
-                sort_order = sort_x(plot_df["Label"].tolist())
+        sort_order = sort_helper(sort_x, df["Label"].tolist())
 
-            chart = (
-                alt.Chart(plot_df)
-                .mark_bar()
-                .encode(
-                    x=alt.X("Label", axis=alt.Axis(title=xlabel), sort=sort_order),
-                    y=alt.Y(
-                        df.ocx.field,
-                        axis=alt.Axis(title=ylabel),
-                        scale=alt.Scale(domain=[0, 1], zero=True, nice=False),
-                    ),
-                    color=alt.Color("tax_name", legend=alt.Legend(title=legend)),
-                    tooltip=tooltip_for_altair,
-                    href="url:N",
-                )
+        df["order"] = df["tax_name"].apply(domain.index)
+
+        y_scale_kwargs = {"zero": True, "nice": False}
+        if normalize:
+            y_scale_kwargs["domain"] = [0, 1]
+
+        chart = (
+            alt.Chart(df)
+            .mark_bar()
+            .encode(
+                x=alt.X("Label", axis=alt.Axis(title=xlabel), sort=sort_order),
+                y=alt.Y(
+                    self.metric, axis=alt.Axis(title=ylabel), scale=alt.Scale(**y_scale_kwargs)
+                ),
+                color=alt.Color(
+                    "tax_name",
+                    legend=alt.Legend(title=legend),
+                    sort=domain,
+                    scale=alt.Scale(domain=domain, range=color_range),
+                ),
+                tooltip=tooltip_for_altair,
+                href="url:N",
+                order=alt.Order("order", sort="descending"),
+                **kwargs
             )
+        )
 
-            if haxis:
-                if plot_num == 0:
-                    # first plot (blank_df) has vert axis but no horiz axis
-                    chart.encoding.x.axis = None
-                elif plot_num > 0:
-                    # strip vertical axis from subsequent facets
-                    chart.encoding.y.axis = None
+        if haxis:
+            chart = chart.resolve_scale(x="independent")
 
-                    # facet's title set to value of metadata in this group
-                    chart.title = str(plot_df[magic_fields[haxis]].tolist()[0])
+        chart = chart.properties(**prepare_props(title=title, width=width, height=height))
 
-            charts.append(chart)
-
-        # add all the facets together
-        final_chart = charts[0]
-
-        if len(charts) > 1:
-            for chart in charts[1:]:
-                final_chart |= chart
-
-        # add title to chart
-        # (cannot specify None or False for no title)
-        final_chart = final_chart.properties(title=title) if title else final_chart
-        return final_chart if return_chart else final_chart.display()
+        return chart if return_chart else chart.display()

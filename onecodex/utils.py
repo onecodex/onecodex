@@ -164,7 +164,7 @@ def cli_resource_fetcher(ctx, resource, uris, print_results=True):
                         )
                 except requests.exceptions.HTTPError as e:
                     log.error(
-                        "Could not find %s %s (%d status code)".format(
+                        "Could not find {} {} ({} status code)".format(
                             resource_name, uri, e.response.status_code
                         )
                     )
