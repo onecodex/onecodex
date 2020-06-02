@@ -28,8 +28,7 @@ class Analyses(OneCodexBase):
 
     @classmethod
     def _transform_api_results(cls, results):
-        """Method to optionally transform the API results before caching.
-        """
+        """Transform API results before caching if required."""
         return results
 
     def _results(self):
@@ -53,8 +52,7 @@ class Classifications(Analyses):
 
     @classmethod
     def _append_abundance_rollups(cls, results):
-        """Append cumulative abundances into the results returned from the API.
-        """
+        """Append cumulative abundances into the results returned from the API."""
         table = {t["tax_id"]: t.copy() for t in results}
         for tax_id in table:
             table[tax_id][Metric.AbundanceWChildren.value] = 0.0
