@@ -9,6 +9,147 @@ from onecodex.models.collection import SampleCollection
 from onecodex.exceptions import OneCodexException
 
 
+# mocks an old results tree where parent taxa can be missing
+@pytest.fixture
+def sample_tree_old():
+    yield [
+        # this goes first because we had a bug that only occurred if a
+        # species-level result came before its parent in the results dict.
+        {
+            "abundance": 0.3,
+            "name": "species 4",
+            "parent_tax_id": "2",
+            "rank": "species",
+            "readcount": 30,
+            "readcount_w_children": 30,
+            "tax_id": "4",
+        },
+        {
+            "abundance": None,
+            "name": "root",
+            "parent_tax_id": None,
+            "rank": "no rank",
+            "readcount": 10,
+            "readcount_w_children": 100,
+            "tax_id": "1",
+        },
+        {
+            "abundance": None,
+            "name": "genus 2",
+            "parent_tax_id": "1",
+            "rank": "genus",
+            "readcount": 0,
+            "readcount_w_children": 30,
+            "tax_id": "2",
+        },
+        {
+            "abundance": None,
+            "name": "genus 3",
+            "parent_tax_id": "1",
+            "rank": "genus",
+            "readcount": 0,
+            "readcount_w_children": 60,
+            "tax_id": "3",
+        },
+        {
+            "abundance": 0.1,
+            "name": "species 5",
+            "parent_tax_id": "100",  # not in tree
+            "rank": "species",
+            "readcount": 0,
+            "readcount_w_children": 0,
+            "tax_id": "5",
+        },
+        {
+            "abundance": 0.2,
+            "name": "species 6",
+            "parent_tax_id": "3",
+            "rank": "species",
+            "readcount": 20,
+            "readcount_w_children": 20,
+            "tax_id": "6",
+        },
+        {
+            "abundance": 0.4,
+            "name": "species 6",
+            "parent_tax_id": "3",  # not in tree
+            "rank": "species",
+            "readcount": 40,
+            "readcount_w_children": 40,
+            "tax_id": "7",
+        },
+    ]
+
+
+# mocks a new, complete results tree
+@pytest.fixture
+def sample_tree_new():
+    yield [
+        {
+            "abundance": None,
+            "name": "root",
+            "parent_tax_id": None,
+            "rank": "no rank",
+            "readcount": 10,
+            "readcount_w_children": 100,
+            "tax_id": "1",
+        },
+        {
+            "abundance": None,
+            "name": "genus 2",
+            "parent_tax_id": "1",
+            "rank": "genus",
+            "readcount": 0,
+            "readcount_w_children": 30,
+            "tax_id": "2",
+        },
+        {
+            "abundance": None,
+            "name": "genus 3",
+            "parent_tax_id": "1",
+            "rank": "genus",
+            "readcount": 0,
+            "readcount_w_children": 60,
+            "tax_id": "3",
+        },
+        {
+            "abundance": 0.3,
+            "name": "species 4",
+            "parent_tax_id": "2",
+            "rank": "species",
+            "readcount": 20,
+            "readcount_w_children": 30,
+            "tax_id": "4",
+        },
+        {
+            "abundance": 0.1,
+            "name": "species 5",
+            "parent_tax_id": "2",
+            "rank": "species",
+            "readcount": 10,
+            "readcount_w_children": 0,
+            "tax_id": "5",
+        },
+        {
+            "abundance": 0.2,
+            "name": "species 6",
+            "parent_tax_id": "3",
+            "rank": "species",
+            "readcount": 20,
+            "readcount_w_children": 20,
+            "tax_id": "6",
+        },
+        {
+            "abundance": 0.4,
+            "name": "species 6",
+            "parent_tax_id": "3",  # not in tree
+            "rank": "species",
+            "readcount": 40,
+            "readcount_w_children": 40,
+            "tax_id": "7",
+        },
+    ]
+
 def test_sample_collection_pandas(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
 
@@ -178,7 +319,7 @@ def test_collate_metadata(ocx, api_data):
         ),
         (
             "abundance_w_children",
-            "bbd4199745c3ab90dc77a9452739b301bcea3cecca7d5bae6964e96c75a03871",
+            "6e08480e867e21a15d7e36a3bae4f772d20b89c1937e6587865b29b66374c483",
         ),
     ],
 )

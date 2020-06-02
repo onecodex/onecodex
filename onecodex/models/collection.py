@@ -258,15 +258,15 @@ class SampleCollection(ResourceList, AnalysisMixin):
         return self._cached["metadata"]
 
     @staticmethod
-    def _calculate_abundance_rollups(raw_table):
-        table = {}
+    def _calculate_abundance_rollups(results):
+        table = {t["tax_id"]: t.copy() for t in results}
 
         # Older results might have a bug where the parent is missing,
         # so we need to zero-out those results and renormalize the data.
         renormalize = False
-        for tax_id, result in raw_table.items():
+        for tax_id, result in table.items():
             table[tax_id] = result
-            if result[Metric.Abundance] is not None and result["parent_tax_id"] not in raw_table:
+            if result[Metric.Abundance] is not None and result["parent_tax_id"] not in table:
                 renormalize = True
                 table[tax_id][Metric.Abundance] = None
 
@@ -282,22 +282,19 @@ class SampleCollection(ResourceList, AnalysisMixin):
         # Roll-up abundances to parent taxa
         for tax_id, result in table.items():
             if Metric.AbundanceWChildren not in result:
-                result[Metric.AbundanceWChildren] = 0
+                result[Metric.AbundanceWChildren] = 0.0
 
             if result["parent_tax_id"] not in table:
                 continue
 
             parent = table[result["parent_tax_id"]]
-            if result[Metric.Abundance] is not None:
-                result[Metric.AbundanceWChildren] += result[Metric.Abundance]
+            result[Metric.AbundanceWChildren] += result[Metric.Abundance] or 0.0
 
             while parent:
                 if Metric.AbundanceWChildren not in parent:
-                    parent[Metric.AbundanceWChildren] = 0
+                    parent[Metric.AbundanceWChildren] = 0.0
 
-                if result[Metric.Abundance] is not None:
-                    parent[Metric.AbundanceWChildren] += result[Metric.Abundance]
-
+                parent[Metric.AbundanceWChildren] += result[Metric.Abundance] or 0.0
                 parent = table.get(parent["parent_tax_id"])
 
         return table
@@ -347,9 +344,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
             results = c.results()
             host_tax_ids = results.get("host_tax_ids", [])
 
-            raw_table = {t["tax_id"]: t.copy() for t in results["table"]}
-
-            table = self._calculate_abundance_rollups(raw_table)
+            table = self._calculate_abundance_rollups(results["table"])
 
             # d contains info about a taxon in result, including name, id, counts, rank, etc.
             for d in table.values():
