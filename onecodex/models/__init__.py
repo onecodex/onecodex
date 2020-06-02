@@ -372,7 +372,7 @@ class OneCodexBase(object):
         # FIXME: this doesn't actually work though, because potion creates these routes for all
         # items :/
         method_links = cls._resource._schema["links"]
-        return any(True for l in method_links if l["rel"] == method_name)
+        return any(True for link in method_links if link["rel"] == method_name)
 
     @classmethod
     def all(cls, sort=None, limit=None):
@@ -427,7 +427,9 @@ class OneCodexBase(object):
             "_instances", "instances" if not public else "instances_public"
         )
 
-        schema = next(l for l in cls._resource._schema["links"] if l["rel"] == instances_route)
+        schema = next(
+            link for link in cls._resource._schema["links"] if link["rel"] == instances_route
+        )
         sort_schema = schema["schema"]["properties"]["sort"]["properties"]
         where_schema = schema["schema"]["properties"]["where"]["properties"]
 
