@@ -179,10 +179,10 @@ class VizBargraphMixin(object):
             "#9c755f",
             "#bab0ac",
         ]
-        other_colour = ["#d0dadb"]
-        no_level_colour = ["#eeefe1"]
+        other_color = ["#d0dadb"]
+        no_level_color = ["#eeefe1"]
 
-        colour_range = (
+        color_range = (
             tableau10 * (len(domain) // len(tableau10)) + tableau10[: len(domain) % len(tableau10)]
         )
 
@@ -190,12 +190,12 @@ class VizBargraphMixin(object):
         if include_taxa_missing_rank and no_level_name in domain:
             domain.remove(no_level_name)
             domain = [no_level_name] + domain
-            colour_range = no_level_colour + colour_range
+            color_range = no_level_color + color_range
 
         if include_other:
             domain.remove("Other")
             domain = ["Other"] + domain
-            colour_range = other_colour + colour_range
+            color_range = other_color + color_range
 
         sort_order = sort_helper(sort_x, df["Label"].tolist())
 
@@ -217,7 +217,7 @@ class VizBargraphMixin(object):
                     "tax_name",
                     legend=alt.Legend(title=legend),
                     sort=domain,
-                    scale=alt.Scale(domain=domain, range=colour_range),
+                    scale=alt.Scale(domain=domain, range=color_range),
                 ),
                 tooltip=tooltip_for_altair,
                 href="url:N",
