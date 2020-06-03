@@ -1,3 +1,4 @@
+import mock
 import pytest
 
 pytest.importorskip("pandas")  # noqa
@@ -182,3 +183,18 @@ def test_abundance_rollups(sample_tree_old, sample_tree_new):
     assert table["1"]["abundance_w_children"] == 1.0
     assert all_genera_abund == 1.0
     assert all_species_abund == 1.0
+
+
+def test_abundance_forward_compatibility(sample_tree_old):
+    """Tests that if an `abundance_w_children` field exists in the API, do not run `_append_abundance_rollups`."""
+    abundance_fxn = "onecodex.models.analysis.Classifications._append_abundance_rollups"
+    with mock.patch(abundance_fxn) as calc_rollups:
+        Classifications._transform_api_results({"table": sample_tree_old})
+        assert calc_rollups.call_count == 1
+
+    # Add cumulative abundance to the first field, which is what we check for API forward compat
+    for item in sample_tree_old:
+        item["abundance_w_children"] = 0.0
+    with mock.patch(abundance_fxn) as calc_rollups:
+        Classifications._transform_api_results({"table": sample_tree_old})
+        assert calc_rollups.call_count == 0

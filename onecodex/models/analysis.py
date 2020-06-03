@@ -91,6 +91,10 @@ class Classifications(Analyses):
 
     @classmethod
     def _transform_api_results(cls, results):
+        # For forward-compatibility with adding the rollups server-side
+        if all(x.get(Metric.AbundanceWChildren) is not None for x in results["table"]):
+            return results
+
         results["table"] = cls._append_abundance_rollups(results["table"])
         return results
 
