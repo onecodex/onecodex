@@ -4,7 +4,7 @@
 
 Command line interface (CLI) and Python client library for interacting with the One Codex v1 API ([API docs](https://docs.onecodex.com)).
 
-MAINTAINERS: [@polyatail](https://github.com/polyatail), [@bovee](https://github.com/bovee), [@boydgreenfield](https://github.com/boydgreenfield)
+MAINTAINERS: [@clausmith](https://github.com/clausmith), [@boydgreenfield](https://github.com/boydgreenfield)
 
 # Installation
 
