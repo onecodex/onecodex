@@ -12,6 +12,7 @@ from traitlets import default
 
 from onecodex.exceptions import UploadException
 from onecodex.notebooks import report
+from onecodex.utils import get_raven_client
 
 
 ASSETS_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "assets"))
@@ -209,12 +210,14 @@ class OneCodexDocumentExporter(OneCodexPDFExporter):
 
         try:
             document_id = _upload_document_fileobj(
-                BytesIO(output), file_name, ocx._client.session, ocx.Documents._resource
+                BytesIO(output), file_name, ocx.Documents._resource
             )
         except UploadException as exc:
             resp = json.dumps({"status": 500, "message": str(exc)})
             return resp, resources
-        except Exception:
+        except Exception as exc:
+            client = get_raven_client()
+            client.captureException(exc)
             resp = json.dumps(
                 {
                     "status": 500,
