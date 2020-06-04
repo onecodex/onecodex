@@ -9,6 +9,7 @@ import six
 from onecodex.exceptions import OneCodexException, raise_connectivity_error, raise_api_error
 from onecodex.utils import atexit_register, atexit_unregister, snake_case
 from onecodex.lib.files import FilePassthru, get_file_wrapper
+from urllib3.util.retry import Retry
 
 
 log = logging.getLogger("onecodex")
@@ -354,8 +355,6 @@ def _upload_document_fileobj(file_obj, file_name, documents_resource):
         `FilePassthru` will send a compressed type if the file is gzip'd or bzip'd.
     file_name : `string`
         The file_name you wish to associate this file with at One Codex.
-    fields : `dict`
-        Additional data fields to include as JSON in the POST.
     documents_resource : `onecodex.models.Documents`
         Wrapped potion-client object exposing `init_upload` and `confirm_upload` routes to mainline.
 
@@ -482,6 +481,7 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):
 
     # issue a callback
     try:
+        # retry on 502, 503, 429, with a backoff timing of 4s, 8s, and 16s, False retries on all HTTP methods
         resp = session.post(
             callback_url,
             json={
@@ -489,6 +489,9 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):
                 "filename": file_name,  #
                 "import_as_document": fields.get("import_as_document", False),
             },
+            max_retries=Retry(
+                total=3, backoff_factor=4, method_whitelist=False, status_forcelist=[502, 503, 429]
+            ),
         )
     except requests.exceptions.ConnectionError:
         raise_connectivity_error(file_name)
