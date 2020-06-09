@@ -11,15 +11,16 @@ $fira-sans-condensed-weights: (
 
 @each $weight, $name in $fira-sans-weights {
 	@font-face {
-		font-family: "fira-sans";
-		src: url("fonts/FiraSans-#{$name}.ttf");
+		font-family: "Fira Sans";
+		src: local("Fira Sans #{$name}"), url("fonts/FiraSans-#{$name}.woff2");
 		font-weight: $weight;
 		font-style: normal;
 	}
 
 	@font-face {
-		font-family: "fira-sans";
-		src: url("fonts/FiraSans-#{$name}Italic.ttf");
+		font-family: "Fira Sans";
+		src: local("Fira Sans #{$name} Italic"),
+			url("fonts/FiraSans-#{$name}Italic.woff2");
 		font-weight: $weight;
 		font-style: italic;
 	}
@@ -27,18 +28,28 @@ $fira-sans-condensed-weights: (
 
 @each $weight, $name in $fira-sans-condensed-weights {
 	@font-face {
-		font-family: "fira-sans-condensed";
-		src: url("fonts/FiraSansCondensed-#{$name}.ttf");
+		font-family: "Fira Sans Condensed";
+		src: local("Fira Sans Condensed #{$name}"),
+			url("fonts/FiraSansCondensed-#{$name}.otf") format("opentype");
 		font-weight: $weight;
 		font-style: normal;
 	}
 
 	@font-face {
-		font-family: "fira-sans-condensed";
-		src: url("fonts/FiraSansCondensed-#{$name}Italic.ttf");
+		font-family: "Fira Sans Condensed";
+		src: local("Fira Sans Condensed #{$name} Italic"),
+			url("fonts/FiraSansCondensed-#{$name}Italic.otf") format("opentype");
 		font-weight: $weight;
 		font-style: italic;
 	}
+}
+
+$gutter: 15px;
+
+body {
+	font-family: "Fira Sans", sans-serif;
+	line-height: 1.3;
+	font-size: 16px;
 }
 
 #reportdate {
@@ -89,6 +100,7 @@ img.logo-right {
 	margin: 1in 1in 1in 1in;
 
 	@top-center {
+		font-family: "Fira Sans", sans-serif;
 		content: string(centerheader);
 		text-align: center;
 		color: black;
@@ -96,6 +108,7 @@ img.logo-right {
 	}
 
 	@bottom-center {
+		font-family: "Fira Sans", sans-serif;
 		content: string(reportinfo);
 		text-align: left;
 		color: #aaa;
@@ -104,6 +117,7 @@ img.logo-right {
 
 	@bottom-left {
 		content: string(reportdate);
+		font-family: "Fira Sans", sans-serif;
 		text-align: center;
 		color: #aaa;
 		font-size: 11pt;
@@ -111,6 +125,7 @@ img.logo-right {
 
 	@bottom-right {
 		content: "Page " counter(page) " of " counter(pages);
+		font-family: "Fira Sans", sans-serif;
 		text-align: right;
 		color: #aaa;
 		font-size: 11pt;
@@ -233,8 +248,8 @@ img {
 }
 
 table.dataframe {
-	font-family: "fira-sans-condensed", sans-serif;
-	font-size: 10pt;
+	font-family: "Fira Sans Condensed", sans-serif;
+	font-size: 10px;
 
 	margin-left: auto;
 	margin-right: auto;
