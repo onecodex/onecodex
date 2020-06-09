@@ -23,22 +23,24 @@ VEGAEMBED_OPTIONS = {
 def onecodex_theme():
     onecodex_palette = ["#ffffcc", "#c7e9b4", "#7fcdbb", "#41b6c4", "#2c7fb8", "#264153"]
 
+    font_family = "Fira Sans, Helvetica"
+
     return {
         "config": {
             "range": {"heatmap": list(reversed(onecodex_palette))},
             "area": {"fill": OCX_DARK_GREEN},
             "bar": {"fill": OCX_DARK_GREEN},
             "axis": {
-                "labelFont": "Helvetica",
+                "labelFont": font_family,
                 "labelFontSize": 12,
-                "titleFont": "Helvetica",
+                "titleFont": font_family,
                 "titleFontSize": 12,
                 "grid": False,
             },
             "legend": {
-                "labelFont": "Helvetica",
+                "labelFont": font_family,
                 "labelFontSize": 12,
-                "titleFont": "Helvetica",
+                "titleFont": font_family,
                 "titleFontSize": 12,
             },
             "view": {"width": 400, "height": 400, "strokeWidth": 0},

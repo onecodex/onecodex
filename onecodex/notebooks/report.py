@@ -112,7 +112,7 @@ class title(object):
         display(self)
 
     def _repr_mimebundle_(self, include=None, exclude=None):
-        return {"text/html": '<h2 class="title" style="{}">{}</h2>'.format(self.style, self.text)}
+        return {"text/html": '<h1 class="title" style="{}">{}</h1>'.format(self.style, self.text)}
 
 
 class set_logo(object):
@@ -208,7 +208,7 @@ class legend(object):
         }
 
 
-def reference(text=None, label=None):
+class reference(object):
     """Add a reference to the bibliography and insert a superscript number.
 
     Parameters
@@ -265,53 +265,66 @@ def reference(text=None, label=None):
             'those other publications{reference(label='ego_and_insecurity1')}.'
         )
     """
-    if text is None and label is None:
-        raise OneCodexException("Please specify at least one of: text, label")
 
-    try:
-        ipy = get_ipython()
-        ref_list = ipy.meta.get("references", {})
-    except NameError:
-        raise OneCodexException("Must be run from within IPython")
+    def __init__(self, text=None, label=None):
+        if text is None and label is None:
+            raise OneCodexException("Please specify at least one of: text, label")
 
-    def to_html(ref_num):
-        return '<sup class="reference">{}</sup>'.format(ref_num)
+        self.text = text or ""
+        self.label = label or ""
 
-    if text is not None:
-        # has this reference already been cited?
-        for ref_label, (ref_num, ref_text) in ref_list.items():
-            if text == ref_text:
-                if label is not None and label != ref_label:
-                    raise OneCodexException(
-                        "Citation already in use with label={}".format(ref_label)
-                    )
+        try:
+            ipy = get_ipython()
+            self.ref_list = ipy.meta.get("references", {})
+        except NameError:
+            raise OneCodexException("Must be run from within IPython")
+
+        if text:
+            # has this reference already been cited?
+            for ref_label, (ref_num, ref_text) in self.ref_list.items():
+                if text == ref_text:
+                    if label != ref_label:
+                        raise OneCodexException(
+                            "Citation already in use with label={}".format(ref_label)
+                        )
+                    else:
+                        self.ref_num = ref_num
+                        break
+            else:
+                # reference has not been cited. is the label already in use?
+                if label in self.ref_list.keys():
+                    raise OneCodexException("Citation label={} already in use".format(label))
+
+                # create the citation and assign next number
+                if not self.ref_list:
+                    self.ref_num = 1
                 else:
-                    break
-        else:
-            # reference has not been cited. is the label already in use?
-            if label is not None and label in ref_list.keys():
-                raise OneCodexException("Citation label={} already in use".format(label))
+                    self.ref_num = max([x[0] for x in self.ref_list.values()]) + 1
 
-            # create the citation and assign next number
-            if not ref_list:
-                ref_num = 1
-            else:
-                ref_num = max([x[0] for x in ref_list.values()]) + 1
+                if not label:
+                    ref_label = self.ref_num
+                else:
+                    ref_label = label
 
-            if label is None:
-                ref_label = ref_num
-            else:
-                ref_label = label
+                self.ref_list[ref_label] = (self.ref_num, text)
+                ipy.meta["references"] = self.ref_list
 
-            ref_list[ref_label] = (ref_num, text)
-            ipy.meta["references"] = ref_list
+        elif label:
+            if label not in self.ref_list.keys():
+                raise OneCodexException("Cannot find citation with label={}".format(label))
 
-        return to_html(ref_num)
-    elif label is not None:
-        if label not in ref_list.keys():
-            raise OneCodexException("Cannot find citation with label={}".format(label))
+            self.ref_num = self.ref_list[label][0]
 
-        return to_html(ref_list[label][0])
+    def display(self):
+        from IPython.display import display
+
+        display(self)
+
+    def _repr_mimebundle_(self, include=None, exclude=None):
+        return {"text/html": '<sup class="reference">{}</sup>'.format(self.ref_num)}
+
+    def __str__(self):
+        return self._repr_mimebundle_()["text/html"]
 
 
 class bibliography(object):

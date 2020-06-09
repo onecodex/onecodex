@@ -212,9 +212,11 @@ sup.reference {
 // }
 
 div.figurelegend {
-	margin-left: 50px;
-	margin-right: 50px;
+	color: #677079;
+	margin: $gutter auto ($gutter * 2);
+	font-style: italic;
 	page-break-before: avoid;
+	text-align: center;
 }
 
 div.pagebreak {
@@ -233,18 +235,12 @@ pre {
 	white-space: pre-wrap;
 }
 
-* {
-	font-family: "fira-sans", sans-serif;
-	line-height: 1.2;
-	letter-spacing: 0px;
-}
-
 img {
 	display: block;
-	margin-left: auto;
-	margin-right: auto;
-	padding-top: 25px;
-	padding-bottom: 25px;
+	margin: auto;
+	padding-top: 15px;
+	padding-bottom: 15px;
+	max-width: 100%;
 }
 
 table.dataframe {
@@ -253,20 +249,26 @@ table.dataframe {
 
 	margin-left: auto;
 	margin-right: auto;
+	margin-bottom: $gutter * 2;
 
-	border: white;
-	border-bottom: 2px solid black;
+	border: solid 1px #dce0e5;
+	border-radius: 4px 4px 0 0;
 	border-spacing: 0px;
 	border-collapse: collapse;
 
 	page-break-inside: avoid;
 
+	max-width: 100%;
+	width: 100%;
+
 	thead {
 		td,
 		th {
 			padding: 8px;
-			border-bottom: 2px solid black;
-			border-top: 2px solid black;
+		}
+
+		tr {
+			background-color: #edeff3;
 		}
 	}
 
@@ -287,25 +289,40 @@ h3,
 h4,
 h5,
 h6 {
-	padding-bottom: 0px;
+	padding: 0;
+	margin: 0 0 15px 0;
+}
+
+h1 {
+	font-size: 36px;
+	margin-bottom: 16px;
+	font-weight: 500;
+}
+
+h2 {
+	font-size: 28px;
+	font-weight: 300;
+}
+
+h3 {
+	font-size: 24px;
+	margin-bottom: 16px;
+	font-weight: 500;
+}
+
+h4 {
+	font-size: 22px;
+	margin-bottom: 18px;
+	font-weight: 500;
+}
+
+h5 {
+	font-size: 20px;
 	margin-bottom: 10px;
+	color: #677079;
+	font-weight: 500;
 }
 
-p {
-	padding-top: 0px;
-	margin-top: 10px;
-}
-
-h2.title {
+.title {
 	text-align: center;
-	margin-left: auto;
-	margin-right: auto;
-}
-
-h2.coverpage-title {
-	text-align: center;
-	margin-left: auto;
-	margin-right: auto;
-	margin-top: 80px;
-	margin-bottom: 80px;
 }

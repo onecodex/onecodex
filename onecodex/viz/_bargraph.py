@@ -198,7 +198,7 @@ class VizBargraphMixin(object):
             domain = [no_level_name] + domain
             color_range = no_level_color + color_range
 
-        if include_other:
+        if include_other and "Other" in domain:
             domain.remove("Other")
             domain = ["Other"] + domain
             color_range = other_color + color_range
