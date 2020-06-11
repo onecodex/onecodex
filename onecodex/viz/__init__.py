@@ -1,5 +1,4 @@
-import imp
-import sys
+import altair as alt
 
 from onecodex.viz._heatmap import VizHeatmapMixin
 from onecodex.viz._pca import VizPCAMixin
@@ -49,49 +48,22 @@ def onecodex_theme():
     }
 
 
-# Define an import hook to configure Altair's theme and renderer the first time
-# it is imported. Directly importing and configuring Altair in this subpackage
-# can slow down the API and CLI. An import hook avoids this performance hit by
-# configuring Altair during deferred import in visualization code.
-#
-# Note: this code is currently Python 2/3 compatible by using the `imp`
-# package, which is deprecated in Python 3. Consider using `importlib` if this
-# subpackage doesn't need to support Python 2.
-#
-# Based on: https://stackoverflow.com/a/60352956/3776794
-class _AltairImportHook(object):
-    def find_module(self, fullname, path=None):
-        if fullname != "altair":
-            return None
-        self.module_info = imp.find_module(fullname, path)
-        return self
-
-    def load_module(self, fullname):
-        """Load Altair module and configure its theme and renderer."""
-        previously_loaded = fullname in sys.modules
-        altair = imp.load_module(fullname, *self.module_info)
-
-        if not previously_loaded:
-            self._configure_altair(altair)
-        return altair
-
-    def _configure_altair(self, altair):
-        altair.themes.register("onecodex", onecodex_theme)
-        altair.themes.enable("onecodex")
-
-        # Render using `altair_saver` if installed (report environment only, requires node deps)
-        if "altair_saver" in altair.renderers.names():
-            altair.renderers.enable(
-                "altair_saver",
-                fmts=["html", "svg"],
-                embed_options=VEGAEMBED_OPTIONS,
-                vega_cli_options=["--loglevel", "error"],
-            )
-        else:
-            altair.renderers.enable("html", embed_options=VEGAEMBED_OPTIONS)
+alt.themes.register("onecodex", onecodex_theme)
+alt.themes.enable("onecodex")
 
 
-sys.meta_path = [_AltairImportHook()] + sys.meta_path
+# Render using `altair_saver` if installed (report environment only, requires node deps)
+try:
+    import altair_saver  # noqa
+
+    alt.renderers.enable(
+        "altair_saver",
+        fmts=["html", "svg"],
+        embed_options=VEGAEMBED_OPTIONS,
+        vega_cli_options=["--loglevel", "error"],
+    )
+except ImportError:
+    alt.renderers.enable("html", embed_options=VEGAEMBED_OPTIONS)
 
 __all__ = [
     "VizPCAMixin",
