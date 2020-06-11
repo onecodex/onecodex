@@ -12,15 +12,14 @@ $fira-sans-condensed-weights: (
 @each $weight, $name in $fira-sans-weights {
 	@font-face {
 		font-family: "Fira Sans";
-		src: local("Fira Sans #{$name}"), url("fonts/FiraSans-#{$name}.woff2");
+		src: url("fonts/FiraSans-#{$name}.otf");
 		font-weight: $weight;
 		font-style: normal;
 	}
 
 	@font-face {
 		font-family: "Fira Sans";
-		src: local("Fira Sans #{$name} Italic"),
-			url("fonts/FiraSans-#{$name}Italic.woff2");
+		src: url("fonts/FiraSans-#{$name}Italic.otf");
 		font-weight: $weight;
 		font-style: italic;
 	}
@@ -29,16 +28,14 @@ $fira-sans-condensed-weights: (
 @each $weight, $name in $fira-sans-condensed-weights {
 	@font-face {
 		font-family: "Fira Sans Condensed";
-		src: local("Fira Sans Condensed #{$name}"),
-			url("fonts/FiraSansCondensed-#{$name}.otf") format("opentype");
+		src: url("fonts/FiraSansCondensed-#{$name}.otf");
 		font-weight: $weight;
 		font-style: normal;
 	}
 
 	@font-face {
 		font-family: "Fira Sans Condensed";
-		src: local("Fira Sans Condensed #{$name} Italic"),
-			url("fonts/FiraSansCondensed-#{$name}Italic.otf") format("opentype");
+		src: url("fonts/FiraSansCondensed-#{$name}Italic.otf");
 		font-weight: $weight;
 		font-style: italic;
 	}
@@ -296,12 +293,12 @@ h6 {
 h1 {
 	font-size: 36px;
 	margin-bottom: 16px;
-	font-weight: 500;
+	font-weight: 600;
 }
 
 h2 {
 	font-size: 28px;
-	font-weight: 300;
+	font-weight: 400;
 }
 
 h3 {
