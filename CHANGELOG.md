@@ -5,6 +5,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.8.2] - 2020-06-11
+
+### Fixed
+
+- Fix upload callback retry handling broken in v0.8.1 (c87eb76f0dea544b742c5eacf0a4dfcdcebb87bc)
+
 ## [v0.8.1] - 2020-06-08
 
 ### Changed
