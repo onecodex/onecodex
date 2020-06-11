@@ -18,9 +18,10 @@ from onecodex.lib.upload import (
 
 
 class FakeAPISession:
+    # TODO: We should migrate this to use responses vs. a faked API session
+    adapters = {}
+
     def post(self, url, **kwargs):
-        if "data" in kwargs:
-            kwargs["data"].read()  # So multipart uploader will close properly
         resp = lambda: None  # noqa
         resp.json = lambda: {"code": 200}
         resp.status_code = 201 if "auth" in kwargs else 200
@@ -32,42 +33,8 @@ class FakeAPISession:
 
         return resp
 
-
-class FakeProxySession:
-    def __init__(self, status_code, no_msg=False):
-        self.status_code = status_code
-        self.no_msg = no_msg
-
-    # proxy upload will fail and fall through to S3
-    def post(self, url, **kwargs):
-        if "data" in kwargs:
-            kwargs["data"].read()  # So multipart uploader will close properly
-        resp = lambda: None  # noqa
-        resp.raise_for_status = lambda: None  # noqa
-
-        if url.endswith("fastx_proxy"):
-            resp.status_code = self.status_code
-            if self.no_msg:
-                resp.json = lambda: {}  # noqa
-            else:
-                resp.json = lambda: {"message": "FASTX Proxy Error Message"}  # noqa
-        elif "auth" in kwargs:
-            resp.status_code = 201
-        else:
-            resp.status_code = 200
-
-        # support for callback for more info on fastx-proxy errors
-        if url.endswith("errors") or url.endswith("status"):
-            if self.no_msg:
-                resp.status_code = self.status_code
-                resp.json = lambda: {"code": self.status_code}
-            else:
-                resp.json = lambda: {
-                    "message": "Additional error message",
-                    "code": self.status_code,
-                }
-
-        return resp
+    def mount(self, url, adapter):
+        self.adapters[url] = adapter
 
 
 class FakeSamplesResource:
@@ -169,9 +136,10 @@ def test_upload_lots_of_files(files, n_uploads, fxi_calls, fxp_calls):
         fxp = "onecodex.lib.files.FilePassthru"
         sz = "os.path.getsize"
 
+        sample_resource = FakeSamplesResource()
         with patch(uso) as upload_sequence_fileobj, patch(fxi) as paired, patch(fxp) as passthru:
             with patch(sz, size_effect=fake_size):
-                upload_sequence(files, FakeSamplesResource())
+                upload_sequence(files, sample_resource)
 
                 assert upload_sequence_fileobj.call_count == n_uploads
                 assert paired.call_count == fxi_calls
@@ -211,17 +179,37 @@ def test_unicode_filenames(caplog):
         ]
 
         # should raise if --coerce-ascii not passed
+        sample_resource = FakeSamplesResource()
         for before, after in file_list:
             with pytest.raises(OneCodexException) as e:
-                upload_sequence(before, FakeSamplesResource())
+                upload_sequence(before, sample_resource)
             assert "must be ascii" in str(e.value)
 
         # make sure log gets warnings when we rename files
         for before, _ in file_list:
-            upload_sequence(before, FakeSamplesResource(), coerce_ascii=True)
+            upload_sequence(before, sample_resource, coerce_ascii=True)
 
         for _, after in file_list:
             assert after in caplog.text
+
+
+def test_callback_retry_handling():
+    with patch("boto3.session.Session") as _:
+        sample_resource = FakeSamplesResource()
+        files = ("tests/data/files/test_R1_L001.fq.gz", "tests/data/files/test_R2_L001.fq.gz")
+        upload_sequence(files, sample_resource)
+        assert (
+            sample_resource._client.session.adapters[
+                "http://localhost:3000/s3_confirm"
+            ].max_retries.total
+            == 3
+        )
+        assert (
+            sample_resource._client.session.adapters[
+                "http://localhost:3000/s3_confirm"
+            ].max_retries.method_whitelist
+            is False
+        )
 
 
 def test_single_end_files():

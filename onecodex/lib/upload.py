@@ -9,7 +9,9 @@ import six
 from onecodex.exceptions import OneCodexException, raise_connectivity_error, raise_api_error
 from onecodex.utils import atexit_register, atexit_unregister, snake_case
 from onecodex.lib.files import FilePassthru, get_file_wrapper
-from urllib3.util.retry import Retry
+
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 
 
 log = logging.getLogger("onecodex")
@@ -482,6 +484,12 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):
     # issue a callback
     try:
         # retry on 502, 503, 429, with a backoff timing of 4s, 8s, and 16s, False retries on all HTTP methods
+        retry_strategy = Retry(
+            total=3, backoff_factor=4, method_whitelist=False, status_forcelist=[502, 503, 429]
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        session.mount(callback_url, adapter)
+
         resp = session.post(
             callback_url,
             json={
@@ -489,9 +497,6 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):
                 "filename": file_name,  #
                 "import_as_document": fields.get("import_as_document", False),
             },
-            max_retries=Retry(
-                total=3, backoff_factor=4, method_whitelist=False, status_forcelist=[502, 503, 429]
-            ),
         )
     except requests.exceptions.ConnectionError:
         raise_connectivity_error(file_name)
