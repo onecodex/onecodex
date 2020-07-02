@@ -210,7 +210,7 @@ sup.reference {
 
 div.figurelegend {
 	color: #677079;
-	margin: 5px auto $gutter;
+	margin: 5px auto $gutter * 2;
 	font-style: italic;
 	page-break-before: avoid;
 	text-align: center;
@@ -234,11 +234,11 @@ pre {
 
 img {
 	display: block;
-	margin: 5px auto;
+	margin: 5px auto $gutter;
 	max-width: 100%;
 }
 
-table.dataframe {
+table {
 	font-family: "Fira Sans Condensed", sans-serif;
 	font-size: 10px;
 
@@ -246,8 +246,7 @@ table.dataframe {
 	margin-right: auto;
 	margin-bottom: $gutter;
 
-	border: solid 1px #dce0e5;
-	border-radius: 4px 4px 0 0;
+	border: solid 1px #edeff3;
 	border-spacing: 0px;
 	border-collapse: collapse;
 
@@ -256,16 +255,41 @@ table.dataframe {
 	max-width: 100%;
 	width: 100%;
 
+	th,
+	td {
+		border-top: solid 1px #edeff3;
+		border-bottom: solid 1px #edeff3;
+	}
+
+	th {
+		background-color: #edeff3;
+	}
+
 	&.green {
 		border: solid 1px #1da893;
 
 		th,
 		td {
-			border: solid 1px #1da893;
+			border-top: solid 1px #1da893;
+			border-bottom: solid 1px #1da893;
 		}
 
 		th {
-			background-color: rgba(29, 168, 147, 0.1);
+			background-color: #1da893;
+			color: #ffffff;
+		}
+
+		&.metadata {
+			th,
+			td {
+				border-top: solid 1px #1da893;
+				border-bottom: solid 1px #1da893;
+			}
+
+			th {
+				background-color: rgba(29, 168, 147, 0.1);
+				color: #000000;
+			}
 		}
 	}
 
@@ -286,36 +310,31 @@ h4,
 h5,
 h6 {
 	padding: 0;
-	margin: 0 0 15px 0;
+	margin: 2 * $gutter 0 0.5em;
 }
 
 h1 {
 	font-size: 24px;
-	margin-bottom: 10px;
 	font-weight: 600;
 }
 
 h2 {
 	font-size: 20px;
-	margin-bottom: 10px;
 	font-weight: 400;
 }
 
 h3 {
 	font-size: 18px;
-	margin-bottom: 10px;
 	font-weight: 500;
 }
 
 h4 {
 	font-size: 16px;
-	margin-bottom: 10px;
 	font-weight: 500;
 }
 
 h5 {
 	font-size: 16px;
-	margin-bottom: 10px;
 	color: #677079;
 	font-weight: 500;
 }
