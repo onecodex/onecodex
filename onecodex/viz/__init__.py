@@ -48,7 +48,7 @@ DEFAULT_PALETTES = {
         "#ff9da7",
         "#9c755f",
         "#bab0ac",
-    ]
+    ],
 }
 
 VEGAEMBED_OPTIONS = {
@@ -71,18 +71,8 @@ def onecodex_theme():
             "mark": {"color": OCX_DARK_GREEN},
             "range": {
                 "category": DEFAULT_PALETTES["ocx"],
-                "heatmap": [
-                    "#0A605E",
-                    "#1DA893",
-                    "#3DD8BE",
-                    "#ABEFE2",
-                ],
-                'ramp': [
-                    "#0A605E",
-                    "#1DA893",
-                    "#3DD8BE",
-                    "#ABEFE2",
-                ],
+                "heatmap": ["#0A605E", "#1DA893", "#3DD8BE", "#ABEFE2",],
+                "ramp": ["#0A605E", "#1DA893", "#3DD8BE", "#ABEFE2",],
             },
             "axis": {
                 "labelFont": font_family,
@@ -97,9 +87,7 @@ def onecodex_theme():
                 "titleFont": font_family,
                 "titleFontSize": 12,
             },
-            "title": {
-                "font": font_family
-            },
+            "title": {"font": font_family},
             "view": {"width": 400, "height": 400, "strokeWidth": 0},
             "background": "white",
         }

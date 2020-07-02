@@ -106,7 +106,7 @@ def test_plot_pca(ocx, api_data):
     )
 
     assert chart.title == "my title"
-        
+
     # one for main plot, one for eigenvectors
     assert len(chart.layer) == 2
 

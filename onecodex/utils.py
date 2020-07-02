@@ -521,8 +521,10 @@ def click_path_autocomplete_helper(ctx, args, incomplete, filename=True, directo
 
     return suggestions
 
+
 def is_continuous(series):
     import pandas as pd
+
     return not (
         pd.api.types.is_bool_dtype(series)
         or pd.api.types.is_categorical_dtype(series)  # noqa

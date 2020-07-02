@@ -208,7 +208,7 @@ class VizPCAMixin(object):
         chart = chart.encode(**alt_kwargs)
 
         if vector_chart:
-            chart = alt.layer(chart, vector_chart).resolve_scale(color='independent')
+            chart = alt.layer(chart, vector_chart).resolve_scale(color="independent")
 
         chart = chart.properties(**prepare_props(title=title, height=height, width=width))
 

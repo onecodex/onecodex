@@ -38,7 +38,7 @@ def prepare_props(title=None, height=None, width=None):
 
 def interleave_palette(domain, palette="ocx"):
     from onecodex.viz import DEFAULT_PALETTES
-    
+
     if palette in DEFAULT_PALETTES:
         colors = DEFAULT_PALETTES[palette]
     elif isinstance(palette, list):
@@ -54,22 +54,20 @@ def interleave_palette(domain, palette="ocx"):
 
         # Calculate how many shades to show of each hue
         period = min(ceil(n_rows / hues), shades)
-        
+
         # Save the darkest hue for last
         offset = 0
         if period < shades:
             offset = 1
 
         # Generate a sub-palette with each hue, at each shade
-        sub_palettes = [colors[ix::shades] for ix in range(offset, period + offset)]        
+        sub_palettes = [colors[ix::shades] for ix in range(offset, period + offset)]
 
         # Interleave the sub-palettes so the individuals colors are ordered by hue, then shade
         colors = list(chain.from_iterable(zip(*sub_palettes)))
 
     # Repeat the palette to extend it to the length of the domain
-    extended_palette = (
-        colors * (n_rows // len(colors)) + colors[: n_rows % len(colors)]
-    )
+    extended_palette = colors * (n_rows // len(colors)) + colors[: n_rows % len(colors)]
 
     return extended_palette
 

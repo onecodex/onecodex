@@ -392,10 +392,7 @@ class VizDistanceMixin(DistanceMixin):
                 color_range = interleave_palette(domain)
                 color_kwargs["scale"] = alt.Scale(domain=domain, range=color_range)
 
-            alt_kwargs["color"] = alt.Color(
-                magic_fields[color],
-                **color_kwargs
-            )
+            alt_kwargs["color"] = alt.Color(magic_fields[color], **color_kwargs)
         if size:
             alt_kwargs["size"] = magic_fields[size]
 
