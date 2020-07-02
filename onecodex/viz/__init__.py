@@ -9,8 +9,47 @@ from onecodex.viz._bargraph import VizBargraphMixin
 
 
 OCX_DARK_GREEN = "#128887"
-# OCX_VEGA_CDN = "https://static.onecodex.com/cdn"
 
+DEFAULT_PALETTES = {
+    "ocx": [
+        "#16347B",
+        "#0072C7",
+        "#01ACEC",
+        "#97E9FC",
+        "#0A605E",
+        "#1DA893",
+        "#3DD8BE",
+        "#ABEFE2",
+        "#37257D",
+        "#9C78E0",
+        "#CBC0F9",
+        "#E3DDFF",
+        "#BC5B00",
+        "#EB984A",
+        "#FCE34D",
+        "#FEF2A3",
+        "#950303",
+        "#DD3A3A",
+        "#FF8D8B",
+        "#FFD5CB",
+        "#771354",
+        "#C13A8B",
+        "#F28BBF",
+        "#F9D9E7",
+    ],
+    "tableau10": [
+        "#4e79a7",
+        "#f28e2b",
+        "#e15759",
+        "#76b7b2",
+        "#59a14f",
+        "#edc948",
+        "#b07aa1",
+        "#ff9da7",
+        "#9c755f",
+        "#bab0ac",
+    ]
+}
 
 VEGAEMBED_OPTIONS = {
     "mode": "vega-lite",
@@ -29,6 +68,22 @@ def onecodex_theme():
             "range": {"heatmap": list(reversed(onecodex_palette))},
             "area": {"fill": OCX_DARK_GREEN},
             "bar": {"fill": OCX_DARK_GREEN},
+            "mark": {"color": OCX_DARK_GREEN},
+            "range": {
+                "category": DEFAULT_PALETTES["ocx"],
+                "heatmap": [
+                    "#0A605E",
+                    "#1DA893",
+                    "#3DD8BE",
+                    "#ABEFE2",
+                ],
+                'ramp': [
+                    "#0A605E",
+                    "#1DA893",
+                    "#3DD8BE",
+                    "#ABEFE2",
+                ],
+            },
             "axis": {
                 "labelFont": font_family,
                 "labelFontSize": 12,
@@ -41,6 +96,9 @@ def onecodex_theme():
                 "labelFontSize": 12,
                 "titleFont": font_family,
                 "titleFontSize": 12,
+            },
+            "title": {
+                "font": font_family
             },
             "view": {"width": 400, "height": 400, "strokeWidth": 0},
             "background": "white",

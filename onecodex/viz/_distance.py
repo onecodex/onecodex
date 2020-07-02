@@ -5,7 +5,8 @@ import warnings
 from onecodex.lib.enums import BetaDiversityMetric, Rank, Linkage, OrdinationMethod
 from onecodex.exceptions import OneCodexException, PlottingException
 from onecodex.distance import DistanceMixin
-from onecodex.viz._primitives import prepare_props
+from onecodex.viz._primitives import interleave_palette, prepare_props
+from onecodex.utils import is_continuous
 
 
 class VizDistanceMixin(DistanceMixin):
@@ -383,7 +384,18 @@ class VizDistanceMixin(DistanceMixin):
 
         # only add these parameters if they are in use
         if color:
-            alt_kwargs["color"] = magic_fields[color]
+            domain = magic_metadata[color].values
+            color_kwargs = {
+                "legend": alt.Legend(title=magic_fields[color]),
+            }
+            if not is_continuous(domain):
+                color_range = interleave_palette(domain)
+                color_kwargs["scale"] = alt.Scale(domain=domain, range=color_range)
+
+            alt_kwargs["color"] = alt.Color(
+                magic_fields[color],
+                **color_kwargs
+            )
         if size:
             alt_kwargs["size"] = magic_fields[size]
 

@@ -1,6 +1,6 @@
 from onecodex.exceptions import OneCodexException, PlottingException
 from onecodex.lib.enums import AbundanceMetric, Rank, Metric
-from onecodex.viz._primitives import sort_helper, prepare_props
+from onecodex.viz._primitives import interleave_palette, prepare_props, sort_helper
 
 
 class VizBargraphMixin(object):
@@ -173,26 +173,13 @@ class VizBargraphMixin(object):
 
         domain = sorted(df["tax_name"].unique())
 
-        tableau10 = [
-            "#4e79a7",
-            "#f28e2b",
-            "#e15759",
-            "#76b7b2",
-            "#59a14f",
-            "#edc948",
-            "#b07aa1",
-            "#ff9da7",
-            "#9c755f",
-            "#bab0ac",
-        ]
-        other_color = ["#d0dadb"]
+        no_level_name = "No {}".format(rank)
+
+        color_range = interleave_palette(set(domain) - {"Other", no_level_name})
+
+        other_color = ["#DCE0E5"]
         no_level_color = ["#eeefe1"]
 
-        color_range = (
-            tableau10 * (len(domain) // len(tableau10)) + tableau10[: len(domain) % len(tableau10)]
-        )
-
-        no_level_name = "No {}".format(rank)
         if include_taxa_missing_rank and no_level_name in domain:
             domain.remove(no_level_name)
             domain = [no_level_name] + domain

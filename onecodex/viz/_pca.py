@@ -1,6 +1,7 @@
 from onecodex.lib.enums import Rank
-from onecodex.viz._primitives import prepare_props
+from onecodex.viz._primitives import interleave_palette, prepare_props
 from onecodex.exceptions import OneCodexException, PlottingException
+from onecodex.utils import is_continuous
 
 
 class VizPCAMixin(object):
@@ -139,7 +140,18 @@ class VizPCAMixin(object):
 
         # only add these parameters if they are in use
         if color:
-            alt_kwargs["color"] = magic_fields[color]
+            domain = magic_metadata[color].values
+            color_kwargs = {
+                "legend": alt.Legend(title=magic_fields[color]),
+            }
+            if not is_continuous(domain):
+                color_range = interleave_palette(domain)
+                color_kwargs["scale"] = alt.Scale(domain=domain, range=color_range)
+
+            alt_kwargs["color"] = alt.Color(
+                magic_fields[color],
+                **color_kwargs
+            )
         if size:
             alt_kwargs["size"] = magic_fields[size]
 
@@ -147,11 +159,9 @@ class VizPCAMixin(object):
             alt.Chart(plot_data)
             .transform_calculate(url=alt_kwargs.pop("url"))
             .mark_circle(size=mark_size)
-            .encode(**alt_kwargs)
         )
-        if title:
-            chart = chart.properties(title=title)
 
+        vector_chart = None
         # plot the organism eigenvectors that contribute the most
         if org_vectors > 0:
             plot_data = {
@@ -195,7 +205,10 @@ class VizPCAMixin(object):
                 )
             )
 
-            chart += vector_chart
+        chart = chart.encode(**alt_kwargs)
+
+        if vector_chart:
+            chart = alt.layer(chart, vector_chart).resolve_scale(color='independent')
 
         chart = chart.properties(**prepare_props(title=title, height=height, width=width))
 
