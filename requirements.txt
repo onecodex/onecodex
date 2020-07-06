@@ -1,4 +1,4 @@
-altair==4.0.1
+altair==4.1.0
 altair-data-server==0.4.1
 altair-saver==0.5.0
 altair-viewer==0.3.0
