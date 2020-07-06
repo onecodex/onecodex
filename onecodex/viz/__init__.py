@@ -65,15 +65,14 @@ def onecodex_theme():
 
     return {
         "config": {
-            "range": {"heatmap": list(reversed(onecodex_palette))},
+            "range": {
+                "heatmap": list(reversed(onecodex_palette)),
+                "categroy": DEFAULT_PALETTES["ocx"],
+                "ramp": list(reversed(onecodex_palette)),
+            },
             "area": {"fill": OCX_DARK_GREEN},
             "bar": {"fill": OCX_DARK_GREEN},
             "mark": {"color": OCX_DARK_GREEN},
-            "range": {
-                "category": DEFAULT_PALETTES["ocx"],
-                "heatmap": ["#0A605E", "#1DA893", "#3DD8BE", "#ABEFE2",],
-                "ramp": ["#0A605E", "#1DA893", "#3DD8BE", "#ABEFE2",],
-            },
             "axis": {
                 "labelFont": font_family,
                 "labelFontSize": 12,
