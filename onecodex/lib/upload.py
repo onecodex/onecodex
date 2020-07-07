@@ -231,7 +231,13 @@ def upload_sequence(
         def cancel_atexit():
             bar.canceled = True
             bar.update(1)
-            log.info("Canceled upload for sample: {}".format(fields["sample_id"]))
+
+            if is_paired:
+                filename = "{} and {}".format(fobj.r1.filename, fobj.r2.filename)
+            else:
+                filename = fobj.filename
+
+            log.info("Canceled upload for {} as sample {}".format(filename, fields["sample_id"]))
 
             try:
                 samples_resource.cancel_upload({"sample_id": fields["sample_id"]})
