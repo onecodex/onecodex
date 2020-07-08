@@ -36,6 +36,18 @@ class RetryableUploadException(UploadException):
     pass
 
 
+class PlottingException(OneCodexException):
+    """User-facing plotting error for cases when the user may take action to resolve the issue."""
+
+    pass
+
+
+class PlottingWarning(UserWarning):
+    """User-facing plotting warning for cases when the user may take action to resolve the issue."""
+
+    pass
+
+
 def raise_api_error(resp, state=None):
     """Raise an exception with a pretty message in various states of upload."""
     # TODO: Refactor into an Exception class

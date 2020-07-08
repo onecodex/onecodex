@@ -1,5 +1,7 @@
+import warnings
+
 from onecodex.lib.enums import AlphaDiversityMetric, Rank, BaseEnum
-from onecodex.exceptions import OneCodexException
+from onecodex.exceptions import OneCodexException, PlottingException, PlottingWarning
 from onecodex.viz._primitives import prepare_props, sort_helper
 
 
@@ -82,6 +84,12 @@ class VizMetadataMixin(object):
 
         if not PlotType.has_value(plot_type):
             raise OneCodexException("Plot type must be one of: auto, boxplot, scatter")
+
+        if len(self._results) < 1:
+            raise PlottingException(
+                "There are too few samples for metadata plots after filtering. Please select 1 or "
+                "more samples to plot."
+            )
 
         # alpha diversity is only allowed on vertical axis--horizontal can be magically mapped
         df, magic_fields = self._metadata_fetch([haxis, "Label"], label=label)
@@ -168,6 +176,15 @@ class VizMetadataMixin(object):
         elif plot_type == PlotType.BoxPlot:
             if sort_x:
                 raise OneCodexException("Must not specify sort_x when plot_type is boxplot")
+
+            # See the following issue in case this gets fixed in altair:
+            # https://github.com/altair-viz/altair/issues/2144
+            if (df.groupby(magic_fields[haxis]).size() < 2).any():
+                warnings.warn(
+                    "There is at least one sample group consisting of only a single sample. Groups "
+                    "of size 1 may not have their boxes displayed in the plot.",
+                    PlottingWarning,
+                )
 
             chart = (
                 alt.Chart(df)

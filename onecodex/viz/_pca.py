@@ -1,6 +1,6 @@
 from onecodex.lib.enums import Rank
 from onecodex.viz._primitives import prepare_props
-from onecodex.exceptions import OneCodexException
+from onecodex.exceptions import OneCodexException, PlottingException
 
 
 class VizPCAMixin(object):
@@ -83,13 +83,19 @@ class VizPCAMixin(object):
         if rank is None:
             raise OneCodexException("Please specify a rank or 'auto' to choose automatically")
 
-        if len(self._results) < 2:
-            raise OneCodexException("`plot_pca` requires 2 or more valid classification results.")
+        if len(self._results) < 3:
+            raise PlottingException(
+                "There are too few samples for PCA after filtering. Please select 3 or more "
+                "samples to plot."
+            )
 
         df = self.to_df(rank=rank, normalize=normalize)
 
         if len(df.columns) < 2:
-            raise OneCodexException("Too few taxa in results. Need at least 2 for PCA.")
+            raise PlottingException(
+                "There are too few taxa for PCA after filtering. Please select a rank that "
+                "includes at least 2 taxa."
+            )
 
         if tooltip:
             if not isinstance(tooltip, list):
