@@ -3,7 +3,7 @@ from itertools import chain
 import warnings
 
 from onecodex.lib.enums import BetaDiversityMetric, Rank, Linkage, OrdinationMethod
-from onecodex.exceptions import OneCodexException
+from onecodex.exceptions import OneCodexException, PlottingException
 from onecodex.distance import DistanceMixin
 from onecodex.viz._primitives import prepare_props
 
@@ -125,8 +125,9 @@ class VizDistanceMixin(DistanceMixin):
         from onecodex.viz import dendrogram
 
         if len(self._results) < 2:
-            raise OneCodexException(
-                "`plot_distance` requires 2 or more valid classification results."
+            raise PlottingException(
+                "There are too few samples for distance matrix plots after filtering. Please "
+                "select 2 or more samples to plot."
             )
 
         # this will be passed to the heatmap chart as a dataframe eventually
@@ -289,8 +290,11 @@ class VizDistanceMixin(DistanceMixin):
         from sklearn import manifold
         from sklearn.metrics.pairwise import euclidean_distances
 
-        if len(self._results) < 2:
-            raise OneCodexException("`plot_mds` requires 2 or more valid classification results.")
+        if len(self._results) < 3:
+            raise PlottingException(
+                "There are too few samples for MDS/PCoA after filtering. Please select 3 or more "
+                "samples to plot."
+            )
 
         dists = self._compute_distance(rank, metric).to_data_frame()
 

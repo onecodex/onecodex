@@ -1,4 +1,4 @@
-from onecodex.exceptions import OneCodexException
+from onecodex.exceptions import OneCodexException, PlottingException
 from onecodex.lib.enums import AbundanceMetric, Rank, Metric
 from onecodex.viz._primitives import sort_helper, prepare_props
 
@@ -80,6 +80,12 @@ class VizBargraphMixin(object):
 
         if not (threshold or top_n):
             raise OneCodexException("Please specify at least one of: threshold, top_n")
+
+        if len(self._results) < 1:
+            raise PlottingException(
+                "There are too few samples for bargraph plots after filtering. Please select 1 or "
+                "more samples to plot."
+            )
 
         if top_n == "auto" and threshold == "auto":
             top_n = 10

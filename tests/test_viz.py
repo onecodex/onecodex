@@ -2,7 +2,7 @@ import pytest
 
 pytest.importorskip("pandas")  # noqa
 
-from onecodex.exceptions import OneCodexException
+from onecodex.exceptions import OneCodexException, PlottingException, PlottingWarning
 
 
 def test_altair_ocx_theme(ocx, api_data):
@@ -17,6 +17,7 @@ def test_altair_renderer(ocx, api_data):
     assert alt.renderers.active in {"altair_saver", "html"}
 
 
+@pytest.mark.filterwarnings("ignore:.*Groups of size 1.*")
 def test_plot_metadata(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
 
@@ -69,6 +70,23 @@ def test_plot_metadata_exceptions(ocx, api_data):
     # horiz axis does not exist
     with pytest.raises(OneCodexException):
         samples.plot_metadata(haxis="does_not_exist")
+
+    # must have at least one sample
+    with pytest.raises(PlottingException) as e:
+        samples[:0].plot_metadata()
+    assert "too few samples" in str(e.value)
+
+
+def test_plot_metadata_warnings(ocx, api_data):
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+
+    with pytest.warns(PlottingWarning, match="Groups of size 1"):
+        samples.plot_metadata(
+            plot_type="boxplot",
+            haxis=("library_type", "external_sample_id"),
+            vaxis="chao1",
+            return_chart=True,
+        )
 
 
 def test_plot_pca(ocx, api_data):
@@ -124,15 +142,15 @@ def test_plot_pca_exceptions(ocx, api_data):
         samples.plot_pca(rank=None)
     assert "specify a rank" in str(e.value)
 
-    # must have at least two samples
-    with pytest.raises(OneCodexException) as e:
-        samples[:1].plot_pca()
-    assert "requires 2 or more" in str(e.value)
+    # must have at least three samples
+    with pytest.raises(PlottingException) as e:
+        samples[:2].plot_pca()
+    assert "too few samples" in str(e.value)
 
     # samples must have at least two taxa at this rank
-    with pytest.raises(OneCodexException) as e:
+    with pytest.raises(PlottingException) as e:
         samples.to_df(top_n=1).ocx.plot_pca()
-    assert "at least 2 for PCA" in str(e.value)
+    assert "too few taxa" in str(e.value)
 
     # color/size/tooltips with invalid metadata fields or taxids
     for k in ("color", "size", "tooltip"):
@@ -178,9 +196,14 @@ def test_plot_heatmap_exceptions(ocx, api_data):
     assert "specify a rank" in str(e.value)
 
     # must have at least two samples
-    with pytest.raises(OneCodexException) as e:
+    with pytest.raises(PlottingException) as e:
         samples[:1].plot_heatmap()
-    assert "requires 2 or more" in str(e.value)
+    assert "too few samples" in str(e.value)
+
+    # must have at least two taxa
+    with pytest.raises(PlottingException) as e:
+        samples.plot_heatmap(top_n=1)
+    assert "too few taxa" in str(e.value)
 
     # must specify at least threshold or top_n
     with pytest.raises(OneCodexException) as e:
@@ -233,12 +256,12 @@ def test_plot_distance_exceptions(ocx, api_data):
         samples.plot_distance(metric="simpson")
     assert "must be one of" in str(e.value)
 
-    # need more than one analysis
-    with pytest.raises(OneCodexException) as e:
+    # need at least two samples
+    with pytest.raises(PlottingException) as e:
         samples[:1].plot_distance(
             metric="jaccard", xlabel="my xlabel", ylabel="my ylabel", title="my title"
         )
-    assert "requires 2 or more" in str(e.value)
+    assert "too few samples" in str(e.value)
 
     # tooltip with invalid metadata fields or taxids
     with pytest.raises(OneCodexException) as e:
@@ -298,6 +321,15 @@ def test_plot_pcoa(ocx, api_data):
     assert (chart.data["PC1"] * chart.data["PC2"]).sum().round(6) == 0.0
 
 
+def test_plot_pcoa_exceptions(ocx, api_data):
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+
+    # need at least 3 samples
+    with pytest.raises(PlottingException) as e:
+        samples[:2].plot_pcoa()
+    assert "too few samples" in str(e.value)
+
+
 def test_plot_mds_exceptions(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
 
@@ -311,12 +343,12 @@ def test_plot_mds_exceptions(ocx, api_data):
         samples.plot_mds(metric="simpson")
     assert "must be one of" in str(e.value)
 
-    # need more than one analysis
-    with pytest.raises(OneCodexException) as e:
-        samples[:1].plot_mds(
+    # need at least 3 samples
+    with pytest.raises(PlottingException) as e:
+        samples[:2].plot_mds(
             metric="jaccard", xlabel="my xlabel", ylabel="my ylabel", title="my title"
         )
-    assert "requires 2 or more" in str(e.value)
+    assert "too few samples" in str(e.value)
 
     # tooltip with invalid metadata fields or taxids
     with pytest.raises(OneCodexException) as e:
@@ -336,6 +368,11 @@ def test_plot_bargraph_arguments(ocx, api_data):
     with pytest.raises(OneCodexException) as e:
         samples.plot_bargraph(tooltip="does_not_exist")
     assert "not found" in str(e.value)
+
+    # need at least 1 sample
+    with pytest.raises(PlottingException) as e:
+        samples[:0].plot_bargraph()
+    assert "too few samples" in str(e.value)
 
 
 @pytest.mark.parametrize(

@@ -1,5 +1,5 @@
 from onecodex.lib.enums import Rank, Linkage
-from onecodex.exceptions import OneCodexException
+from onecodex.exceptions import OneCodexException, PlottingException
 from onecodex.viz._primitives import prepare_props, sort_helper
 
 
@@ -89,8 +89,9 @@ class VizHeatmapMixin(object):
             raise OneCodexException("Please specify at least one of: threshold, top_n")
 
         if len(self._results) < 2:
-            raise OneCodexException(
-                "`plot_heatmap` requires 2 or more valid classification results."
+            raise PlottingException(
+                "There are too few samples for heatmap plots after filtering. Please select 2 or "
+                "more samples to plot."
             )
 
         if top_n == "auto" and threshold == "auto":
@@ -104,6 +105,12 @@ class VizHeatmapMixin(object):
         df = self.to_df(
             rank=rank, normalize=normalize, top_n=top_n, threshold=threshold, table_format="long"
         )
+
+        if len(df["tax_id"].unique()) < 2:
+            raise PlottingException(
+                "There are too few taxa for heatmap clustering after filtering. Please select a "
+                "rank or threshold that includes at least 2 taxa."
+            )
 
         if legend == "auto":
             legend = df.ocx.metric
