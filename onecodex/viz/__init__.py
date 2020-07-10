@@ -94,6 +94,28 @@ def onecodex_theme():
     }
 
 
+def configure_onecodex_theme(altair_module=None):
+    """Configure One Codex Altair theme."""
+    if altair_module is None:
+        import altair
+
+        altair_module = altair
+
+    altair_module.themes.register("onecodex", onecodex_theme)
+    altair_module.themes.enable("onecodex")
+
+    # Render using `altair_saver` if installed (report environment only, requires node deps)
+    if "altair_saver" in altair_module.renderers.names():
+        altair_module.renderers.enable(
+            "altair_saver",
+            fmts=["html", "svg"],
+            embed_options=VEGAEMBED_OPTIONS,
+            vega_cli_options=["--loglevel", "error"],
+        )
+    else:
+        altair_module.renderers.enable("html", embed_options=VEGAEMBED_OPTIONS)
+
+
 # Define an import hook to configure Altair's theme and renderer the first time
 # it is imported. Directly importing and configuring Altair in this subpackage
 # can slow down the API and CLI. An import hook avoids this performance hit by
@@ -121,19 +143,7 @@ class _AltairImportHook(object):
         return altair
 
     def _configure_altair(self, altair):
-        altair.themes.register("onecodex", onecodex_theme)
-        altair.themes.enable("onecodex")
-
-        # Render using `altair_saver` if installed (report environment only, requires node deps)
-        if "altair_saver" in altair.renderers.names():
-            altair.renderers.enable(
-                "altair_saver",
-                fmts=["html", "svg"],
-                embed_options=VEGAEMBED_OPTIONS,
-                vega_cli_options=["--loglevel", "error"],
-            )
-        else:
-            altair.renderers.enable("html", embed_options=VEGAEMBED_OPTIONS)
+        configure_onecodex_theme(altair)
 
 
 sys.meta_path = [_AltairImportHook()] + sys.meta_path

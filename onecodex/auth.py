@@ -182,7 +182,7 @@ def login_required(fn):
     def login_wrapper(ctx, *args, **kwargs):
         base_url = os.environ.get("ONE_CODEX_API_BASE", "https://app.onecodex.com")
 
-        api_kwargs = {"telemetry": ctx.obj["TELEMETRY"]}
+        api_kwargs = {"telemetry": ctx.obj["TELEMETRY"], "load_extensions": False}
 
         api_key_prior_login = ctx.obj.get("API_KEY")
         bearer_token_env = os.environ.get("ONE_CODEX_BEARER_TOKEN")

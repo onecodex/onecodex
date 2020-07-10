@@ -3,8 +3,11 @@
 import os
 import subprocess
 import sys
+import time
 
 import pytest
+
+from onecodex import Cli
 
 
 @pytest.mark.skipif(sys.version_info < (3, 7), reason="requires python3.7 or higher")
@@ -79,3 +82,13 @@ def test_import_speed(import_command, package_max_import_times, total_time_secs)
 
     # Check max time
     assert max(df.cumulative) / 1e6 < total_time_secs
+
+
+def test_cli_speed(runner, api_data, mocked_creds_file):
+    """Test that loading the CLI is fast, i.e., it doesn't load all the extensions
+    """
+    start_time = time.time()
+    result = runner.invoke(Cli, ["analyses"])
+    elapsed = time.time() - start_time
+    assert result.exit_code == 0
+    assert elapsed <= 0.2
