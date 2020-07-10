@@ -1,9 +1,10 @@
 coverage:
   status:
     project:
-      default: false  # disable the default status that measures entire project
-      onecodex:
+      default:
         paths: "onecodex/"
+        target: auto
+        base: auto
         threshold: 2.5%
     patch:
       default:
