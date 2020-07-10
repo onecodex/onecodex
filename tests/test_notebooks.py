@@ -253,19 +253,19 @@ def test_reference_and_biblio(mock_reports):
 
     # duplicate references don't get new  numbers
     ref1 = report.reference("wikipedia reference 1")
-    assert "1" in ref1
+    assert 1 == ref1.ref_num
     ref2 = report.reference("wikipedia reference 1")
-    assert "1" in ref2
+    assert 1 == ref2.ref_num
 
     # new references get new numbers
     ref3 = report.reference("wikipedia reference 2")
-    assert "2" in ref3
+    assert 2 == ref3.ref_num
 
     # lookup by tags works
     ref4 = report.reference("wikipedia reference 3", "wiki")
-    assert "3" in ref4
+    assert 3 == ref4.ref_num
     ref5 = report.reference(label="wiki")
-    assert "3" in ref5
+    assert 3 == ref5.ref_num
 
     with pytest.raises(OneCodexException) as e:
         report.reference(label="wiki2")

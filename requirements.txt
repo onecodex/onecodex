@@ -1,4 +1,4 @@
-altair==4.0.1
+altair==4.1.0
 altair-data-server==0.4.1
 altair-saver==0.5.0
 altair-viewer==0.3.0
@@ -35,7 +35,7 @@ flake8==3.7.9
 future==0.18.2
 hdmedians==0.13
 html5lib==1.0.1
-identify==1.4.14
+identify==1.4.21
 idna==2.9
 importlib-metadata==1.6.0
 ipykernel==5.2.0

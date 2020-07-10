@@ -18,3 +18,4 @@ Pipfile*
 .idea/
 node_modules
 .vscode/
+geckodriver.log

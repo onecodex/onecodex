@@ -105,6 +105,8 @@ def test_plot_pca(ocx, api_data):
         tooltip=["totalige", "vegetables", "Prevotella", 816],
     )
 
+    assert chart.title == "my title"
+
     # one for main plot, one for eigenvectors
     assert len(chart.layer) == 2
 
@@ -112,7 +114,6 @@ def test_plot_pca(ocx, api_data):
     assert mainplot.data["Bacteroides (816)"].round(6).tolist() == [0.356439, 0.213307, 0.787949]
     assert mainplot.data["Prevotella (838)"].round(6).tolist() == [0.000221, 0.001872, 6.7e-05]
     assert mainplot.data["totalige"].tolist() == [62.9, 91.5, 112.0]
-    assert mainplot.title == "my title"
     assert mainplot.encoding.color.shorthand == "geo_loc_name"
     assert mainplot.encoding.size.shorthand == "totalige"
     assert mainplot.encoding.x.shorthand == "PC1"

@@ -1,3 +1,6 @@
+from itertools import chain
+from math import ceil
+
 from onecodex.exceptions import OneCodexException
 
 
@@ -31,6 +34,42 @@ def prepare_props(title=None, height=None, width=None):
     if width:
         props["width"] = width  # None violates Vega JSON Schema
     return props
+
+
+def interleave_palette(domain, palette="ocx"):
+    from onecodex.viz import DEFAULT_PALETTES
+
+    if palette in DEFAULT_PALETTES:
+        colors = DEFAULT_PALETTES[palette]
+    elif isinstance(palette, list):
+        colors = palette
+    else:
+        raise OneCodexException("A valid palette name or list of colors must be passed")
+
+    n_rows = len(set(domain))
+
+    # We do some shuffling to optimize the range of colours with our own palette
+    if palette == "ocx":
+        hues, shades = 6, 4
+
+        # Calculate how many shades to show of each hue
+        period = min(ceil(n_rows / hues), shades)
+
+        # Save the darkest hue for last
+        offset = 0
+        if period < shades:
+            offset = 1
+
+        # Generate a sub-palette with each hue, at each shade
+        sub_palettes = [colors[ix::shades] for ix in range(offset, period + offset)]
+
+        # Interleave the sub-palettes so the individuals colors are ordered by hue, then shade
+        colors = list(chain.from_iterable(zip(*sub_palettes)))
+
+    # Repeat the palette to extend it to the length of the domain
+    extended_palette = colors * (n_rows // len(colors)) + colors[: n_rows % len(colors)]
+
+    return extended_palette
 
 
 def dendrogram(tree):

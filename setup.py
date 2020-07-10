@@ -63,7 +63,7 @@ TESTING_DEPS = [
     "PyPDF2",
 ]
 ALL_DEPS = [
-    "altair==4.0.1",
+    "altair==4.1.0",
     "numpy>=1.11.0",
     "pandas>=1.0.3",
     "scikit-bio>=0.5.0",

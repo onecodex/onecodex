@@ -37,6 +37,7 @@ class Api(object):
         base_url=None,
         telemetry=None,
         schema_path="/api/v1/schema",
+        load_extensions=True,
         **kwargs
     ):
 
@@ -101,6 +102,12 @@ class Api(object):
         self._client._fetch_schema(cache_schema=cache_schema)
         self._session = self._client.session
         self._copy_resources()
+
+        # Optionally configure custom One Codex altair theme
+        if load_extensions:
+            from onecodex.viz import configure_onecodex_theme
+
+            configure_onecodex_theme()
 
         # Optionally configure Raven
         if telemetry is True or (
