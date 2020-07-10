@@ -2,3 +2,4 @@ include tests/*.json
 include tests/data/api/*.json
 include tests/data/cli/*.json
 include onecodex/assets/*
+include onecodex/assets/fonts/*
