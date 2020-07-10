@@ -97,9 +97,12 @@ def onecodex_theme():
 def configure_onecodex_theme(altair_module=None):
     """Configure One Codex Altair theme."""
     if altair_module is None:
-        import altair
+        try:
+            import altair
 
-        altair_module = altair
+            altair_module = altair
+        except ImportError:
+            return  # noop
 
     altair_module.themes.register("onecodex", onecodex_theme)
     altair_module.themes.enable("onecodex")
