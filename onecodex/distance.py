@@ -121,11 +121,11 @@ class DistanceMixin(TaxonomyMixin):
                 BetaDiversityMetric.WeightedUnifrac,
                 df,
                 df.index,
-                tree=tree,
+                tree=new_tree,
                 otu_ids=tax_ids,
                 normalized=True,
             )
         else:
             return skbio.diversity.beta_diversity(
-                BetaDiversityMetric.UnweightedUnifrac, df, df.index, tree=tree, otu_ids=tax_ids,
+                BetaDiversityMetric.UnweightedUnifrac, df, df.index, tree=new_tree, otu_ids=tax_ids,
             )
