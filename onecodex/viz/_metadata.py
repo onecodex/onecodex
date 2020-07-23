@@ -186,9 +186,17 @@ class VizMetadataMixin(object):
                     PlottingWarning,
                 )
 
+            box_size = 45
+            increment = 5
+
+            n_boxes = len(df[magic_fields[haxis]].unique())
+
+            if (n_boxes * (box_size + increment)) > width:
+                box_size = ((width / n_boxes) // increment) * increment - increment
+
             chart = (
                 alt.Chart(df)
-                .mark_boxplot(size=35)
+                .mark_boxplot(size=box_size)
                 .encode(
                     x=alt.X(magic_fields[haxis], axis=alt.Axis(title=xlabel)),
                     y=alt.Y(magic_fields[vaxis], axis=alt.Axis(title=ylabel)),

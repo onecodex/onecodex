@@ -102,17 +102,30 @@ class DistanceMixin(TaxonomyMixin):
         tree = self.tree_build()
         tree = self.tree_prune_rank(tree, rank=ocx_rank)
 
+        # `scikit-bio` requires that the tree root has no more than 2
+        # children, otherwise it considers it "unrooted".
+        #
+        # https://github.com/biocore/scikit-bio/blob/f3ae1dcfe8ea88e52e19f6693d79e529d05bda04/skbio/diversity/_util.py#L89
+        #
+        # Our taxonomy root regularly has more than 2 children, so we
+        # add a fake parent of `root` to the tree here.
+        from skbio.tree import TreeNode
+
+        new_tree = TreeNode(name="fake root")
+        new_tree.rank = "no rank"
+        new_tree.append(tree)
+
         # then finally run the calculation and return
         if weighted:
             return skbio.diversity.beta_diversity(
                 BetaDiversityMetric.WeightedUnifrac,
                 df,
                 df.index,
-                tree=tree,
+                tree=new_tree,
                 otu_ids=tax_ids,
                 normalized=True,
             )
         else:
             return skbio.diversity.beta_diversity(
-                BetaDiversityMetric.UnweightedUnifrac, df, df.index, tree=tree, otu_ids=tax_ids,
+                BetaDiversityMetric.UnweightedUnifrac, df, df.index, tree=new_tree, otu_ids=tax_ids,
             )
