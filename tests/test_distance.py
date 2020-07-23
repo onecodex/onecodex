@@ -64,3 +64,28 @@ def test_unifrac(ocx, api_data, value, weighted):
     dm = samples.unifrac(weighted=weighted)
     assert isinstance(dm, skbio.stats.distance._base.DistanceMatrix)
     assert dm.condensed_form().round(6).tolist() == value
+
+
+# This tests that Unifrac calculations don't break when `root` has
+# more than one child by mockinga new node that is a direct child
+# of `root`. There's a bug in scikit-bio where it requires that
+# the root has only one child, which isn't true in our taxonomy.
+# See onecodex/distances.py for more details.
+def test_unifrac_tree(ocx, api_data):
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+    samples._classifications[0].results()["table"].append(
+        {
+            "abundance": None,
+            "name": "fake node",
+            "parent_tax_id": "1",
+            "rank": "species",
+            "readcount": 100000,
+            "readcount_w_children": 100000,
+            "tax_id": "1000000000",
+        }
+    )
+    samples._collate_results(metric="readcount_w_children")
+    assert samples.to_df().shape[1] == 1081  # make sure our insert worked
+
+    dm = samples.unifrac()
+    assert isinstance(dm, skbio.stats.distance._base.DistanceMatrix)
