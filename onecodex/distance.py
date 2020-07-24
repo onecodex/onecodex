@@ -9,7 +9,7 @@ class DistanceMixin(TaxonomyMixin):
 
         Parameters
         ----------
-        metric : {'simpson', 'chao1', 'shannon'}
+        metric : {'simpson', 'observed_taxa', 'shannon'}
             The diversity metric to calculate.
         rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
             Analysis will be restricted to abundances of taxa at the specified level.
@@ -30,7 +30,15 @@ class DistanceMixin(TaxonomyMixin):
 
         df = self.to_df(rank=rank, normalize=self._guess_normalized())
 
+        # skbio uses 'observed_otus' where we call it 'observed_taxa'. Feeding 'observed_otus' to skbio.
+        if (metric == 'observed_taxa'):
+            metric = 'observed_otus'
+
         output = skbio.diversity.alpha_diversity(metric, df.values, df.index, validate=False)
+
+        # Converting skbio's 'observed_otus' name back to 'observed_taxa' for column headers
+        if (metric == 'observed_otus'):
+            metric = 'observed_taxa'
 
         return pd.DataFrame(output, columns=[metric])
 

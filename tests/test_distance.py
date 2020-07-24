@@ -11,7 +11,7 @@ from onecodex.exceptions import OneCodexException
     "metric,value,kwargs",
     [
         ("simpson", [0.9232922257199748, 0.8930761430647977, 0.7865654458730155], {}),
-        ("chao1", [164.0, 134.0, 103.0], {}),
+        ("observed_taxa", [164.0, 134.0, 103.0], {}),
     ],
 )
 def test_alpha_diversity(ocx, api_data, metric, value, kwargs):

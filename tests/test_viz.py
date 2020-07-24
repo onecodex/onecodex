@@ -35,13 +35,13 @@ def test_plot_metadata(ocx, api_data):
     assert chart.encoding.y.axis.title == "my ylabel"
 
     # try time, boolean, and numerical types for x-axis
-    chart = samples.plot_metadata(haxis="date_sequenced", vaxis="chao1", return_chart=True)
+    chart = samples.plot_metadata(haxis="date_sequenced", vaxis="observed_taxa", return_chart=True)
     assert chart.encoding.x.shorthand == "date_sequenced"
 
-    chart = samples.plot_metadata(haxis="starred", vaxis="chao1", return_chart=True)
+    chart = samples.plot_metadata(haxis="starred", vaxis="observed_taxa", return_chart=True)
     assert chart.encoding.x.shorthand == "starred"
 
-    chart = samples.plot_metadata(haxis="totalige", vaxis="chao1", return_chart=True)
+    chart = samples.plot_metadata(haxis="totalige", vaxis="observed_taxa", return_chart=True)
     assert chart.mark == "circle"
     assert chart.encoding.x.shorthand == "totalige"
 
@@ -84,7 +84,7 @@ def test_plot_metadata_warnings(ocx, api_data):
         samples.plot_metadata(
             plot_type="boxplot",
             haxis=("library_type", "external_sample_id"),
-            vaxis="chao1",
+            vaxis="observed_taxa",
             return_chart=True,
         )
 
