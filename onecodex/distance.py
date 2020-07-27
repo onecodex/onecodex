@@ -28,17 +28,20 @@ class DistanceMixin(TaxonomyMixin):
                 )
             )
 
+        if (metric == 'chao1'):
+            warnings.warn(
+                "`Chao1` is deprecated and will be removed in a future release. Please use `observed_taxa` instead.",
+                DeprecationWarning,
+            )
+        )
+
         df = self.to_df(rank=rank, normalize=self._guess_normalized())
 
-        # skbio uses 'observed_otus' where we call it 'observed_taxa'. Feeding 'observed_otus' to skbio.
         if (metric == 'observed_taxa'):
-            metric = 'observed_otus'
+            output = df[df.columns].gt(0).sum(axis=1)
+        else: 
+            output = skbio.diversity.alpha_diversity(metric, df.values, df.index, validate=False)
 
-        output = skbio.diversity.alpha_diversity(metric, df.values, df.index, validate=False)
-
-        # Converting skbio's 'observed_otus' name back to 'observed_taxa' for column headers
-        if (metric == 'observed_otus'):
-            metric = 'observed_taxa'
 
         return pd.DataFrame(output, columns=[metric])
 
