@@ -1,6 +1,7 @@
 from onecodex.exceptions import OneCodexException
 from onecodex.taxonomy import TaxonomyMixin
 from onecodex.lib.enums import AlphaDiversityMetric, BetaDiversityMetric, Rank
+import warnings
 
 
 class DistanceMixin(TaxonomyMixin):
@@ -28,20 +29,18 @@ class DistanceMixin(TaxonomyMixin):
                 )
             )
 
-        if (metric == 'chao1'):
+        if metric == "chao1":
             warnings.warn(
                 "`Chao1` is deprecated and will be removed in a future release. Please use `observed_taxa` instead.",
                 DeprecationWarning,
             )
-        )
 
         df = self.to_df(rank=rank, normalize=self._guess_normalized())
 
-        if (metric == 'observed_taxa'):
+        if metric == "observed_taxa":
             output = df[df.columns].gt(0).sum(axis=1)
-        else: 
+        else:
             output = skbio.diversity.alpha_diversity(metric, df.values, df.index, validate=False)
-
 
         return pd.DataFrame(output, columns=[metric])
 
