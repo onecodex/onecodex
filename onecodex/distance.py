@@ -1,7 +1,8 @@
+import warnings
+
 from onecodex.exceptions import OneCodexException
 from onecodex.taxonomy import TaxonomyMixin
 from onecodex.lib.enums import AlphaDiversityMetric, BetaDiversityMetric, Rank
-import warnings
 
 
 class DistanceMixin(TaxonomyMixin):
@@ -37,10 +38,8 @@ class DistanceMixin(TaxonomyMixin):
 
         df = self.to_df(rank=rank, normalize=self._guess_normalized())
 
-        if metric == "observed_taxa":
-            output = df[df.columns].gt(0).sum(axis=1)
-        else:
-            output = skbio.diversity.alpha_diversity(metric, df.values, df.index, validate=False)
+        skbio_metric = "observed_otus" if metric == "observed_taxa" else metric
+        output = skbio.diversity.alpha_diversity(skbio_metric, df.values, df.index, validate=False)
 
         return pd.DataFrame(output, columns=[metric])
 
