@@ -1,3 +1,5 @@
+import warnings
+
 from onecodex.exceptions import OneCodexException
 from onecodex.taxonomy import TaxonomyMixin
 from onecodex.lib.enums import AlphaDiversityMetric, BetaDiversityMetric, Rank
@@ -9,7 +11,7 @@ class DistanceMixin(TaxonomyMixin):
 
         Parameters
         ----------
-        metric : {'simpson', 'chao1', 'shannon'}
+        metric : {'simpson', 'observed_taxa', 'shannon'}
             The diversity metric to calculate.
         rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
             Analysis will be restricted to abundances of taxa at the specified level.
@@ -28,9 +30,16 @@ class DistanceMixin(TaxonomyMixin):
                 )
             )
 
+        if metric == "chao1":
+            warnings.warn(
+                "`Chao1` is deprecated and will be removed in a future release. Please use `observed_taxa` instead.",
+                DeprecationWarning,
+            )
+
         df = self.to_df(rank=rank, normalize=self._guess_normalized())
 
-        output = skbio.diversity.alpha_diversity(metric, df.values, df.index, validate=False)
+        skbio_metric = "observed_otus" if metric == "observed_taxa" else metric
+        output = skbio.diversity.alpha_diversity(skbio_metric, df.values, df.index, validate=False)
 
         return pd.DataFrame(output, columns=[metric])
 

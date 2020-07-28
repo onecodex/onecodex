@@ -28,8 +28,9 @@ class Metric(BaseEnum):
 
 class AlphaDiversityMetric(BaseEnum):
     Simpson = "simpson"
-    Chao1 = "chao1"
+    ObservedTaxa = "observed_taxa"
     Shannon = "shannon"
+    Chao1 = "chao1"
 
 
 class BetaDiversityMetric(BaseEnum):

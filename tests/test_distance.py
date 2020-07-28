@@ -11,7 +11,7 @@ from onecodex.exceptions import OneCodexException
     "metric,value,kwargs",
     [
         ("simpson", [0.9232922257199748, 0.8930761430647977, 0.7865654458730155], {}),
-        ("chao1", [164.0, 134.0, 103.0], {}),
+        ("observed_taxa", [164.0, 134.0, 103.0], {}),
     ],
 )
 def test_alpha_diversity(ocx, api_data, metric, value, kwargs):
@@ -28,6 +28,13 @@ def test_alpha_diversity_exceptions(ocx, api_data):
     with pytest.raises(OneCodexException) as e:
         samples.alpha_diversity("does_not_exist")
     assert "metric must be one of" in str(e.value)
+
+
+def test_alpha_diversity_warnings(ocx, api_data):
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+
+    with pytest.warns(DeprecationWarning, match="`Chao1` is deprecated"):
+        samples.alpha_diversity(metric="chao1")
 
 
 @pytest.mark.parametrize(
