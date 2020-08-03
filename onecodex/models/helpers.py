@@ -2,6 +2,8 @@ import click
 import inspect
 import os
 import requests
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 
 from onecodex.exceptions import OneCodexException, UnboundObject
 
@@ -127,7 +129,7 @@ class ResourceDownloadMixin(object):
     def _download(
         self,
         _resource_method,
-        _filename,
+        _filename=None,
         use_potion_session=False,
         path=None,
         file_obj=None,
@@ -136,25 +138,47 @@ class ResourceDownloadMixin(object):
         if path and file_obj:
             raise OneCodexException("Please specify only one of: path, file_obj")
 
-        if path is None and file_obj is None:
-            path = os.path.join(os.getcwd(), _filename)
-
-        if path and os.path.exists(path):
-            raise OneCodexException("{} already exists! Will not overwrite.".format(path))
-
         try:
             method_to_call = getattr(self._resource, _resource_method)
+            download_info = method_to_call()
+
+            if path is None and file_obj is None:
+                if _filename is None:
+                    if "filename" not in download_info:
+                        raise OneCodexException(
+                            "Please specify `path`, `file_obj`, or `_filename`."
+                        )
+                    _filename = download_info["filename"]
+                path = os.path.join(os.getcwd(), _filename)
+
+            if path and os.path.exists(path):
+                raise OneCodexException("{} already exists! Will not overwrite.".format(path))
 
             if use_potion_session:
-                resp = self._resource._client.session.get(
-                    method_to_call()["download_uri"], stream=True
-                )
+                session = self._resource._client.session
             else:
-                resp = requests.get(method_to_call()["download_uri"], stream=True)
+                session = requests.Session()
+
+            link = download_info["download_uri"]
+
+            # Retry up to 5 times with backoff timing of 2s, 4s, 8s, 16s, and 32s (applies to all
+            # HTTP methods). 404 is included for cases where the file is being asynchronously
+            # uploaded to S3 and is expected to be available soon.
+            retry_strategy = Retry(
+                total=5,
+                backoff_factor=2,
+                status_forcelist=[404, 429, 500, 502, 503, 504],
+                method_whitelist=False,
+            )
+            adapter = HTTPAdapter(max_retries=retry_strategy)
+            session.mount("http://", adapter)
+            session.mount("https://", adapter)
+
+            resp = session.get(link, stream=True)
 
             with (open(path, "wb") if path else file_obj) as f_out:
                 if progressbar:
-                    with click.progressbar(length=self.size, label=self.filename) as bar:
+                    with click.progressbar(length=self.size, label=self.id) as bar:
                         for data in resp.iter_content(chunk_size=1024):
                             bar.update(len(data))
                             f_out.write(data)

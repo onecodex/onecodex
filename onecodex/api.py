@@ -49,7 +49,7 @@ class Api(object):
         if kwargs.get("experimental", False):
             warnings.warn(
                 "Experimental API mode enabled. Features of the experimental API are subject to "
-                "change without notice and should not be relied upon in a production enviroment."
+                "change without notice and should not be relied upon in a production environment."
             )
             schema_path = "/api/v1_experimental/schema"
             cache_schema = False
