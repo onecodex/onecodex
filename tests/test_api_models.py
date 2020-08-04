@@ -63,6 +63,35 @@ def test_document_download(runner, ocx, api_data):
         doc.download()
 
 
+def test_download_without_filename(runner, ocx, api_data):
+    with runner.isolated_filesystem():
+        doc = ocx.Documents.get("a4f6727a840a4df0")
+
+        with pytest.raises(OneCodexException, match="specify `path`, `file_obj`, or `_filename`"):
+            doc._download("download_uri", _filename=None)
+
+
+def test_download_path_exists(runner, ocx, api_data):
+    with runner.isolated_filesystem():
+        doc = ocx.Documents.get("a4f6727a840a4df0")
+        doc.download()
+
+        with pytest.raises(OneCodexException, match="already exists"):
+            doc.download()
+
+
+def test_download_use_potion_session(runner, ocx, api_data):
+    with runner.isolated_filesystem():
+        doc = ocx.Documents.get("a4f6727a840a4df0")
+        doc._download("download_uri", doc.filename, use_potion_session=True)
+
+
+def test_download_with_progressbar(runner, ocx, api_data):
+    with runner.isolated_filesystem():
+        doc = ocx.Documents.get("a4f6727a840a4df0")
+        doc.download(progressbar=True)
+
+
 def test_resourcelist(ocx, api_data):
     sample = ocx.Samples.get("761bc54b97f64980")
     tags1 = onecodex.models.ResourceList(sample.tags._resource, onecodex.models.misc.Tags)
