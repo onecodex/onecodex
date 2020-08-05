@@ -140,15 +140,15 @@ class ResourceDownloadMixin(object):
 
         try:
             method_to_call = getattr(self._resource, _resource_method)
-            download_info = method_to_call()
+            download_link_info = method_to_call()
 
             if path is None and file_obj is None:
                 if _filename is None:
-                    if "filename" not in download_info:
+                    if "save_as_filename" not in download_link_info:
                         raise OneCodexException(
                             "Please specify `path`, `file_obj`, or `_filename`."
                         )
-                    _filename = download_info["filename"]
+                    _filename = download_link_info["save_as_filename"]
                 path = os.path.join(os.getcwd(), _filename)
 
             if path and os.path.exists(path):
@@ -159,7 +159,7 @@ class ResourceDownloadMixin(object):
             else:
                 session = requests.Session()
 
-            link = download_info["download_uri"]
+            link = download_link_info["download_uri"]
 
             # Retry up to 5 times with backoff timing of 2s, 4s, 8s, 16s, and 32s (applies to all
             # HTTP methods). 404 is included for cases where the file is being asynchronously
