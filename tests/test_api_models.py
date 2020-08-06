@@ -1,5 +1,6 @@
 from __future__ import print_function
 import datetime
+import io
 import pytest
 import responses
 import sys
@@ -87,9 +88,13 @@ def test_download_use_potion_session(runner, ocx, api_data):
 
 
 def test_download_with_progressbar(runner, ocx, api_data):
+    doc = ocx.Documents.get("a4f6727a840a4df0")
+
     with runner.isolated_filesystem():
-        doc = ocx.Documents.get("a4f6727a840a4df0")
         doc.download(progressbar=True)
+
+    file_obj = io.BytesIO()
+    doc.download(file_obj=file_obj, progressbar=True)
 
 
 def test_resourcelist(ocx, api_data):

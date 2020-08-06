@@ -2,8 +2,6 @@ import click
 import inspect
 import os
 import requests
-from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry
 
 from onecodex.exceptions import OneCodexException, UnboundObject
 
@@ -135,6 +133,9 @@ class ResourceDownloadMixin(object):
         file_obj=None,
         progressbar=False,
     ):
+        from requests.adapters import HTTPAdapter
+        from requests.packages.urllib3.util.retry import Retry
+
         if path and file_obj:
             raise OneCodexException("Please specify only one of: path, file_obj")
 
@@ -178,7 +179,8 @@ class ResourceDownloadMixin(object):
 
             with (open(path, "wb") if path else file_obj) as f_out:
                 if progressbar:
-                    with click.progressbar(length=self.size, label=self.id) as bar:
+                    progress_label = os.path.basename(path) if path else self.filename
+                    with click.progressbar(length=self.size, label=progress_label) as bar:
                         for data in resp.iter_content(chunk_size=1024):
                             bar.update(len(data))
                             f_out.write(data)
