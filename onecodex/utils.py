@@ -289,6 +289,7 @@ def _setup_sentry_for_ipython():
 
     return False
 
+
 def init_sentry(user_context=None, extra_context=None):
     if os.environ.get("ONE_CODEX_NO_TELEMETRY") is None:
         key = base64.b64decode(
@@ -335,6 +336,7 @@ def init_sentry(user_context=None, extra_context=None):
 
         except Exception:
             pass
+
 
 def telemetry(fn):
     """Decorate CLI and other functions that need special Sentry client handling.
