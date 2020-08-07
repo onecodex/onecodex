@@ -82,7 +82,7 @@ setup(
         "jsonschema>=2.4",
         "python-dateutil>=2.5.3",
         "pytz>=2014.1",
-        "raven>=6.1.0",
+        "sentry-sdk>=0.16.3",
         "requests>=2.9",
         "requests_toolbelt>=0.7.0",
         "six>=1.10.0",

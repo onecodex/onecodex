@@ -9,7 +9,7 @@ import warnings
 
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.auth import BearerTokenAuth
-from onecodex.utils import get_raven_client, collapse_user
+from onecodex.utils import collapse_user, init_sentry
 from onecodex.vendored.potion_client import Client as PotionClient
 from onecodex.vendored.potion_client.converter import (
     PotionJSONSchemaDecoder,
@@ -109,16 +109,13 @@ class Api(object):
 
             configure_onecodex_theme()
 
-        # Optionally configure Raven
+        # Optionally configure Sentry
         if telemetry is True or (
             telemetry is None and os.environ.get("ONE_CODEX_AUTO_TELEMETRY", False)
         ):
-            self._raven_client = get_raven_client(
-                user_context={"email": self._fetch_account_email()}
-            )
+            init_sentry(user_context={"email": self._fetch_account_email()})
             self._telemetry = True
         else:
-            self._raven_client = None
             self._telemetry = False
 
     def _fetch_account_email(self):

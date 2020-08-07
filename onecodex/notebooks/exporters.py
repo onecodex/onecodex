@@ -12,8 +12,6 @@ from traitlets import default
 
 from onecodex.exceptions import UploadException
 from onecodex.notebooks import report
-from onecodex.utils import get_raven_client
-
 
 ASSETS_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "assets"))
 HTML_TEMPLATE_FILE = "notebook_template.tpl"
@@ -199,6 +197,7 @@ class OneCodexDocumentExporter(OneCodexPDFExporter):
 
         from onecodex import Api
         from onecodex.lib.upload import _upload_document_fileobj
+        import sentry_sdk
 
         ocx = Api()
 
@@ -216,8 +215,7 @@ class OneCodexDocumentExporter(OneCodexPDFExporter):
             resp = json.dumps({"status": 500, "message": str(exc)})
             return resp, resources
         except Exception as exc:
-            client = get_raven_client()
-            client.captureException(exc)
+            sentry_sdk.capture_exception(exc)
             resp = json.dumps(
                 {
                     "status": 500,
