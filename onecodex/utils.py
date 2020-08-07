@@ -10,11 +10,12 @@ import platform
 import re
 import requests
 import sys
+import sentry_sdk
 
 try:
     from StringIO import StringIO
 except ImportError:
-    from io import StringIO
+    from io import StringIO  # noqa
 
 try:
     from urlparse import urlparse
@@ -270,7 +271,7 @@ def collapse_user(fp):
     return abs_path.replace(home_dir, "~")
 
 
-def _setup_sentry_for_ipython(client):
+def _setup_sentry_for_ipython():
     from IPython import get_ipython
 
     ip = get_ipython()
@@ -280,26 +281,28 @@ def _setup_sentry_for_ipython(client):
         shell.showtraceback((etype, evalue, tb), tb_offset=tb_offset)
 
         # Then send to Sentry
-        client.captureException()
+        sentry_sdk.capture_exception()
 
     if ip is not None:
         ip.set_custom_exc((Exception,), custom_exc)
+        return True
+
+    return False
 
     # Finally, patch the client to not raise too many exceptions in interactive environment
     # For now, we accept string and wildcard variables parsed from a special environment
     # variable. We can add support for hard-coded Exception classes here in the future as needed.
-    client.ignore_exceptions = [
-        x for x in os.environ.get("ONE_CODEX_SENTRY_IGNORE_EXCEPTIONS", "").split(",") if x
-    ]
+    # client.ignore_exceptions = [
+    #     x for x in os.environ.get("ONE_CODEX_SENTRY_IGNORE_EXCEPTIONS", "").split(",") if x
+    # ]
 
 
-def get_raven_client(user_context=None, extra_context=None):
+def init_sentry(user_context=None, extra_context=None):
     if os.environ.get("ONE_CODEX_NO_TELEMETRY") is None:
         key = base64.b64decode(
             b"NmFlMjMwYWY4NjI5NDg3NmEyYzYwYjZjNDhhZDJiYzI6ZTMyZmYwZTVhNjUwNGQ5NGJhODc0NWZlMmU1ZjNmZjA="
         ).decode("utf-8")
 
-        # Set Client params
         # Capture exceptions on exit if onecodex CLI being invoked
         if os.path.basename(sys.argv[0]) in ["onecodex", "py.test"]:
             install_sys_hook = True
@@ -307,83 +310,59 @@ def get_raven_client(user_context=None, extra_context=None):
             install_sys_hook = False
 
         try:
-            from raven import Client as RavenClient
-
-            client = RavenClient(
+            ipython_active = _setup_sentry_for_ipython()
+            ignore_exceptions = []
+            if ipython_active:
+                # Patch the client to not raise too many exceptions in interactive environment
+                # For now, we accept string and wildcard variables parsed from a special environment
+                # variable. We can add support for hard-coded Exception classes here in the future as needed.
+                ignore_exceptions = [
+                    x
+                    for x in os.environ.get("ONE_CODEX_SENTRY_IGNORE_EXCEPTIONS", "").split(",")
+                    if x
+                ]
+            sentry_sdk.init(
                 dsn=os.environ.get(
                     "ONE_CODEX_SENTRY_DSN", "https://{}@sentry.onecodex.com/9".format(key)
                 ),
                 install_sys_hook=install_sys_hook,
                 raise_send_errors=False,
-                ignore_exceptions=[],
+                ignore_exceptions=ignore_exceptions,
                 include_paths=[__name__.split(".", 1)[0]],
                 release=__version__,
             )
-
-            if extra_context is None:
-                extra_context = {}
-            if user_context is None:
-                user_context = {}
-
-            try:
-                _setup_sentry_for_ipython(client)
-                extra_context["ipython"] = True
-            except Exception:
-                pass
-
-            extra_context["platform"] = platform.platform()
-            client.user_context(user_context)
-            client.extra_context(extra_context)
-            return client
+            with sentry_sdk.configure_scope() as scope:
+                if extra_context is None:
+                    extra_context = {}
+                if user_context is None:
+                    user_context = {}
+                scope.set_user(user_context)
+                scope.set_extra("platform", platform.platform())
+                if ipython_active:
+                    scope.set_extra("ipython", True)
 
         except Exception:
             return
+
+    return
 
 
 def telemetry(fn):
     """Decorate CLI and other functions that need special Sentry client handling.
 
     This decorator is only required on functions that:
-        1) May exit *before* we set up a ._raven_client object on the Api() instance.
-        2) Specifically catch and re-raise exceptions.
-        3) Call sys.exit() directly.
-
-    Notes
-    -----
-    This overwrites verbose Raven logs on exit ("Sentry is waiting to send..."). See:
-
-        https://github.com/getsentry/raven-python/issues/904
-
-    for more details.
+        1) Specifically catch and re-raise exceptions.
+        2) Call sys.exit() directly.
     """
 
     @wraps(fn)
     def telemetry_wrapper(*args, **kwargs):
-        # By default, do not instantiate a client,
-        # and inherit the telemetry settings passed
-        client = None
-        if len(args) > 0 and isinstance(args[0], click.Context):
-            ctx = args[0]
-
-            # First try to get off API obj
-            if ctx.obj and ctx.obj.get("API") is not None:
-                client = ctx.obj["API"]._raven_client
-
-            # Else try to see if telemetry param is set
-            elif ctx.params.get("telemetry", False):
-                client = get_raven_client()
-
-            # Finally check for the ctx.obj['TELEMETRY'] bool
-            elif ctx.obj and ctx.obj.get("TELEMETRY", False):
-                client = get_raven_client()
-
         try:
             return fn(*args, **kwargs)
         except Exception as e:
-            if client:
-                client.captureException()
-                client.context.clear()
-                sys.stdout = StringIO()
+            sentry_sdk.capture_exception(e)
+            with sentry_sdk.configure_scope() as scope:
+                scope.clear()
             raise e
 
     return telemetry_wrapper
