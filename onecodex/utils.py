@@ -289,14 +289,6 @@ def _setup_sentry_for_ipython():
 
     return False
 
-    # Finally, patch the client to not raise too many exceptions in interactive environment
-    # For now, we accept string and wildcard variables parsed from a special environment
-    # variable. We can add support for hard-coded Exception classes here in the future as needed.
-    # client.ignore_exceptions = [
-    #     x for x in os.environ.get("ONE_CODEX_SENTRY_IGNORE_EXCEPTIONS", "").split(",") if x
-    # ]
-
-
 def init_sentry(user_context=None, extra_context=None):
     if os.environ.get("ONE_CODEX_NO_TELEMETRY") is None:
         key = base64.b64decode(
@@ -342,10 +334,7 @@ def init_sentry(user_context=None, extra_context=None):
                     scope.set_extra("ipython", True)
 
         except Exception:
-            return
-
-    return
-
+            pass
 
 def telemetry(fn):
     """Decorate CLI and other functions that need special Sentry client handling.
