@@ -40,8 +40,9 @@ class VizHeatmapMixin(object):
         haxis : `string`, optional
             The metadata field (or tuple containing multiple categorical fields) used to group
             samples together. Each group of samples will be clustered independently.
-        metric : {'euclidean', 'braycurtis', 'manhattan', 'jaccard', 'unifrac', 'unweighted_unifrac}, optional
+        metric : {'euclidean', 'braycurtis', 'cityblock', 'manhattan', 'jaccard', 'unifrac', 'unweighted_unifrac', 'aitchison'}, optional
             Function to use when calculating the distance between two samples.
+            Note that 'cityblock' and 'manhattan' are interchangeable metrics.
         linkage : {'average', 'single', 'complete', 'weighted', 'centroid', 'median'}
             The type of linkage to use when clustering axes.
         top_n : `int`, optional
