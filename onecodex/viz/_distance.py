@@ -99,7 +99,7 @@ class VizDistanceMixin(DistanceMixin):
             Analysis will be restricted to abundances of taxa at the specified level.
         metric : {'braycurtis', 'cityblock', 'manhattan', 'jaccard', 'unifrac', 'unweighted_unifrac', 'aitchison'}, optional
             Function to use when calculating the distance between two samples.
-            Note that 'cityblock' and 'manhattan' are interchangeable metrics.
+            Note that 'cityblock' and 'manhattan' are equivalent metrics.
         linkage : {'average', 'single', 'complete', 'weighted', 'centroid', 'median'}
             The type of linkage to use when clustering axes.
         title : `string`, optional
@@ -244,7 +244,7 @@ class VizDistanceMixin(DistanceMixin):
             Analysis will be restricted to abundances of taxa at the specified level.
         metric : {'braycurtis', 'cityblock', 'manhattan', 'jaccard', 'unifrac', 'unweighted_unifrac', 'aitchison'}, optional
             Function to use when calculating the distance between two samples.
-            Note that 'cityblock' and 'manhattan' are interchangeable metrics.
+            Note that 'cityblock' and 'manhattan' are equivalent metrics.
         method : {'pcoa', 'smacof'}
             Algorithm to use for ordination. PCoA uses eigenvalue decomposition and is not well
             suited to non-euclidean distance functions. SMACOF is an iterative optimization strategy

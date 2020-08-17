@@ -42,7 +42,7 @@ class VizHeatmapMixin(object):
             samples together. Each group of samples will be clustered independently.
         metric : {'euclidean', 'braycurtis', 'cityblock', 'manhattan', 'jaccard', 'unifrac', 'unweighted_unifrac', 'aitchison'}, optional
             Function to use when calculating the distance between two samples.
-            Note that 'cityblock' and 'manhattan' are interchangeable metrics.
+            Note that 'cityblock' and 'manhattan' are equivalent metrics.
         linkage : {'average', 'single', 'complete', 'weighted', 'centroid', 'median'}
             The type of linkage to use when clustering axes.
         top_n : `int`, optional

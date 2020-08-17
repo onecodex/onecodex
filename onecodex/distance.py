@@ -50,7 +50,7 @@ class DistanceMixin(TaxonomyMixin):
         ----------
         metric : {'jaccard', 'braycurtis', 'cityblock', 'manhattan', 'aitchison'}
             The distance metric to calculate.
-            Note that 'cityblock' and 'manhattan' are interchangeable metrics.
+            Note that 'cityblock' and 'manhattan' are equivalent metrics.
         rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
             Analysis will be restricted to abundances of taxa at the specified level.
 
