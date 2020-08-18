@@ -42,9 +42,11 @@ def test_alpha_diversity_warnings(ocx, api_data):
     [
         ("braycurtis", [0.886014, 0.84694, 0.905716], {}),
         ("cityblock", [1.772028, 1.693879, 1.811432], {}),
+        ("manhattan", [1.772028, 1.693879, 1.811432], {}),
         ("jaccard", [0.742616, 0.697561, 0.752632], {}),
         ("unweighted_unifrac", [0.6, 0.547486, 0.591304], {}),
         ("weighted_unifrac", [0.503168, 0.403155, 0.605155], {}),
+        ("aitchison", [59.800677, 51.913911, 52.693709], {}),
     ],
 )
 def test_beta_diversity(ocx, api_data, metric, value, kwargs):

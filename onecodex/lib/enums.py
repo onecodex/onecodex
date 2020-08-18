@@ -37,8 +37,10 @@ class BetaDiversityMetric(BaseEnum):
     Jaccard = "jaccard"
     BrayCurtis = "braycurtis"
     CityBlock = "cityblock"
+    Manhattan = "manhattan"
     WeightedUnifrac = "weighted_unifrac"
     UnweightedUnifrac = "unweighted_unifrac"
+    Aitchison = "aitchison"
 
 
 class NormalizedRank(BaseEnum):

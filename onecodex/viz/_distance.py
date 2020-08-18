@@ -27,6 +27,8 @@ class VizDistanceMixin(DistanceMixin):
             distances = self.unifrac(weighted=True, rank=rank)
         elif metric == BetaDiversityMetric.UnweightedUnifrac:
             distances = self.unifrac(weighted=False, rank=rank)
+        elif metric == BetaDiversityMetric.Aitchison:
+            distances = self.beta_diversity(metric=BetaDiversityMetric.Aitchison, rank=rank)
         else:
             raise OneCodexException(
                 "Metric must be one of: {}".format(", ".join(BetaDiversityMetric.values()))
@@ -95,8 +97,9 @@ class VizDistanceMixin(DistanceMixin):
         ----------
         rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
             Analysis will be restricted to abundances of taxa at the specified level.
-        metric : {'braycurtis', 'manhattan', 'jaccard', 'unifrac', 'unweighted_unifrac}, optional
+        metric : {'braycurtis', 'cityblock', 'manhattan', 'jaccard', 'unifrac', 'unweighted_unifrac', 'aitchison'}, optional
             Function to use when calculating the distance between two samples.
+            Note that 'cityblock' and 'manhattan' are equivalent metrics.
         linkage : {'average', 'single', 'complete', 'weighted', 'centroid', 'median'}
             The type of linkage to use when clustering axes.
         title : `string`, optional
@@ -239,8 +242,9 @@ class VizDistanceMixin(DistanceMixin):
         ----------
         rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
             Analysis will be restricted to abundances of taxa at the specified level.
-        metric : {'braycurtis', 'manhattan', 'jaccard', 'unifrac', 'unweighted_unifrac}, optional
+        metric : {'braycurtis', 'cityblock', 'manhattan', 'jaccard', 'unifrac', 'unweighted_unifrac', 'aitchison'}, optional
             Function to use when calculating the distance between two samples.
+            Note that 'cityblock' and 'manhattan' are equivalent metrics.
         method : {'pcoa', 'smacof'}
             Algorithm to use for ordination. PCoA uses eigenvalue decomposition and is not well
             suited to non-euclidean distance functions. SMACOF is an iterative optimization strategy
