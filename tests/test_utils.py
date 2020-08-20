@@ -1,7 +1,11 @@
-from click import BadParameter
 from functools import partial
+
+import mock
 import pytest
 
+from click import BadParameter
+
+from onecodex.api import Api
 from onecodex.utils import snake_case, check_for_allowed_file, valid_api_key
 
 
@@ -56,3 +60,12 @@ def test_snake_case():
     test_cases = ["SnakeCase", "snakeCase", "SNAKE_CASE"]
     for test_case in test_cases:
         assert snake_case(test_case) == "snake_case"
+
+
+def test_custom_ca_bundle(runner, api_data):
+    """Tests that we're properly merging settings into our prepared requests."""
+    with mock.patch("requests.Session.merge_environment_settings") as merge_env:
+        ocx = Api(base_url="http://localhost:3000", cache_schema=True)
+        classifications = ocx.Classifications.all()
+        assert merge_env.call_count >= 1
+        assert len(classifications) >= 1
