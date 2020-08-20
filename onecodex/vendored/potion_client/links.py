@@ -93,7 +93,14 @@ class LinkBinding(object):
         req = self.request_factory(data, params)
         prepared_request = self.owner._client.session.prepare_request(req)
 
-        response = self.owner._client.session.send(prepared_request)
+        # Update cilent session so that it will properly load from env vars
+        # See https://requests.readthedocs.io/en/master/user/advanced/#prepared-requests
+        # for more details
+        settings = self.owner._client.session.merge_environment_settings(
+            url=prepared_request.url, proxies={}, stream=None, verify=None, cert=None
+        )
+
+        response = self.owner._client.session.send(prepared_request, **settings)
 
         # return error for some error conditions
         self.raise_for_status(response)
