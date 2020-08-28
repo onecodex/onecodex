@@ -66,7 +66,8 @@ def test_beta_diversity_exceptions(ocx, api_data):
 
 
 @pytest.mark.parametrize(
-    "weighted,value", [(False, [0.6, 0.547486, 0.591304]), (True, [0.503168, 0.403155, 0.605155])],
+    "weighted,value",
+    [(False, [0.6, 0.547486, 0.591304]), (True, [0.503168, 0.403155, 0.605155])],
 )
 def test_unifrac(ocx, api_data, value, weighted):
     samples = ocx.Samples.where(project="4b53797444f846c4")

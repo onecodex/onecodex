@@ -85,8 +85,7 @@ def test_import_speed(import_command, package_max_import_times, total_time_secs)
 
 
 def test_cli_speed(runner, api_data, mocked_creds_file):
-    """Test that loading the CLI is fast, i.e., it doesn't load all the extensions
-    """
+    """Test that loading the CLI is fast, i.e., it doesn't load all the extensions"""
     start_time = time.time()
     result = runner.invoke(Cli, ["analyses"])
     elapsed = time.time() - start_time

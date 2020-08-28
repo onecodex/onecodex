@@ -417,8 +417,7 @@ def ocx_schemas():
 
 @pytest.fixture(scope="session")
 def ocx():
-    """Instantiated API client
-    """
+    """Instantiated API client"""
     with mock_requests(SCHEMA_ROUTES):
         return Api(
             api_key="1eab4217d30d42849dbde0cd1bb94e39",

@@ -202,7 +202,7 @@ def test_standard_uploads(
     runner, mocked_creds_path, caplog, generate_fastq, upload_mocks, files, threads
 ):
     """Test single and multi file uploads, with and without threads
-       (but not files >5GB)
+    (but not files >5GB)
     """
     with runner.isolated_filesystem(), mock.patch(
         "onecodex.models.Projects.get", side_effect=lambda _: None
