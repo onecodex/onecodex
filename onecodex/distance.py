@@ -140,7 +140,11 @@ class DistanceMixin(TaxonomyMixin):
             )
         else:
             return skbio.diversity.beta_diversity(
-                BetaDiversityMetric.UnweightedUnifrac, df, df.index, tree=new_tree, otu_ids=tax_ids,
+                BetaDiversityMetric.UnweightedUnifrac,
+                df,
+                df.index,
+                tree=new_tree,
+                otu_ids=tax_ids,
             )
 
     def aitchison_distance(self, rank=Rank.Auto):
