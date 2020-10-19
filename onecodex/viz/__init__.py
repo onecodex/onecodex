@@ -109,11 +109,21 @@ def configure_onecodex_theme(altair_module=None):
 
     # Render using `altair_saver` if installed (report environment only, requires node deps)
     if "altair_saver" in altair_module.renderers.names():
+        # Filter out vega-lite warning about boxplots not yet supporting selection (DEV-4237). This
+        # can be removed when vega-lite adds selection support to boxplots:
+        #
+        # - https://github.com/vega/vega-lite/issues/3702
+        # - https://github.com/altair-viz/altair/issues/2232
+        def stderr_filter(line):
+            """Return ``True`` if stderr line should be displayed."""
+            return "Selection not supported for boxplot yet" not in line
+
         altair_module.renderers.enable(
             "altair_saver",
             fmts=["html", "svg"],
             embed_options=VEGAEMBED_OPTIONS,
             vega_cli_options=["--loglevel", "error"],
+            stderr_filter=stderr_filter,
         )
     else:
         altair_module.renderers.enable("html", embed_options=VEGAEMBED_OPTIONS)
