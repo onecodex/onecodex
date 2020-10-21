@@ -191,7 +191,7 @@ class VizMetadataMixin(object):
 
             n_boxes = len(df[magic_fields[haxis]].unique())
 
-            if (n_boxes * (box_size + increment)) > width:
+            if width and width != "container" and (n_boxes * (box_size + increment)) > width:
                 box_size = ((width / n_boxes) // increment) * increment - increment
 
             chart = (
