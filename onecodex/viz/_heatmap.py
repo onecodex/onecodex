@@ -218,7 +218,9 @@ class VizHeatmapMixin(object):
         )
 
         if haxis:
-            alt_kwargs["column"] = haxis
+            alt_kwargs["column"] = alt.Column(
+                haxis, header=alt.Header(titleOrient="bottom", labelOrient="bottom")
+            )
 
         chart = (
             alt.Chart(df)
