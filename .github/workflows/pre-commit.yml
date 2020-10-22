@@ -10,7 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      -  uses: actions/setup-python@v1
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          # Using 3.8 for now because core dependencies (e.g. numpy) are missing wheel builds for
+          # 3.9, and we get errors while building the wheels from a source install.
+          python-version: 3.8
       - name: Display Python version
         run: python -c "import sys; print(sys.version)"
       - name: Install dependencies in a venv
