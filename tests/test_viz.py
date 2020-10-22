@@ -1,8 +1,13 @@
+import mock
 import pytest
 
+pytest.importorskip("numpy")  # noqa
 pytest.importorskip("pandas")  # noqa
 
+import numpy as np
+
 from onecodex.exceptions import OneCodexException, PlottingException, PlottingWarning
+from onecodex.models.collection import SampleCollection
 
 
 def test_altair_ocx_theme(ocx, api_data):
@@ -52,6 +57,20 @@ def test_plot_metadata(ocx, api_data):
     chart = samples.plot_metadata(
         vaxis="Faecalibacterium prausnitzii", plot_type="scatter", return_chart=True
     )
+    assert chart.mark == "circle"
+
+
+def test_plot_metadata_alpha_diversity_with_nans(ocx, api_data):
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+
+    mock_alpha_div_values = samples.alpha_diversity(metric="shannon")
+    mock_alpha_div_values.iat[1, 0] = np.nan
+    mock_alpha_div_values.iat[2, 0] = np.nan
+
+    with mock.patch.object(SampleCollection, "alpha_diversity", return_value=mock_alpha_div_values):
+        chart = samples.plot_metadata(vaxis="shannon", return_chart=True)
+
+    assert chart.data["shannon"].tolist() == [5.2120437645419395]
     assert chart.mark == "circle"
 
 
