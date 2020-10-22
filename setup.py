@@ -69,7 +69,7 @@ ALL_DEPS = [
     "scikit-bio>=0.5.0",
     "scikit-learn>=0.19.0",
 ]
-REPORT_DEPS = ALL_DEPS + ["notebook==6.0.3", "WeasyPrint==51", "altair_saver==0.5.0"]
+REPORT_DEPS = ALL_DEPS + ["notebook==6.0.3", "nbconvert<6", "WeasyPrint==51", "altair_saver==0.5.0"]
 
 
 setup(

@@ -185,7 +185,7 @@ To set up the project, first create a virtual environment and then install depen
 virtualenv venv
 source venv/bin/activate
 pip install numpy  # numpy must be installed before any of its dependencies
-pip install -r requirements.txt
+pip install -e .[all,testing,reports]  # -e specifies development mode so that the package doesn't have to be reinstalled after code edits
 ```
 
 Test are run through the Makefile, and call tox. Note this may take awhile at first because of installing dependencies:
