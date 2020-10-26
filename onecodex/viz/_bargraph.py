@@ -169,7 +169,9 @@ class VizBargraphMixin(object):
         kwargs = {}
 
         if haxis:
-            kwargs["column"] = haxis
+            kwargs["column"] = alt.Column(
+                haxis, header=alt.Header(titleOrient="bottom", labelOrient="bottom")
+            )
 
         domain = sorted(df["tax_name"].unique())
 
