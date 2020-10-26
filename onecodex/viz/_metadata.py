@@ -97,6 +97,7 @@ class VizMetadataMixin(object):
         if AlphaDiversityMetric.has_value(vaxis):
             df.loc[:, vaxis] = self.alpha_diversity(vaxis, rank=rank)
             magic_fields[vaxis] = vaxis
+            df.dropna(subset=[magic_fields[vaxis]], inplace=True)
         else:
             # if it's not alpha diversity, vertical axis can also be magically mapped
             vert_df, vert_magic_fields = self._metadata_fetch([vaxis])
