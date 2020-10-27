@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.9.4] - 2020-10-27
+
+### Added
+
+- Adds Aitchison distance and supports `manhattan` as a synonym for `cityblock`
+
+### Changed
+
+- Ignores vega-lite warning about boxplots not supporting selection
+- Displays facet field name and values below x-axis for taxa barplot and heatmap
+- Filters out NaNs from alpha diversity plots
+
+### Fixed
+
+- Improves support for networks with a custom CA
+- Fixes support for responsive plots (`width=None` and `width="container"` in `plot_metadata`)
+
 ## [v0.9.3] - 2020-08-06
 
 ### Changed
