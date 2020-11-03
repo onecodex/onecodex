@@ -6,7 +6,7 @@ import pytest
 from click import BadParameter
 
 from onecodex.api import Api
-from onecodex.utils import snake_case, check_for_allowed_file, valid_api_key
+from onecodex.utils import snake_case, check_for_allowed_file, valid_api_key, has_missing_values
 
 
 def test_check_allowed_file():
@@ -69,3 +69,18 @@ def test_custom_ca_bundle(runner, api_data):
         classifications = ocx.Classifications.all()
         assert merge_env.call_count >= 1
         assert len(classifications) >= 1
+
+
+def test_has_missing_values():
+    pytest.importorskip("numpy")
+    pytest.importorskip("pandas")
+
+    import numpy as np
+    import pandas as pd
+
+    assert has_missing_values(pd.Series([1, np.nan, 2]))
+    assert has_missing_values(pd.Series([np.nan, np.nan]))
+    assert not has_missing_values(pd.Series([1, 2, 3]))
+
+    assert has_missing_values(pd.DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", None]}))
+    assert not has_missing_values(pd.DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", "c"]}))

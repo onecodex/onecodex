@@ -500,3 +500,7 @@ def is_continuous(series):
         or pd.api.types.is_categorical_dtype(series)  # noqa
         or pd.api.types.is_object_dtype(series)  # noqa
     )
+
+
+def has_missing_values(dataframe_or_series):
+    return dataframe_or_series.isnull().values.any()

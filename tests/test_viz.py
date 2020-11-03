@@ -8,6 +8,7 @@ import numpy as np
 
 from onecodex.exceptions import OneCodexException, PlottingException, PlottingWarning
 from onecodex.models.collection import SampleCollection
+from onecodex.utils import has_missing_values
 
 
 def test_altair_ocx_theme(ocx, api_data):
@@ -152,6 +153,34 @@ def test_plot_pca(ocx, api_data):
     assert vectors.data["x"].sum().round(6) == 0.145172
     assert vectors.data["y"].sum().round(6) == 0.039944
     assert vectors.data["o"].tolist() == [0, 1, 0, 1, 0, 1]
+
+
+def test_plot_pca_color_by_bool_field(ocx, api_data):
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+    assert samples.metadata["wheat"].dtype == bool
+
+    chart = samples.plot_pca(color="wheat", return_chart=True)
+    color = chart.encoding.color
+
+    assert color.shorthand == "wheat"
+    assert color.legend.title == "wheat"
+    assert color.scale.domain.dtype == object
+    assert len(color.scale.domain) == 3
+    assert len(color.scale.range) == 2
+
+
+def test_plot_pca_color_by_field_with_nans(ocx, api_data):
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+    assert has_missing_values(samples.metadata["name"])
+
+    chart = samples.plot_pca(color="name", return_chart=True)
+    color = chart.encoding.color
+
+    assert color.shorthand == "name"
+    assert color.legend.title == "name"
+    assert color.scale.domain.dtype == object
+    assert len(color.scale.domain) == 3
+    assert len(color.scale.range) == 1
 
 
 def test_plot_pca_exceptions(ocx, api_data):
@@ -325,6 +354,34 @@ def test_plot_mds(ocx, api_data, metric, dissimilarity_metric, smacof):
         method="smacof", rank="species", metric=dissimilarity_metric, return_chart=True
     )
     assert (chart.data["MDS1"] * chart.data["MDS2"]).sum().round(4) == smacof
+
+
+def test_plot_mds_color_by_bool_field(ocx, api_data):
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+    assert samples.metadata["wheat"].dtype == bool
+
+    chart = samples.plot_mds(color="wheat", return_chart=True)
+    color = chart.encoding.color
+
+    assert color.shorthand == "wheat"
+    assert color.legend.title == "wheat"
+    assert color.scale.domain.dtype == object
+    assert len(color.scale.domain) == 3
+    assert len(color.scale.range) == 2
+
+
+def test_plot_mds_color_by_field_with_nans(ocx, api_data):
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+    assert has_missing_values(samples.metadata["name"])
+
+    chart = samples.plot_mds(color="name", return_chart=True)
+    color = chart.encoding.color
+
+    assert color.shorthand == "name"
+    assert color.legend.title == "name"
+    assert color.scale.domain.dtype == object
+    assert len(color.scale.domain) == 3
+    assert len(color.scale.range) == 1
 
 
 def test_plot_pcoa(ocx, api_data):
