@@ -1,6 +1,11 @@
 from onecodex.exceptions import OneCodexException, PlottingException
 from onecodex.lib.enums import AbundanceMetric, Rank, Metric
-from onecodex.viz._primitives import interleave_palette, prepare_props, sort_helper
+from onecodex.viz._primitives import (
+    interleave_palette,
+    prepare_props,
+    sort_helper,
+    get_base_classification_url,
+)
 
 
 class VizBargraphMixin(object):
@@ -202,6 +207,7 @@ class VizBargraphMixin(object):
 
         chart = (
             alt.Chart(df)
+            .transform_calculate(url=get_base_classification_url() + alt.datum.classification_id)
             .mark_bar()
             .encode(
                 x=alt.X("Label", axis=alt.Axis(title=xlabel), sort=sort_order),

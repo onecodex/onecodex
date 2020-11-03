@@ -1,7 +1,12 @@
+import os
 from itertools import chain
 from math import ceil
 
 from onecodex.exceptions import OneCodexException
+
+
+def get_base_classification_url():
+    return os.environ.get("ONE_CODEX_API_BASE", "https://app.onecodex.com") + "/classification/"
 
 
 def sort_helper(sort, values):

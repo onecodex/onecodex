@@ -2,7 +2,7 @@ import warnings
 
 from onecodex.lib.enums import AlphaDiversityMetric, Rank, BaseEnum
 from onecodex.exceptions import OneCodexException, PlottingException, PlottingWarning
-from onecodex.viz._primitives import prepare_props, sort_helper
+from onecodex.viz._primitives import prepare_props, sort_helper, get_base_classification_url
 
 
 class PlotType(BaseEnum):
@@ -164,7 +164,7 @@ class VizMetadataMixin(object):
                 y=alt.Y(magic_fields[vaxis], axis=alt.Axis(title=ylabel)),
                 tooltip=["Label", "{}:Q".format(magic_fields[vaxis])],
                 href="url:N",
-                url="https://app.onecodex.com/classification/" + alt.datum.classification_id,
+                url=get_base_classification_url() + alt.datum.classification_id,
             )
 
             chart = (
