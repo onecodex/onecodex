@@ -1,5 +1,5 @@
 from onecodex.lib.enums import Rank
-from onecodex.viz._primitives import interleave_palette, prepare_props
+from onecodex.viz._primitives import interleave_palette, prepare_props, get_base_classification_url
 from onecodex.exceptions import OneCodexException, PlottingException
 from onecodex.utils import is_continuous
 
@@ -135,7 +135,7 @@ class VizPCAMixin(object):
             y=alt.Y("PC2", axis=alt.Axis(title=ylabel)),
             tooltip=[magic_fields[t] for t in tooltip],
             href="url:N",
-            url="https://app.onecodex.com/classification/" + alt.datum.classification_id,
+            url=get_base_classification_url() + alt.datum.classification_id,
         )
 
         # only add these parameters if they are in use

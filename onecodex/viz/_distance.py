@@ -5,7 +5,7 @@ import warnings
 from onecodex.lib.enums import BetaDiversityMetric, Rank, Linkage, OrdinationMethod
 from onecodex.exceptions import OneCodexException, PlottingException
 from onecodex.distance import DistanceMixin
-from onecodex.viz._primitives import interleave_palette, prepare_props
+from onecodex.viz._primitives import interleave_palette, prepare_props, get_base_classification_url
 from onecodex.utils import is_continuous
 
 
@@ -189,7 +189,7 @@ class VizDistanceMixin(DistanceMixin):
             color="Distance:Q",
             tooltip=list(chain.from_iterable(formatted_fields)) + ["Distance:Q"],
             href="url:N",
-            url="https://app.onecodex.com/classification/" + alt.datum.classification_id,
+            url=get_base_classification_url() + alt.datum.classification_id,
         )
 
         chart = (
@@ -383,7 +383,7 @@ class VizDistanceMixin(DistanceMixin):
             y=alt.Y(y_field, axis=alt.Axis(title=ylabel)),
             tooltip=[magic_fields[t] for t in tooltip],
             href="url:N",
-            url="https://app.onecodex.com/classification/" + alt.datum.classification_id,
+            url=get_base_classification_url() + alt.datum.classification_id,
         )
 
         # only add these parameters if they are in use

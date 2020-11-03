@@ -1,6 +1,6 @@
 from onecodex.lib.enums import Rank, Linkage
 from onecodex.exceptions import OneCodexException, PlottingException
-from onecodex.viz._primitives import prepare_props, sort_helper
+from onecodex.viz._primitives import prepare_props, sort_helper, get_base_classification_url
 
 
 class VizHeatmapMixin(object):
@@ -214,7 +214,7 @@ class VizHeatmapMixin(object):
             color=alt.Color("{}:Q".format(df.ocx.metric), legend=alt.Legend(title=legend)),
             tooltip=tooltip_for_altair,
             href="url:N",
-            url="https://app.onecodex.com/classification/" + alt.datum.classification_id,
+            url=get_base_classification_url() + alt.datum.classification_id,
         )
 
         if haxis:
