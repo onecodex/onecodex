@@ -1,7 +1,7 @@
 from onecodex.lib.enums import Rank
 from onecodex.viz._primitives import interleave_palette, prepare_props, get_base_classification_url
 from onecodex.exceptions import OneCodexException, PlottingException
-from onecodex.utils import is_continuous
+from onecodex.utils import is_continuous, has_missing_values
 
 
 class VizPCAMixin(object):
@@ -140,11 +140,12 @@ class VizPCAMixin(object):
 
         # only add these parameters if they are in use
         if color:
-            domain = magic_metadata[color].values
             color_kwargs = {
                 "legend": alt.Legend(title=magic_fields[color]),
             }
-            if not is_continuous(domain):
+            if not is_continuous(plot_data[color]) or has_missing_values(plot_data[color]):
+                plot_data[color] = plot_data[color].fillna("N/A").astype(str)
+                domain = plot_data[color].values
                 color_range = interleave_palette(domain)
                 color_kwargs["scale"] = alt.Scale(domain=domain, range=color_range)
 
