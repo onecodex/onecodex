@@ -203,7 +203,7 @@ class VizDistanceMixin(DistanceMixin):
             .encode(**alt_kwargs)
         )
 
-        chart = chart.properties(**prepare_props(title=title, height=height, width=width))
+        chart = chart.properties(**prepare_props(height=height, width=width))
 
         dendro_chart = dendrogram(clust["scipy_tree"])
 
@@ -211,10 +211,14 @@ class VizDistanceMixin(DistanceMixin):
             cell_height = height / len(clust["dist_matrix"].index)
             dendro_chart = dendro_chart.properties(height=height - cell_height / 2)
 
+        title_kwargs = prepare_props(title=title)
+        concat_chart = alt.hconcat(dendro_chart, chart, spacing=0, **title_kwargs).configure_view(
+            strokeWidth=0
+        )
         if return_chart:
-            return dendro_chart | chart
+            return concat_chart
         else:
-            (dendro_chart | chart).display()
+            concat_chart.display()
 
     def plot_pcoa(self, *args, **kwargs):
         return self.plot_mds(*args, method=OrdinationMethod.Pcoa, **kwargs)
