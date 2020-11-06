@@ -186,7 +186,7 @@ class VizDistanceMixin(DistanceMixin):
             y=alt.Y(
                 "2) Label:N", axis=alt.Axis(title=ylabel, orient="right"), sort=labels_in_order
             ),
-            color="Distance:Q",
+            color=alt.Color("Distance:Q", legend=alt.Legend(title="Distance")),
             tooltip=list(chain.from_iterable(formatted_fields)) + ["Distance:Q"],
             href="url:N",
             url=get_base_classification_url() + alt.datum.classification_id,
