@@ -247,6 +247,9 @@ def test_empty_upload(runner, mocked_creds_path, upload_mocks):
         (["test.fq"], 1),
         # 2 files, 1 sample
         (["test_R1.fq", "test_R2.fq"], 1),
+        (["test_1.fq", "test_2.fq"], 1),
+        (["test_1_1.fq", "test_1_2.fq"], 1),
+        (["test_S1_L001_R1_001.fastq.gz", "test_S1_L001_R2_001.fastq.gz"], 1),
         # 3 files, 2 samples
         (["test_R1.fq", "test_R2.fq", "other.fq"], 2),
     ],
