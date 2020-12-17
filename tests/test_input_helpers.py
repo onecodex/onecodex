@@ -82,12 +82,12 @@ def test_concatenate_multiline_files(generate_fastq):
         generate_fastq("Sample2_L003.fq"),
     ]
     non_multiline = [("Sample3_R1.fq", "Sample3_R2.fq"), "Sample3.fq"]
-    files = [*pairs, *singles, *non_multiline]
+    files = pairs + singles + non_multiline
 
     concatenated = concatenate_multiline_files(files, prompt=False)
 
     basenames = _get_basenames(concatenated)
-    assert basenames == [*non_multiline, "Sample2.fq", ("Sample1_R1.fq", "Sample1_R2.fq")]
+    assert basenames == non_multiline + ["Sample2.fq", ("Sample1_R1.fq", "Sample1_R2.fq")]
 
     with open(concatenated[len(non_multiline)], "r") as inf:
         assert inf.read() == len(singles) * FASTQ_SEQUENCE
