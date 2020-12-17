@@ -474,13 +474,33 @@ TTTCCGGGGCACATAATCTTCAGCCGGGCGC
 9C;=;=<9@4868>9:67AA<9>65<=>591"""
 
 
+@contextmanager
+def path_for_filename(tmp_path, runner, filename):
+    path = os.path.join(str(tmp_path), filename)
+    parent_dir = os.path.dirname(path)
+    with runner.isolated_filesystem():
+        if not os.path.exists(parent_dir):
+            os.makedirs(parent_dir)
+        yield path
+
+
 @pytest.fixture
 def generate_fastq(tmp_path, runner):
     def fn(filename):
-        path = str(tmp_path / filename)
-        with runner.isolated_filesystem():
+        with path_for_filename(tmp_path, runner, filename) as path:
             with open(path, "w") as fout:
                 fout.write(FASTQ_SEQUENCE)
-        return path
+            return path
+
+    yield fn
+
+
+@pytest.fixture
+def generate_fastq_gz(tmp_path, runner):
+    def fn(filename):
+        with path_for_filename(tmp_path, runner, filename) as path:
+            with gzip.open(path, "w") as fout:
+                fout.write(FASTQ_SEQUENCE.encode("utf-8"))
+            return path
 
     yield fn
