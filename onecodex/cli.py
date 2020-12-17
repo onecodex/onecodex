@@ -5,7 +5,6 @@ import dateutil
 from functools import partial
 import logging
 import os
-import re
 import time
 import warnings
 
@@ -28,6 +27,7 @@ from onecodex.utils import (
     warn_if_insecure_platform,
     telemetry,
 )
+from onecodex.input_helpers import auto_detect_pairs, concatenate_multiline_files
 from onecodex.version import __version__
 
 
@@ -400,60 +400,17 @@ def upload(
         click.echo(ctx.get_help())
         return
     else:
-        files = list(files)
-
-        # "intelligently" find paired files and tuple them
-        paired_files = []
-        single_files = set(files)
-
-        if single_files.symmetric_difference(files):
+        files_set = set(files)
+        if files_set.symmetric_difference(files):
             click.echo(
                 "Duplicate filenames detected in command line--please specific each file only once",
                 err=True,
             )
             ctx.exit(1)
 
-        for filename in files:
-            # convert "read 1" filenames into "read 2" and check that they exist; if they do
-            # upload the files as a pair, autointerleaving them
-            pair = re.sub(r"([._][Rr])1([._][\w.]+)$", r"\g<1>2\g<2>", filename)
-            pair = re.sub(r"([._])1([._][\D._]+)$", r"\g<1>2\g<2>", pair)
+        files = auto_detect_pairs(files, prompt)
 
-            # we don't necessary need the R2 to have been passed in; we infer it anyways
-            if pair != filename and os.path.exists(pair):
-                if not prompt and pair not in single_files:
-                    # if we're not prompting, don't automatically pull in files
-                    # not in the list the user passed in
-                    continue
-
-                paired_files.append((filename, pair))
-
-                if pair in single_files:
-                    single_files.remove(pair)
-
-                single_files.remove(filename)
-
-        auto_pair = True
-
-        if prompt and len(paired_files) > 0:
-            pair_list = ""
-            for p in paired_files:
-                pair_list += "\n  {}  &  {}".format(os.path.basename(p[0]), os.path.basename(p[1]))
-
-            answer = click.confirm(
-                "It appears there are {n_paired_files} paired files (of {n_files} total):{pair_list}\nInterleave them after upload?".format(
-                    n_paired_files=len(paired_files) * 2,
-                    n_files=len(paired_files) * 2 + len(single_files),
-                    pair_list=pair_list,
-                ),
-                default="Y",
-            )
-
-            if not answer:
-                auto_pair = False
-
-        if auto_pair:
-            files = paired_files + list(single_files)
+    files = concatenate_multiline_files(files, prompt)
 
     total_size = sum(
         [
