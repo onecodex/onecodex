@@ -181,9 +181,8 @@ def concatenate_multiline_files(files, prompt):
     perform_concat = True
     if prompt:
         answer = click.confirm(
-            (
-                f"It appears there are {len(groups)} group(s) of multiline files.\n"
-                "Concatenate them before upload?"
+            "It appears there are {n_groups} group(s) of multiline files.\nConcatenate them before upload?".format(
+                n_groups=len(groups)
             ),
             default="Y",
         )
