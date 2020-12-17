@@ -5,7 +5,7 @@ import shutil
 import tempfile
 
 
-def auto_detect_pairs(files: list, prompt: bool) -> list:
+def auto_detect_pairs(files, prompt):
     """Group paired-end files into tuples in the files list.
 
     Returns the files list with paired-end files represented as tuples on that list.
@@ -61,7 +61,7 @@ def auto_detect_pairs(files: list, prompt: bool) -> list:
         return files
 
 
-def _find_multiline_groups(files) -> list:
+def _find_multiline_groups(files):
     """Find a list of multiline file groups eligible for concatenation.
 
     The files are grouped based on filename (e.g. `Sample_R1_L001.fq`, `Sample_R1_L002.fq`).
@@ -77,14 +77,14 @@ def _find_multiline_groups(files) -> list:
     (for paired-end reads). The files are in proper order, concatenation-ready.
     """
 
-    pattern_multiline = re.compile("[._]L(\d+)[._]")
-    pattern_pair_line_combo = re.compile("([._][rR][12])?[._]L\d+[._]([rR][12])?")
+    pattern_multiline = re.compile(r"[._]L(\d+)[._]")
+    pattern_pair_line_combo = re.compile(r"([._][rR][12])?[._]L\d+[._]([rR][12])?")
 
-    def _group_for(file_path: str) -> str:
+    def _group_for(file_path):
         """Create group names by removing Lx and Rx elements from the filename."""
         return re.sub(pattern_pair_line_combo, '', os.path.basename(file_path))
 
-    def _create_group_map(elem_list: list, paired: bool) -> map:
+    def _create_group_map(elem_list, paired):
         """Create multiline file groups with elements in proper order based on file list."""
         # Create groups for the multiline files
         group_map = {}
@@ -103,7 +103,7 @@ def _find_multiline_groups(files) -> list:
         else:
             return {group: sorted(elems) for group, elems in group_map.items() if len(elems) > 1}
     
-    def _with_gaps_removed(group_map: map, paired: bool) -> map:
+    def _with_gaps_removed(group_map, paired):
         """Return a new map having groups with gaps in elements removed."""
         gapped_groups = []
         for group, elems in group_map.items():
@@ -141,7 +141,7 @@ def _find_multiline_groups(files) -> list:
     return multiline_groups
 
 
-def concatenate_multiline_files(files: list, prompt: bool) -> list:
+def concatenate_multiline_files(files, prompt):
     """Concatenate multiline files before uploading.
 
     The files are grouped based on filename. If `prompt` is set to True, the user 
@@ -154,7 +154,7 @@ def concatenate_multiline_files(files: list, prompt: bool) -> list:
     concatenated file.
     """
 
-    def _concatenate_group(group: list, first_elem: str) -> str:
+    def _concatenate_group(group, first_elem):
         """Concatenate all the files on the list and return the target file path."""
         target_file_name = re.sub(pattern_line_num, r"\1", os.path.basename(first_elem))
         target_path = os.path.join(tempfile.gettempdir(), target_file_name)
@@ -188,7 +188,7 @@ def concatenate_multiline_files(files: list, prompt: bool) -> list:
         return files
 
     files = files[:]
-    pattern_line_num = re.compile("[._]L\d+([._])")
+    pattern_line_num = re.compile(r"[._]L\d+([._])")
 
     for group in groups:
         first_elem = group[0]
