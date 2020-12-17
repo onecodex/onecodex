@@ -137,9 +137,6 @@ def _find_multiline_groups(files) -> list:
 
     multiline_groups = list(multiline_singles.values())
     multiline_groups.extend(list(multiline_pairs.values()))
-    # for _, elems in multiline_pairs.items():
-    #     multiline_groups.append([fwd for fwd, _ in elems])
-    #     multiline_groups.append([rev for _, rev in elems])
 
     return multiline_groups
 
