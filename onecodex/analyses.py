@@ -306,7 +306,8 @@ class AnalysisMixin(
 
         if normalize is True or (normalize == "auto" and rank):
             if not self._guess_normalized():
-                df = df.div(df.sum(axis=1), axis=0)
+                # Replace nans with zeros for samples that have a total abundance of zero.
+                df = df.div(df.sum(axis=1), axis=0).fillna(0.0)
 
         # remove columns (tax_ids) with no values that are > 0
         if remove_zeros:
