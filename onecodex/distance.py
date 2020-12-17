@@ -67,22 +67,60 @@ class DistanceMixin(TaxonomyMixin):
                 )
             )
 
-        df = self.to_df(rank=rank, normalize=self._guess_normalized())
-
         if metric == BetaDiversityMetric.WeightedUnifrac:
             return self.unifrac(weighted=True, rank=rank)
         elif metric == BetaDiversityMetric.UnweightedUnifrac:
             return self.unifrac(weighted=False, rank=rank)
-        elif metric == BetaDiversityMetric.Jaccard:
-            df = df > 0  # Jaccard requires a boolean matrix, otherwise it throws a warning
         elif metric == BetaDiversityMetric.Aitchison:
             return self.aitchison_distance(rank=rank)
+
+        df = self.to_df(rank=rank, normalize=self._guess_normalized())
+
+        if metric == BetaDiversityMetric.Jaccard:
+            df = df > 0  # Jaccard requires a boolean matrix, otherwise it throws a warning
 
         # NOTE: see #291 for a discussion on using these metrics with normalized read counts. we are
         # explicitly disabling skbio's check for a counts matrix to allow normalized data to make
         # its way into this function.
         skbio_metric = "cityblock" if metric == "manhattan" else metric
-        return skbio.diversity.beta_diversity(skbio_metric, df.values, df.index, validate=False)
+        return skbio.diversity.beta_diversity(
+            skbio_metric,
+            df.values,
+            df.index,
+            validate=False,
+            pairwise_func=self._pairwise_distances,
+        )
+
+    def _pairwise_distances(self, abundances, metric):
+        import numpy as np
+        from scipy.spatial.distance import pdist, squareform
+
+        # We're using scipy's `pdist` to compute pairwise distances because it only computes one
+        # triangle of distances. `pdist` used to be scikit-bio's default, but
+        # `sklearn.metrics.pairwise_distances` is the default in more recent versions of scikit-bio.
+        # sklearn's `pairwise_distances` function computes both lower and upper triangles and can
+        # result in an asymmetric matrix due to floating-point/roundoff error, which causes
+        # `skbio.DistanceMatrix` to raise an error about symmetry. We've seen this happen to users
+        # when computing cityblock distances from normalized abundances.
+        distance_matrix = squareform(
+            pdist(abundances, metric=metric), force="tomatrix", checks=False
+        )
+
+        # Bray-Curtis can return nan distances when comparing samples with all zero abundances (e.g.
+        # [0, 0, 0] vs [0, 0, 0]). We replace nan distances with zero because:
+        #
+        # 1) this is a reasonable substitute value (R packages do this by default)
+        # 2) it matches how the other distance metrics behave in this case
+        # 3) it prevents `skbio.DistanceMatrix` from erroring out on nan values
+        nan_distances = np.isnan(distance_matrix)
+        if (
+            metric == BetaDiversityMetric.BrayCurtis
+            and nan_distances.any()
+            and (abundances >= 0.0).all()
+        ):
+            distance_matrix[nan_distances] = 0.0
+
+        return distance_matrix
 
     def unifrac(self, weighted=True, rank=Rank.Auto):
         """Calculate the UniFrac beta diversity metric.
