@@ -66,12 +66,12 @@ def _find_multiline_groups(files):
 
     The files are grouped based on filename (e.g. `Sample_R1_L001.fq`, `Sample_R1_L002.fq`).
     If there is a gap in the sequence (e.g. [`Sample_R1_L001.fq`, `Sample_R1_L003.fq`]), the group
-    is skipped. If there is a mismatch in forward and reverse file sequence (e.g. 
+    is skipped. If there is a mismatch in forward and reverse file sequence (e.g.
     [(`Sample_R1_L001.fq`, `Sample_R2_L001.fq`), `Sample_R2_L002.fq`]), the group is skipped.
     If the sequence doesn't begin with `L001`, the group is skipped.
 
     This function assumes that the paired-end file tuples on the list are properly matched.
-    
+
     The result is a list of lists, with each nested list representing a single multiline
     file group concisting of either string filenames (for single read files) or tuples
     (for paired-end reads). The files are in proper order, concatenation-ready.
@@ -82,7 +82,7 @@ def _find_multiline_groups(files):
 
     def _group_for(file_path):
         """Create group names by removing Lx and Rx elements from the filename."""
-        return re.sub(pattern_pair_line_combo, '', os.path.basename(file_path))
+        return re.sub(pattern_pair_line_combo, "", os.path.basename(file_path))
 
     def _create_group_map(elem_list, paired):
         """Create multiline file groups with elements in proper order based on file list."""
@@ -96,13 +96,17 @@ def _find_multiline_groups(files):
                     group_map[group].append(elem)
                 else:
                     group_map[group] = [elem]
-        
+
         # Only multifile groups are returned
         if paired:
-            return {group: sorted(elems, key=lambda x: x[0]) for group, elems in group_map.items() if len(elems) > 1}
+            return {
+                group: sorted(elems, key=lambda x: x[0])
+                for group, elems in group_map.items()
+                if len(elems) > 1
+            }
         else:
             return {group: sorted(elems) for group, elems in group_map.items() if len(elems) > 1}
-    
+
     def _with_gaps_removed(group_map, paired):
         """Return a new map having groups with gaps in elements removed."""
         gapped_groups = []
@@ -122,7 +126,7 @@ def _find_multiline_groups(files):
 
     multiline_pairs = _create_group_map(paired_files, paired=True)
     multiline_singles = _create_group_map(single_files, paired=False)
-    
+
     # Search for unmatched files for paired end multiline files and remove offending groups,
     # e.g. [(Sample_R1_L001.fq, Sample_R2_L001.fq), Sample_R2_L002.fq]
     for filename in single_files:
@@ -130,7 +134,7 @@ def _find_multiline_groups(files):
             group = _group_for(filename)
             if group in multiline_pairs:
                 del multiline_pairs[group]
-    
+
     # Remove groups with gaps, e.g. [`Sample_R1_L001.fq`, `Sample_R1_L003.fq`]
     multiline_pairs = _with_gaps_removed(multiline_pairs, paired=True)
     multiline_singles = _with_gaps_removed(multiline_singles, paired=False)
@@ -144,13 +148,13 @@ def _find_multiline_groups(files):
 def concatenate_multiline_files(files, prompt):
     """Concatenate multiline files before uploading.
 
-    The files are grouped based on filename. If `prompt` is set to True, the user 
+    The files are grouped based on filename. If `prompt` is set to True, the user
     is asked whether this should happen first.
-    
+
     The concatenated files replace the matched sequence files. They're put in a temporary
     directory and overwrite any existing files.
 
-    Returns a new list with multiline groups replaced with a path to the single 
+    Returns a new list with multiline groups replaced with a path to the single
     concatenated file.
     """
 
@@ -158,7 +162,7 @@ def concatenate_multiline_files(files, prompt):
         """Concatenate all the files on the list and return the target file path."""
         target_file_name = re.sub(pattern_line_num, r"\1", os.path.basename(first_elem))
         target_path = os.path.join(tempfile.gettempdir(), target_file_name)
-        
+
         # Overwriting all files by default
         if os.path.exists(target_path):
             os.remove(target_path)
@@ -170,20 +174,22 @@ def concatenate_multiline_files(files, prompt):
         return target_path
 
     groups = _find_multiline_groups(files)
-    
+
     if not groups:
         return files
 
     perform_concat = True
     if prompt:
         answer = click.confirm(
-            f"It appears there are {len(groups)} group(s) of multiline files.\n"
-            "Concatenate them before upload?",
+            (
+                f"It appears there are {len(groups)} group(s) of multiline files.\n"
+                "Concatenate them before upload?"
+            ),
             default="Y",
         )
         if not answer:
             perform_concat = False
-    
+
     if not perform_concat:
         return files
 
@@ -202,5 +208,5 @@ def concatenate_multiline_files(files, prompt):
 
         for elem in group:
             files.remove(elem)
-    
+
     return files
