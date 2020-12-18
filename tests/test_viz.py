@@ -61,6 +61,26 @@ def test_plot_metadata(ocx, api_data):
     assert chart.mark == "circle"
 
 
+def test_plot_metadata_facet_by_scatter(ocx, api_data):
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+
+    chart = samples.plot_metadata(vaxis="shannon", facet_by="geo_loc_name", return_chart=True)
+
+    assert chart.mark == "circle"
+    assert chart.encoding.x.axis.title == ""
+
+
+def test_plot_metadata_facet_by_boxplot(ocx, api_data):
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+
+    chart = samples.plot_metadata(
+        vaxis="shannon", haxis="starred", facet_by="geo_loc_name", return_chart=True
+    )
+
+    assert chart.mark.type == "boxplot"
+    assert chart.encoding.x.axis.title == ""
+
+
 def test_plot_metadata_alpha_diversity_with_nans(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
 

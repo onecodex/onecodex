@@ -26,6 +26,7 @@ class VizMetadataMixin(object):
         sort_x=None,
         width=200,
         height=400,
+        facet_by=None,
     ):
         """Plot an arbitrary metadata field versus an arbitrary quantity as a boxplot or scatter plot.
 
@@ -68,10 +69,14 @@ class VizMetadataMixin(object):
             Either a list of sorted labels or a function that will be called with a list of x-axis labels
             as the only argument, and must return the same list in a user-specified order.
 
+        facet_by : `string`, optional
+            The metadata field used to facet samples by (i.e. to create a separate subplot for each
+            group of samples).
+
         Examples
         --------
         Generate a boxplot of the abundance of Bacteroides (genus) of samples grouped by whether the
-        individuals are allergy to dogs, cats, both, or neither.
+        individuals are allergic to dogs, cats, both, or neither.
 
         >>> plot_metadata(haxis=('allergy_dogs', 'allergy_cats'), vaxis='Bacteroides')
         """
@@ -92,7 +97,10 @@ class VizMetadataMixin(object):
             )
 
         # alpha diversity is only allowed on vertical axis--horizontal can be magically mapped
-        df, magic_fields = self._metadata_fetch([haxis, "Label"], label=label)
+        metadata_fields = [haxis, "Label"]
+        if facet_by:
+            metadata_fields.append(facet_by)
+        df, magic_fields = self._metadata_fetch(metadata_fields, label=label)
 
         if AlphaDiversityMetric.has_value(vaxis):
             df.loc[:, vaxis] = self.alpha_diversity(vaxis, rank=rank)
@@ -149,22 +157,33 @@ class VizMetadataMixin(object):
             )
 
         if xlabel is None:
-            xlabel = magic_fields[haxis]
+            if facet_by:
+                xlabel = ""
+            else:
+                xlabel = magic_fields[haxis]
 
         if ylabel is None:
             ylabel = magic_fields[vaxis]
+
+        alt_kwargs = {}
+        if facet_by:
+            alt_kwargs["column"] = alt.Column(
+                facet_by, header=alt.Header(titleOrient="bottom", labelOrient="bottom")
+            )
 
         if plot_type == "scatter":
             df = df.reset_index()
 
             sort_order = sort_helper(sort_x, df[magic_fields[haxis]].tolist())
 
-            alt_kwargs = dict(
-                x=alt.X(magic_fields[haxis], axis=alt.Axis(title=xlabel), sort=sort_order),
-                y=alt.Y(magic_fields[vaxis], axis=alt.Axis(title=ylabel)),
-                tooltip=["Label", "{}:Q".format(magic_fields[vaxis])],
-                href="url:N",
-                url=get_base_classification_url() + alt.datum.classification_id,
+            alt_kwargs.update(
+                dict(
+                    x=alt.X(magic_fields[haxis], axis=alt.Axis(title=xlabel), sort=sort_order),
+                    y=alt.Y(magic_fields[vaxis], axis=alt.Axis(title=ylabel)),
+                    tooltip=["Label", "{}:Q".format(magic_fields[vaxis])],
+                    href="url:N",
+                    url=get_base_classification_url() + alt.datum.classification_id,
+                )
             )
 
             chart = (
@@ -201,8 +220,12 @@ class VizMetadataMixin(object):
                 .encode(
                     x=alt.X(magic_fields[haxis], axis=alt.Axis(title=xlabel)),
                     y=alt.Y(magic_fields[vaxis], axis=alt.Axis(title=ylabel)),
+                    **alt_kwargs
                 )
             )
+
+        if facet_by:
+            chart = chart.resolve_scale(x="independent")
 
         chart = chart.properties(**prepare_props(title=title, height=height, width=width))
 
