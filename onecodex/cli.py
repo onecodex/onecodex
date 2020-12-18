@@ -27,7 +27,7 @@ from onecodex.utils import (
     warn_if_insecure_platform,
     telemetry,
 )
-from onecodex.input_helpers import auto_detect_pairs, concatenate_multiline_files
+from onecodex.input_helpers import auto_detect_pairs, concatenate_multilane_files
 from onecodex.version import __version__
 
 
@@ -410,7 +410,7 @@ def upload(
 
         files = auto_detect_pairs(files, prompt)
 
-    files = concatenate_multiline_files(files, prompt)
+    files = concatenate_multilane_files(files, prompt)
 
     total_size = sum(
         [

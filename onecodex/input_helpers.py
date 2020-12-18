@@ -3,6 +3,7 @@ import re
 import os
 import shutil
 import tempfile
+from collections import defaultdict
 
 
 def auto_detect_pairs(files, prompt):
@@ -61,8 +62,8 @@ def auto_detect_pairs(files, prompt):
         return files
 
 
-def _find_multiline_groups(files):
-    """Find a list of multiline file groups eligible for concatenation.
+def _find_multilane_groups(files):
+    """Find a list of multilane file groups eligible for concatenation.
 
     The files are grouped based on filename (e.g. `Sample_R1_L001.fq`, `Sample_R1_L002.fq`).
     If there is a gap in the sequence (e.g. [`Sample_R1_L001.fq`, `Sample_R1_L003.fq`]), the group
@@ -72,81 +73,83 @@ def _find_multiline_groups(files):
 
     This function assumes that the paired-end file tuples on the list are properly matched.
 
-    The result is a list of lists, with each nested list representing a single multiline
+    The result is a list of lists, with each nested list representing a single multilane
     file group concisting of either string filenames (for single read files) or tuples
     (for paired-end reads). The files are in proper order, concatenation-ready.
     """
 
-    pattern_multiline = re.compile(r"[._]L(\d+)[._]")
-    pattern_pair_line_combo = re.compile(r"([._][rR][12])?[._]L\d+[._]([rR][12])?")
+    pattern_multilane = re.compile(r"[._]L(\d+)[._]")
+    pattern_pair_lane_combo = re.compile(r"([._][rR][12])?[._]L\d+[._]([rR][12])?")
 
     def _group_for(file_path):
         """Create group names by removing Lx and Rx elements from the filename."""
-        return re.sub(pattern_pair_line_combo, "", os.path.basename(file_path))
+        return re.sub(pattern_pair_lane_combo, "", os.path.basename(file_path))
 
     def _create_group_map(elem_list, paired):
-        """Create multiline file groups with elements in proper order based on file list."""
-        # Create groups for the multiline files
-        group_map = {}
+        """Create multilane file groups with elements in proper order based on file list."""
+        # Create groups for the multilane files
+        group_map = defaultdict(list)
         for elem in elem_list:
             search_elem = elem if not paired else elem[0]
-            if pattern_multiline.search(search_elem):
+            if pattern_multilane.search(search_elem):
                 group = _group_for(search_elem)
-                if group in group_map:
-                    group_map[group].append(elem)
-                else:
-                    group_map[group] = [elem]
+                group_map[group].append(elem)
 
         # Only multifile groups are returned
-        if paired:
-            return {
-                group: sorted(elems, key=lambda x: x[0])
-                for group, elems in group_map.items()
-                if len(elems) > 1
-            }
-        else:
-            return {group: sorted(elems) for group, elems in group_map.items() if len(elems) > 1}
+        return {
+            group: sorted(elems, key=lambda x: x[0] if paired else x)
+            for group, elems in group_map.items()
+            if len(elems) > 1
+        }
 
     def _with_gaps_removed(group_map, paired):
         """Return a new map having groups with gaps in elements removed."""
-        gapped_groups = []
+        gapped_groups = set()
         for group, elems in group_map.items():
-            search_elems = elems if not paired else [e[0] for e in elems]
-            line_nums = [int(pattern_multiline.search(se).group(1)) for se in search_elems]
             # Verify we're getting 1, 2, 3, ...
-            for idx, elem in enumerate(line_nums, start=1):
-                if idx != elem:
-                    gapped_groups.append(group)
-                    break
+            expected_sequence = list(range(1, len(elems) + 1))
+            if paired:
+                fwd_nums = [
+                    int(pattern_multilane.search(se).group(1)) for se in [fwd for fwd, _ in elems]
+                ]
+                rev_nums = [
+                    int(pattern_multilane.search(se).group(1)) for se in [rev for _, rev in elems]
+                ]
+                if fwd_nums != expected_sequence or rev_nums != expected_sequence:
+                    gapped_groups.add(group)
+            else:
+                nums = [int(pattern_multilane.search(se).group(1)) for se in elems]
+                if nums != expected_sequence:
+                    gapped_groups.add(group)
 
         return {group: elems for group, elems in group_map.items() if group not in gapped_groups}
 
     single_files = [f for f in files if isinstance(f, str)]
     paired_files = [f for f in files if isinstance(f, tuple)]
 
-    multiline_pairs = _create_group_map(paired_files, paired=True)
-    multiline_singles = _create_group_map(single_files, paired=False)
+    multilane_pairs = _create_group_map(paired_files, paired=True)
+    multilane_singles = _create_group_map(single_files, paired=False)
 
-    # Search for unmatched files for paired end multiline files and remove offending groups,
+    # Search for unmatched files for paired end multilane files and remove offending groups,
     # e.g. [(Sample_R1_L001.fq, Sample_R2_L001.fq), Sample_R2_L002.fq]
     for filename in single_files:
-        if pattern_multiline.search(filename):
+        if pattern_multilane.search(filename):
             group = _group_for(filename)
-            if group in multiline_pairs:
-                del multiline_pairs[group]
+            if group in multilane_pairs:
+                del multilane_pairs[group]
 
     # Remove groups with gaps, e.g. [`Sample_R1_L001.fq`, `Sample_R1_L003.fq`]
-    multiline_pairs = _with_gaps_removed(multiline_pairs, paired=True)
-    multiline_singles = _with_gaps_removed(multiline_singles, paired=False)
+    multilane_pairs = _with_gaps_removed(multilane_pairs, paired=True)
+    multilane_singles = _with_gaps_removed(multilane_singles, paired=False)
 
-    multiline_groups = list(multiline_singles.values())
-    multiline_groups.extend(list(multiline_pairs.values()))
+    multilane_groups = list(multilane_singles.values())
+    multilane_groups.extend(list(multilane_pairs.values()))
 
-    return multiline_groups
+    return multilane_groups
 
 
-def concatenate_multiline_files(files, prompt):
-    """Concatenate multiline files before uploading.
+def concatenate_multilane_files(files, prompt):
+    """Concatenate multilane files before uploading.
 
     The files are grouped based on filename. If `prompt` is set to True, the user
     is asked whether this should happen first.
@@ -154,18 +157,16 @@ def concatenate_multiline_files(files, prompt):
     The concatenated files replace the matched sequence files. They're put in a temporary
     directory and overwrite any existing files.
 
-    Returns a new list with multiline groups replaced with a path to the single
+    Returns a new list with multilane groups replaced with a path to the single
     concatenated file.
     """
 
     def _concatenate_group(group, first_elem):
         """Concatenate all the files on the list and return the target file path."""
-        target_file_name = re.sub(pattern_line_num, r"\1", os.path.basename(first_elem))
+        target_file_name = re.sub(pattern_lane_num, r"\1", os.path.basename(first_elem))
         target_path = os.path.join(tempfile.gettempdir(), target_file_name)
 
         # Overwriting all files by default
-        if os.path.exists(target_path):
-            os.remove(target_path)
         with open(target_path, "wb") as outf:
             for fname in group:
                 with open(fname, "rb") as inf:
@@ -173,7 +174,7 @@ def concatenate_multiline_files(files, prompt):
                     shutil.copyfileobj(inf, outf)
         return target_path
 
-    groups = _find_multiline_groups(files)
+    groups = _find_multilane_groups(files)
 
     if not groups:
         return files
@@ -181,7 +182,7 @@ def concatenate_multiline_files(files, prompt):
     perform_concat = True
     if prompt:
         answer = click.confirm(
-            "It appears there are {n_groups} group(s) of multiline files.\nConcatenate them before upload?".format(
+            "It appears there are {n_groups} group(s) of multilane files.\nConcatenate them before upload?".format(
                 n_groups=len(groups)
             ),
             default="Y",
@@ -193,9 +194,10 @@ def concatenate_multiline_files(files, prompt):
         return files
 
     files = files[:]
-    pattern_line_num = re.compile(r"[._]L\d+([._])")
+    pattern_lane_num = re.compile(r"[._]L\d+([._])")
 
     for group in groups:
+        # The groups considered here will already have more than 1 element
         first_elem = group[0]
         if isinstance(first_elem, tuple):
             concat_fwd = _concatenate_group([fwd for fwd, _ in group], first_elem[0])

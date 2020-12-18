@@ -293,7 +293,7 @@ def test_paired_and_multiline_files(
         )
     if n_multiline_groups > 0:
         assert (
-            "It appears there are {} group(s) of multiline files.\nConcatenate them before upload?".format(
+            "It appears there are {} group(s) of multilane files.\nConcatenate them before upload?".format(
                 n_multiline_groups
             )
             in result.output
