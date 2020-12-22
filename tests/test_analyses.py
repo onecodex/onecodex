@@ -54,6 +54,17 @@ def test_guess_normalization(ocx, api_data):
     assert unnorm_results.ocx._guess_normalized() is False
 
 
+def test_normalization_with_zero_abundance_samples(ocx, api_data):
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+    samples._collate_results(metric="readcount_w_children")
+    samples._results.iloc[:2, :] = 0
+    assert not samples._guess_normalized()
+
+    df = samples.to_df(normalize=True)
+
+    assert list(df.sum(axis=1, skipna=False).round(6)) == [0.0, 0.0, 1.0]
+
+
 def test_metadata_fetch(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
 
