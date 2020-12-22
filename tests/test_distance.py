@@ -1,3 +1,4 @@
+import mock
 import pytest
 
 pytest.importorskip("pandas")  # noqa
@@ -5,6 +6,7 @@ import pandas as pd
 import skbio
 
 from onecodex.exceptions import OneCodexException
+from onecodex.lib.enums import BetaDiversityMetric
 
 
 @pytest.mark.parametrize(
@@ -54,6 +56,18 @@ def test_beta_diversity(ocx, api_data, metric, value, kwargs):
     dm = samples.beta_diversity(metric=metric, **kwargs)
     assert isinstance(dm, skbio.stats.distance._base.DistanceMatrix)
     assert dm.condensed_form().round(6).tolist() == value
+
+
+def test_beta_diversity_braycurtis_nans(ocx, api_data):
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+    mock_df = samples.to_df()
+    mock_df.loc[:, :] = 0
+
+    with mock.patch.object(samples, "to_df", return_value=mock_df):
+        dm = samples.beta_diversity(metric=BetaDiversityMetric.BrayCurtis)
+
+    assert isinstance(dm, skbio.stats.distance._base.DistanceMatrix)
+    assert (dm.condensed_form() == 0.0).all()
 
 
 def test_beta_diversity_exceptions(ocx, api_data):
