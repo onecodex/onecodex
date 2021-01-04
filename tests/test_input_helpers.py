@@ -58,7 +58,7 @@ def test_find_multilane_groups():
         "Sample7_L002.fq",
         "Sample7_L003.fq",  # proper single group
         "Sample8_L001A.fq",
-        "Sample8_L002A.fq", # invalid lane number
+        "Sample8_L002A.fq",  # invalid lane number
         "Sample9_L001.fq",
         "Sample9_L002.fq",
         "Sample9_L004.fq",  # sequence gap
