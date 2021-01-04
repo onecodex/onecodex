@@ -57,9 +57,11 @@ def test_find_multilane_groups():
         "Sample7_L001.fq",
         "Sample7_L002.fq",
         "Sample7_L003.fq",  # proper single group
-        "Sample8_L001.fq",
-        "Sample8_L002.fq",
-        "Sample8_L004.fq",  # sequence gap
+        "Sample8_L001A.fq",
+        "Sample8_L002A.fq", # invalid lane number
+        "Sample9_L001.fq",
+        "Sample9_L002.fq",
+        "Sample9_L004.fq",  # sequence gap
     ]
     expected_groups = [
         ["Sample7_L001.fq", "Sample7_L002.fq", "Sample7_L003.fq"],
