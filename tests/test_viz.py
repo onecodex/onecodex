@@ -128,6 +128,15 @@ def test_plot_metadata_warnings(ocx, api_data):
             return_chart=True,
         )
 
+    with pytest.warns(PlottingWarning, match="Groups of size 1"):
+        samples.plot_metadata(
+            plot_type="boxplot",
+            haxis="library_type",
+            vaxis="observed_taxa",
+            facet_by="external_sample_id",
+            return_chart=True,
+        )
+
 
 def test_plot_pca(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")

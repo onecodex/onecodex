@@ -199,7 +199,18 @@ class VizMetadataMixin(object):
 
             # See the following issue in case this gets fixed in altair:
             # https://github.com/altair-viz/altair/issues/2144
-            if (df.groupby(magic_fields[haxis]).size() < 2).any():
+            if facet_by:
+                faceted_dfs = [faceted_df for _, faceted_df in df.groupby(facet_by)]
+            else:
+                faceted_dfs = [df]
+
+            warn_on_empty_boxes = False
+            for faceted_df in faceted_dfs:
+                if (faceted_df.groupby(magic_fields[haxis]).size() < 2).any():
+                    warn_on_empty_boxes = True
+                    break
+
+            if warn_on_empty_boxes:
                 warnings.warn(
                     "There is at least one sample group consisting of only a single sample. Groups "
                     "of size 1 may not have their boxes displayed in the plot.",
