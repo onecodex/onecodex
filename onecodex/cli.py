@@ -416,7 +416,8 @@ def upload(
         for filename in files:
             # convert "read 1" filenames into "read 2" and check that they exist; if they do
             # upload the files as a pair, autointerleaving them
-            pair = re.sub("[._][Rr]1[._]", lambda x: x.group().replace("1", "2"), filename)
+            pair = re.sub(r"([._][Rr])1([._][\w.]+)$", r"\g<1>2\g<2>", filename)
+            pair = re.sub(r"([._])1([._][\D._]+)$", r"\g<1>2\g<2>", pair)
 
             # we don't necessary need the R2 to have been passed in; we infer it anyways
             if pair != filename and os.path.exists(pair):

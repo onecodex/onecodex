@@ -477,8 +477,11 @@ TTTCCGGGGCACATAATCTTCAGCCGGGCGC
 @pytest.fixture
 def generate_fastq(tmp_path, runner):
     def fn(filename):
-        path = str(tmp_path / filename)
+        path = os.path.join(str(tmp_path), filename)
         with runner.isolated_filesystem():
+            parent_dir = os.path.dirname(path)
+            if not os.path.exists(parent_dir):
+                os.makedirs(parent_dir)
             with open(path, "w") as fout:
                 fout.write(FASTQ_SEQUENCE)
         return path
