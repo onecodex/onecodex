@@ -182,9 +182,7 @@ def concatenate_multilane_files(files, prompt):
     perform_concat = True
     if prompt:
         answer = click.confirm(
-            "It appears there are {n_groups} group(s) of multilane files.\nConcatenate them before upload?".format(
-                n_groups=len(groups)
-            ),
+            "This data appears to have been split across multiple sequencing lanes.\nConcatenate lanes before upload?",
             default="Y",
         )
         if not answer:

@@ -288,18 +288,20 @@ def test_paired_and_multiline_files(
     assert mock_file_upload.call_count == n_files_uploaded
     assert mock_sample_get.call_count == n_samples_uploaded
     assert result.exit_code == 0
+
+    paired_files_prompt = "It appears there are {} paired files (of {} total)".format(
+        n_paired_files, len(files)
+    )
     if n_paired_files > 0:
-        assert (
-            "It appears there are {} paired files (of {} total)".format(n_paired_files, len(files))
-            in result.output
-        )
+        assert paired_files_prompt in result.output
+    else:
+        assert paired_files_prompt not in result.output
+
+    multilane_prompt = "This data appears to have been split across multiple sequencing lanes.\nConcatenate lanes before upload?"
     if n_multiline_groups > 0:
-        assert (
-            "It appears there are {} group(s) of multilane files.\nConcatenate them before upload?".format(
-                n_multiline_groups
-            )
-            in result.output
-        )
+        assert multilane_prompt in result.output
+    else:
+        assert multilane_prompt not in result.output
 
 
 def test_paired_files_with_forward_and_reverse_args(
