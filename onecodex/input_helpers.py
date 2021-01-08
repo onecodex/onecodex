@@ -20,20 +20,20 @@ def auto_detect_pairs(files, prompt):
     for filename in files:
         # convert "read 1" filenames into "read 2" and check that they exist; if they do
         # upload the files as a pair, autointerleaving them
-        pair = re.sub(r"([._][Rr])1([._][\w.]+)$", r"\g<1>2\g<2>", filename)
-        pair = re.sub(r"([._])1([._][\D._]+)$", r"\g<1>2\g<2>", pair)
+        paired_filename = re.sub(r"([._][Rr])1([._][\w.]+)$", r"\g<1>2\g<2>", filename)
+        paired_filename = re.sub(r"([._])1([._][\D._]+)$", r"\g<1>2\g<2>", paired_filename)
 
         # we don't necessary need the R2 to have been passed in; we infer it anyways
-        if pair != filename and os.path.exists(pair):
-            if not prompt and pair not in single_files:
+        if paired_filename != filename and os.path.exists(paired_filename):
+            if not prompt and paired_filename not in single_files:
                 # if we're not prompting, don't automatically pull in files
                 # not in the list the user passed in
                 continue
 
-            paired_files.append((filename, pair))
+            paired_files.append((filename, paired_filename))
 
-            if pair in single_files:
-                single_files.remove(pair)
+            if paired_filename in single_files:
+                single_files.remove(paired_filename)
 
             single_files.remove(filename)
 
