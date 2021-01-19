@@ -75,7 +75,7 @@ Which returns a `Samples` resource (as of `0.5.0`). Samples can be associated wi
 ```python
 # Note format must match the schema defined for our API, with arbitrary
 # metadata allowed as a single-level dictionary in the `custom` field.
-# See https://docs.onecodex.com/reference#the-metadata-resource for details.
+# See https://developer.onecodex.com/reference#the-metadata-resource for details.
 metadata = {
     "platform": "Illumina NovaSeq 6000",
     "date_collected": "2019-04-14T00:51:54.832048+00:00",
