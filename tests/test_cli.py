@@ -241,21 +241,33 @@ def test_empty_upload(runner, mocked_creds_path, upload_mocks):
 
 
 @pytest.mark.parametrize(
-    "files,n_samples_uploaded",
+    "files,n_samples_uploaded,n_files_uploaded,n_paired_files,n_multiline_groups",
     [
         # 1 files, 1 sample
-        (["test.fq"], 1),
+        (["test.fq"], 1, 1, 0, 0),
         # 2 files, 1 sample
-        (["test_R1.fq", "test_R2.fq"], 1),
-        (["dir_r1_test/test_R1.fq", "dir_r1_test/test_R2.fq"], 1),
-        (["test_1.fq", "test_2.fq"], 1),
-        (["test_1_1.fq", "test_1_2.fq"], 1),
-        (["test_S1_L001_R1_001.fastq.gz", "test_S1_L001_R2_001.fastq.gz"], 1),
+        (["test_R1.fq", "test_R2.fq"], 1, 2, 2, 0),
+        (["test_1.fq", "test_2.fq"], 1, 2, 2, 0),
+        # 2 files, 2 lines each, 1 sample
+        (
+            [
+                "test_S1_L001_R1_001.fastq.gz",
+                "test_S1_L001_R2_001.fastq.gz",
+                "test_S1_L002_R1_001.fastq.gz",
+                "test_S1_L002_R2_001.fastq.gz",
+            ],
+            1,
+            2,
+            4,
+            1,
+        ),
+        (["dir_r1_test/test_R1.fq", "dir_r1_test/test_R2.fq"], 1, 2, 2, 0),
+        (["test_1_1.fq", "test_1_2.fq"], 1, 2, 2, 0),
         # 3 files, 2 samples
-        (["test_R1.fq", "test_R2.fq", "other.fq"], 2),
+        (["test_R1.fq", "test_R2.fq", "other.fq"], 2, 3, 2, 0),
     ],
 )
-def test_paired_files(
+def test_paired_and_multiline_files(
     runner,
     generate_fastq,
     mock_file_upload,
@@ -264,21 +276,32 @@ def test_paired_files(
     upload_mocks,
     files,
     n_samples_uploaded,
+    n_files_uploaded,
+    n_paired_files,
+    n_multiline_groups,
 ):
     files = [generate_fastq(x) for x in files]
-    n_paired_files = (len(files) - n_samples_uploaded) * 2
 
     args = ["--api-key", "01234567890123456789012345678901", "upload"] + files
     # check that 2 uploads are kicked off for the pair of files
     result = runner.invoke(Cli, args, catch_exceptions=False)
-    assert mock_file_upload.call_count == len(files)
+    assert mock_file_upload.call_count == n_files_uploaded
     assert mock_sample_get.call_count == n_samples_uploaded
     assert result.exit_code == 0
+
+    paired_files_prompt = "It appears there are {} paired files (of {} total)".format(
+        n_paired_files, len(files)
+    )
     if n_paired_files > 0:
-        assert (
-            "It appears there are {} paired files (of {} total)".format(n_paired_files, len(files))
-            in result.output
-        )
+        assert paired_files_prompt in result.output
+    else:
+        assert paired_files_prompt not in result.output
+
+    multilane_prompt = "This data appears to have been split across multiple sequencing lanes.\nConcatenate lanes before upload?"
+    if n_multiline_groups > 0:
+        assert multilane_prompt in result.output
+    else:
+        assert multilane_prompt not in result.output
 
 
 def test_paired_files_with_forward_and_reverse_args(
