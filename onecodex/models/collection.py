@@ -297,6 +297,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         self._cached["metric"] = metric
 
+        tax_ids = set()
         for c_idx, c in enumerate(self._classifications):
             # pulling results from mainline is the slowest part of the function
             results = c.results()
@@ -309,12 +310,13 @@ class SampleCollection(ResourceList, AnalysisMixin):
                 if not include_host and d_tax_id in host_tax_ids:
                     continue
 
-                if d_tax_id not in tax_info["tax_id"]:
+                if d_tax_id not in tax_ids:
                     for k in ("tax_id", "name", "rank", "parent_tax_id"):
                         tax_info[k].append(d[k])
 
                     # first time we've seen this taxon, so make a vector for it
                     df[d_tax_id] = [0] * len(self._classifications)
+                    tax_ids.add(d_tax_id)
 
                 df[d_tax_id][c_idx] = d[metric]
 
