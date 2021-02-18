@@ -125,14 +125,15 @@ def _login(server, creds_file=None, api_key=None, silent=False):
         }
     )
 
-    try:
-        json.dump(creds, open(creds_file, "w"))
-    except Exception as e:
-        if e.errno == errno.EACCES:
-            click.echo("Please check the permissions on {}".format(creds_file), err=True)
-            sys.exit(1)
-        else:
-            raise
+    with filelock.FileLock("{}.lock".format(creds_file)):
+        try:
+            json.dump(creds, open(creds_file, "w"))
+        except Exception as e:
+            if e.errno == errno.EACCES:
+                click.echo("Please check the permissions on {}".format(creds_file), err=True)
+                sys.exit(1)
+            else:
+                raise
 
     click.echo("Your ~/.onecodex credentials file was successfully created.", err=True)
 
