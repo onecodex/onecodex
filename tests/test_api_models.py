@@ -58,6 +58,14 @@ def test_sample_download(runner, ocx, api_data):
         sample.download()
 
 
+def test_sample_download_awaiting_data(runner, ocx, api_data):
+    with runner.isolated_filesystem():
+        sample = ocx.Samples.get("761bc54b97f64980")
+        sample.visibility = "awaiting data"
+        with pytest.raises(OneCodexException):
+            sample.download()
+
+
 def test_document_download(runner, ocx, api_data):
     with runner.isolated_filesystem():
         doc = ocx.Documents.get("a4f6727a840a4df0")
