@@ -9,6 +9,7 @@ import numpy as np
 from onecodex.exceptions import OneCodexException, PlottingException, PlottingWarning
 from onecodex.models.collection import SampleCollection
 from onecodex.utils import has_missing_values
+from onecodex.viz._primitives import interleave_palette
 
 
 def test_altair_ocx_theme(ocx, api_data):
@@ -509,3 +510,7 @@ def test_plot_bargraph_chart_result(ocx, api_data, metric, rank, label):
     assert chart.encoding.x.axis.title == "Exemplary Samples"
     assert chart.encoding.y.shorthand == label
     assert chart.encoding.y.axis.title == "Glorious Abundances"
+
+
+def test_interleave_palette_empty_domain():
+    assert interleave_palette([]) == []
