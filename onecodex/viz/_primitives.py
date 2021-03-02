@@ -52,6 +52,8 @@ def interleave_palette(domain, palette="ocx"):
         raise OneCodexException("A valid palette name or list of colors must be passed")
 
     n_rows = len(set(domain))
+    if n_rows == 0:
+        return []
 
     # We do some shuffling to optimize the range of colours with our own palette
     if palette == "ocx":
