@@ -5,6 +5,7 @@ import errno
 from functools import wraps
 import json
 import logging
+import filelock
 import os
 import sys
 
@@ -52,52 +53,57 @@ def _login(server, creds_file=None, api_key=None, silent=False):
         click.echo("Please check the permissions on {}".format(collapse_user(creds_file)), err=True)
         sys.exit(1)
     else:
-        # it is, so let's read it!
-        with open(creds_file, "r") as fp:
-            try:
-                creds = json.load(fp)
-            except ValueError:
-                click.echo(
-                    "Your ~/.onecodex credentials file appears to be corrupted. "  # noqa
-                    "Please delete it and re-authorize.",
-                    err=True,
-                )
-                sys.exit(1)
-
-        # check for updates if logged in more than one day ago
-        last_update = creds.get("updated_at") or creds.get("saved_at")
-        last_update = last_update if last_update else datetime.datetime.now().strftime(DATE_FORMAT)
-        diff = datetime.datetime.now() - datetime.datetime.strptime(last_update, DATE_FORMAT)
-
-        if diff.days >= 1:
-            # if creds_file is old, check for updates
-            upgrade_required, msg = check_version(__version__, server)
-            creds["updated_at"] = datetime.datetime.now().strftime(DATE_FORMAT)
-
-            try:
-                json.dump(creds, open(creds_file, "w"))
-            except Exception as e:
-                if e.errno == errno.EACCES:
+        with filelock.FileLock("{}.lock".format(creds_file)):
+            # it is, so let's read it!
+            with open(creds_file, "r") as fp:
+                try:
+                    creds = json.load(fp)
+                except ValueError:
                     click.echo(
-                        "Please check the permissions on {}".format(collapse_user(creds_file)),
+                        "Your ~/.onecodex credentials file appears to be corrupted. "  # noqa
+                        "Please delete it and re-authorize.",
                         err=True,
                     )
                     sys.exit(1)
-                else:
-                    raise
 
-            if upgrade_required:
-                click.echo("\nWARNING: {}\n".format(msg), err=True)
+            # check for updates if logged in more than one day ago
+            last_update = creds.get("updated_at") or creds.get("saved_at")
+            last_update = (
+                last_update if last_update else datetime.datetime.now().strftime(DATE_FORMAT)
+            )
+            diff = datetime.datetime.now() - datetime.datetime.strptime(last_update, DATE_FORMAT)
 
-        # finally, give the user back what they want (whether silent or not)
-        if silent:
-            return creds.get("api_key", None)
+            if diff.days >= 1:
+                # if creds_file is old, check for updates
+                upgrade_required, msg = check_version(__version__, server)
+                creds["updated_at"] = datetime.datetime.now().strftime(DATE_FORMAT)
 
-        click.echo(
-            "Credentials file already exists ({}). Logout first.".format(collapse_user(creds_file)),
-            err=True,
-        )
-        return creds.get("email", None)
+                try:
+                    json.dump(creds, open(creds_file, "w"))
+                except Exception as e:
+                    if e.errno == errno.EACCES:
+                        click.echo(
+                            "Please check the permissions on {}".format(collapse_user(creds_file)),
+                            err=True,
+                        )
+                        sys.exit(1)
+                    else:
+                        raise
+
+                if upgrade_required:
+                    click.echo("\nWARNING: {}\n".format(msg), err=True)
+
+            # finally, give the user back what they want (whether silent or not)
+            if silent:
+                return creds.get("api_key", None)
+
+            click.echo(
+                "Credentials file already exists ({}). Logout first.".format(
+                    collapse_user(creds_file)
+                ),
+                err=True,
+            )
+            return creds.get("email", None)
 
     # creds_file was not found and we're not silent, so prompt user to login
     email, api_key = login_uname_pwd(server, api_key=api_key)
@@ -119,14 +125,15 @@ def _login(server, creds_file=None, api_key=None, silent=False):
         }
     )
 
-    try:
-        json.dump(creds, open(creds_file, "w"))
-    except Exception as e:
-        if e.errno == errno.EACCES:
-            click.echo("Please check the permissions on {}".format(creds_file), err=True)
-            sys.exit(1)
-        else:
-            raise
+    with filelock.FileLock("{}.lock".format(creds_file)):
+        try:
+            json.dump(creds, open(creds_file, "w"))
+        except Exception as e:
+            if e.errno == errno.EACCES:
+                click.echo("Please check the permissions on {}".format(creds_file), err=True)
+                sys.exit(1)
+            else:
+                raise
 
     click.echo("Your ~/.onecodex credentials file was successfully created.", err=True)
 
