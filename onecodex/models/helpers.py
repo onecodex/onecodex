@@ -136,6 +136,9 @@ class ResourceDownloadMixin(object):
         from requests.adapters import HTTPAdapter
         from requests.packages.urllib3.util.retry import Retry
 
+        if hasattr(self._resource, "visibility") and self._resource.visibility == "awaiting data":
+            raise OneCodexException("Sample has not finished processing. Please try again later.")
+
         if path and file_obj:
             raise OneCodexException("Please specify only one of: path, file_obj")
 
