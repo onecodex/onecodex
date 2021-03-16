@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [v0.9.5] - 2021-03-16
+
+### Added
+
+- Adds support for concatenating sequencing data from multiple lanes
+- Adds support for faceting metadata plots
+
+### Changed
+
+- Upgrades minimum sentry-sdk version
+- Adds explicit legend title on distance heatmaps
+- Adds support for zero-abundance samples in normalization calculations
+- Warns when empty boxes are present in faceted boxplots
+- Supports more paired file naming schemes for automatic interleaving
+- Improves `SampleCollection._collate_results` runtime
+- Adds support for an empty domain in `interleave_palette`
+- Improves error message handling for samples in an importing state
+
+### Fixed
+
+- Fixed a race condition when running multiple instances of the CLI
+- Fixed issues handling symmetry and NaN's in beta diversity calculations
+- Fixed beta diversity heatmap layout issues
+- Fixed PCA/MDS/PCoA colouring issues
+- Fixed broken taxa bargraph links
+
 ## [v0.9.4] - 2020-10-27
 
 ### Added
