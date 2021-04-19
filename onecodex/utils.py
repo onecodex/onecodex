@@ -292,10 +292,9 @@ def _setup_sentry_for_ipython():
 
 def init_sentry(user_context=None, extra_context=None):
     if os.environ.get("ONE_CODEX_NO_TELEMETRY") is None:
-        key = base64.b64decode(
-            b"NmFlMjMwYWY4NjI5NDg3NmEyYzYwYjZjNDhhZDJiYzI6ZTMyZmYwZTVhNjUwNGQ5NGJhODc0NWZlMmU1ZjNmZjA="
+        default_dsn = base64.b64decode(
+            b"aHR0cHM6Ly9mYTU1ODliNTgxYTY0NDI5YWVhMmM2OTQ2MTdjNjI0YkBvNTUzNTU4LmluZ2VzdC5zZW50cnkuaW8vNTcyNjcwMQ=="
         ).decode("utf-8")
-
         # Capture exceptions on exit if onecodex CLI being invoked
         if os.path.basename(sys.argv[0]) in ["onecodex", "py.test"]:
             install_sys_hook = True
@@ -315,9 +314,7 @@ def init_sentry(user_context=None, extra_context=None):
                     if x
                 ]
             sentry_sdk.init(
-                dsn=os.environ.get(
-                    "ONE_CODEX_SENTRY_DSN", "https://{}@sentry.onecodex.com/9".format(key)
-                ),
+                dsn=os.environ.get("ONE_CODEX_SENTRY_DSN", default_dsn),
                 install_sys_hook=install_sys_hook,
                 raise_send_errors=False,
                 ignore_exceptions=ignore_exceptions,
