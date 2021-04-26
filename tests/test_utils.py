@@ -2,11 +2,18 @@ from functools import partial
 
 import mock
 import pytest
+import sentry_sdk
 
 from click import BadParameter
 
 from onecodex.api import Api
-from onecodex.utils import snake_case, check_for_allowed_file, valid_api_key, has_missing_values
+from onecodex.utils import (
+    snake_case,
+    check_for_allowed_file,
+    valid_api_key,
+    has_missing_values,
+    init_sentry,
+)
 
 
 def test_check_allowed_file():
@@ -82,5 +89,34 @@ def test_has_missing_values():
     assert has_missing_values(pd.Series([np.nan, np.nan]))
     assert not has_missing_values(pd.Series([1, 2, 3]))
 
-    assert has_missing_values(pd.DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", None]}))
-    assert not has_missing_values(pd.DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", "c"]}))
+    assert has_missing_values(
+        pd.DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", None]})
+    )
+    assert not has_missing_values(
+        pd.DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", "c"]})
+    )
+
+
+@pytest.mark.parametrize(
+    "ONE_CODEX_NO_TELEMETRY,ONE_CODEX_SENTRY_DSN,call_count,dsn_contains",
+    [
+        ("1", None, 0, ""),
+        (None, None, 1, "sentry.io"),
+        (None, "SomeDSN", 1, "SomeDSN"),
+    ],
+)
+def test_init_sentry(
+    monkeypatch, ONE_CODEX_NO_TELEMETRY, ONE_CODEX_SENTRY_DSN, call_count, dsn_contains
+):
+    if ONE_CODEX_NO_TELEMETRY:
+        monkeypatch.setenv("ONE_CODEX_NO_TELEMETRY", ONE_CODEX_NO_TELEMETRY)
+    if ONE_CODEX_SENTRY_DSN:
+        monkeypatch.setenv("ONE_CODEX_SENTRY_DSN", ONE_CODEX_SENTRY_DSN)
+
+    with mock.patch("onecodex.utils._setup_sentry_for_ipython") as _, mock.patch(
+        "sentry_sdk.init"
+    ) as mocked_sentry_init:
+        init_sentry()
+        assert mocked_sentry_init.call_count == call_count
+        if call_count:
+            assert dsn_contains in mocked_sentry_init.call_args.kwargs["dsn"]
