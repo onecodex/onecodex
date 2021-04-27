@@ -2,7 +2,6 @@ from functools import partial
 
 import mock
 import pytest
-import sentry_sdk
 
 from click import BadParameter
 
@@ -89,12 +88,8 @@ def test_has_missing_values():
     assert has_missing_values(pd.Series([np.nan, np.nan]))
     assert not has_missing_values(pd.Series([1, 2, 3]))
 
-    assert has_missing_values(
-        pd.DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", None]})
-    )
-    assert not has_missing_values(
-        pd.DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", "c"]})
-    )
+    assert has_missing_values(pd.DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", None]}))
+    assert not has_missing_values(pd.DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", "c"]}))
 
 
 @pytest.mark.parametrize(
