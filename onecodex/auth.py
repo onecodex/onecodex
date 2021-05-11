@@ -158,6 +158,11 @@ def _remove_creds(creds_file=None):
         else:
             raise
 
+    try:
+        os.remove("{}.lock".format(creds_file))
+    except FileNotFoundError:
+        pass
+
     return True
 
 
