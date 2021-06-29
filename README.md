@@ -10,7 +10,7 @@ MAINTAINERS: [@clausmith](https://github.com/clausmith), [@boydgreenfield](https
 
 This package provides 3 major pieces of functionality: (1) a core Python client library; (2) a simple CLI for interacting with the One Codex platform that uses that core library; and (3) optional extensions to the client library, which offers many features aimed at advanced users and provides functionality for use in interactive notebook environments (e.g., IPython notebooks).
 
-Python 2.7 is supported **for the CLI only** (i.e., when doing `pip install onecodex`). Python 3.4 or later is required to use the additional features of the API library, including those related to visualization, microbiome statistics, and data manipulation (i.e., the full set of libraries installed with `pip install onecodex[all]`).
+Python 2.7 is supported **for the CLI only** (i.e., when doing `pip install onecodex`). Python 3.4 or later is required to use the additional features of the API library, including those related to visualization, microbiome statistics, and data manipulation (i.e., the full set of libraries installed with `pip install 'onecodex[all]'`).
 
 
 ### _Basic installation_
@@ -21,13 +21,13 @@ pip install onecodex
 
 
 ### _Installation with optional extensions_
-To also download the optional extensions to the client library - and all of their dependencies - use the command `pip install onecodex[all]`. **Warning:** Because other packages used in the extensions rely upon `numpy` being present during their installation, `numpy` must be installed seperately first. So if you do not have `numpy` installed, and you are going to install `onecodex[all]` please do the following:
+To also download the optional extensions to the client library - and all of their dependencies - use the command `pip install 'onecodex[all]'`. **Warning:** Because other packages used in the extensions rely upon `numpy` being present during their installation, `numpy` must be installed seperately first. So if you do not have `numpy` installed, and you are going to install `onecodex[all]` please do the following:
 ```shell
 # If numpy is not installed in your environment
 pip install numpy
 
 # Once you have numpy installed
-pip install onecodex[all]
+pip install 'onecodex[all]'
 ```
 
 # Using the CLI
@@ -185,7 +185,7 @@ To set up the project, first create a virtual environment and then install depen
 virtualenv venv
 source venv/bin/activate
 pip install numpy  # numpy must be installed before any of its dependencies
-pip install -e .[all,testing,reports]  # -e specifies development mode so that the package doesn't have to be reinstalled after code edits
+pip install -e '.[all,testing,reports]'  # -e specifies development mode so that the package doesn't have to be reinstalled after code edits
 ```
 
 Test are run through the Makefile, and call tox. Note this may take awhile at first because of installing dependencies:
