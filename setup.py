@@ -65,7 +65,7 @@ TESTING_DEPS = [
 ALL_DEPS = [
     "altair==4.1.0",
     "numpy>=1.11.0",
-    "pandas>=1.0.3",
+    "pandas==1.2.5",
     "scikit-bio>=0.5.0",
     "scikit-learn>=0.19.0",
 ]
