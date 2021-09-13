@@ -562,7 +562,7 @@ class OneCodexBase(object):
                 raise e
 
 
-from onecodex.models.analysis import Analyses, Classifications, Alignments, Panels  # noqa
+from onecodex.models.analysis import Analyses, Classifications, Alignments, Panels, FunctionalProfiles  # noqa
 from onecodex.models.collection import SampleCollection  # noqa
 from onecodex.models.misc import Jobs, Projects, Tags, Users, Documents  # noqa
 from onecodex.models.sample import Samples, Metadata  # noqa
@@ -575,6 +575,7 @@ __all__ = [
     "Jobs",
     "Metadata",
     "Panels",
+    "FunctionalProfiles",
     "Projects",
     "Samples",
     "SampleCollection",
