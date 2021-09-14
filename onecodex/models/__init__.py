@@ -598,7 +598,7 @@ class OneCodexBase(object):
                 raise e
 
 
-from onecodex.models.analysis import ( # noqa
+from onecodex.models.analysis import (  # noqa
     Analyses,
     Classifications,
     Alignments,
@@ -626,7 +626,7 @@ __all__ = [
 ]
 
 # import and expose experimental models
-from onecodex.models.experimental import ( # noqa
+from onecodex.models.experimental import (  # noqa
     AnnotationSets,
     Assemblies,
     Genomes,
