@@ -170,7 +170,6 @@ class Panels(Analyses):
 class FunctionalProfiles(Analyses):
     _resource_path = "/api/v1/functional_profiles"
 
-
     def results(self, json=True):
         """Return the complete results table for a functional analysis.
 
