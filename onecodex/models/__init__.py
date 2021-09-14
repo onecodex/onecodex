@@ -9,7 +9,12 @@ from requests.exceptions import HTTPError
 import six
 import sys
 
-from onecodex.exceptions import MethodNotSupported, OneCodexException, PermissionDenied, ServerError
+from onecodex.exceptions import (
+    MethodNotSupported,
+    OneCodexException,
+    PermissionDenied,
+    ServerError,
+)
 from onecodex.models.helpers import (
     check_bind,
     generate_potion_sort_clause,
@@ -68,7 +73,9 @@ class ResourceList(object):
 
             if len(set(self_ids + other_ids)) != len(self_ids + other_ids):
                 raise OneCodexException(
-                    "{} cannot contain duplicate objects".format(self.__class__.__name__)
+                    "{} cannot contain duplicate objects".format(
+                        self.__class__.__name__
+                    )
                 )
 
     def __init__(self, _resource, oc_model, **kwargs):
@@ -196,7 +203,9 @@ class OneCodexBase(object):
         # non-None) if we have a class.resource?
         if _resource is not None:
             if not isinstance(_resource, Resource):
-                raise TypeError("Use the .get() method to fetch an individual resource.")
+                raise TypeError(
+                    "Use the .get() method to fetch an individual resource."
+                )
             self._resource = _resource
         elif hasattr(self.__class__, "_resource"):
             for key, val in kwargs.items():
@@ -217,7 +226,8 @@ class OneCodexBase(object):
         # this won't appear when you call, e.g. dir(ocx.Samples)
 
         fields = [
-            str(f) if f != "$uri" else "id" for f in self.__class__._resource._schema["properties"]
+            str(f) if f != "$uri" else "id"
+            for f in self.__class__._resource._schema["properties"]
         ]
 
         # this might be a little too clever, but we mask out class methods/fxns from the instances
@@ -243,7 +253,9 @@ class OneCodexBase(object):
                 elif isinstance(value, list):
                     if schema["items"]["type"] == "object":
                         # convert lists of potion resources into wrapped ones
-                        compiled_re = re.compile(schema["items"]["properties"]["$ref"]["pattern"])
+                        compiled_re = re.compile(
+                            schema["items"]["properties"]["$ref"]["pattern"]
+                        )
 
                         # if the list we're returning is empty, we can't just infer what type of
                         # object belongs in this list from its contents. to account for this, we'll
@@ -327,7 +339,9 @@ class OneCodexBase(object):
 
     def __delattr__(self, key):
         if not self.__class__._has_schema_method("update"):
-            raise MethodNotSupported("{} do not support editing.".format(self.__class__.__name__))
+            raise MethodNotSupported(
+                "{} do not support editing.".format(self.__class__.__name__)
+            )
 
         if hasattr(self, "_resource") and key in self._resource.keys():
             # changes on this model also change the potion resource
@@ -428,12 +442,16 @@ class OneCodexBase(object):
         )
 
         schema = next(
-            link for link in cls._resource._schema["links"] if link["rel"] == instances_route
+            link
+            for link in cls._resource._schema["links"]
+            if link["rel"] == instances_route
         )
         sort_schema = schema["schema"]["properties"]["sort"]["properties"]
         where_schema = schema["schema"]["properties"]["where"]["properties"]
 
-        sort = generate_potion_sort_clause(keyword_filters.pop("sort", None), sort_schema)
+        sort = generate_potion_sort_clause(
+            keyword_filters.pop("sort", None), sort_schema
+        )
         limit = keyword_filters.pop("limit", None if not public else 1000)
         where = {}
 
@@ -446,13 +464,19 @@ class OneCodexBase(object):
                 where = {"$uri": {"$in": [cls._convert_id_to_uri(f) for f in filters]}}
             else:
                 # we're doing some more advanced filtering
-                raise NotImplementedError("Advanced filtering hasn't been implemented yet")
+                raise NotImplementedError(
+                    "Advanced filtering hasn't been implemented yet"
+                )
 
         # we're filtering by keyword arguments (like SQLAlchemy's filter_by)
         if len(keyword_filters) > 0:
-            for k, v in generate_potion_keyword_where(keyword_filters, where_schema, cls).items():
+            for k, v in generate_potion_keyword_where(
+                keyword_filters, where_schema, cls
+            ).items():
                 if k in where:
-                    raise AttributeError("Multiple definitions for same field {}".format(k))
+                    raise AttributeError(
+                        "Multiple definitions for same field {}".format(k)
+                    )
                 where[k] = v
 
         # the potion-client method returns an iterator (which lazily fetchs the records
@@ -472,7 +496,9 @@ class OneCodexBase(object):
                 wrapped = [obj for obj in wrapped if filter_func(obj) is True]
             else:
                 raise OneCodexException(
-                    "Expected callable for filter, got: {}".format(type(filter_func).__name__)
+                    "Expected callable for filter, got: {}".format(
+                        type(filter_func).__name__
+                    )
                 )
 
         return wrapped
@@ -522,9 +548,13 @@ class OneCodexBase(object):
         """Delete this object from the One Codex server."""
         check_bind(self)
         if self.id is None:
-            raise ServerError("{} object does not exist yet".format(self.__class__.name))
+            raise ServerError(
+                "{} object does not exist yet".format(self.__class__.name)
+            )
         elif not self.__class__._has_schema_method("destroy"):
-            raise MethodNotSupported("{} do not support deletion.".format(self.__class__.__name__))
+            raise MethodNotSupported(
+                "{} do not support deletion.".format(self.__class__.__name__)
+            )
 
         try:
             self._resource.delete()
@@ -540,9 +570,13 @@ class OneCodexBase(object):
 
         creating = self.id is None
         if creating and not self.__class__._has_schema_method("create"):
-            raise MethodNotSupported("{} do not support creating.".format(self.__class__.__name__))
+            raise MethodNotSupported(
+                "{} do not support creating.".format(self.__class__.__name__)
+            )
         if not creating and not self.__class__._has_schema_method("update"):
-            raise MethodNotSupported("{} do not support updating.".format(self.__class__.__name__))
+            raise MethodNotSupported(
+                "{} do not support updating.".format(self.__class__.__name__)
+            )
 
         try:
             self._resource.save()
@@ -557,12 +591,20 @@ class OneCodexBase(object):
                     "{} do not support {}.".format(self.__class__.__name__, action)
                 )
             elif e.response.status_code == 409:
-                raise ServerError("This {} object already exists".format(self.__class__.__name__))
+                raise ServerError(
+                    "This {} object already exists".format(self.__class__.__name__)
+                )
             else:
                 raise e
 
 
-from onecodex.models.analysis import Analyses, Classifications, Alignments, Panels, FunctionalProfiles  # noqa
+from onecodex.models.analysis import ( # noqa
+    Analyses,
+    Classifications,
+    Alignments,
+    Panels,
+    FunctionalProfiles,
+)
 from onecodex.models.collection import SampleCollection  # noqa
 from onecodex.models.misc import Jobs, Projects, Tags, Users, Documents  # noqa
 from onecodex.models.sample import Samples, Metadata  # noqa
@@ -584,7 +626,12 @@ __all__ = [
 ]
 
 # import and expose experimental models
-from onecodex.models.experimental import AnnotationSets, Assemblies, Genomes, Taxa  # noqa
+from onecodex.models.experimental import ( # noqa
+    AnnotationSets,
+    Assemblies,
+    Genomes,
+    Taxa,
+)
 
 __all__.extend(["AnnotationSets", "Assemblies", "Genomes", "Taxa"])
 
