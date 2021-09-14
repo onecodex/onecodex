@@ -5,8 +5,6 @@ import pytest
 import responses
 import sys
 
-pytest.importorskip("pandas")  # noqa
-
 try:
     from urllib.parse import unquote_plus  # Py3
 except ImportError:
@@ -295,6 +293,7 @@ def test_classification_methods(ocx, api_data):
 
 
 def test_functional_profiles_methods(ocx, api_data):
+    pytest.importorskip("pandas")  # noqa
     import pandas as pd
 
     functional_profile = ocx.FunctionalProfiles.get("45a573fb7833449b")
