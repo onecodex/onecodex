@@ -181,6 +181,28 @@ API_DATA = {
             "success": True,
         }
     ],
+    "GET::api/v1/functional_profiles/45a573fb7833449b/results": {
+        "table": [
+            {
+                "clade": None,
+                "cpm": 789654.0,
+                "group": "gene_family",
+                "id": "UNMAPPED",
+                "name": None,
+                "rpk": 2524097.0,
+                "tax_id": None,
+            },
+            {
+                "clade": "unclassified",
+                "cpm": 0.47229099999999996,
+                "group": "gene_family",
+                "id": "UniRef90_A0A010JCS2",
+                "name": None,
+                "rpk": 1.5096607033000002,
+                "tax_id": "unclassified",
+            },
+        ]
+    },
     "GET::api/v1/classifications/45a573fb7833449a/results": {
         "table": [
             {
