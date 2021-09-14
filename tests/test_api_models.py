@@ -5,6 +5,8 @@ import pytest
 import responses
 import sys
 
+pytest.importorskip("pandas")  # noqa
+
 try:
     from urllib.parse import unquote_plus  # Py3
 except ImportError:
@@ -293,11 +295,14 @@ def test_classification_methods(ocx, api_data):
 
 
 def test_functional_profiles_methods(ocx, api_data):
+    import pandas as pd
+
     functional_profile = ocx.FunctionalProfiles.get("45a573fb7833449b")
     assert isinstance(functional_profile, onecodex.models.analysis.FunctionalProfiles)
 
     expected_results_keys = set(["clade", "cpm", "group", "id", "name", "rpk", "tax_id"])
     assert set(functional_profile.results()["table"][0].keys()) == expected_results_keys
+    assert type(functional_profile.table()) == pd.DataFrame
 
 
 # Sorting and where clauses
