@@ -68,6 +68,7 @@ ALL_DEPS = [
     "pandas>=1.0.3",
     "scikit-bio>=0.5.0",
     "scikit-learn>=0.19.0",
+    "jupyter-client==6.1.12",
 ]
 REPORT_DEPS = ALL_DEPS + ["notebook==6.0.3", "nbconvert<6", "WeasyPrint==51", "altair_saver==0.5.0"]
 
