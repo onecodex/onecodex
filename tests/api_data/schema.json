@@ -20,6 +20,12 @@
         "documents": {
             "$ref": "/api/v1/documents/schema#"
         },
+        "events": {
+            "$ref": "/api/v1/events/schema#"
+        },
+        "functional_profiles": {
+            "$ref": "/api/v1/functional_profiles/schema#"
+        },
         "jobs": {
             "$ref": "/api/v1/jobs/schema#"
         },
@@ -43,11 +49,14 @@
         },
         "users": {
             "$ref": "/api/v1/users/schema#"
+        },
+        "webhooks": {
+            "$ref": "/api/v1/webhooks/schema#"
         }
     },
     "title": "One Codex API (v1)",
     "version_info": {
         "api_version": "v1",
-        "cli_version": "0.5.5"
+        "cli_version": "v0.5.5"
     }
 }

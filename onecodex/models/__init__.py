@@ -9,7 +9,12 @@ from requests.exceptions import HTTPError
 import six
 import sys
 
-from onecodex.exceptions import MethodNotSupported, OneCodexException, PermissionDenied, ServerError
+from onecodex.exceptions import (
+    MethodNotSupported,
+    OneCodexException,
+    PermissionDenied,
+    ServerError,
+)
 from onecodex.models.helpers import (
     check_bind,
     generate_potion_sort_clause,
@@ -562,7 +567,13 @@ class OneCodexBase(object):
                 raise e
 
 
-from onecodex.models.analysis import Analyses, Classifications, Alignments, Panels  # noqa
+from onecodex.models.analysis import (  # noqa
+    Analyses,
+    Classifications,
+    Alignments,
+    Panels,
+    FunctionalProfiles,
+)
 from onecodex.models.collection import SampleCollection  # noqa
 from onecodex.models.misc import Jobs, Projects, Tags, Users, Documents  # noqa
 from onecodex.models.sample import Samples, Metadata  # noqa
@@ -575,6 +586,7 @@ __all__ = [
     "Jobs",
     "Metadata",
     "Panels",
+    "FunctionalProfiles",
     "Projects",
     "Samples",
     "SampleCollection",
@@ -583,7 +595,12 @@ __all__ = [
 ]
 
 # import and expose experimental models
-from onecodex.models.experimental import AnnotationSets, Assemblies, Genomes, Taxa  # noqa
+from onecodex.models.experimental import (  # noqa
+    AnnotationSets,
+    Assemblies,
+    Genomes,
+    Taxa,
+)
 
 __all__.extend(["AnnotationSets", "Assemblies", "Genomes", "Taxa"])
 
