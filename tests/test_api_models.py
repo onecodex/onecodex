@@ -2,6 +2,7 @@ from __future__ import print_function
 import datetime
 import io
 import pytest
+import mock
 import responses
 import sys
 
@@ -253,6 +254,16 @@ def test_sample_saving(ocx, api_data):
     sample.visibility = "private" if visibility == "public" else "public"
     sample.save()
     assert sample.visibility is not visibility
+
+
+def test_tag_saving_raises_exception(ocx, api_data):
+    with mock.patch("onecodex.models.misc.Tags.where", return_value=[]):
+        new_tag = ocx.Tags(name="new ta2")
+
+    with pytest.raises(MethodNotSupported) as e:
+        new_tag.save()
+
+    assert "Tags cannot be saved directly" in str(e)
 
 
 def test_metadata_saving(ocx, api_data):

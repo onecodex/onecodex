@@ -1,6 +1,6 @@
 import warnings
 
-from onecodex.exceptions import OneCodexException
+from onecodex.exceptions import OneCodexException, MethodNotSupported
 from onecodex.lib.upload import upload_document
 from onecodex.models import OneCodexBase
 from onecodex.models.helpers import truncate_string, ResourceDownloadMixin
@@ -30,6 +30,12 @@ class Tags(OneCodexBase):
 
     def __hash__(self):
         return hash(self.name)
+
+    def save(self):
+        # Tags cannot be saved directly this way; instruct user to save via a sample
+        raise MethodNotSupported(
+            "Tags cannot be saved directly. Instead, append a newly created tag to a sample and save the sample."
+        )
 
 
 class Users(OneCodexBase):
