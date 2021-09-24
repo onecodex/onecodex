@@ -1,5 +1,6 @@
 from onecodex.models import OneCodexBase, ResourceList
 from onecodex.models.helpers import ResourceDownloadMixin
+from onecodex.models.analysis import Analyses
 
 
 class AnnotationSets(OneCodexBase, ResourceDownloadMixin):
@@ -134,3 +135,37 @@ class Taxa(OneCodexBase):
     def parents(self):
         """Return a list of all parents of this Taxon, at all ranks."""
         return ResourceList(self._resource.parents(), Taxa)
+
+
+class FunctionalProfiles(Analyses):
+    _resource_path = "/api/v1_experimental/functional_profiles"
+
+    def results(self, json=True):
+        """Return the complete results table for a functional analysis.
+
+        Parameters
+        ----------
+        json : `bool`, optional
+            Return result as JSON? Default True.
+
+        Returns
+        -------
+        table : `dict` or `pd.DataFrame`
+            Return a JSON object with the functional analysis results or a `pd.DataFrame` if json=False.
+        """
+        if json is True:
+            return self._results()
+        else:
+            return self.table()
+
+    def table(self):
+        """Return the complete results table for the functional analysis.
+
+        Returns
+        -------
+        table : `pd.DataFrame`
+            A Pandas DataFrame of the functional results.
+        """
+        import pandas as pd
+
+        return pd.DataFrame(self._results()["table"])
