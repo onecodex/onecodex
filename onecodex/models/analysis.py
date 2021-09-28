@@ -136,19 +136,6 @@ class Classifications(Analyses):
         """
         return self.results(json=False)
 
-    def abundances(self, ids=None):
-        """Query the results table to get abundance data for all or some tax ids."""
-        # TODO: Consider removing this method... since it's kind of trivial
-        #       May want to replace with something that actually gets genome-size adjusted
-        #       abundances from the results table
-        if ids is None:
-            # get the data frame
-            return self.table()
-
-        else:
-            res = self.table()
-            return res[res["tax_id"].isin(ids)]
-
     @classmethod
     def where(cls, *filters, **keyword_filters):
         from onecodex.models.collection import SampleCollection
