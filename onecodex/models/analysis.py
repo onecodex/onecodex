@@ -165,37 +165,3 @@ class Panels(Analyses):
             return self._results()
         else:
             raise NotImplementedError("Panel results only available as JSON at this time.")
-
-
-class FunctionalProfiles(Analyses):
-    _resource_path = "/api/v1/functional_profiles"
-
-    def results(self, json=True):
-        """Return the complete results table for a functional analysis.
-
-        Parameters
-        ----------
-        json : `bool`, optional
-            Return result as JSON? Default True.
-
-        Returns
-        -------
-        table : `dict` or `pd.DataFrame`
-            Return a JSON object with the functional analysis results or a `pd.DataFrame` if json=False.
-        """
-        if json is True:
-            return self._results()
-        else:
-            return self.table()
-
-    def table(self):
-        """Return the complete results table for the functional analysis.
-
-        Returns
-        -------
-        table : `pd.DataFrame`
-            A Pandas DataFrame of the functional results.
-        """
-        import pandas as pd
-
-        return pd.DataFrame(self._results()["table"])

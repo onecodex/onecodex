@@ -303,18 +303,6 @@ def test_classification_methods(ocx, api_data):
     assert isinstance(classification, onecodex.models.analysis.Classifications)
 
 
-def test_functional_profiles_methods(ocx, api_data):
-    pytest.importorskip("pandas")  # noqa
-    import pandas as pd
-
-    functional_profile = ocx.FunctionalProfiles.get("45a573fb7833449b")
-    assert isinstance(functional_profile, onecodex.models.analysis.FunctionalProfiles)
-
-    expected_results_keys = set(["clade", "cpm", "group", "id", "name", "rpk", "tax_id"])
-    assert set(functional_profile.results()["table"][0].keys()) == expected_results_keys
-    assert type(functional_profile.table()) == pd.DataFrame
-
-
 # Sorting and where clauses
 @pytest.mark.parametrize(
     "where_args,where_kwargs,queries",

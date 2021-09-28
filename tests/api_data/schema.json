@@ -23,9 +23,6 @@
         "events": {
             "$ref": "/api/v1/events/schema#"
         },
-        "functional_profiles": {
-            "$ref": "/api/v1/functional_profiles/schema#"
-        },
         "jobs": {
             "$ref": "/api/v1/jobs/schema#"
         },
