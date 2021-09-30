@@ -202,7 +202,7 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
             try:
                 self.project = get_project(self.project)
             except OneCodexException as e:
-                raise OneCodexException(f"Error saving sample: {e}")
+                raise OneCodexException("Error saving sample: {}".format(e))
 
         super(Samples, self).save()
 
