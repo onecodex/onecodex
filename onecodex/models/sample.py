@@ -32,8 +32,10 @@ def get_project(project):
 
         if isinstance(project_search, list):
             return project_search[0]
+        elif isinstance(project_search, Projects):
+            return project_search
 
-    return project_search
+    return project
 
 
 class Samples(OneCodexBase, ResourceDownloadMixin):
