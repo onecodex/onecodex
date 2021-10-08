@@ -32,6 +32,9 @@ def get_project(project):
 
         if isinstance(project_search, list):
             return project_search[0]
+        elif isinstance(project_search, Projects):
+            return project_search
+
     return project
 
 
@@ -194,6 +197,12 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
                 if tag.id is None:
                     tag._resource.__dict__["_Reference__properties"]["sample"] = self._resource
                     tag._resource.save()
+
+        if self.project and not isinstance(self.project, Projects):
+            try:
+                self.project = get_project(self.project)
+            except OneCodexException as e:
+                raise OneCodexException("Error saving sample: {}".format(e))
 
         super(Samples, self).save()
 
