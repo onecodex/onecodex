@@ -1,6 +1,7 @@
 from __future__ import print_function
 from datetime import datetime
 import errno
+import filelock
 import json
 import logging
 import os
@@ -73,7 +74,8 @@ class Api(object):
                 warnings.warn("Check permissions on {}".format(collapse_user(creds_file)))
             else:
                 try:
-                    api_key = json.load(open(creds_file, "r"))["api_key"]
+                    with filelock.FileLock("{}.lock".format(creds_file)):
+                        api_key = json.load(open(creds_file, "r"))["api_key"]
                 except KeyError:
                     # lacking an api_key doesn't mean the file is corrupt--it can just be that the
                     # schema was cached after logging in anonymously
