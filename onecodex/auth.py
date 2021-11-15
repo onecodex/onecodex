@@ -160,7 +160,7 @@ def _remove_creds(creds_file=None):
 
     try:
         os.remove("{}.lock".format(creds_file))
-    except OSError:
+    except (IOError, OSError):
         pass
 
     return True
