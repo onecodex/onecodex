@@ -5,6 +5,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.9.6] - 2021-11-15
+
+### Added
+
+- Adds support for functional analysis profiles as experimental feature
+- Adds improved error messaging for `Sample` methods
+
+### Changed
+
+- Pin jupyter-client to version 6.1.12
+
+### Fixed
+
+- Fixes issue with credential file lock
+
+### Removed
+
+- Removes `Classifications.abundances` method
+
 ## [v0.9.5] - 2021-03-16
 
 ### Added
