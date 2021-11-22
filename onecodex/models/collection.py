@@ -276,27 +276,31 @@ class SampleCollection(ResourceList, AnalysisMixin):
         -------
         None, but stores a result in self._cached.
         """
+        import numpy as np
         import pandas as pd
 
         metric = metric if metric else self._kwargs["metric"]
         include_host = include_host if include_host else self._kwargs["include_host"]
 
-        if not Metric.has_value(metric):
+        try:
+            metric = Metric(metric)
+        except ValueError:
             raise OneCodexException("Specified metric ({}) not valid.".format(metric))
 
-        # we'll fill these dicts that eventually turn into DataFrames
-        df = {"classification_id": [c.id for c in self._classifications]}
+        classification_ids = [c.id for c in self._classifications]
 
-        tax_info = {"tax_id": [], "name": [], "rank": [], "parent_tax_id": []}
-
-        if metric == "auto":
-            metric = Metric.ReadcountWChildren.value
+        if metric == Metric.Auto:
+            metric = Metric.ReadcountWChildren
 
             if self._is_metagenomic:
-                metric = Metric.AbundanceWChildren.value
+                metric = Metric.AbundanceWChildren
 
+        metric_dtype = metric.dtype
+        metric = metric.value
         self._cached["metric"] = metric
 
+        # Compile info about all taxa observed in the classification results.
+        tax_info = {"tax_id": [], "name": [], "rank": [], "parent_tax_id": []}
         tax_ids = set()
         for c_idx, c in enumerate(self._classifications):
             # pulling results from mainline is the slowest part of the function
@@ -313,19 +317,42 @@ class SampleCollection(ResourceList, AnalysisMixin):
                 if d_tax_id not in tax_ids:
                     for k in ("tax_id", "name", "rank", "parent_tax_id"):
                         tax_info[k].append(d[k])
-
-                    # first time we've seen this taxon, so make a vector for it
-                    df[d_tax_id] = [0] * len(self._classifications)
                     tax_ids.add(d_tax_id)
 
-                df[d_tax_id][c_idx] = d[metric]
+        tax_info = pd.DataFrame(tax_info, dtype=object, copy=False)
+        tax_info.set_index("tax_id", inplace=True)
 
-        # format as a Pandas DataFrame
-        df = pd.DataFrame(df).set_index("classification_id").fillna(0)
+        # Now that we have a complete list of taxa in these classification results, take a second
+        # pass through the results, filling in the abundances/counts into a single numpy array.
+        #
+        # Note: this is *much* faster than storing the data in individual taxon vectors and letting
+        # pandas combine/coerce the data when constructing the dataframe below.
+        tax_id_to_idx = {}
+        for idx, tax_id in enumerate(tax_info.index):
+            tax_id_to_idx[tax_id] = idx
 
-        df.columns.name = "tax_id"
+        data = np.zeros((len(self._classifications), len(tax_info.index)), dtype=metric_dtype)
 
-        tax_info = pd.DataFrame(tax_info).set_index("tax_id")
+        for c_idx, c in enumerate(self._classifications):
+            # results are cached from the call earlier in this method
+            results = c.results()
+            host_tax_ids = results.get("host_tax_ids", [])
+
+            for d in results["table"]:
+                d_tax_id = d["tax_id"]
+
+                if not include_host and d_tax_id in host_tax_ids:
+                    continue
+
+                data[c_idx, tax_id_to_idx[d_tax_id]] = d[metric]
+
+        df = pd.DataFrame(
+            data,
+            index=pd.Index(classification_ids, name="classification_id"),
+            columns=tax_info.index,
+            copy=False,
+        )
+        df.fillna(0, inplace=True)
 
         self._cached["results"] = df
         self._cached["taxonomy"] = tax_info
