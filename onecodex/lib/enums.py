@@ -25,6 +25,15 @@ class Metric(BaseEnum):
     Abundance = "abundance"
     AbundanceWChildren = "abundance_w_children"
 
+    @property
+    def dtype(self):
+        if self == Metric.Readcount or self == Metric.ReadcountWChildren:
+            return int
+        elif self == Metric.Abundance or self == Metric.AbundanceWChildren:
+            return float
+        else:
+            raise ValueError("Metric {} does not have an associated dtype.".format(self))
+
 
 class AlphaDiversityMetric(BaseEnum):
     Simpson = "simpson"
