@@ -365,6 +365,7 @@ class VizDistanceMixin(DistanceMixin):
             plot_data = ord_result.samples.iloc[:, [0, 1]]  # get first two components
             plot_data = plot_data.div(plot_data.abs().max(axis=0), axis=1)  # normalize to [0,1]
             plot_data.index = dists.index
+            plot_data.index.names = ["classification_id"]
             x_field, y_field = plot_data.columns.tolist()  # name of first two components
 
             x_extra_label = "%0.02f%%" % (ord_result.proportion_explained[0] * 100,)
