@@ -10,7 +10,7 @@ MAINTAINERS: [@clausmith](https://github.com/clausmith), [@boydgreenfield](https
 
 This package provides 3 major pieces of functionality: (1) a core Python client library; (2) a simple CLI for interacting with the One Codex platform that uses that core library; and (3) optional extensions to the client library, which offers many features aimed at advanced users and provides functionality for use in interactive notebook environments (e.g., IPython notebooks).
 
-Python 2.7 is supported **for the CLI only** (i.e., when doing `pip install onecodex`). Python 3.4 or later is required to use the additional features of the API library, including those related to visualization, microbiome statistics, and data manipulation (i.e., the full set of libraries installed with `pip install 'onecodex[all]'`).
+Python 2.7 is supported **for the CLI only** (i.e., when doing `pip install onecodex`). Python 3.7 or later is required to use the additional features of the API library, including those related to visualization, microbiome statistics, and data manipulation (i.e., the full set of libraries installed with `pip install 'onecodex[all]'`).
 
 
 ### _Basic installation_

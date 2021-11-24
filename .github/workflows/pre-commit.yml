@@ -13,9 +13,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v1
         with:
-          # Using 3.8 for now because core dependencies (e.g. numpy) are missing wheel builds for
-          # 3.9, and we get errors while building the wheels from a source install.
-          python-version: 3.8
+          python-version: 3.9
       - name: Display Python version
         run: python -c "import sys; print(sys.version)"
       - name: Install dependencies in a venv
