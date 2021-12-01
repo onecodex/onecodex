@@ -344,7 +344,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
                 if not include_host and d_tax_id in host_tax_ids:
                     continue
 
-                data[c_idx, tax_id_to_idx[d_tax_id]] = d[metric]
+                data[c_idx, tax_id_to_idx[d_tax_id]] = d[metric] or 0
 
         df = pd.DataFrame(
             data,
@@ -352,7 +352,6 @@ class SampleCollection(ResourceList, AnalysisMixin):
             columns=tax_info.index,
             copy=False,
         )
-        df.fillna(0, inplace=True)
 
         self._cached["results"] = df
         self._cached["taxonomy"] = tax_info
