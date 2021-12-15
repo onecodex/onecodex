@@ -3881,19 +3881,15 @@
                                     "complete": {
                                         "anyOf": [
                                             {
-                                                "type": [
-                                                    "boolean",
-                                                    "null"
-                                                ]
+                                                "default": false,
+                                                "type": "boolean"
                                             },
                                             {
                                                 "additionalProperties": false,
                                                 "properties": {
                                                     "$eq": {
-                                                        "type": [
-                                                            "boolean",
-                                                            "null"
-                                                        ]
+                                                        "default": false,
+                                                        "type": "boolean"
                                                     }
                                                 },
                                                 "required": [
@@ -3905,10 +3901,8 @@
                                                 "additionalProperties": false,
                                                 "properties": {
                                                     "$ne": {
-                                                        "type": [
-                                                            "boolean",
-                                                            "null"
-                                                        ]
+                                                        "default": false,
+                                                        "type": "boolean"
                                                     }
                                                 },
                                                 "required": [
@@ -3922,10 +3916,8 @@
                                                     "$in": {
                                                         "default": [],
                                                         "items": {
-                                                            "type": [
-                                                                "boolean",
-                                                                "null"
-                                                            ]
+                                                            "default": false,
+                                                            "type": "boolean"
                                                         },
                                                         "minItems": 0,
                                                         "type": "array",
@@ -4432,19 +4424,15 @@
                                     "success": {
                                         "anyOf": [
                                             {
-                                                "type": [
-                                                    "boolean",
-                                                    "null"
-                                                ]
+                                                "default": false,
+                                                "type": "boolean"
                                             },
                                             {
                                                 "additionalProperties": false,
                                                 "properties": {
                                                     "$eq": {
-                                                        "type": [
-                                                            "boolean",
-                                                            "null"
-                                                        ]
+                                                        "default": false,
+                                                        "type": "boolean"
                                                     }
                                                 },
                                                 "required": [
@@ -4456,10 +4444,8 @@
                                                 "additionalProperties": false,
                                                 "properties": {
                                                     "$ne": {
-                                                        "type": [
-                                                            "boolean",
-                                                            "null"
-                                                        ]
+                                                        "default": false,
+                                                        "type": "boolean"
                                                     }
                                                 },
                                                 "required": [
@@ -4473,10 +4459,8 @@
                                                     "$in": {
                                                         "default": [],
                                                         "items": {
-                                                            "type": [
-                                                                "boolean",
-                                                                "null"
-                                                            ]
+                                                            "default": false,
+                                                            "type": "boolean"
                                                         },
                                                         "minItems": 0,
                                                         "type": "array",
@@ -4614,19 +4598,15 @@
                                     "complete": {
                                         "anyOf": [
                                             {
-                                                "type": [
-                                                    "boolean",
-                                                    "null"
-                                                ]
+                                                "default": false,
+                                                "type": "boolean"
                                             },
                                             {
                                                 "additionalProperties": false,
                                                 "properties": {
                                                     "$eq": {
-                                                        "type": [
-                                                            "boolean",
-                                                            "null"
-                                                        ]
+                                                        "default": false,
+                                                        "type": "boolean"
                                                     }
                                                 },
                                                 "required": [
@@ -4638,10 +4618,8 @@
                                                 "additionalProperties": false,
                                                 "properties": {
                                                     "$ne": {
-                                                        "type": [
-                                                            "boolean",
-                                                            "null"
-                                                        ]
+                                                        "default": false,
+                                                        "type": "boolean"
                                                     }
                                                 },
                                                 "required": [
@@ -4655,10 +4633,8 @@
                                                     "$in": {
                                                         "default": [],
                                                         "items": {
-                                                            "type": [
-                                                                "boolean",
-                                                                "null"
-                                                            ]
+                                                            "default": false,
+                                                            "type": "boolean"
                                                         },
                                                         "minItems": 0,
                                                         "type": "array",
@@ -5165,19 +5141,15 @@
                                     "success": {
                                         "anyOf": [
                                             {
-                                                "type": [
-                                                    "boolean",
-                                                    "null"
-                                                ]
+                                                "default": false,
+                                                "type": "boolean"
                                             },
                                             {
                                                 "additionalProperties": false,
                                                 "properties": {
                                                     "$eq": {
-                                                        "type": [
-                                                            "boolean",
-                                                            "null"
-                                                        ]
+                                                        "default": false,
+                                                        "type": "boolean"
                                                     }
                                                 },
                                                 "required": [
@@ -5189,10 +5161,8 @@
                                                 "additionalProperties": false,
                                                 "properties": {
                                                     "$ne": {
-                                                        "type": [
-                                                            "boolean",
-                                                            "null"
-                                                        ]
+                                                        "default": false,
+                                                        "type": "boolean"
                                                     }
                                                 },
                                                 "required": [
@@ -5206,10 +5176,8 @@
                                                     "$in": {
                                                         "default": [],
                                                         "items": {
-                                                            "type": [
-                                                                "boolean",
-                                                                "null"
-                                                            ]
+                                                            "default": false,
+                                                            "type": "boolean"
                                                         },
                                                         "minItems": 0,
                                                         "type": "array",
@@ -5234,6 +5202,74 @@
                             "$ref": "#"
                         },
                         "type": "array"
+                    }
+                },
+                {
+                    "href": "/api/v1/classifications/{id}/raw_results",
+                    "method": "GET",
+                    "rel": "raw_results",
+                    "targetSchema": {
+                        "additionalProperties": false,
+                        "properties": {
+                            "host_tax_ids": {
+                                "default": [],
+                                "items": {
+                                    "type": "string"
+                                },
+                                "type": "array"
+                            },
+                            "n_reads": {
+                                "minimum": 1,
+                                "type": "integer"
+                            },
+                            "table": {
+                                "default": [],
+                                "items": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "abundance": {
+                                            "maximum": 1.0,
+                                            "minimum": 0.0,
+                                            "type": [
+                                                "number",
+                                                "null"
+                                            ]
+                                        },
+                                        "n_kmers": {
+                                            "minimum": 1,
+                                            "type": "integer"
+                                        },
+                                        "n_unique_kmers": {
+                                            "minimum": 1,
+                                            "type": "integer"
+                                        },
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "parent_tax_id": {
+                                            "type": "string"
+                                        },
+                                        "rank": {
+                                            "type": "string"
+                                        },
+                                        "readcount": {
+                                            "minimum": 1,
+                                            "type": "integer"
+                                        },
+                                        "readcount_w_children": {
+                                            "minimum": 1,
+                                            "type": "integer"
+                                        },
+                                        "tax_id": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                },
+                                "type": "array"
+                            }
+                        },
+                        "type": "object"
                     }
                 },
                 {
@@ -5274,6 +5310,14 @@
                                     "additionalProperties": false,
                                     "properties": {
                                         "abundance": {
+                                            "maximum": 1.0,
+                                            "minimum": 0.0,
+                                            "type": [
+                                                "number",
+                                                "null"
+                                            ]
+                                        },
+                                        "abundance_w_children": {
                                             "maximum": 1.0,
                                             "minimum": 0.0,
                                             "type": [
@@ -5326,10 +5370,8 @@
                     "type": "string"
                 },
                 "complete": {
-                    "type": [
-                        "boolean",
-                        "null"
-                    ]
+                    "default": false,
+                    "type": "boolean"
                 },
                 "created_at": {
                     "format": "date-time",
@@ -5364,10 +5406,8 @@
                     "type": "object"
                 },
                 "success": {
-                    "type": [
-                        "boolean",
-                        "null"
-                    ]
+                    "default": false,
+                    "type": "boolean"
                 }
             },
             "type": "object"
