@@ -351,6 +351,9 @@ def test_plot_distance_exceptions(ocx, api_data):
 @pytest.mark.parametrize(
     "metric,dissimilarity_metric,smacof",
     [
+        ("abundance_w_children", "weighted_unifrac", 0.7595),
+        ("abundance_w_children", "unweighted_unifrac", 0.1734),
+        ("abundance_w_children", "braycurtis", 0.0143),
         ("readcount_w_children", "weighted_unifrac", 0.4956),
         ("readcount_w_children", "unweighted_unifrac", 0.3579),
         ("readcount_w_children", "braycurtis", 0.1735),
