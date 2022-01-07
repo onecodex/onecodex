@@ -2,7 +2,13 @@ import collections
 import re
 
 
-class Schema(collections.Mapping):
+try:
+    from collections import Mapping  # moved in 3.10
+except ImportError:
+    from collections.abc import Mapping
+
+
+class Schema(Mapping):
     def __init__(self, schema):
         if isinstance(schema, Schema):
             schema = schema._schema
