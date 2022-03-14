@@ -7,7 +7,7 @@ import requests
 import six
 
 from onecodex.exceptions import OneCodexException, raise_connectivity_error, raise_api_error
-from onecodex.utils import atexit_register, atexit_unregister, snake_case
+from onecodex.utils import atexit_register, atexit_unregister, snake_case, FakeProgressBar
 from onecodex.lib.files import FilePassthru, get_file_wrapper
 
 from requests.adapters import HTTPAdapter
@@ -59,28 +59,6 @@ def _choose_boto3_chunksize(file_obj):
         multipart_chunksize = 25 * 1024 ** 2
 
     return multipart_chunksize
-
-
-# this lets us turn off the click progressbar context manager and is python2 compatible
-# https://stackoverflow.com/questions/45187286/how-do-i-write-a-null-no-op-contextmanager-in-python
-class FakeProgressBar(object):
-    pct = 0
-    label = ""
-
-    def __init__(self):
-        pass
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *args):
-        pass
-
-    def finish(self):
-        pass
-
-    def update(self, size):
-        pass
 
 
 def build_upload_dict(metadata, tags, project):

@@ -25,7 +25,7 @@ from onecodex import Cli
             "from onecodex.viz import VizPCAMixin",
             {
                 "onecodex": 0.25,
-                "onecodex.viz": 0.20,
+                "onecodex.viz": 0.25,
                 "onecodex.viz._pca": 0.01,
                 "onecodex.viz._distance": 0.01,
             },

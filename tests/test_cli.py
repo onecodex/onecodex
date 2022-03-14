@@ -351,3 +351,10 @@ def test_paired_files_with_forward_and_reverse_args(
     result = runner.invoke(Cli, args)
     assert "You may not pass a FILES argument" in result.output
     assert result.exit_code != 0
+
+
+def test_download_samples(runner, api_data, mocked_creds_file):
+    with runner.isolated_filesystem():
+        result = runner.invoke(Cli, ["download", "samples", "output"])
+        assert result.exit_code == 0
+        assert len(os.listdir("output")) > 0

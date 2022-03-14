@@ -1179,7 +1179,7 @@
   {
     "$uri": "/api/v1/samples/0111111111111110",
     "created_at": "2015-09-25T17:40:13.224821-07:00",
-    "filename": "SRR2352223.fastq.gz",
+    "filename": "0111111111111110.fastq.gz",
     "visibility": "private"
   },
   {

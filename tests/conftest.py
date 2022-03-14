@@ -239,7 +239,7 @@ API_DATA = {
     },
     "PATCH::api/v1/samples/761bc54b97f64980": {},
     "PATCH::api/v1/metadata/4fe05e748b5a4f0e": update_metadata_callback,
-    "POST::api/v1/samples/761bc54b97f64980/download_uri": {
+    "POST::api/v1/samples/.*/download_uri": {
         "download_uri": "http://localhost:3000/mock/download/url"
     },
     "GET::mock/download/url": "1234567890",
