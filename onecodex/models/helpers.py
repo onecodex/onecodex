@@ -156,7 +156,7 @@ class ResourceDownloadMixin(object):
                 path = os.path.join(os.getcwd(), _filename)
 
             if path and os.path.exists(path):
-                raise OneCodexException("{} already exists! Will not overwrite.".format(path))
+                raise OneCodexException("{} already exists. Will not overwrite.".format(path))
 
             if use_potion_session:
                 session = self._resource._client.session
@@ -200,7 +200,8 @@ class ResourceDownloadMixin(object):
             elif exc.response.status_code == 402:
                 raise OneCodexException(
                     "You must either have a premium platform account or be in "
-                    "a notebook environment to download files."
+                    "a notebook environment to download files. Please feel free to contact us "
+                    "about your subscription at support@onecodex.com."
                 )
             elif exc.response.status_code == 403:
                 raise OneCodexException("You are not authorized to download this file.")

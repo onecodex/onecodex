@@ -70,6 +70,11 @@ def download_samples(ocx, outdir, project_name_or_id=None, tag_names=None, progr
     with progressbar as bar:
         for sample in samples:
             filepath = os.path.join(outdir, sample.filename)
-            filepaths.append(sample.download(path=filepath, progressbar=False))
+            try:
+                filepaths.append(sample.download(path=filepath, progressbar=False))
+            except OneCodexException as e:
+                warnings.warn(
+                    "Skipping download of sample {} to {}: {}".format(sample.id, filepath, str(e))
+                )
             bar.update(1)
     return filepaths

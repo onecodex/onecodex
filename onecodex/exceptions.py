@@ -102,5 +102,5 @@ def raise_connectivity_error(file_name):
         "The command line client is experiencing connectivity issues and "
         "cannot complete the upload of {} at this time. Please try again "
         "later. If the problem persists, contact us at support@onecodex.com "
-        "or assistance.".format(file_name)
+        "for assistance.".format(file_name)
     )
