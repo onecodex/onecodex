@@ -314,7 +314,7 @@ def samples(ctx, samples):
     cli_resource_fetcher(ctx, "samples", samples)
 
 
-# utilites
+# utilities
 @onecodex.group("download", help="Download data from One Codex.")
 def download_group():
     pass

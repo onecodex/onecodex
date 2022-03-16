@@ -3,7 +3,54 @@ import os.path
 
 import pytest
 
-from onecodex.lib.download import download_samples
+from onecodex.exceptions import OneCodexException
+from onecodex.lib.download import download_samples, filter_samples_by_tags, get_project
+
+
+class MockApi(object):
+    def __init__(self, project_ids, project_names, tag_names):
+        self.Projects = MockProjects(project_ids, project_names)
+        self.Tags = MockTags(tag_names)
+
+
+class MockProjects(object):
+    def __init__(self, project_ids, project_names):
+        self._project_ids = project_ids
+        self._project_names = project_names
+
+    def get(self, project_id):
+        if project_id in self._project_ids:
+            return project_id
+        return None
+
+    def where(self, name=None):
+        if name and name in self._project_names:
+            return [name]
+        return []
+
+
+class MockTags(object):
+    def __init__(self, tag_names):
+        self._tag_names = tag_names
+
+    def where(self, name=None):
+        if name and name in self._tag_names:
+            return [name]
+        return []
+
+
+class MockSamples(object):
+    def __init__(self, tag_names):
+        self.tags = tag_names
+
+
+@pytest.fixture
+def mock_api():
+    return MockApi(
+        project_ids=["id1", "id2"],
+        project_names=["proj1", "proj2"],
+        tag_names=["tag1", "tag2", "tag3"],
+    )
 
 
 def test_download_samples(runner, ocx, api_data):
@@ -34,3 +81,37 @@ def test_download_samples_outdir_exists(runner, ocx, api_data):
     with runner.isolated_filesystem():
         os.mkdir("output")
         download_samples(ocx, "output")
+
+
+def test_get_project_by_id(mock_api):
+    project = get_project(mock_api, "id2")
+    assert project == "id2"
+
+
+def test_get_project_by_name(mock_api):
+    project = get_project(mock_api, "proj1")
+    assert project == "proj1"
+
+
+def test_get_project_does_not_exist(mock_api):
+    with pytest.raises(OneCodexException):
+        get_project(mock_api, "id3")
+
+
+@pytest.mark.filterwarnings("ignore:No tag found.*")
+def test_filter_samples_by_tags(mock_api):
+    samples = [
+        MockSamples([]),
+        MockSamples(["tag1"]),
+        MockSamples(["tag2", "tag3"]),
+        MockSamples(["tag3"]),
+    ]
+
+    filtered_samples = filter_samples_by_tags(mock_api, samples, ["tag1", "tag2", "tag4"])
+
+    assert filtered_samples == [samples[1], samples[2]]
+
+    # No tags found
+    filtered_samples = filter_samples_by_tags(mock_api, samples, ["tag4", "tag5"])
+
+    assert filtered_samples == samples

@@ -11,9 +11,8 @@ from onecodex.exceptions import OneCodexException
 log = logging.getLogger("onecodex")
 
 
-def get_samples_from_project(ocx, project_name_or_id):
+def get_project(ocx, project_name_or_id):
     project = ocx.Projects.get(project_name_or_id)
-
     if not project:
         try:
             project = ocx.Projects.where(name=project_name_or_id)[0]
@@ -21,8 +20,7 @@ def get_samples_from_project(ocx, project_name_or_id):
             raise OneCodexException(
                 "No project exists with name or ID '{}'.".format(project_name_or_id)
             )
-
-    return ocx.Samples.where(project=project)
+    return project
 
 
 def filter_samples_by_tags(ocx, samples, tag_names):
@@ -45,7 +43,8 @@ def filter_samples_by_tags(ocx, samples, tag_names):
 def download_samples(ocx, outdir, project_name_or_id=None, tag_names=None, progressbar=False):
     if project_name_or_id:
         log.info("Fetching samples in project '{}'...".format(project_name_or_id))
-        samples = get_samples_from_project(ocx, project_name_or_id)
+        project = get_project(ocx, project_name_or_id)
+        samples = ocx.Samples.where(project=project)
     else:
         log.info("Fetching all samples in your account...")
         samples = ocx.Samples.all()
