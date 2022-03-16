@@ -56,7 +56,7 @@ def raise_api_error(resp, state=None):
     if error_code == 402:
         error_message = (
             "Please add a payment method to upload more samples. If you continue to "
-            "experience problems, contact us at help@onecodex.com for assistance."
+            "experience problems, contact us at support@onecodex.com for assistance."
         )
     elif error_code == 403:
         error_message = "Please login to your One Codex account or pass the appropriate API key."
@@ -76,21 +76,21 @@ def raise_api_error(resp, state=None):
         if state == "init" and not error_message:
             error_message = (
                 "Could not initialize upload. Are you logged in? If this problem "
-                "continues, please contact help@onecodex.com for assistance."
+                "continues, please contact support@onecodex.com for assistance."
             )
         elif state == "upload" and not error_message:
             error_message = (
                 "File could not be uploaded. If this problem continues, please contact "
-                "help@onecodex.com for assistance."
+                "support@onecodex.com for assistance."
             )
         elif state == "callback" and not error_message:
             error_message = (
                 "Callback could not be completed. If this problem continues, please "
-                "contact help@onecodex.com for assistance."
+                "contact support@onecodex.com for assistance."
             )
 
     if error_message is None:
-        error_message = "Upload failed. Please contact help@onecodex.com for assistance."
+        error_message = "Upload failed. Please contact support@onecodex.com for assistance."
 
     raise UploadException(error_message)
 
@@ -101,6 +101,6 @@ def raise_connectivity_error(file_name):
     raise UploadException(
         "The command line client is experiencing connectivity issues and "
         "cannot complete the upload of {} at this time. Please try again "
-        "later. If the problem persists, contact us at help@onecodex.com "
+        "later. If the problem persists, contact us at support@onecodex.com "
         "or assistance.".format(file_name)
     )

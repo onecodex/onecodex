@@ -219,7 +219,7 @@ class OneCodexDocumentExporter(OneCodexPDFExporter):
             resp = json.dumps(
                 {
                     "status": 500,
-                    "message": "Upload failed. Please contact help@onecodex.com for assistance.",
+                    "message": "Upload failed. Please contact support@onecodex.com for assistance.",
                 }
             )
             return resp, resources
