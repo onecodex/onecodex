@@ -1,6 +1,6 @@
 test:
 	py.test -W ignore::DeprecationWarning --ignore tests/test_speed.py --ignore tests/test_reports.py tests/
-	@echo "Successfully passed all tests (one environment only, use tox to full suite)."
+	@echo "Successfully passed all tests (one environment only, use tox to test full suite)."
 
 lint:
 	pre-commit run --all-files

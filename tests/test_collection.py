@@ -26,12 +26,20 @@ def test_sample_collection_pandas(ocx, api_data):
 def test_collection_constructor(ocx, api_data):
     samples = ocx.Samples.where(project="45a573fb7833449a")
 
+    col = SampleCollection(samples)
+    assert col._kwargs["metric"] == "auto"
+
     with pytest.deprecated_call():
         col = SampleCollection(samples, field="readcount_w_children")
     assert isinstance(col, SampleCollection)
+    assert col._kwargs["metric"] == "readcount_w_children"
 
     col = SampleCollection(samples, metric="abundance_w_children")
     assert isinstance(col, SampleCollection)
+    assert col._kwargs["metric"] == "abundance_w_children"
+
+    with pytest.raises(OneCodexException):
+        SampleCollection(samples, metric="abundance_w_children", field="readcount_w_children")
 
 
 def test_biom(ocx, api_data):
