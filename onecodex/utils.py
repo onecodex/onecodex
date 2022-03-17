@@ -369,7 +369,9 @@ def pretty_errors(fn):
             fn(*args, **kwargs)
         except (OneCodexException, UploadException) as e:
             sys.stderr.write("\nERROR: {}".format(e))
-            sys.stderr.write("\nPlease feel free to contact us for help at help@onecodex.com\n\n")
+            sys.stderr.write(
+                "\nPlease feel free to contact us for help at support@onecodex.com\n\n"
+            )
             sys.exit(1)
 
     return pretty_errors_wrapper

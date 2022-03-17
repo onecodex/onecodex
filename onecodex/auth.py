@@ -112,7 +112,7 @@ def _login(server, creds_file=None, api_key=None, silent=False):
         click.echo(
             "We could not verify your credentials. Please check your email and password again. "
             "If you have single sign-on (SSO) enabled, you must login with `onecodex --api-key $API_KEY login`. "
-            "Please contact help@onecodex.com if you continue to experience problems."
+            "Please contact support@onecodex.com if you continue to experience problems."
         )
         sys.exit(1)
 
