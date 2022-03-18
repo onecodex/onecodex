@@ -61,6 +61,19 @@ class SampleCollection(ResourceList, AnalysisMixin):
         To provide access to the list-like API of `ResourceList`, must also accept a list of
         unwrapped potion resources and a One Codex model.
         """
+        if "field" in kwargs and "metric" in kwargs:
+            raise OneCodexException(
+                "Cannot provide both `field` and `metric`. `field` has been deprecated in favor of "
+                "`metric`."
+            )
+        if "field" in kwargs:
+            warnings.warn(
+                "The `field` parameter has been renamed to `metric`. Passing `field` to a "
+                "SampleCollection is deprecated and will be removed in a future release.",
+                DeprecationWarning,
+            )
+            kwargs["metric"] = kwargs.pop("field")
+
         if len(args) == 2 and isinstance(args[0], list) and issubclass(args[1], OneCodexBase):
             self._resource_list_constructor(*args, **kwargs)
         else:
@@ -71,7 +84,6 @@ class SampleCollection(ResourceList, AnalysisMixin):
         _resource,
         oc_model,
         skip_missing=True,
-        field="auto",
         metric="auto",
         include_host=False,
         job=None,
@@ -85,15 +97,8 @@ class SampleCollection(ResourceList, AnalysisMixin):
         super(SampleCollection, self).__init__(_resource, oc_model, **self._kwargs)
 
     def _sample_collection_constructor(
-        self, objects, skip_missing=True, field="auto", metric="auto", include_host=False, job=None
+        self, objects, skip_missing=True, metric="auto", include_host=False, job=None
     ):
-        if field:
-            warnings.warn(
-                "The `field` parameter has been renamed to `metric`. Passing `field` to a SampleCollection is deprecated and will be removed in a future release.",
-                DeprecationWarning,
-            )
-            metric = field
-
         # are they all wrapped potion resources?
         if not all([hasattr(obj, "_resource") for obj in objects]):
             raise OneCodexException(
