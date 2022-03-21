@@ -44,7 +44,8 @@ ALL_DEPS = [
     "altair==4.1.0",
     "numpy>=1.11.0",
     "pandas>=1.0.3",
-    "scikit-bio>=0.5.0",
+    "pillow>=9.0.1",
+    "scikit-bio>=0.5.6",
     "scikit-learn>=0.19.0",
     "jupyter-client==6.1.12",
 ]
@@ -56,13 +57,13 @@ setup(
     version=__version__,  # noqa
     packages=find_packages(exclude=["*test*"]),
     install_requires=[
-        "boto3>=1.4.2",
+        "boto3>=1.17.98",
         "click>=7.0",
         "jsonschema>=2.4",
         "python-dateutil>=2.5.3",
         "pytz>=2014.1",
         "sentry-sdk>=0.10.2",
-        "requests>=2.9",
+        "requests>=2.27.1",
         "requests_toolbelt>=0.7.0",
         "six>=1.10.0",
         "unidecode==1.0.23",
