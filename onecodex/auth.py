@@ -22,7 +22,7 @@ API_KEY_LEN = 32
 
 def login_uname_pwd(server, api_key=None):
     """Prompts user for username and password, gets API key from server if not provided."""
-    username = click.prompt("Please enter your One Codex (email)")
+    username = click.prompt("Please enter your One Codex email")
     if api_key is not None:
         return username, api_key
 

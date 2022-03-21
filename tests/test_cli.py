@@ -1,6 +1,7 @@
 from click.testing import CliRunner
 import mock
 import os
+import os.path
 import pytest
 from testfixtures import Replace
 
@@ -351,3 +352,24 @@ def test_paired_files_with_forward_and_reverse_args(
     result = runner.invoke(Cli, args)
     assert "You may not pass a FILES argument" in result.output
     assert result.exit_code != 0
+
+
+def test_download_samples_without_prompt(runner, api_data, mocked_creds_file):
+    with runner.isolated_filesystem():
+        result = runner.invoke(Cli, ["download", "samples", "output", "--no-prompt"])
+        assert result.exit_code == 0
+        assert len(os.listdir("output")) > 0
+
+
+def test_download_samples_with_prompt_confirmation(runner, api_data, mocked_creds_file):
+    with runner.isolated_filesystem():
+        result = runner.invoke(Cli, ["download", "samples", "output", "--prompt"], input="y\n")
+        assert result.exit_code == 0
+        assert len(os.listdir("output")) > 0
+
+
+def test_download_samples_with_prompt_abort(runner, api_data, mocked_creds_file):
+    with runner.isolated_filesystem():
+        result = runner.invoke(Cli, ["download", "samples", "output", "--prompt"], input="n\n")
+        assert result.exit_code == 0
+        assert not os.path.exists("output")

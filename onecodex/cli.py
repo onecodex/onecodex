@@ -314,7 +314,57 @@ def samples(ctx, samples):
     cli_resource_fetcher(ctx, "samples", samples)
 
 
-# utilites
+# utilities
+@onecodex.group("download", help="Download data from One Codex.")
+def download_group():
+    pass
+
+
+@download_group.command("samples")
+@click.argument(
+    "outdir",
+    type=click.Path(file_okay=False, dir_okay=True, writable=True),
+    nargs=1,
+    required=True,
+)
+@click.option(
+    "--project", help="Filter to samples in a given project. Can be project name or UUID."
+)
+@click.option(
+    "-t", "--tags", multiple=True, help="Filter to samples that include *any* of these tag names."
+)
+@click.option(
+    "--prompt/--no-prompt",
+    is_flag=True,
+    default=True,
+    help="Prompt for confirmation before downloading a large number of samples. Setting --no-prompt "
+    "will allow running without any user intervention, e.g. in a script.",
+)
+@click.pass_context
+@pretty_errors
+@telemetry
+@login_required
+def download_samples_command(ctx, outdir, project, tags, prompt):
+    """Download FASTA/Q files from One Codex.
+
+    Samples may optionally be filtered by project and/or tags. By default, all samples in your
+    account will be downloaded.
+
+    OUTDIR is the name of the output directory where downloaded files will be saved.
+
+    """
+    from onecodex.lib.download import download_samples
+
+    download_samples(
+        ctx.obj["API"],
+        outdir,
+        project_name_or_id=project,
+        tag_names=tags,
+        prompt=prompt,
+        progressbar=True,
+    )
+
+
 @onecodex.command("upload")
 @click.argument(
     "files",

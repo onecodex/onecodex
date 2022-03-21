@@ -427,6 +427,28 @@ def progressbar(*args, **kwargs):
     return bar
 
 
+# this lets us turn off the click progressbar context manager and is python2 compatible
+# https://stackoverflow.com/questions/45187286/how-do-i-write-a-null-no-op-contextmanager-in-python
+class FakeProgressBar(object):
+    pct = 0
+    label = ""
+
+    def __init__(self):
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        pass
+
+    def finish(self):
+        pass
+
+    def update(self, size):
+        pass
+
+
 def atexit_register(func, *args, **kwargs):
     atexit.register(func, *args, **kwargs)
 
