@@ -1,6 +1,7 @@
 import click
 import inspect
 import os
+import os.path
 import requests
 
 from onecodex.exceptions import OneCodexException, UnboundObject
@@ -191,7 +192,7 @@ class ResourceDownloadMixin(object):
                     for data in resp.iter_content(chunk_size=1024):
                         f_out.write(data)
         except KeyboardInterrupt:
-            if path:
+            if path and os.path.exists(path):
                 os.remove(path)
             raise
         except requests.exceptions.HTTPError as exc:

@@ -40,7 +40,20 @@ def filter_samples_by_tags(ocx, samples, tag_names):
     return samples
 
 
-def download_samples(ocx, outdir, project_name_or_id=None, tag_names=None, progressbar=False):
+def get_download_filename(sample):
+    pieces = sample.filename.split(".")
+    return ".".join(["{}_{}".format(pieces[0], sample.id)] + pieces[1:])
+
+
+def download_samples(
+    ocx,
+    outdir,
+    project_name_or_id=None,
+    tag_names=None,
+    prompt=False,
+    min_samples_for_prompt=50,
+    progressbar=False,
+):
     if project_name_or_id:
         log.info("Fetching samples in project '{}'...".format(project_name_or_id))
         project = get_project(ocx, project_name_or_id)
@@ -52,23 +65,28 @@ def download_samples(ocx, outdir, project_name_or_id=None, tag_names=None, progr
     if tag_names:
         samples = filter_samples_by_tags(ocx, samples, tag_names)
 
-    if not len(samples):
+    num_samples = len(samples)
+    if num_samples == 0:
         log.info("No samples match the filter criteria; nothing to download.")
         return []
+
+    if prompt and num_samples >= min_samples_for_prompt:
+        if not click.confirm("Are you sure you'd like to download {} samples?".format(num_samples)):
+            return []
 
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 
     if progressbar:
-        label = "Downloading {} sample{}...".format(len(samples), "" if len(samples) == 1 else "s")
-        progressbar = click.progressbar(length=len(samples), label=label)
+        label = "Downloading {} sample{}...".format(num_samples, "" if num_samples == 1 else "s")
+        progressbar = click.progressbar(length=num_samples, label=label)
     else:
         progressbar = FakeProgressBar()
 
     filepaths = []
     with progressbar as bar:
         for sample in samples:
-            filepath = os.path.join(outdir, sample.filename)
+            filepath = os.path.join(outdir, get_download_filename(sample))
             try:
                 filepaths.append(sample.download(path=filepath, progressbar=False))
             except OneCodexException as e:

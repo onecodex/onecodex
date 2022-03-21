@@ -4,7 +4,12 @@ import os.path
 import pytest
 
 from onecodex.exceptions import OneCodexException
-from onecodex.lib.download import download_samples, filter_samples_by_tags, get_project
+from onecodex.lib.download import (
+    download_samples,
+    filter_samples_by_tags,
+    get_project,
+    get_download_filename,
+)
 
 
 class MockApi(object):
@@ -40,8 +45,10 @@ class MockTags(object):
 
 
 class MockSamples(object):
-    def __init__(self, tag_names):
-        self.tags = tag_names
+    def __init__(self, id="", filename="", tag_names=None):
+        self.id = id
+        self.filename = filename
+        self.tags = tag_names if tag_names else []
 
 
 @pytest.fixture
@@ -101,10 +108,10 @@ def test_get_project_does_not_exist(mock_api):
 @pytest.mark.filterwarnings("ignore:No tag found.*")
 def test_filter_samples_by_tags(mock_api):
     samples = [
-        MockSamples([]),
-        MockSamples(["tag1"]),
-        MockSamples(["tag2", "tag3"]),
-        MockSamples(["tag3"]),
+        MockSamples(),
+        MockSamples(tag_names=["tag1"]),
+        MockSamples(tag_names=["tag2", "tag3"]),
+        MockSamples(tag_names=["tag3"]),
     ]
 
     filtered_samples = filter_samples_by_tags(mock_api, samples, ["tag1", "tag2", "tag4"])
@@ -115,3 +122,18 @@ def test_filter_samples_by_tags(mock_api):
     filtered_samples = filter_samples_by_tags(mock_api, samples, ["tag4", "tag5"])
 
     assert filtered_samples == samples
+
+
+@pytest.mark.parametrize(
+    "sample_id,sample_filename,output_filename",
+    [
+        ("abc123", "foo", "foo_abc123"),
+        ("abc123", "foo.fastq", "foo_abc123.fastq"),
+        ("abc123", "foo.fastq.gz", "foo_abc123.fastq.gz"),
+    ],
+)
+def test_get_download_filename(sample_id, sample_filename, output_filename):
+    sample = MockSamples(id=sample_id, filename=sample_filename)
+    filename = get_download_filename(sample)
+
+    assert filename == output_filename
