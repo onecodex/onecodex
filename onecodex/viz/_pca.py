@@ -179,7 +179,7 @@ class VizPCAMixin(object):
             for tax_id, var1, var2 in zip(
                 df.columns.values, pca.components_[0, :], pca.components_[1, :]
             ):
-                if np.sqrt(var1 ** 2 + var2 ** 2) >= cutoff:
+                if np.sqrt(var1**2 + var2**2) >= cutoff:
                     plot_data["x"].extend([0, var1 * float(org_vectors_scale)])
                     plot_data["y"].extend([0, var2 * float(org_vectors_scale)])
                     plot_data["o"].extend([0, 1])

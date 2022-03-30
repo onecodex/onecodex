@@ -5,7 +5,7 @@ import nbformat
 
 from traitlets.config import Config
 
-from PyPDF2 import PdfFileReader
+import pdfplumber
 from onecodex.notebooks.exporters import HTMLExporter, OneCodexPDFExporter
 
 
@@ -37,15 +37,13 @@ def test_html_report_generation(capsys, nb, nb_config):
 def test_pdf_report_generation(capsys, nb, nb_config):
     exporter = OneCodexPDFExporter(config=nb_config)
     body, resource = exporter.from_notebook_node(nb)
-    pdf = PdfFileReader(io.BytesIO(body))
-    page = pdf.getPage(0)
-    pdf_text = page.extractText()
+    pdf = pdfplumber.open(io.BytesIO(body))
+    page = pdf.pages[0]
+    pdf_text = page.extract_text()
 
     # Check that we have an image (hack is to just check file size)
     assert len(body) > 20000
-    assert any(
-        [v.getObject()["/Subtype"] == "/Image" for v in page["/Resources"]["/XObject"].values()]
-    )
+    assert len(page.images) > 0
 
     # Check text
     assert "Example Report" in pdf_text

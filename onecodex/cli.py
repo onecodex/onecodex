@@ -169,7 +169,7 @@ def documents_list(ctx, json):
     nargs=-1,
     required=False,
     type=click.Path(exists=True),
-    autocompletion=partial(click_path_autocomplete_helper, directory=False),
+    shell_complete=partial(click_path_autocomplete_helper, directory=False),
 )
 @click.pass_context
 @pretty_errors
@@ -202,7 +202,7 @@ def documents_upload(ctx, max_threads, files):
     help="Write document to PATH",
     required=False,
     type=click.Path(dir_okay=False, allow_dash=True),
-    autocompletion=partial(click_path_autocomplete_helper, filename=False),
+    shell_complete=partial(click_path_autocomplete_helper, filename=False),
 )
 @click.pass_context
 @pretty_errors
@@ -246,7 +246,7 @@ def analyses(ctx, analyses):
     type=click.Path(),
     default="./",
     help=OPTION_HELP["readlevel_path"],
-    autocompletion=partial(click_path_autocomplete_helper, filename=False),
+    shell_complete=partial(click_path_autocomplete_helper, filename=False),
 )
 @click.option("--results", "results", is_flag=True, help=OPTION_HELP["results"])
 @click.pass_context
@@ -371,7 +371,7 @@ def download_samples_command(ctx, outdir, project, tags, prompt):
     nargs=-1,
     required=False,
     type=click.Path(exists=True),
-    autocompletion=partial(click_path_autocomplete_helper, directory=False),
+    shell_complete=partial(click_path_autocomplete_helper, directory=False),
 )
 @click.option("--max-threads", default=4, help=OPTION_HELP["max_threads"], metavar="<int:threads>")
 @click.option(
@@ -384,13 +384,13 @@ def download_samples_command(ctx, outdir, project, tags, prompt):
     "--forward",
     type=click.Path(exists=True),
     help=OPTION_HELP["forward"],
-    autocompletion=partial(click_path_autocomplete_helper, directory=False),
+    shell_complete=partial(click_path_autocomplete_helper, directory=False),
 )
 @click.option(
     "--reverse",
     type=click.Path(exists=True),
     help=OPTION_HELP["reverse"],
-    autocompletion=partial(click_path_autocomplete_helper, directory=False),
+    shell_complete=partial(click_path_autocomplete_helper, directory=False),
 )
 @click.option("--prompt/--no-prompt", is_flag=True, help=OPTION_HELP["prompt"], default=True)
 @click.option("--tag", "-t", "tags", multiple=True, help=OPTION_HELP["tag"])

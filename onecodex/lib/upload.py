@@ -39,7 +39,7 @@ def _choose_boto3_chunksize(file_obj):
     file_obj_size = getattr(file_obj, "_fsize", None)
 
     if file_obj_size:
-        allowed_chunk_sizes = [size * 1024 ** 2 for size in range(10, 110, 10)]
+        allowed_chunk_sizes = [size * 1024**2 for size in range(10, 110, 10)]
 
         for chunk_size in allowed_chunk_sizes:
             if math.ceil(file_obj_size / chunk_size) < 10000:
@@ -56,7 +56,7 @@ def _choose_boto3_chunksize(file_obj):
         multipart_chunksize = chunk_size
     else:
         # default to 25 mb
-        multipart_chunksize = 25 * 1024 ** 2
+        multipart_chunksize = 25 * 1024**2
 
     return multipart_chunksize
 
