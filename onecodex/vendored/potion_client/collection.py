@@ -1,11 +1,11 @@
 # flake8: noqa
-import collections
+import collections.abc
 from pprint import pformat
 
 from .utils import escape
 
 
-class PaginatedList(collections.Sequence):
+class PaginatedList(collections.abc.Sequence):
     def __init__(self, binding, params):
         self._pages = {}
         self._per_page = per_page = params.pop('per_page', 20)

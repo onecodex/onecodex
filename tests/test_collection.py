@@ -42,6 +42,7 @@ def test_collection_constructor(ocx, api_data):
         SampleCollection(samples, metric="abundance_w_children", field="readcount_w_children")
 
 
+@pytest.mark.filterwarnings("ignore:.*multiple analysis types.*")
 def test_biom(ocx, api_data):
     c1 = ocx.Classifications.get("45a573fb7833449a")._resource
     c2 = ocx.Classifications.get("593601a797914cbf")._resource

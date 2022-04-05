@@ -1,15 +1,10 @@
-import collections
+import collections.abc
 from pprint import pformat
 
 import six
 
 from .exceptions import ItemNotFound, MultipleItemsFound
 from .utils import escape
-
-try:
-    from collections import Mapping  # moved in 3.10
-except ImportError:
-    from collections.abc import Mapping
 
 
 def uri_for(reference):
@@ -22,7 +17,7 @@ def uri_for(reference):
     return reference._uri
 
 
-class Reference(Mapping):
+class Reference(collections.abc.Mapping):
     """
 
     This implementation makes the assumption that a {$ref} object always points to an object, never an array or

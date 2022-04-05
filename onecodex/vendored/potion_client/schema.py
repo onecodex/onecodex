@@ -1,14 +1,8 @@
-import collections
+import collections.abc
 import re
 
 
-try:
-    from collections import Mapping  # moved in 3.10
-except ImportError:
-    from collections.abc import Mapping
-
-
-class Schema(Mapping):
+class Schema(collections.abc.Mapping):
     def __init__(self, schema):
         if isinstance(schema, Schema):
             schema = schema._schema
