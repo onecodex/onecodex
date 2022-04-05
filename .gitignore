@@ -19,3 +19,5 @@ Pipfile*
 node_modules
 .vscode/
 geckodriver.log
+package.json
+package-lock.json

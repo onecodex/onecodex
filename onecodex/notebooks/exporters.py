@@ -50,7 +50,6 @@ class AltairPreprocessor(Preprocessor):
 
 class OneCodexHTMLExporter(HTMLExporter):
     export_from_notebook = "One Codex HTML Report"
-    template_path = [ASSETS_PATH]
 
     def __init__(self, config=None, **kw):
         super(OneCodexHTMLExporter, self).__init__(config=config, **kw)
@@ -69,6 +68,11 @@ class OneCodexHTMLExporter(HTMLExporter):
             )
         except ImportError:
             return
+
+    @property
+    def template_paths(self):
+        # https://github.com/jupyter/nbconvert/issues/1492
+        return super()._template_paths() + [ASSETS_PATH]
 
     def from_notebook_node(self, nb, resources=None, **kw):
         """Apply nbconvert's HTMLExporter to generate HTML, with slight modifications.
@@ -158,11 +162,15 @@ class OneCodexHTMLExporter(HTMLExporter):
 
 class OneCodexPDFExporter(OneCodexHTMLExporter):
     export_from_notebook = "One Codex PDF Report"
-    template_path = [ASSETS_PATH]
 
     def __init__(self, config=None, **kw):
         super(OneCodexPDFExporter, self).__init__(config=config, **kw)
         self.register_preprocessor(AltairPreprocessor, enabled=True)
+
+    @property
+    def template_paths(self):
+        # https://github.com/jupyter/nbconvert/issues/1492
+        return super()._template_paths() + [ASSETS_PATH]
 
     def from_notebook_node(self, nb, resources=None, **kw):
         """Take output of OneCodexHTMLExporter and run Weasyprint to get a PDF."""

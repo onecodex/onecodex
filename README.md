@@ -10,7 +10,7 @@ MAINTAINERS: [@clausmith](https://github.com/clausmith), [@boydgreenfield](https
 
 This package provides 3 major pieces of functionality: (1) a core Python client library; (2) a simple CLI for interacting with the One Codex platform that uses that core library; and (3) optional extensions to the client library, which offers many features aimed at advanced users and provides functionality for use in interactive notebook environments (e.g., IPython notebooks).
 
-Python 2.7 is supported **for the CLI only** (i.e., when doing `pip install onecodex`). Python 3.7 or later is required to use the additional features of the API library, including those related to visualization, microbiome statistics, and data manipulation (i.e., the full set of libraries installed with `pip install 'onecodex[all]'`).
+Python 3.7 or later is required to use the additional features of the API library, including those related to visualization, microbiome statistics, and data manipulation (i.e., the full set of libraries installed with `pip install 'onecodex[all]'`).
 
 
 ### _Basic installation_
@@ -182,6 +182,9 @@ cd onecodex/
 To set up the project, first create a virtual environment and then install dependencies:
 
 ```shell
+# If you are on a M1 Macbook, run the line below, adjusting the version as needed
+export HDF5_DIR=/opt/homebrew/Cellar/hdf5/1.12.1_1/
+
 virtualenv venv
 source venv/bin/activate
 pip install numpy  # numpy must be installed before any of its dependencies

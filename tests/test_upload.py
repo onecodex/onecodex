@@ -173,9 +173,9 @@ def test_api_failures(caplog):
 def test_unicode_filenames(caplog):
     with patch("boto3.session.Session"):
         file_list = [
-            (u"tests/data/files/François.fq", "Francois.fq"),
-            (u"tests/data/files/Málaga.fasta", "Malaga.fasta"),
-            (u"tests/data/files/Röö.fastq", "Roo.fastq"),
+            ("tests/data/files/François.fq", "Francois.fq"),
+            ("tests/data/files/Málaga.fasta", "Malaga.fasta"),
+            ("tests/data/files/Röö.fastq", "Roo.fastq"),
         ]
 
         # should raise if --coerce-ascii not passed
@@ -274,7 +274,7 @@ def test_multipart_encoder_passthru():
 def test_boto3_chunksize():
     # test file that is too large to upload
     wrapper = FilePassthru("tests/data/files/test_R1_L001.fq.gz")
-    wrapper._fsize = 1024 ** 4  # 1 TB
+    wrapper._fsize = 1024**4  # 1 TB
 
     with pytest.raises(OneCodexException) as e:
         _choose_boto3_chunksize(wrapper)
@@ -282,5 +282,5 @@ def test_boto3_chunksize():
 
     # test file with no known size
     assert (
-        _choose_boto3_chunksize(open("tests/data/files/test_R1_L001.fq.gz", "r")) == 25 * 1024 ** 2
+        _choose_boto3_chunksize(open("tests/data/files/test_R1_L001.fq.gz", "r")) == 25 * 1024**2
     )
