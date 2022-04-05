@@ -28,15 +28,12 @@ with open("README.md") as readme:
 TESTING_DEPS = [
     "coverage",
     "codecov",
-    "flake8",
-    "pydocstyle",
     "pytest",
     "pytest-cov",
     "responses",
     "testfixtures",
     "mock",
     "vega_datasets",
-    "black",
     "pre-commit",
     "pdfplumber",
 ]
