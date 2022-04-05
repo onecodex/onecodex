@@ -25,11 +25,11 @@ from onecodex import Cli
             "from onecodex.viz import VizPCAMixin",
             {
                 "onecodex": 0.25,
-                "onecodex.viz": 0.35,
+                "onecodex.viz": 0.4,
                 "onecodex.viz._pca": 0.01,
                 "onecodex.viz._distance": 0.01,
             },
-            0.35,
+            0.4,
         ),
         (
             "from onecodex.analyses import AnalysisMixin",

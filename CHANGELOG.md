@@ -5,6 +5,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v0.10.0] - 2022-04-05
+
+### Added
+
+- Adds `download_samples()` function and `onecodex download samples` CLI command for downloading batches of samples as FASTA/Q files
+- Adds support for Python 3.9 and 3.10
+- Adds support for Apple M1 processors
+
+### Changed
+
+- Improves `SampleCollection._collate_results()` runtime by at least 20x
+- Improves missing value coercion in `SampleCollection._collate_results()`
+- Updates some dependency versions to address security vulnerabilities, performance enhancements, expanded environment support, and easier installation
+- `numpy` is no longer required to be installed prior to installing the `onecodex` package
+- Relaxes `filelock` dependency version pin
+- Changes `help@onecodex.com` to `support@onecodex.com` in user messaging
+
+### Fixed
+
+- Fixes PCoA/MDS plot URL bug
+- Fixes `metric` parameter behavior in `SampleCollection` constructor (it is no longer ignored)
+
+### Removed
+
+- Removes Python 2 support
+- Removes bash completion
+- Removes `Classifications._append_abundance_rollups()` in favor of retrieving `abundance_w_children` metric from One Codex API
+
 ## [v0.9.6] - 2021-11-15
 
 ### Added
