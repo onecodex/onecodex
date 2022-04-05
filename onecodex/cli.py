@@ -24,7 +24,6 @@ from onecodex.utils import (
     pprint,
     pretty_errors,
     run_via_threadpool,
-    warn_if_insecure_platform,
     telemetry,
 )
 from onecodex.input_helpers import auto_detect_pairs, concatenate_multilane_files
@@ -72,10 +71,6 @@ def onecodex(ctx, api_key, no_pprint, verbose, telemetry):
 
     if verbose:
         log.setLevel(logging.DEBUG)
-
-    # handle checking insecure platform, we let upload command do it by itself
-    if ctx.invoked_subcommand != "upload":
-        warn_if_insecure_platform()
 
 
 @onecodex.group("scripts", help="Assorted utility scripts")

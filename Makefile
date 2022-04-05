@@ -1,6 +1,6 @@
 test:
 	py.test -W ignore::DeprecationWarning --ignore tests/test_speed.py --ignore tests/test_reports.py tests/
-	@echo "Successfully passed all tests (one environment only, use tox to test full suite)."
+	@echo "Successfully passed all tests (one environment only)."
 
 lint:
 	pre-commit run --all-files
@@ -14,6 +14,3 @@ coveragehtml:
 
 install:
 	python setup.py install
-
-format:
-	black -l 100 --exclude vendored/* onecodex/ tests/

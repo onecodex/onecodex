@@ -11,14 +11,11 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]  # , windows-latest]
-        python-version: [3.7, 3.8, 3.9]
-        exclude:
-          - os: macos-latest
-            python-version: 3.8
+        python-version: ['3.7', '3.8', '3.9', '3.10']
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
       - name: Display Python version
@@ -28,8 +25,6 @@ jobs:
           python3 -m venv venv
           . venv/bin/activate
           pip install -q -U pip
-          # scikit-bio requires numpy at build time
-          pip install numpy
           pip install --progress-bar=off .[all,reports,testing]
       - name: Run all tests
         run: |
@@ -41,16 +36,14 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
-          python-version: 3.9
+          python-version: '3.10'
       - name: Install dependencies in a venv
         run: |
           python3 -m venv venv
           . venv/bin/activate
           pip install -q -U pip
-          # scikit-bio requires numpy at build time
-          pip install numpy
           pip install --progress-bar=off simplejson
           pip install --progress-bar=off .[all,testing]
       - name: Run tests (w/ simplejson)
@@ -63,9 +56,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
-          python-version: 3.9
+          python-version: '3.10'
       - name: Set Up Node
         uses: actions/setup-node@v1
         with:
@@ -78,8 +71,6 @@ jobs:
           python3 -m venv venv
           . venv/bin/activate
           pip install -q -U pip
-          # scikit-bio requires numpy at build time
-          pip install numpy
           pip install --progress-bar=off .[all,testing,reports]
       - name: Run report tests
         run: |
@@ -91,16 +82,14 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
-          python-version: 3.9
+          python-version: '3.10'
       - name: Install dependencies in a venv
         run: |
           python3 -m venv venv
           . venv/bin/activate
           pip install -q -U pip
-          # scikit-bio requires numpy at build time
-          pip install numpy
           pip install --progress-bar=off simplejson
           pip install --progress-bar=off .[all,testing]
       - name: Generate coverage
@@ -116,16 +105,14 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
-          python-version: 3.9
+          python-version: '3.10'
       - name: Install dependencies in a venv
         run: |
           python3 -m venv venv
           . venv/bin/activate
           pip install -q -U pip
-          # scikit-bio requires numpy at build time
-          pip install numpy
           pip install --progress-bar=off simplejson tuna
           pip install --progress-bar=off .[all,testing]
       - name: Test import speeds
@@ -135,7 +122,7 @@ jobs:
           python -X importtime -c 'import onecodex; onecodex.cli.onecodex()' 2> import.log
           mkdir tuna && mkdir tuna/static
           tuna -o tuna/ import.log
-      - name: Archive Cypress videos
+      - name: Archive tuna videos
         uses: actions/upload-artifact@v1
         if: failure()
         with:

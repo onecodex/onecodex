@@ -42,7 +42,7 @@ ALL_DEPS = [
     "numpy>=1.11.0",
     "pandas>=1.0.3",
     "pillow>=9.0.1",
-    "scikit-bio>=0.5.6",
+    "scikit-bio>=0.5.7",
     "scikit-learn>=0.19.0",
     "jupyter-client==7.2.0",
 ]
@@ -55,11 +55,11 @@ REPORT_DEPS = ALL_DEPS + [
     "altair_saver==0.5.0",
 ]
 
-
 setup(
     name="onecodex",
     version=__version__,  # noqa
     packages=find_packages(exclude=["*test*"]),
+    python_requires=">=3.7",
     install_requires=[
         "boto3>=1.17.98",
         "click>=8.0",
@@ -94,6 +94,12 @@ setup(
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: Internet :: WWW/HTTP",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
     ],
     entry_points={
         "console_scripts": ["onecodex = onecodex.cli:onecodex"],

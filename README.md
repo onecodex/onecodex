@@ -10,7 +10,7 @@ MAINTAINERS: [@clausmith](https://github.com/clausmith), [@boydgreenfield](https
 
 This package provides 3 major pieces of functionality: (1) a core Python client library; (2) a simple CLI for interacting with the One Codex platform that uses that core library; and (3) optional extensions to the client library, which offers many features aimed at advanced users and provides functionality for use in interactive notebook environments (e.g., IPython notebooks).
 
-Python 3.7 or later is required to use the additional features of the API library, including those related to visualization, microbiome statistics, and data manipulation (i.e., the full set of libraries installed with `pip install 'onecodex[all]'`).
+Python 3.7 or later is required. **Python 2 is no longer supported.**
 
 
 ### _Basic installation_
@@ -19,14 +19,10 @@ The CLI (and core Python library) may be simply installed using `pip`. To downlo
 pip install onecodex
 ```
 
-
 ### _Installation with optional extensions_
-To also download the optional extensions to the client library - and all of their dependencies - use the command `pip install 'onecodex[all]'`. **Warning:** Because other packages used in the extensions rely upon `numpy` being present during their installation, `numpy` must be installed seperately first. So if you do not have `numpy` installed, and you are going to install `onecodex[all]` please do the following:
-```shell
-# If numpy is not installed in your environment
-pip install numpy
+To also download the optional extensions to the client library, and all of their dependencies, run:
 
-# Once you have numpy installed
+```shell
 pip install 'onecodex[all]'
 ```
 
@@ -131,7 +127,7 @@ onecodex panels 0123456789abcdef 0987654321fdecba
 
 # Using the Python client library
 
-## Initalization
+## Initialization
 To load the API, use the following import:
 ```python
 from onecodex.api import Api
@@ -170,7 +166,7 @@ all_completed_analyses.to_df()    # Returns a pandas dataframe
 
 # Development
 
-Before developing, `git` and `python` (version >=2.7 and/or >=3.4) are needed. We recommend using [pyenv](https://github.com/yyuu/pyenv) for Python version management.
+Before developing, `git` and `python` version >=3.7 are needed. We recommend using [pyenv](https://github.com/yyuu/pyenv) for Python version management.
 
 To download the client library from GitHub:
 
@@ -187,11 +183,10 @@ export HDF5_DIR=/opt/homebrew/Cellar/hdf5/1.12.1_1/
 
 virtualenv venv
 source venv/bin/activate
-pip install numpy  # numpy must be installed before any of its dependencies
 pip install -e '.[all,testing,reports]'  # -e specifies development mode so that the package doesn't have to be reinstalled after code edits
 ```
 
-Test are run through the Makefile, and call tox. Note this may take awhile at first because of installing dependencies:
+Test are run via the Makefile. Note this may take awhile at first because of installing dependencies:
 
 ```shell
 make lint

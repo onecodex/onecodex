@@ -1,14 +1,10 @@
 # flake8: noqa
+from collections.abc import MutableMapping
 from functools import partial
 from operator import getitem, delitem, setitem
 from six.moves.urllib.parse import urlparse, urljoin
 from weakref import WeakValueDictionary
 import requests
-
-try:
-    from collections.abc import MutableMapping
-except ImportError:
-    from collections import MutableMapping  # removed in Python 3.9+
 
 from .converter import PotionJSONDecoder, PotionJSONSchemaDecoder
 from .resource import Reference, Resource, uri_for

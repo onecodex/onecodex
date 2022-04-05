@@ -71,6 +71,7 @@ def test_plot_metadata_facet_by_scatter(ocx, api_data):
     assert chart.encoding.x.axis.title == ""
 
 
+@pytest.mark.filterwarnings("ignore:.*Groups of size 1.*")
 def test_plot_metadata_facet_by_boxplot(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
 

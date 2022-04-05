@@ -1,5 +1,6 @@
 from __future__ import print_function, division
 
+import atexit
 import copy
 import logging
 import math
@@ -7,7 +8,7 @@ import requests
 import six
 
 from onecodex.exceptions import OneCodexException, raise_connectivity_error, raise_api_error
-from onecodex.utils import atexit_register, atexit_unregister, snake_case, FakeProgressBar
+from onecodex.utils import snake_case, FakeProgressBar
 from onecodex.lib.files import FilePassthru, get_file_wrapper
 
 from requests.adapters import HTTPAdapter
@@ -231,7 +232,7 @@ def upload_sequence(
                 else:
                     raise
 
-        atexit_register(cancel_atexit)
+        atexit.register(cancel_atexit)
 
         if is_paired:
             # 2 files to upload
@@ -247,7 +248,7 @@ def upload_sequence(
         else:
             sample_id = _upload_sequence_fileobj(fobj, fobj.filename, fields, samples_resource)
 
-        atexit_unregister(cancel_atexit)
+        atexit.unregister(cancel_atexit)
         return sample_id
 
 

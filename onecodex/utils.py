@@ -1,4 +1,3 @@
-import atexit
 import base64
 import click
 import concurrent.futures
@@ -181,53 +180,6 @@ def cli_resource_fetcher(ctx, resource, uris, print_results=True):
             "or trying logging out and back in with `onecodex logout` "
             "and `onecodex login`."
         )
-
-
-def is_insecure_platform():
-    """Check if the current system is missing an SSLContext object."""
-    v = sys.version_info
-    if v.major == 3:
-        return False  # Python 2 issue
-
-    if v.major == 2 and v.minor == 7 and v.micro >= 9:
-        return False  # >= 2.7.9 includes the new SSL updates
-
-    try:
-        import OpenSSL  # noqa
-        import ndg  # noqa
-        import pyasn1  # noqa
-    except ImportError:
-        pass
-    return True
-
-
-def warn_if_insecure_platform():
-    """Produce a nice message if SSLContext object is not available.
-
-    Returns
-    -------
-    `True` if platform is insecure, `False` if platform is secure.
-    """
-    m = (
-        "\n"
-        "######################################################################################\n"  # noqa
-        "#                                                                                    #\n"  # noqa
-        "#  Your version of Python appears to be out of date and lack important security      #\n"  # noqa
-        "#  features. Please update to Python >= 2.7.9 or `pip install requests[security]`.   #\n"  # noqa
-        "#                                                                                    #\n"  # noqa
-        "#  InsecurePlatformWarning: A true SSLContext object is not available. This          #\n"  # noqa
-        "#  prevents urllib3 from configuring SSL appropriately and may cause certain         #\n"  # noqa
-        "#  SSL connections to fail. For more information, see                                #\n"  # noqa
-        "#  https://urllib3.readthedocs.org/en/latest/security.html#insecureplatformwarning.  #\n"  # noqa
-        "#                                                                                    #\n"  # noqa
-        "######################################################################################\n"
-    )  # noqa
-    if is_insecure_platform():
-        click.echo(m, err=True)
-        return True
-    else:
-        log.debug("Python SSLContext passed")
-        return False
 
 
 def get_download_dest(input_path, url):
@@ -447,26 +399,6 @@ class FakeProgressBar(object):
 
     def update(self, size):
         pass
-
-
-def atexit_register(func, *args, **kwargs):
-    atexit.register(func, *args, **kwargs)
-
-
-def atexit_unregister(func, *args, **kwargs):
-    """Python 2/3 compatible method for unregistering exit function.
-
-    Python2 has no atexit.unregister function :/
-    """
-    try:
-        atexit.unregister(func, *args, **kwargs)
-    except AttributeError:
-        # This code runs in Python 2.7 *only*
-        # Only replace with a noop, don't delete during iteration
-        for i in range(len(atexit._exithandlers)):
-            if atexit._exithandlers[i] == (func, args, kwargs):
-                atexit._exithandlers[i] = (lambda: None, [], {})
-                break
 
 
 def click_path_autocomplete_helper(ctx, args, incomplete, filename=True, directory=True):
