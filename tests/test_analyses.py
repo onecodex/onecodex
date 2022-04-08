@@ -95,6 +95,11 @@ def test_metadata_fetch(ocx, api_data):
     assert fields["totalige"] == "totalige"
     assert df["totalige"].tolist() == [62.9, 91.5, 112.0]
 
+    # single metadata field doesn't match anything
+    df, fields = samples._metadata_fetch(["does_not_exist"])
+    assert fields["does_not_exist"] == "does_not_exist"
+    assert df["does_not_exist"].tolist() == [None, None, None]
+
     # tax_id coerced to string from integer
     df, fields = samples._metadata_fetch([1279])
     assert fields[1279] == "Staphylococcus (1279)"

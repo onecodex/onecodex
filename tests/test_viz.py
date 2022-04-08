@@ -109,10 +109,6 @@ def test_plot_metadata_exceptions(ocx, api_data):
     with pytest.raises(OneCodexException):
         samples.plot_metadata(vaxis="does_not_exist")
 
-    # horiz axis does not exist
-    with pytest.raises(OneCodexException):
-        samples.plot_metadata(haxis="does_not_exist")
-
     # must have at least one sample
     with pytest.raises(PlottingException) as e:
         samples[:0].plot_metadata()
@@ -232,18 +228,6 @@ def test_plot_pca_exceptions(ocx, api_data):
         samples.to_df(top_n=1).ocx.plot_pca()
     assert "too few taxa" in str(e.value)
 
-    # color/size/tooltips with invalid metadata fields or taxids
-    for k in ("color", "size", "tooltip"):
-        kwargs = {k: "does_not_exist"}
-        with pytest.raises(OneCodexException) as e:
-            samples.plot_pca(**kwargs)
-        assert "not found" in str(e.value)
-
-        kwargs = {k: "487527863"}
-        with pytest.raises(OneCodexException) as e:
-            samples.plot_pca(**kwargs)
-        assert "not found" in str(e.value)
-
 
 def test_plot_heatmap(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
@@ -289,11 +273,6 @@ def test_plot_heatmap_exceptions(ocx, api_data):
     with pytest.raises(OneCodexException) as e:
         samples.plot_heatmap(top_n=None, threshold=None)
     assert "specify at least one of" in str(e.value)
-
-    # tooltip with invalid metadata fields or taxids
-    with pytest.raises(OneCodexException) as e:
-        samples.plot_heatmap(tooltip="does_not_exist")
-    assert "not found" in str(e.value)
 
 
 def test_plot_distance(ocx, api_data):
@@ -342,11 +321,6 @@ def test_plot_distance_exceptions(ocx, api_data):
             metric="jaccard", xlabel="my xlabel", ylabel="my ylabel", title="my title"
         )
     assert "too few samples" in str(e.value)
-
-    # tooltip with invalid metadata fields or taxids
-    with pytest.raises(OneCodexException) as e:
-        samples.plot_distance(tooltip="does_not_exist")
-    assert "not found" in str(e.value)
 
 
 @pytest.mark.parametrize(
@@ -458,11 +432,6 @@ def test_plot_mds_exceptions(ocx, api_data):
         )
     assert "too few samples" in str(e.value)
 
-    # tooltip with invalid metadata fields or taxids
-    with pytest.raises(OneCodexException) as e:
-        samples.plot_mds(tooltip="does_not_exist")
-    assert "not found" in str(e.value)
-
 
 def test_plot_bargraph_arguments(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
@@ -471,11 +440,6 @@ def test_plot_bargraph_arguments(ocx, api_data):
     with pytest.raises(OneCodexException) as e:
         samples.plot_bargraph(rank=None)
     assert "specify a rank" in str(e.value)
-
-    # tooltip with invalid metadata fields or taxids
-    with pytest.raises(OneCodexException) as e:
-        samples.plot_bargraph(tooltip="does_not_exist")
-    assert "not found" in str(e.value)
 
     # need at least 1 sample
     with pytest.raises(PlottingException) as e:
@@ -511,6 +475,26 @@ def test_plot_bargraph_chart_result(ocx, api_data, metric, rank, label):
     assert chart.encoding.x.axis.title == "Exemplary Samples"
     assert chart.encoding.y.shorthand == label
     assert chart.encoding.y.axis.title == "Glorious Abundances"
+
+
+@pytest.mark.parametrize(
+    "method,kwargs",
+    [
+        ("plot_metadata", {"haxis": "does_not_exist"}),
+        ("plot_pca", {"color": "does_not_exist"}),
+        ("plot_pca", {"size": "does_not_exist"}),
+        ("plot_pca", {"tooltip": "does_not_exist"}),
+        ("plot_heatmap", {"tooltip": "does_not_exist"}),
+        ("plot_distance", {"tooltip": "does_not_exist"}),
+        ("plot_mds", {"tooltip": "does_not_exist"}),
+        ("plot_bargraph", {"tooltip": "does_not_exist"}),
+    ],
+)
+def test_plotting_missing_fields(ocx, api_data, method, kwargs):
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+    chart = getattr(samples, method)(**kwargs, title="my plot", return_chart=True)
+
+    assert chart.title == "my plot"
 
 
 def test_interleave_palette_empty_domain():
