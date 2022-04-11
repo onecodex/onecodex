@@ -234,11 +234,8 @@ class AnalysisMixin(
                         magic_fields[f] = renamed_field
                     else:
                         # matched nothing
-                        raise OneCodexException(
-                            "Metric or taxon {} not found. Choose from: {}".format(
-                                str_f, help_metadata
-                            )
-                        )
+                        magic_metadata[f] = None
+                        magic_fields[f] = str_f
 
         return magic_metadata, magic_fields
 
