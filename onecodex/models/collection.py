@@ -15,7 +15,6 @@ except ImportError:
     class AnalysisMixin(object):
         pass
 
-
 from onecodex.models import OneCodexBase, ResourceList
 
 
@@ -390,162 +389,25 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         return self._cached["taxonomy"]
 
-    def _functional_profiles_fetch(self, skip_missing=None):
-        """Transform a list of Samples or Classifications into a list of FunctionalProfiles objects.
-
-        Parameters
-        ----------
-        skip_missing : `bool`
-            If an analysis is missing or was not successful, exclude it, warn, and keep going
-
-        Returns
-        -------
-        None, but stores a result in self._cached.
+    def _collate_functional_profiles(self):
         """
-        # TODO: make sure this is ok in the case where we keep FunctionalProfiles in experimental...
-        from onecodex.models import Classifications, Samples, FunctionalProfiles
-
-        skip_missing = skip_missing if skip_missing else self._kwargs["skip_missing"]
-
-        functional_profiles = []
-        for obj in self._res_list:
-            # TODO: test all of these logic pathways
-            if isinstance(obj, Samples):
-                sample_id = obj.id
-                functional_profile = FunctionalProfiles.where(sample=obj)
-            elif isinstance(obj, Classifications):
-                sample_id = obj.sample.id
-                functional_profile = FunctionalProfiles.where(sample=obj.sample)
-            else:
-                raise OneCodexException(
-                    "Objects in SampleCollection must be one of: Classifications, Samples"
-                )
-            if len(functional_profile) == 0:
-                if skip_missing:
-                    warnings.warn(f"Functional profile not found for sample {sample_id}. Skipping.")
-                    continue
-                else:
-                    raise OneCodexException(f"Functional profile not found for sample {sample_id}.")
-            elif len(functional_profile) == 1:
-                if not functional_profile[0].success:
-                    if skip_missing:
-                        warnings.warn(
-                            f"Functional profile for sample {sample_id} not successful. Skipping."
-                        )
-                        continue
-                    else:
-                        raise OneCodexException(
-                            f"Functional profile for sample {sample_id} not successful."
-                        )
-                else:
-                    functional_profiles.append(functional_profile[0])
-            else:
-                raise OneCodexException(
-                    f"Greater than one ({len(functional_profile)}) functional analysis found for sample {sample_id}"
-                )
-
-        # ensure all the functional profiles are the same job version
-        job_ids = set([obj.job.id for obj in functional_profiles])
-        if len(job_ids) > 1:
-            raise OneCodexException(
-                "FunctionalProfiles contain multiple analysis job versions: {}".format(
-                    ", ".join(job_ids)
-                )
-            )
-
-        self._cached["functional_profiles"] = functional_profiles
+        Returns a dataframe of all functional profile data
+        Columns hierarchically indexed
+         - functional_groups
+           - eggnog
+             -
+        """
+        # ._collate_results() uses the ._classifications attribute
+        # so if we're following this pattern, we need the same for functional_profiles
+        df = pd.DataFrame()
+        self._cached['functional_profiles'] = df
 
     @property
     def _functional_profiles(self):
         if "functional_profiles" not in self._cached:
-            self._functional_profiles_fetch()
+            self._collate_functional_profiles()
 
-        return self._cached["functional_profiles"]
-
-    def _collate_functional_results(
-        self, annotation, metric, taxa_stratified=True, fill_missing=False, filler=0
-    ):
-        """
-        Return a dataframe of all functional profile data.
-
-        Parameters
-        ----------
-        annotation : {'pathways', 'metacyc', 'eggnog', 'go', 'ko', 'ec', 'pfam', 'reaction'}, optional
-            Annotation data to return
-        taxa_stratified : 'bool', optional
-            Return taxonomically stratified data
-        metric : {'coverage', 'abundance'} for annotation=='pathways', {'rpk', 'cpm'} for other annotations
-            Metric values to return
-        fill_missing : 'bool', optional
-            Fill np.nan values
-        filler : 'float', optional
-            Value with which to fill np.nans
-        """
-        # validate args
-        valid_annotation_values = [
-            "pathways",
-            "metacyc",
-            "eggnog",
-            "go",
-            "ko",
-            "ec",
-            "pfam",
-            "reaction",
-        ]
-        if annotation not in valid_annotation_values:
-            raise ValueError(f"'annotation' must be one of {', '.join(valid_annotation_values)}")
-        if annotation == "pathways":
-            if metric not in ["coverage", "abundance"]:
-                raise ValueError(
-                    "if using annotation='pathways', 'value' must be one of ['coverage', 'abundance']"
-                )
-        elif metric not in ["cpm", "rpk"]:
-            raise ValueError(
-                f"if using annotation={annotation}, 'value' must be one of ['cpm', 'rpk']"
-            )
-
-        if not taxa_stratified:
-            metric = "total_" + metric
-        tables = []
-        index = []
-        # iterate over functional profiles for samples in the collection
-        for profile in self._functional_profiles:
-            # getting results from mainline is 30% of the execution time
-            table = profile.table(annotation=annotation, taxa_stratified=taxa_stratified)
-            # get sample_ids to use as row indices
-            index.append(profile.id)
-            # make a new two-column df, where 'id' is feature labels
-            # and the other column contains values for the metric we want
-            # if taxa stratified, concatenate id and taxon_name
-            # (because in taxonomically stratified data, for unclassified, the taxon_id is null)
-            if taxa_stratified:
-                table["id"] = table["id"] + "_" + table["taxon_name"]
-            # filter by indicated metric
-            table = table[table["metric"] == metric]
-            table = table[["id", "value"]]
-            # transpose and relabel columns
-            table = table.T
-            table.columns = table.loc["id"]
-            table = table.drop("id")
-            # append to tables list for concatenation
-            tables.append(table)
-
-        # this concat command is 60% of the execution time
-        df = pd.concat(tables)
-        if fill_missing:
-            df.fillna(filler, inplace=True)
-        df.index = index
-        self._cached["functional_results"] = df
-        self._cached["functional_results_content"] = {
-            "annotation": annotation,
-            "taxa_stratified": taxa_stratified,
-            "metric": metric,
-        }
-
-    def _functional_results(self, **kwargs):
-        if "functional_results" not in self._cached:
-            self._collate_functional_results(**kwargs)
-        return self._cached["functional_results"]
+        return self._cached['functional_profiles']
 
     def to_otu(self, biom_id=None):
         """Transform a list of Classifications objects into a `dict` resembling an OTU table.
