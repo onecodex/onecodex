@@ -3,6 +3,8 @@ from datetime import datetime
 import json
 import warnings
 
+import pandas as pd
+
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.enums import Metric
 
@@ -12,7 +14,6 @@ except ImportError:
 
     class AnalysisMixin(object):
         pass
-
 
 from onecodex.models import OneCodexBase, ResourceList
 
@@ -371,6 +372,8 @@ class SampleCollection(ResourceList, AnalysisMixin):
     @property
     def _is_metagenomic(self):
         if "is_metagenomic" not in self._cached:
+            # It looks like ._collate_results() does not actually populate 'is_metagenomic';
+            # should call _classification_fetch() instead?
             self._collate_results()
 
         return self._cached["is_metagenomic"]
@@ -388,6 +391,26 @@ class SampleCollection(ResourceList, AnalysisMixin):
             self._collate_results()
 
         return self._cached["taxonomy"]
+
+    def _collate_functional_profiles(self):
+        """
+        Returns a dataframe of all functional profile data
+        Columns hierarchically indexed
+         - functional_groups
+           - eggnog
+             -
+        """
+        # ._collate_results() uses the ._classifications attribute
+        # so if we're following this pattern, we need the same for functional_profiles
+        df = pd.DataFrame()
+        self._cached['functional_profiles'] = df
+
+    @property
+    def _functional_profiles(self):
+        if "functional_profiles" not in self._cached:
+            self._collate_functional_profiles()
+
+        return self._cached['functional_profiles']
 
     def to_otu(self, biom_id=None):
         """Transform a list of Classifications objects into a `dict` resembling an OTU table.

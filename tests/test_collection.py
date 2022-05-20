@@ -1,5 +1,7 @@
 from hashlib import sha256
 import json
+
+import pandas as pd
 import pytest
 
 pytest.importorskip("pandas")  # noqa
@@ -185,3 +187,9 @@ def test_collate_results(ocx, api_data, metric, sha):
     with pytest.raises(OneCodexException) as e:
         samples._collate_results(metric="does_not_exist")
     assert "not valid" in str(e.value)
+
+def test_functional_profiles(ocx, api_data):
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+    df = samples._functional_profiles
+    assert isinstance(df, pd.DataFrame)
+    # TODO: assert the dataframe has expected data...
