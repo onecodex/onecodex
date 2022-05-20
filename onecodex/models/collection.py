@@ -392,7 +392,81 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         return self._cached["taxonomy"]
 
-    def _collate_functional_profiles(self):
+    def _functional_profiles_fetch(self, skip_missing=None):
+        """Transform a list of Samples or Classifications into a list of FuntionalProfiles objects.
+
+        Parameters
+        ----------
+        skip_missing : `bool`
+            If an analysis was not successful, exclude it, warn, and keep going
+
+        Returns
+        -------
+        None, but stores a result in self._cached.
+        """
+        # TODO: make sure this is ok in the case where we keep FunctionalProfiles in experimental...
+        from onecodex.models import Classifications, Samples, FunctionalProfiles
+
+        skip_missing = skip_missing if skip_missing else self._kwargs["skip_missing"]
+
+        functional_profiles = []
+        for obj in self._res_list:
+            if isinstance(obj, Samples):
+                sample_id = obj.id
+                functional_profile = FunctionalProfiles.where(sample=obj)
+            elif isinstance(obj, Classifications):
+                sample_id = obj.sample.id
+                functional_profile = FunctionalProfiles.where(sample=obj.sample)
+            else:
+                raise OneCodexException(
+                    "Objects in SampleCollection must be one of: Classifications, Samples"
+                )
+
+            if len(functional_profile) == 0:
+                if skip_missing:
+                    warnings.warn(
+                        f"Functional profile not found for sample {sample_id}. Skipping."
+                    )
+                    continue
+                else:
+                    raise OneCodexException(
+                        f"Functional profile not found for sample {sample_id}."
+                    )
+            elif len(functional_profile) == 1:
+                if not functional_profile[0].success:
+                    if skip_missing:
+                        warnings.warn(
+                            f"Functional profile for sample {sample_id} not successful. Skipping."
+                        )
+                        continue
+                    else:
+                        raise OneCodexException(
+                            f"Functional profile for sample {sample_id} not successful."
+                        )
+                else:
+                    functional_profiles.append(functional_profile[0])
+            else:
+                raise OneCodexException(
+                    f"Greater than one ({len(functional_profile)}) functional analysis found for sample {sample_id}"
+                )
+
+        # ensure all the functional profiles are the same job version
+        job_ids = set([obj.job.id for obj in functional_profiles])
+        if len(job_ids) > 1:
+            raise OneCodexException(
+                "FunctionalProfiles contain multiple analysis job versions: {}".format(", ".join(job_ids))
+            )
+
+        self._cached["functional_profiles"] = functional_profiles
+
+    @property
+    def _functional_profiles(self):
+        if "functional_profiles" not in self._cached:
+            self._functional_profiles_fetch()
+
+        return self._cached["functional_profiles"]
+
+    def _collate_functional_results(self):
         """
         Returns a dataframe of all functional profile data
         Columns hierarchically indexed
@@ -403,14 +477,14 @@ class SampleCollection(ResourceList, AnalysisMixin):
         # ._collate_results() uses the ._classifications attribute
         # so if we're following this pattern, we need the same for functional_profiles
         df = pd.DataFrame()
-        self._cached['functional_profiles'] = df
+        self._cached['functional_results'] = df
 
     @property
-    def _functional_profiles(self):
-        if "functional_profiles" not in self._cached:
-            self._collate_functional_profiles()
+    def _functional_results(self):
+        if "functional_results" not in self._cached:
+            self._collate_functional_results()
 
-        return self._cached['functional_profiles']
+        return self._cached['functional_results']
 
     def to_otu(self, biom_id=None):
         """Transform a list of Classifications objects into a `dict` resembling an OTU table.
