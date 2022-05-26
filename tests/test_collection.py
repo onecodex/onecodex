@@ -188,6 +188,7 @@ def test_collate_results(ocx, api_data, metric, sha):
         samples._collate_results(metric="does_not_exist")
     assert "not valid" in str(e.value)
 
+
 def test_functional_profiles(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
     df = samples._functional_profiles
