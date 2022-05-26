@@ -1,0 +1,74 @@
+{
+    "$schema": "http://json-schema.org/draft-04/hyper-schema#",
+    "description": "The One Codex API (v1, experimental) -- programmatic access to One Codex's suite of microbial genomics data storage, analysis, and query tools. With experimental features.",
+    "properties": {
+        "account": {
+            "$ref": "/api/v1_experimental/account/schema#"
+        },
+        "alignments": {
+            "$ref": "/api/v1_experimental/alignments/schema#"
+        },
+        "analyses": {
+            "$ref": "/api/v1_experimental/analyses/schema#"
+        },
+        "annotation_sets": {
+            "$ref": "/api/v1_experimental/annotation_sets/schema#"
+        },
+        "assemblies": {
+            "$ref": "/api/v1_experimental/assemblies/schema#"
+        },
+        "classifications": {
+            "$ref": "/api/v1_experimental/classifications/schema#"
+        },
+        "controls": {
+            "$ref": "/api/v1_experimental/controls/schema#"
+        },
+        "documents": {
+            "$ref": "/api/v1_experimental/documents/schema#"
+        },
+        "events": {
+            "$ref": "/api/v1_experimental/events/schema#"
+        },
+        "functional_profiles": {
+            "$ref": "/api/v1_experimental/functional_profiles/schema#"
+        },
+        "genomes": {
+            "$ref": "/api/v1_experimental/genomes/schema#"
+        },
+        "jobs": {
+            "$ref": "/api/v1_experimental/jobs/schema#"
+        },
+        "metadata": {
+            "$ref": "/api/v1_experimental/metadata/schema#"
+        },
+        "panels": {
+            "$ref": "/api/v1_experimental/panels/schema#"
+        },
+        "projects": {
+            "$ref": "/api/v1_experimental/projects/schema#"
+        },
+        "reports": {
+            "$ref": "/api/v1_experimental/reports/schema#"
+        },
+        "samples": {
+            "$ref": "/api/v1_experimental/samples/schema#"
+        },
+        "tags": {
+            "$ref": "/api/v1_experimental/tags/schema#"
+        },
+        "taxa": {
+            "$ref": "/api/v1_experimental/taxa/schema#"
+        },
+        "users": {
+            "$ref": "/api/v1_experimental/users/schema#"
+        },
+        "webhooks": {
+            "$ref": "/api/v1_experimental/webhooks/schema#"
+        }
+    },
+    "title": "One Codex API (v1, experimental)",
+    "version_info": {
+        "api_version": "v1",
+        "cli_version": "0.6.1"
+    }
+}
