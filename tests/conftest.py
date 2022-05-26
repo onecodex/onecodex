@@ -386,6 +386,18 @@ def ocx():
         )
 
 
+@pytest.fixture(scope="session")
+def ocx_experimental():
+    """Instantiated API client with experimental mode enabled"""
+    with mock_requests(SCHEMA_ROUTES):
+        return Api(
+            api_key="1eab4217d30d42849dbde0cd1bb94e39",
+            base_url="http://localhost:3000",
+            cache_schema=False,
+            experimental=True,
+        )
+
+
 @pytest.fixture(scope="function")
 def ocx_experimental():
     """Instantiated API client with experimental mode enabled"""
