@@ -159,14 +159,13 @@ class FunctionalProfiles(Analyses):
         else:
             return self.table()
 
-    def table(self, annotation="all", taxa_stratified=True):
-        # TODO: needs testing
+    def table(self, annotation="pathways", taxa_stratified=True, as_df=True):
         """Return a results table for the functional analysis.
 
         Parameters
         ----------
         annotation : 'str', optional
-            If not 'all', data for which group of annotations to return, one of:
+            Data for which group of annotations to return, one of:
             {'pathways', 'metacyc', 'eggnog', 'go', 'ko', 'ec', 'pfam', 'reaction'}
         taxa_stratified : 'bool', optional
             If False, return data only by annotation ID, ignoring taxonomic stratification
@@ -176,18 +175,41 @@ class FunctionalProfiles(Analyses):
         results_df : `pd.DataFrame`
             A Pandas DataFrame of the functional results.
         """
+        from collections import defaultdict
         import pandas as pd
 
-        results_df = pd.DataFrame(self._results()["table"])
-        if annotation != "all":
+        results = self._results()["results"]
+        data = defaultdict(list)
+        if annotation == "pathways":
             if taxa_stratified:
-                return results_df[
-                    (results_df["group_name"] == annotation) & (results_df["taxa_stratified"])
-                ]
+                for item in results["pathways"]:
+                    for stratified_item in item["contributions"]:
+                        data["id"].append(item["id"])
+                        data["cpm"].append(stratified_item["cpm"])
+                        data["rpk"].append(stratified_item["rpk"])
+                        data["clade"].append(stratified_item["clade"])
+                        data["taxid"].append(stratified_item["taxid"])
             else:
-                return results_df[~results_df["taxa_stratified"]]
+                for item in results["pathways"]:
+                    data["id"] = item["id"]
+                    data["cpm"] = item["total_cpm"]
+                    data["rpk"] = item["total_rpk"]
         else:
+            group_results = results["functional_groups"][annotation]
             if taxa_stratified:
-                return results_df[results_df["taxa_stratified"]]
+                for item in group_results:
+                    for stratified_item in item["contributions"]:
+                        data["id"].append(item["id"])
+                        data["cpm"].append(stratified_item["cpm"])
+                        data["rpk"].append(stratified_item["rpk"])
+                        data["clade"].append(stratified_item["clade"])
+                        data["taxid"].append(stratified_item["taxid"])
             else:
-                return results_df[~results_df["taxa_stratified"]]
+                for item in group_results:
+                    data["id"] = item["id"]
+                    data["cpm"] = item["total_cpm"]
+                    data["rpk"] = item["total_rpk"]
+        if as_df:
+            return pd.DataFrame(data)
+        else:
+            return data

@@ -2,6 +2,7 @@ from collections import defaultdict, OrderedDict
 from datetime import datetime
 import json
 import warnings
+from collections import defaultdict
 
 import pandas as pd
 
@@ -14,6 +15,7 @@ except ImportError:
 
     class AnalysisMixin(object):
         pass
+
 
 from onecodex.models import OneCodexBase, ResourceList
 
@@ -390,12 +392,12 @@ class SampleCollection(ResourceList, AnalysisMixin):
         return self._cached["taxonomy"]
 
     def _functional_profiles_fetch(self, skip_missing=None):
-        """Transform a list of Samples or Classifications into a list of FuntionalProfiles objects.
+        """Transform a list of Samples or Classifications into a list of FunctionalProfiles objects.
 
         Parameters
         ----------
         skip_missing : `bool`
-            If an analysis was not successful, exclude it, warn, and keep going
+            If an analysis is missing or was not successful, exclude it, warn, and keep going
 
         Returns
         -------
@@ -408,6 +410,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         functional_profiles = []
         for obj in self._res_list:
+            # TODO: test all these logic pathways
             if isinstance(obj, Samples):
                 sample_id = obj.id
                 functional_profile = FunctionalProfiles.where(sample=obj)
@@ -421,14 +424,10 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
             if len(functional_profile) == 0:
                 if skip_missing:
-                    warnings.warn(
-                        f"Functional profile not found for sample {sample_id}. Skipping."
-                    )
+                    warnings.warn(f"Functional profile not found for sample {sample_id}. Skipping.")
                     continue
                 else:
-                    raise OneCodexException(
-                        f"Functional profile not found for sample {sample_id}."
-                    )
+                    raise OneCodexException(f"Functional profile not found for sample {sample_id}.")
             elif len(functional_profile) == 1:
                 if not functional_profile[0].success:
                     if skip_missing:
@@ -451,7 +450,9 @@ class SampleCollection(ResourceList, AnalysisMixin):
         job_ids = set([obj.job.id for obj in functional_profiles])
         if len(job_ids) > 1:
             raise OneCodexException(
-                "FunctionalProfiles contain multiple analysis job versions: {}".format(", ".join(job_ids))
+                "FunctionalProfiles contain multiple analysis job versions: {}".format(
+                    ", ".join(job_ids)
+                )
             )
 
         self._cached["functional_profiles"] = functional_profiles
@@ -463,25 +464,83 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         return self._cached["functional_profiles"]
 
-    def _collate_functional_results(self):
+    def _collate_functional_results(
+        self, annotation="pathways", taxa_stratified=True, values="coverage"
+    ):
         """
         Returns a dataframe of all functional profile data
-        Columns hierarchically indexed
+        Columns hierarchically indexed?
+        Or individual single-index dataframes returned within a dictionary?
+        Note that ._collate_results() returns two different dataframes,
+         each with their own key in the cache.
+        Can we use a dict for functional within the cache?
+            self.cached['functional_results']['eggnog']['total']['cpm']
+            self.cached['functional_results']['pathways']['taxa_stratified']['abundance']
+
          - functional_groups
            - eggnog
-             -
+             - totals
+               - cpm
+               - rpk
+             # for taxa_stratfied, use multiindex to encode column index (tuples)
+             - taxa_stratified
+               - cpm
+               - rpk
+           - go ...
+         - pathways
+           - totals
+             - abundance
+             - coverage
+           # for taxa_stratfied, use multiindex to encode column index (tuples)
+           - taxa_stratified
+             - abundance
+             - coverage
+
+        Alternately, use method described by Chris by leveraging .table()
         """
-        # ._collate_results() uses the ._classifications attribute
-        # so if we're following this pattern, we need the same for functional_profiles
+        # validate args
+        valid_annotation_values = [
+            "pathways",
+            "metacyc",
+            "eggnog",
+            "go",
+            "ko",
+            "ec",
+            "pfam",
+            "reaction",
+        ]
+        if annotation == "pathways":
+            if values not in ["coverage", "abundance"]:
+                raise ValueError(
+                    "if using annotation='pathways', 'value' must be one of ['coverage', 'abundance']"
+                )
+        else:
+            if annotation not in valid_annotation_values:
+                raise ValueError(
+                    f"'annotation' must be one of {', '.join(valid_annotation_values)}"
+                )
+            if values not in ["cpm", "rpk"]:
+                raise ValueError(
+                    f"if using annotation={annotation}, 'value' must be one of ['cpm', 'rpk']"
+                )
+
+        # collect tables from .tables() method
+        tables = []
+        for profile in self._functional_profiles:
+            tables.append(profile.table(annotation=annotation, taxa_stratified=taxa_stratified))
+
         df = pd.DataFrame()
-        self._cached['functional_results'] = df
+        self._cached["functional_results"] = df
 
     @property
-    def _functional_results(self):
+    def _functional_results(
+        self,
+    ):
+        # TODO: call this from .to_df() method
         if "functional_results" not in self._cached:
             self._collate_functional_results()
 
-        return self._cached['functional_results']
+        return self._cached["functional_results"]
 
     def to_otu(self, biom_id=None):
         """Transform a list of Classifications objects into a `dict` resembling an OTU table.
