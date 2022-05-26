@@ -5,56 +5,11 @@ import datetime
 import gzip
 import json
 import os
-from pkg_resources import resource_string
 import pytest
 import re
-import requests
 import responses
 
 from onecodex import Api
-
-
-def intercept(func, log=False, dump=None):
-    """
-    Used to copy API requests to make sure test data doesn't depend upon a connection to the One
-    Codex server (basically like `betamax`, but for our requests/responses setup).
-
-    For example, to dump out a log of everything that the function `test_function` requests, do the
-    following:
-
-    >>>mock_responses = {}
-    >>>intercept(test_function, dump=mock_responses)
-    >>>mock_json = json.dumps(mock_responses, separators=(',', ':'))
-
-    Then you can test the function in the future by copying the output of mock_json into
-    a string literal and doing:
-
-    >>>mock_request(test_function, mock_json)
-    """
-
-    def handle_request(request):
-        if log:
-            print("->", request.method, request.url)
-
-        # patch the request through (and disable mocking for this chunk)
-        responses.mock.stop()
-        resp = requests.get(request.url, headers=request.headers)
-        text = resp.text
-        headers = resp.headers
-        # for some reason, responses pitches a fit about this being in the cookie
-        headers["Set-Cookie"] = headers.get("Set-Cookie", "").replace(" HttpOnly;", "")
-        responses.mock.start()
-        data = json.dumps(json.loads(text), separators=(",", ":"))
-        if log:
-            print("<-", resp.status_code, data if log == "all" else "*")
-        if dump is not None:
-            dump[request.method + ":" + request.url.split("/", 3)[-1]] = data
-        return (200, headers, text)
-
-    regex = re.compile(".*")
-    with responses.mock as rsps:
-        rsps.add_callback(responses.GET, regex, callback=handle_request)
-        func()
 
 
 # TODO: Fix a bug wherein this will return all the items to potion
@@ -82,28 +37,8 @@ def mock_requests(mock_json):
         yield
 
 
-def rs(path):
-    return resource_string(__name__, path).decode("utf-8")
-
-
-def json_resource(path):
-    return json.loads(rs(path))
-
-
-# All of the API data
-# Scheme is
-# METHOD:CONTENT_TYPE:URL  (content-type is optional)
-# and then data is JSON or a callable
 def _make_callback_resp(data, status_code=200):
     return status_code, {"Content-Type": "application/json"}, json.dumps(data)
-
-
-def make_potion_callback(status_code=200):
-    def callback(req):
-        data = json.loads(req.body)
-        return _make_callback_resp(data, status_code=status_code)
-
-    return callback
 
 
 def update_metadata_callback(req):
@@ -124,6 +59,9 @@ def update_metadata_callback(req):
     return _make_callback_resp(metadata)
 
 
+# All of the mocked API data. Scheme is METHOD:CONTENT_TYPE:URL (content-type is optional) and then
+# data is JSON or a callable. Things are also auto-mocked from the contents of tests/data/api/. See
+# README.md for a description of how this all works.
 API_DATA = {
     # These are overrides for non-GET calls, which we don't auto-mock
     "DELETE::api/v1/samples/761bc54b97f64980": {},
@@ -269,72 +207,95 @@ API_DATA = {
         "project_name": "testproj",
         "public": False,
     },
+    "GET::api/v1/samples\\?.*where=%7B%22project%22%3A\\+%224b53797444f846c4%22%7D.*": [
+        {
+            "$uri": "/api/v1/samples/0b2d0b5397324841",
+            "created_at": "2017-06-23T23:52:51.201676+00:00",
+            "filename": "SRR4408293.fastq",
+            "metadata": {"$ref": "/api/v1/metadata/6b69295478de4f1f"},
+            "owner": {"$ref": "/api/v1/users/7189f36afe3640ac"},
+            "primary_classification": {"$ref": "/api/v1/classifications/6579e99943f84ad2"},
+            "project": {"$ref": "/api/v1/projects/4b53797444f846c4"},
+            "size": 2225829803,
+            "tags": [],
+            "visibility": "public",
+        },
+        {
+            "$uri": "/api/v1/samples/1640864a28bf44ba",
+            "created_at": "2017-06-23T23:56:19.556902+00:00",
+            "filename": "SRR4305031.fastq",
+            "metadata": {"$ref": "/api/v1/metadata/6be1bb8849644f7b"},
+            "owner": {"$ref": "/api/v1/users/7189f36afe3640ac"},
+            "primary_classification": {"$ref": "/api/v1/classifications/b50c176668234fe7"},
+            "project": {"$ref": "/api/v1/projects/4b53797444f846c4"},
+            "size": 1187736145,
+            "tags": [{"$ref": "/api/v1/tags/dbcf5b98bca54a16"}],
+            "visibility": "public",
+        },
+        {
+            "$uri": "/api/v1/samples/03242c0ab87048e1",
+            "created_at": "2017-06-23T23:59:23.228640+00:00",
+            "filename": "SRR4408292.fastq",
+            "metadata": {"$ref": "/api/v1/metadata/3e7119ee74954abd"},
+            "owner": {"$ref": "/api/v1/users/7189f36afe3640ac"},
+            "primary_classification": {"$ref": "/api/v1/classifications/e0422602de41479f"},
+            "project": {"$ref": "/api/v1/projects/4b53797444f846c4"},
+            "size": 2267482973,
+            "tags": [],
+            "visibility": "public",
+        },
+    ],
 }
 
-# explicitly load classification results for testing subset_reads
-API_DATA["GET::api/v1/classifications/bef0bc57dd7f4c43/results"] = json.load(
-    open(os.path.join("tests", "data", "api", "bef0bc57dd7f4c43_table.json"))
-)
-API_DATA["GET::api/v1/classifications/0f4ee4ecb3a3412f/results"] = json.load(
-    open(os.path.join("tests", "data", "api", "0f4ee4ecb3a3412f_table.json"))
-)
-
-# load classification results for testing viz
-for c_id in ("6579e99943f84ad2", "b50c176668234fe7", "e0422602de41479f"):
-    # converting bytes (returned by gzip) to string is necessary is python 3.4
-    s = (
-        gzip.open(os.path.join("tests", "data", "api", "{}_table.json.gz".format(c_id)))
-        .read()
-        .decode("ascii")
-    )
-    API_DATA["GET::api/v1/classifications/{}/results".format(c_id)] = json.loads(s)
-
-# and load the metadata that goes along with those samples
-for md_id in ("3e7119ee74954abd", "6b69295478de4f1f", "6be1bb8849644f7b"):
-    API_DATA["GET::api/v1/metadata/{}".format(md_id)] = json.load(
-        open(os.path.join("tests", "data", "api", "{}_metadata.json".format(md_id)))
-    )
-
-# add route to search for project that has complete classification results. others won't
-# load any associated metadata or classification results
-API_DATA[
-    "GET::api/v1/samples\\?.*where=%7B%22project%22%3A\\+%224b53797444f846c4%22%7D.*"
-] = json.load(open(os.path.join("tests", "data", "api", "where_224b53797444f846c4.json")))
-
-for filename in os.listdir("tests/api_data"):
-    if not filename.endswith(".json"):
-        continue
-
-    resource = json.load(open(os.path.join("tests/api_data", filename)))
-    if filename.startswith("schema"):
-        continue  # Parse separately below
-
-    resource_name = filename.replace(".json", "")
-    resource_uri = "GET::api/v1/{}".format(resource_name)
-    API_DATA[resource_uri] = resource
-
-    # Then iterate through all instances
-    if isinstance(resource, list):
-        for instance in resource:
-            instance_uri = "GET::{}".format(instance["$uri"].lstrip("/"))
-            API_DATA[instance_uri] = instance
-
 SCHEMA_ROUTES = {}
+API_DATA_DIR = os.path.join("tests", "data", "api")
 
-for filename in os.listdir("tests/api_data"):
-    if not filename.startswith("schema"):
-        continue
+for api_version in os.listdir(API_DATA_DIR):
+    api_root = os.path.join(API_DATA_DIR, api_version)
 
-    resource = json.load(open(os.path.join("tests/api_data", filename)))
-    if filename == "schema.json":
-        resource_uri = "GET::api/v1/schema$"
-    elif filename == "schema_all.json":
-        resource_uri = "GET::api/v1/schema\\?expand=all"
-    else:
-        resource_name = filename.replace(".json", "").split("_")[1]
-        resource_uri = "GET::api/v1/{}/schema".format(resource_name)
+    for resource_name in os.listdir(api_root):
+        resource_root = os.path.join(api_root, resource_name)
 
-    SCHEMA_ROUTES[resource_uri] = resource
+        if resource_name == "schema":
+            for filename in os.listdir(resource_root):
+                if not filename.endswith(".json"):
+                    continue
+
+                if filename == "index.json":
+                    resource_uri = f"GET::api/{api_version}/schema$"
+                elif filename == "index_all.json":
+                    resource_uri = f"GET::api/{api_version}/schema\\?expand=all"
+                else:
+                    resource_name = filename.replace(".json", "")
+                    resource_uri = f"GET::api/{api_version}/{resource_name}/schema"
+
+                SCHEMA_ROUTES[resource_uri] = json.load(open(os.path.join(resource_root, filename)))
+        else:
+            for dirpath, _, filenames in os.walk(resource_root):
+                for filename in filenames:
+                    if filename not in {"index.json", "index.json.gz"}:
+                        continue
+
+                    filepath = os.path.join(dirpath, filename)
+                    if filepath.endswith(".json.gz"):
+                        # converting bytes (returned by gzip) to string is necessary in python 3.4
+                        resource = json.loads(gzip.open(filepath).read().decode("ascii"))
+                    else:
+                        resource = json.load(open(filepath))
+
+                    # Remove tests/data/ from path and normalize path separator to "/" for the API
+                    # route.
+                    api_route = "/".join(dirpath.split(os.sep)[2:])
+                    resource_uri = f"GET::{api_route}"
+                    API_DATA[resource_uri] = resource
+
+                    # If we're processing a resource's instance listing
+                    # (e.g. api/v1/classifications), auto-mock each instance too
+                    # (e.g. api/v1/classifications/<uuid>)
+                    if dirpath == resource_root and isinstance(resource, list):
+                        for instance in resource:
+                            instance_uri = f"GET::{instance['$uri'].lstrip('/')}"
+                            API_DATA[instance_uri] = instance
 
 
 API_DATA.update(SCHEMA_ROUTES)
@@ -415,7 +376,7 @@ def ocx_schemas():
         yield
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def ocx():
     """Instantiated API client"""
     with mock_requests(SCHEMA_ROUTES):
@@ -423,6 +384,18 @@ def ocx():
             api_key="1eab4217d30d42849dbde0cd1bb94e39",
             base_url="http://localhost:3000",
             cache_schema=False,
+        )
+
+
+@pytest.fixture(scope="function")
+def ocx_experimental():
+    """Instantiated API client with experimental mode enabled"""
+    with mock_requests(SCHEMA_ROUTES):
+        return Api(
+            api_key="1eab4217d30d42849dbde0cd1bb94e39",
+            base_url="http://localhost:3000",
+            cache_schema=False,
+            experimental=True,
         )
 
 

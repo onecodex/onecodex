@@ -166,6 +166,8 @@ all_completed_analyses.to_df()    # Returns a pandas dataframe
 
 # Development
 
+## Environment Setup
+
 Before developing, `git` and `python` version >=3.7 are needed. We recommend using [pyenv](https://github.com/yyuu/pyenv) for Python version management.
 
 To download the client library from GitHub:
@@ -194,6 +196,72 @@ make test
 ```
 
 We use [`pre-commit`](https://pre-commit.com) for automated linting using [`black`](https://github.com/ambv/black), `flake8`, and various whitespace and newline formatters during development.
+
+## Writing Unit Tests
+
+We use [pytest](https://docs.pytest.org/) as our unit testing framework. Tests should be able to run without an internet connection, and One Codex API calls must be mocked. We use [responses](https://github.com/getsentry/responses) to mock API responses.
+
+> **Tip:** Any API calls that do not have a matching mock will raise an error. You can figure out which API calls need to be mocked by writing a test, running it, and inspecting the error message to see which route(s) are missing.
+
+### Fixtures
+
+These pytest fixtures may be helpful when writing unit tests:
+
+- `ocx`: this is a mocked `Api` object that uses the `api/v1` One Codex API schema.
+- `ocx_experimental`: this is a mocked `Api` object that uses the `api/v1_experimental` One Codex API schema. Use this to test experimental features.
+- `api_data`: this mocks some API data for `v1` and `v1_experimental` APIs.
+
+### Mocking API Data
+
+API data, including schemas, are stored in `tests/data/api/`:
+
+```
+tests/data/api
+├── v1  # the API version
+│   ├── ...
+│   ├── analyses
+│   │   └── index.json  # payload for accessing GET::api/v1/analyses. Will also be used to mock each resource instance, e.g. GET::api/v1/analyses/<uuid>
+│   ├── classifications
+│   │   ├── 0f4ee4ecb3a3412f
+│   │   │   └── results
+│   │   │       └── index.json  # payload for accessing GET::api/v1/classifications/0f4ee4ecb3a3412f/results
+│   │   └── index.json  # payload for accessing GET::api/v1/classifications. Instance routes are also auto-mocked
+│   ├── ...
+│   ├── schema
+│   │   ├── index.json  # payload for accessing GET::api/v1/schema
+│   │   └── index_all.json  # payload for accessing GET::api/v1/schema?expand=all
+│   └── ...
+└── v1_experimental
+    └── ...
+```
+
+The directory structure mirrors the One Codex API. For example:
+
+- The payload for API route `api/v1/classifications` is stored at `tests/data/api/v1/classifications/index.json`.
+- API route `api/v1/classifications/0f4ee4ecb3a3412f/results` has its payload stored at `tests/data/api/v1/classifications/0f4ee4ecb3a3412f/results/index.json`.
+- For the `v1_experimental` API, store things under `api/v1_experimental/`.
+
+This idea can be extended to arbitrary nesting/depths within the API.
+
+> **Note:** If the payload is large, you can gzip it and name it `index.json.gz`.
+
+A resource's instance list payload (e.g. `api/v1/analyses` gives you a list of analyses) is used to auto-mock each resource instance (e.g. `api/v1/analyses/<uuid>`). You don't need to create an `index.json` for each instance.
+
+### Mocking API Schemas
+
+API schemas work similarly to regular API data, but with a couple of special rules:
+
+- Each API schema directory *must* have `index.json` and `index_all.json`. `index.json` contains the payload for e.g. `api/v1/schema`, and `index_all.json` contains the payload for e.g. `api/v1/schema?expand=all`.
+- If the schema requires it, you can optionally define resource-specific schemas by including `<resource-name>.json` in the `schema` directory (e.g. `assemblies.json` for `api/v1_experimental/assemblies/schema`).
+
+### conftest.py
+
+API data is loaded in `tests/conftest.py`. If you need to mock API calls in a way that's not supported by this framework, you can add custom mocked calls in `conftest.py`.
+
+Things that are *not* supported by mocking in `tests/data/api/`:
+
+- Non-GET requests (e.g. DELETE)
+- Query parameters (with the exception of `schema?expand=all`)
 
 # Jupyter Notebook Custom Exporters
 
