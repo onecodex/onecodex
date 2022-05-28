@@ -410,7 +410,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         functional_profiles = []
         for obj in self._res_list:
-            # TODO: test all these logic pathways
+            # TODO: test all of these logic pathways
             if isinstance(obj, Samples):
                 sample_id = obj.id
                 functional_profile = FunctionalProfiles.where(sample=obj)
@@ -421,7 +421,6 @@ class SampleCollection(ResourceList, AnalysisMixin):
                 raise OneCodexException(
                     "Objects in SampleCollection must be one of: Classifications, Samples"
                 )
-
             if len(functional_profile) == 0:
                 if skip_missing:
                     warnings.warn(f"Functional profile not found for sample {sample_id}. Skipping.")
@@ -465,38 +464,10 @@ class SampleCollection(ResourceList, AnalysisMixin):
         return self._cached["functional_profiles"]
 
     def _collate_functional_results(
-        self, annotation="pathways", taxa_stratified=True, values="coverage"
+        self, annotation="pathways", taxa_stratified=True, metric="coverage", fill_missing=False, filler=0
     ):
         """
         Returns a dataframe of all functional profile data
-        Columns hierarchically indexed?
-        Or individual single-index dataframes returned within a dictionary?
-        Note that ._collate_results() returns two different dataframes,
-         each with their own key in the cache.
-        Can we use a dict for functional within the cache?
-            self.cached['functional_results']['eggnog']['total']['cpm']
-            self.cached['functional_results']['pathways']['taxa_stratified']['abundance']
-
-         - functional_groups
-           - eggnog
-             - totals
-               - cpm
-               - rpk
-             # for taxa_stratfied, use multiindex to encode column index (tuples)
-             - taxa_stratified
-               - cpm
-               - rpk
-           - go ...
-         - pathways
-           - totals
-             - abundance
-             - coverage
-           # for taxa_stratfied, use multiindex to encode column index (tuples)
-           - taxa_stratified
-             - abundance
-             - coverage
-
-        Alternately, use method described by Chris by leveraging .table()
         """
         # validate args
         valid_annotation_values = [
@@ -509,27 +480,52 @@ class SampleCollection(ResourceList, AnalysisMixin):
             "pfam",
             "reaction",
         ]
+        if annotation not in valid_annotation_values:
+            raise ValueError(
+                f"'annotation' must be one of {', '.join(valid_annotation_values)}"
+            )
         if annotation == "pathways":
-            if values not in ["coverage", "abundance"]:
+            if metric not in ["coverage", "abundance"]:
                 raise ValueError(
                     "if using annotation='pathways', 'value' must be one of ['coverage', 'abundance']"
                 )
-        else:
-            if annotation not in valid_annotation_values:
-                raise ValueError(
-                    f"'annotation' must be one of {', '.join(valid_annotation_values)}"
-                )
-            if values not in ["cpm", "rpk"]:
-                raise ValueError(
-                    f"if using annotation={annotation}, 'value' must be one of ['cpm', 'rpk']"
-                )
+        elif taxa_stratified and metric not in ["cpm", "rpk"]:
+            raise ValueError(
+                f"if using annotation={annotation}, 'value' for "
+                f"taxonomically stratified data must be one of ['cpm', 'rpk']"
+            )
+        elif not taxa_stratified and metric not in ["total_cpm", "total_rpk"]:
+            raise ValueError(
+                f"if using annotation={annotation}, 'value' for "
+                f"non-taxonomically-stratified data must be one of ['total_cpm', 'total_rpk']"
+            )
 
-        # collect tables from .tables() method
         tables = []
-        for profile in self._functional_profiles:
-            tables.append(profile.table(annotation=annotation, taxa_stratified=taxa_stratified))
+        index = []
+        # iterate over functional profiles for samples in the collection
+        # TODO: see the note about slowness of doing it this way; profile to see if it's a problem
+        for profile, metadata_row in zip(self._functional_profiles, self.metadata.itertuples()):
+            table = profile.table(annotation=annotation, taxa_stratified=taxa_stratified)
+            # get sample_ids to use as row indices
+            index.append(metadata_row.sample_id)
+            # make a new two-column DF, where 'id' is feature labels
+            # and the other column contains values for the metric we want
+            # if taxa stratified, concatenate id and taxon_name
+            # (because in taxonomically stratified data, for unclassified, the taxon_id is null)
+            if taxa_stratified:
+                table['id'] = table['id'] + "_" + table['taxon_name']
+            table = table[['id', metric]]
+            # transpose and relabel columns
+            table = table.T
+            table.columns = table.loc['id']
+            table.drop('id')
+            # append to tables list for later concatenation
+            tables.append(table)
 
-        df = pd.DataFrame()
+        df = pd.concat(tables)
+        if fill_missing:
+            df.fillna(filler, inplace=True)
+        df.index = index
         self._cached["functional_results"] = df
 
     @property
