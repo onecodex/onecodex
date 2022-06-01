@@ -141,6 +141,7 @@ class FunctionalProfiles(Analyses):
     _resource_path = "/api/v1_experimental/functional_profiles"
 
     def results(self, json=True):
+        # TODO: needs testing
         """Return the complete results table for a functional analysis.
 
         Parameters
@@ -159,6 +160,7 @@ class FunctionalProfiles(Analyses):
             return self.table()
 
     def table(self, annotation="all", taxa_stratified=True):
+        # TODO: needs testing
         """Return a results table for the functional analysis.
 
         Parameters

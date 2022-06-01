@@ -467,7 +467,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         return self._cached["functional_profiles"]
 
     def _collate_functional_results(
-        self, annotation="pathways", taxa_stratified=True, metric="coverage", fill_missing=False, filler=0
+        self, annotation, taxa_stratified, metric, fill_missing=False, filler=0
     ):
         """
         Returns a dataframe of all functional profile data
@@ -506,23 +506,26 @@ class SampleCollection(ResourceList, AnalysisMixin):
         tables = []
         index = []
         # iterate over functional profiles for samples in the collection
-        # TODO: see the note about slowness of doing it this way; profile to see if it's a problem
-        for profile, metadata_row in zip(self._functional_profiles, self.metadata.itertuples()):
+        # (if slowness is a problem, profile this to compare with
+        # the procedure used in ._collate_results())
+        for profile in self._functional_profiles:
             table = profile.table(annotation=annotation, taxa_stratified=taxa_stratified)
             # get sample_ids to use as row indices
-            index.append(metadata_row.sample_id)
-            # make a new two-column DF, where 'id' is feature labels
+            index.append(profile.id)
+            # make a new two-column df, where 'id' is feature labels
             # and the other column contains values for the metric we want
             # if taxa stratified, concatenate id and taxon_name
             # (because in taxonomically stratified data, for unclassified, the taxon_id is null)
             if taxa_stratified:
                 table['id'] = table['id'] + "_" + table['taxon_name']
-            table = table[['id', metric]]
+            # filter by indicated metric
+            table = table[table['metric'] == metric]
+            table = table[['id', 'value']]
             # transpose and relabel columns
             table = table.T
             table.columns = table.loc['id']
-            table.drop('id')
-            # append to tables list for later concatenation
+            table = table.drop('id')
+            # append to tables list for concatenation
             tables.append(table)
 
         df = pd.concat(tables)
@@ -530,15 +533,26 @@ class SampleCollection(ResourceList, AnalysisMixin):
             df.fillna(filler, inplace=True)
         df.index = index
         self._cached["functional_results"] = df
+        self._cached["functional_results_content"] = {
+            "annotation": annotation,
+            "taxa_stratified": taxa_stratified,
+            "metric": metric,
 
-    @property
+        }
+
     def _functional_results(
         self,
+        annotation="pathways",
+        taxa_stratified=True,
+        metric="coverage",
     ):
         # TODO: call this from .to_df() method
         if "functional_results" not in self._cached:
-            self._collate_functional_results()
-
+            self._collate_functional_results(
+                annotation=annotation,
+                taxa_stratified=taxa_stratified,
+                metric=metric
+            )
         return self._cached["functional_results"]
 
     def to_otu(self, biom_id=None):
