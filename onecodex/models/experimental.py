@@ -160,6 +160,7 @@ class FunctionalProfiles(Analyses):
             return self.table()
 
     def table(self, annotation="all", taxa_stratified=True):
+        # TODO: needs testing
         """Return a results table for the functional analysis.
 
         Parameters
