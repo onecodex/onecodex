@@ -177,14 +177,17 @@ class FunctionalProfiles(Analyses):
             A Pandas DataFrame of the functional results.
         """
         import pandas as pd
+
         results_df = pd.DataFrame(self._results()["table"])
         if annotation != "all":
             if taxa_stratified:
-                return results_df[(results_df['group_name'] == annotation) & (results_df['taxa_stratified'])]
+                return results_df[
+                    (results_df["group_name"] == annotation) & (results_df["taxa_stratified"])
+                ]
             else:
-                return results_df[~results_df['taxa_stratified']]
+                return results_df[~results_df["taxa_stratified"]]
         else:
             if taxa_stratified:
-                return results_df[results_df['taxa_stratified']]
+                return results_df[results_df["taxa_stratified"]]
             else:
-                return results_df[~results_df['taxa_stratified']]
+                return results_df[~results_df["taxa_stratified"]]

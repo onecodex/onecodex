@@ -464,15 +464,23 @@ class SampleCollection(ResourceList, AnalysisMixin):
         return self._cached["functional_profiles"]
 
     def _collate_functional_results(
-        self,
-        annotation,
-        metric,
-        taxa_stratified=True,
-        fill_missing=False,
-        filler=0
+        self, annotation, metric, taxa_stratified=True, fill_missing=False, filler=0
     ):
         """
-        Returns a dataframe of all functional profile data
+        Return a dataframe of all functional profile data.
+
+        Parameters
+        ----------
+        annotation : {'pathways', 'metacyc', 'eggnog', 'go', 'ko', 'ec', 'pfam', 'reaction'}, optional
+            Annotation data to return
+        taxa_stratified : 'bool', optional
+            Return taxonomically stratified data
+        metric : {'coverage', 'abundance'} for annotation=='pathways', {'rpk', 'cpm'} for other annotations
+            Metric values to return
+        fill_missing : 'bool', optional
+            Fill np.nan values
+        filler : 'float', optional
+            Value with which to fill np.nans
         """
         # validate args
         valid_annotation_values = [
@@ -486,9 +494,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
             "reaction",
         ]
         if annotation not in valid_annotation_values:
-            raise ValueError(
-                f"'annotation' must be one of {', '.join(valid_annotation_values)}"
-            )
+            raise ValueError(f"'annotation' must be one of {', '.join(valid_annotation_values)}")
         if annotation == "pathways":
             if metric not in ["coverage", "abundance"]:
                 raise ValueError(
@@ -514,14 +520,14 @@ class SampleCollection(ResourceList, AnalysisMixin):
             # if taxa stratified, concatenate id and taxon_name
             # (because in taxonomically stratified data, for unclassified, the taxon_id is null)
             if taxa_stratified:
-                table['id'] = table['id'] + "_" + table['taxon_name']
+                table["id"] = table["id"] + "_" + table["taxon_name"]
             # filter by indicated metric
-            table = table[table['metric'] == metric]
-            table = table[['id', 'value']]
+            table = table[table["metric"] == metric]
+            table = table[["id", "value"]]
             # transpose and relabel columns
             table = table.T
-            table.columns = table.loc['id']
-            table = table.drop('id')
+            table.columns = table.loc["id"]
+            table = table.drop("id")
             # append to tables list for concatenation
             tables.append(table)
 
@@ -534,7 +540,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         self._cached["functional_results_content"] = {
             "annotation": annotation,
             "taxa_stratified": taxa_stratified,
-            "metric": metric
+            "metric": metric,
         }
 
     def _functional_results(self, **kwargs):

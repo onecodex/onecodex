@@ -194,3 +194,11 @@ def test_functional_profiles(ocx_experimental, api_data):
     df = samples._functional_profiles
     assert isinstance(df, pd.DataFrame)
     # TODO: assert the dataframe has expected data...
+
+
+def test_collate_functional_results(ocx_experimental, api_data):
+    samples = ocx_experimental.Samples.where(project="4b53797444f846c4")
+    df = samples._collate_functional_results(annotation="go", metric="rpk")
+    assert isinstance(df, pd.DataFrame)
+    # TODO: assert dataframe has expected data
+    # TODO: assert some failure paths
