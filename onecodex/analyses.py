@@ -239,7 +239,20 @@ class AnalysisMixin(
 
         return magic_metadata, magic_fields
 
-    def to_df(
+    def to_df(self, analysis_type="classification", **kwargs):
+        """
+        Parent function that
+        """
+        procedure_lookup = {
+            "classification": self.to_classification_df,
+            "functional": self.to_functional_df
+        }
+        return procedure_lookup[analysis_type](**kwargs)
+
+    def to_functional_df(self):
+        pass
+
+    def to_classification_df(
         self,
         rank=Rank.Auto,
         top_n=None,
