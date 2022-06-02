@@ -241,13 +241,20 @@ class AnalysisMixin(
 
     def to_df(self, analysis_type="classification", **kwargs):
         """
-        Parent function that
+        Transforms Analyses of samples in a SampleCollection into tabular format
+
+        Parameters
+        ----------
+        analysis_type : {'classification', 'functional'}, optional
+            The analysis_type to aggregate, corresponding to AnalysisJob.analysis_type
+        kwargs : 'dict', optional
+             Keyword arguments specific to the analysis_type
         """
-        procedure_lookup = {
+        generate_df = {
             "classification": self.to_classification_df,
             "functional": self.to_functional_df
         }
-        return procedure_lookup[analysis_type](**kwargs)
+        return generate_df[analysis_type](**kwargs)
 
     def to_functional_df(
         self,

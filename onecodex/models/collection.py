@@ -504,9 +504,8 @@ class SampleCollection(ResourceList, AnalysisMixin):
         tables = []
         index = []
         # iterate over functional profiles for samples in the collection
-        # (if slowness is a problem, profile this to compare with
-        # the procedure used in ._collate_results())
         for profile in self._functional_profiles:
+            # getting results from mainline is 30% of the execution time
             table = profile.table(annotation=annotation, taxa_stratified=taxa_stratified)
             # get sample_ids to use as row indices
             index.append(profile.id)
@@ -526,6 +525,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
             # append to tables list for concatenation
             tables.append(table)
 
+        # this concat command is 60% of the execution time
         df = pd.concat(tables)
         if fill_missing:
             df.fillna(filler, inplace=True)
