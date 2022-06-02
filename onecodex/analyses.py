@@ -249,8 +249,37 @@ class AnalysisMixin(
         }
         return procedure_lookup[analysis_type](**kwargs)
 
-    def to_functional_df(self):
-        pass
+    def to_functional_df(
+        self,
+        annotation="pathways",
+        taxa_stratified=True,
+        metric="coverage",
+        fill_missing=False,
+        filler=0
+    ):
+        """
+        Returns a dataframe of results from a functional analysis
+
+        Parameters
+        ----------
+        annotation : {'pathways', 'metacyc', 'eggnog', 'go', 'ko', 'ec', 'pfam', 'reaction'}, optional
+            Annotation data to return
+        taxa_stratified : 'bool', optional
+            Return taxonomically stratified data
+        metric : {'coverage', 'abundance'} for annotation=='pathways', {'rpk', 'cpm'} for other annotations
+            Metric values to return
+        fill_missing : 'bool', optional
+            Fill np.nan values
+        filler : 'float', optional
+            Value with which to fill np.nans
+        """
+        return self._functional_results(
+            annotation=annotation,
+            taxa_stratified=taxa_stratified,
+            metric=metric,
+            fill_missing=fill_missing,
+            filler=filler
+        )
 
     def to_classification_df(
         self,
