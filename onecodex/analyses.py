@@ -241,7 +241,7 @@ class AnalysisMixin(
 
     def to_df(self, analysis_type="classification", **kwargs):
         """
-        Transforms Analyses of samples in a SampleCollection into tabular format
+        Transform Analyses of samples in a SampleCollection into tabular format.
 
         Parameters
         ----------
@@ -252,7 +252,7 @@ class AnalysisMixin(
         """
         generate_df = {
             "classification": self.to_classification_df,
-            "functional": self.to_functional_df
+            "functional": self.to_functional_df,
         }
         return generate_df[analysis_type](**kwargs)
 
@@ -262,10 +262,10 @@ class AnalysisMixin(
         taxa_stratified=True,
         metric="coverage",
         fill_missing=False,
-        filler=0
+        filler=0,
     ):
         """
-        Returns a dataframe of results from a functional analysis
+        Return a dataframe of results from a functional analysis.
 
         Parameters
         ----------
@@ -285,7 +285,7 @@ class AnalysisMixin(
             taxa_stratified=taxa_stratified,
             metric=metric,
             fill_missing=fill_missing,
-            filler=filler
+            filler=filler,
         )
 
     def to_classification_df(
