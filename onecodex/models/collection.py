@@ -295,6 +295,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         except ValueError:
             raise OneCodexException("Specified metric ({}) not valid.".format(metric))
 
+        # getting classification IDs is 15% of execution time
         classification_ids = [c.id for c in self._classifications]
 
         if metric == Metric.Auto:
@@ -311,7 +312,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         tax_info = {"tax_id": [], "name": [], "rank": [], "parent_tax_id": []}
         tax_ids = set()
         for c_idx, c in enumerate(self._classifications):
-            # pulling results from mainline is the slowest part of the function
+            # pulling results from mainline is the slowest part of the function, 75% of the execution time
             results = c.results()
             host_tax_ids = results.get("host_tax_ids", [])
 
@@ -507,9 +508,8 @@ class SampleCollection(ResourceList, AnalysisMixin):
         tables = []
         index = []
         # iterate over functional profiles for samples in the collection
-        # (if slowness is a problem, profile this to compare with
-        # the procedure used in ._collate_results())
         for profile in self._functional_profiles:
+            # getting results from mainline is 30% of the execution time
             table = profile.table(annotation=annotation, taxa_stratified=taxa_stratified)
             # get sample_ids to use as row indices
             index.append(profile.id)
@@ -529,6 +529,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
             # append to tables list for concatenation
             tables.append(table)
 
+        # this concat command is 60% of the execution time
         df = pd.concat(tables)
         if fill_missing:
             df.fillna(filler, inplace=True)
