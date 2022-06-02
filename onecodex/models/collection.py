@@ -464,7 +464,12 @@ class SampleCollection(ResourceList, AnalysisMixin):
         return self._cached["functional_profiles"]
 
     def _collate_functional_results(
-        self, annotation, taxa_stratified, metric, fill_missing=False, filler=0
+        self,
+        annotation,
+        metric,
+        taxa_stratified=True,
+        fill_missing=False,
+        filler=0
     ):
         """
         Returns a dataframe of all functional profile data
@@ -489,17 +494,13 @@ class SampleCollection(ResourceList, AnalysisMixin):
                 raise ValueError(
                     "if using annotation='pathways', 'value' must be one of ['coverage', 'abundance']"
                 )
-        elif taxa_stratified and metric not in ["cpm", "rpk"]:
+        elif metric not in ["cpm", "rpk"]:
             raise ValueError(
-                f"if using annotation={annotation}, 'value' for "
-                f"taxonomically stratified data must be one of ['cpm', 'rpk']"
-            )
-        elif not taxa_stratified and metric not in ["total_cpm", "total_rpk"]:
-            raise ValueError(
-                f"if using annotation={annotation}, 'value' for "
-                f"non-taxonomically-stratified data must be one of ['total_cpm', 'total_rpk']"
+                f"if using annotation={annotation}, 'value' must be one of ['cpm', 'rpk']"
             )
 
+        if not taxa_stratified:
+            metric = "total_" + metric
         tables = []
         index = []
         # iterate over functional profiles for samples in the collection
@@ -533,23 +534,12 @@ class SampleCollection(ResourceList, AnalysisMixin):
         self._cached["functional_results_content"] = {
             "annotation": annotation,
             "taxa_stratified": taxa_stratified,
-            "metric": metric,
-
+            "metric": metric
         }
 
-    def _functional_results(
-        self,
-        annotation="pathways",
-        taxa_stratified=True,
-        metric="coverage",
-    ):
-        # TODO: call this from .to_df() method
+    def _functional_results(self, **kwargs):
         if "functional_results" not in self._cached:
-            self._collate_functional_results(
-                annotation=annotation,
-                taxa_stratified=taxa_stratified,
-                metric=metric
-            )
+            self._collate_functional_results(**kwargs)
         return self._cached["functional_results"]
 
     def to_otu(self, biom_id=None):
