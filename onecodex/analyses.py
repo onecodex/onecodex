@@ -241,52 +241,16 @@ class AnalysisMixin(
 
     def to_df(self, analysis_type="classification", **kwargs):
         """
-        Transform Analyses of samples in a SampleCollection into tabular format.
-
-        Parameters
-        ----------
-        analysis_type : {'classification', 'functional'}, optional
-            The analysis_type to aggregate, corresponding to AnalysisJob.analysis_type
-        kwargs : 'dict', optional
-             Keyword arguments specific to the analysis_type
+        Parent function that
         """
-        generate_df = {
+        procedure_lookup = {
             "classification": self.to_classification_df,
-            "functional": self.to_functional_df,
+            "functional": self.to_functional_df
         }
-        return generate_df[analysis_type](**kwargs)
+        return procedure_lookup[analysis_type](**kwargs)
 
-    def to_functional_df(
-        self,
-        annotation="pathways",
-        taxa_stratified=True,
-        metric="coverage",
-        fill_missing=False,
-        filler=0,
-    ):
-        """
-        Return a dataframe of results from a functional analysis.
-
-        Parameters
-        ----------
-        annotation : {'pathways', 'metacyc', 'eggnog', 'go', 'ko', 'ec', 'pfam', 'reaction'}, optional
-            Annotation data to return
-        taxa_stratified : 'bool', optional
-            Return taxonomically stratified data
-        metric : {'coverage', 'abundance'} for annotation=='pathways', {'rpk', 'cpm'} for other annotations
-            Metric values to return
-        fill_missing : 'bool', optional
-            Fill np.nan values
-        filler : 'float', optional
-            Value with which to fill np.nans
-        """
-        return self._functional_results(
-            annotation=annotation,
-            taxa_stratified=taxa_stratified,
-            metric=metric,
-            fill_missing=fill_missing,
-            filler=filler,
-        )
+    def to_functional_df(self):
+        pass
 
     def to_classification_df(
         self,
