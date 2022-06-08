@@ -258,10 +258,6 @@ for filename in os.listdir("tests/api_data"):
         resource_uri = "GET::api/v1/schema$"
     elif filename == "schema_all.json":
         resource_uri = "GET::api/v1/schema\\?expand=all"
-    elif filename == "schema_experimental.json":
-        resource_uri = "GET::api/v1_experimental/schema$"
-    elif filename == "schema_experimental_all.json":
-        resource_uri = "GET::api/v1_experimental/schema\\?expand=all"
     else:
         resource_name = filename.replace(".json", "").split("_")[1]
         resource_uri = "GET::api/v1/{}/schema".format(resource_name)
@@ -355,18 +351,6 @@ def ocx():
             api_key="1eab4217d30d42849dbde0cd1bb94e39",
             base_url="http://localhost:3000",
             cache_schema=False,
-        )
-
-
-@pytest.fixture(scope="session")
-def ocx_experimental():
-    """Instantiated API client with experimental mode enabled"""
-    with mock_requests(SCHEMA_ROUTES):
-        return Api(
-            api_key="1eab4217d30d42849dbde0cd1bb94e39",
-            base_url="http://localhost:3000",
-            cache_schema=False,
-            experimental=True,
         )
 
 
