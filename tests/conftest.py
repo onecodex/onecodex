@@ -278,8 +278,7 @@ for api_version in os.listdir(API_DATA_DIR):
 
                     filepath = os.path.join(dirpath, filename)
                     if filepath.endswith(".json.gz"):
-                        # converting bytes (returned by gzip) to string is necessary in python 3.4
-                        resource = json.loads(gzip.open(filepath).read().decode("ascii"))
+                        resource = json.load(gzip.open(filepath))
                     else:
                         resource = json.load(open(filepath))
 
