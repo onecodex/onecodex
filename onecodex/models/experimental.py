@@ -160,7 +160,6 @@ class FunctionalProfiles(Analyses):
             return self.table()
 
     def table(self, annotation="all", taxa_stratified=True):
-        # TODO: needs testing
         """Return a results table for the functional analysis.
 
         Parameters
@@ -185,7 +184,9 @@ class FunctionalProfiles(Analyses):
                     (results_df["group_name"] == annotation) & (results_df["taxa_stratified"])
                 ]
             else:
-                return results_df[~results_df["taxa_stratified"]]
+                return results_df[
+                    (results_df["group_name"] == annotation) & ~results_df["taxa_stratified"]
+                ]
         else:
             if taxa_stratified:
                 return results_df[results_df["taxa_stratified"]]
