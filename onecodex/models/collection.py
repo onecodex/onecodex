@@ -440,8 +440,10 @@ class SampleCollection(ResourceList, AnalysisMixin):
                 else:
                     functional_profiles.append(functional_profile[0])
             else:
+                print(f"obj: {obj}")
+                print(f"functional_profile: {functional_profile}")
                 raise OneCodexException(
-                    f"Greater than one ({len(functional_profile)}) functional analysis found for sample {sample_id}"
+                    f"More than one ({len(functional_profile)}) functional analyses found for sample {sample_id}"
                 )
 
         # ensure all the functional profiles are the same job version
