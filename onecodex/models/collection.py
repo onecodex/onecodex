@@ -412,14 +412,15 @@ class SampleCollection(ResourceList, AnalysisMixin):
             # TODO: test all of these logic pathways
             if isinstance(obj, Samples):
                 sample_id = obj.id
-                functional_profile = FunctionalProfiles.where(sample=obj)
             elif isinstance(obj, Classifications):
                 sample_id = obj.sample.id
-                functional_profile = FunctionalProfiles.where(sample=obj.sample)
             else:
                 raise OneCodexException(
                     "Objects in SampleCollection must be one of: Classifications, Samples"
                 )
+
+            functional_profile = FunctionalProfiles.where(sample=sample_id)
+
             if len(functional_profile) == 0:
                 if skip_missing:
                     warnings.warn(f"Functional profile not found for sample {sample_id}. Skipping.")

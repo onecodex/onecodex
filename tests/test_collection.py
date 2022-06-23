@@ -190,7 +190,7 @@ def test_collate_results(ocx, api_data, metric, sha):
 
 
 def test_functional_profiles(ocx_experimental, api_data):
-    sample_ids = ['543c9c046e3e4e09', '66c1531cb0b244f6', '37e5151e7bcb4f87']
+    sample_ids = ["543c9c046e3e4e09", "66c1531cb0b244f6", "37e5151e7bcb4f87"]
     samples = [ocx_experimental.Samples.get(sample_id) for sample_id in sample_ids]
     assert len(samples) == 3
     sc = SampleCollection(samples)
