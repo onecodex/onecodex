@@ -22,12 +22,21 @@ def test_functional_profiles_table(ocx_experimental, api_data):
     df = func_profile.table()
     assert isinstance(df, pd.DataFrame)
     assert len(df) == 992
-    assert set(df.columns) == {'group_name', 'id', 'metric', 'name', 'taxa_stratified', 'taxon_id', 'taxon_name', 'value'}
-    assert len(df['taxon_name'].unique()) == 47
+    assert set(df.columns) == {
+        "group_name",
+        "id",
+        "metric",
+        "name",
+        "taxa_stratified",
+        "taxon_id",
+        "taxon_name",
+        "value",
+    }
+    assert len(df["taxon_name"].unique()) == 47
 
     eggnog_df = func_profile.table(annotation="eggnog", taxa_stratified=False)
-    assert set(eggnog_df['group_name']) == {'eggnog'}
-    assert list(eggnog_df['taxon_name'].unique()) == [None]
+    assert set(eggnog_df["group_name"]) == {"eggnog"}
+    assert list(eggnog_df["taxon_name"].unique()) == [None]
 
 
 def test_functional_profiles_fetch(ocx_experimental, api_data):

@@ -531,19 +531,14 @@ class SampleCollection(ResourceList, AnalysisMixin):
             feature_list.append(feature)
 
         # initialize an array and fill it
-        array = np.full(
-            shape=(len(data), len(features_to_ix)),
-            fill_value=np.nan
-        )
+        array = np.full(shape=(len(data), len(features_to_ix)), fill_value=np.nan)
         profile_ids = []
         for profile_index, profile_id in enumerate(data):
             for feature_id in data[profile_id]:
                 array[profile_index, features_to_ix[feature_id]] = data[profile_id][feature_id]
             profile_ids.append(profile_id)
         df = pd.DataFrame(
-            array,
-            index=pd.Index(profile_ids, name="functional_profile_uuid"),
-            columns=feature_list
+            array, index=pd.Index(profile_ids, name="functional_profile_uuid"), columns=feature_list
         )
 
         # fill missing here might need to be adjusted for this new method.
