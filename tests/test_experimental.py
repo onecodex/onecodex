@@ -44,8 +44,9 @@ def test_collate_functional_results(ocx_experimental, api_data):
     sample_ids = ["543c9c046e3e4e09", "66c1531cb0b244f6", "37e5151e7bcb4f87"]
     samples = [ocx_experimental.Samples.get(sample_id) for sample_id in sample_ids]
     sc = SampleCollection(samples)
-    df = sc._collate_functional_results(annotation="go", metric="rpk")
+    df = sc._functional_results(annotation="go", metric="rpk")
     assert isinstance(df, pd.DataFrame)
-    print(df.head())
+    assert df.shape == (3, 39)
+    print(sc._cached["functional_results_content"])
     # # TODO: assert dataframe has expected data
     # TODO: assert some failure paths

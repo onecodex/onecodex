@@ -3,6 +3,7 @@ from datetime import datetime
 import json
 import warnings
 
+import numpy as np
 import pandas as pd
 
 from onecodex.exceptions import OneCodexException
@@ -441,8 +442,6 @@ class SampleCollection(ResourceList, AnalysisMixin):
                 else:
                     functional_profiles.append(functional_profile[0])
             else:
-                print(f"obj: {obj}")
-                print(f"functional_profile: {functional_profile}")
                 raise OneCodexException(
                     f"More than one ({len(functional_profile)}) functional analyses found for sample {sample_id}"
                 )
@@ -509,35 +508,47 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         if not taxa_stratified:
             metric = "total_" + metric
-        tables = []
-        index = []
-        # iterate over functional profiles for samples in the collection
+        data = {}
+        all_features = set()
+        # iterate over functional profiles, subset data, and store in data dict
         for profile in self._functional_profiles:
-            # getting results from mainline is 30% of the execution time
+            # get table from mainline
+            # TODO: check assumption here in this table that taxonomically stratified data does not include totals also
             table = profile.table(annotation=annotation, taxa_stratified=taxa_stratified)
-            # get sample_ids to use as row indices
-            index.append(profile.id)
-            # make a new two-column df, where 'id' is feature labels
-            # and the other column contains values for the metric we want
-            # if taxa stratified, concatenate id and taxon_name
-            # (because in taxonomically stratified data, for unclassified, the taxon_id is null)
-            if taxa_stratified:
-                table["id"] = table["id"] + "_" + table["taxon_name"]
             # filter by indicated metric
             table = table[table["metric"] == metric]
-            table = table[["id", "value"]]
-            # transpose and relabel columns
-            table = table.T
-            table.columns = table.loc["id"]
-            table = table.drop("id")
-            # append to tables list for concatenation
-            tables.append(table)
+            # if taxa stratified, concatenate id and taxon_name
+            if taxa_stratified:
+                table["id"] = table["id"] + "_" + table["taxon_name"]
+            # store tables for later retrieval
+            data[profile.id] = dict(zip(table.id, table.value))
+            all_features.update(set(table["id"]))
 
-        # this concat command is 60% of the execution time
-        df = pd.concat(tables)
+        features_to_ix = {}
+        feature_list = []
+        for ix, feature in enumerate(all_features):
+            features_to_ix[feature] = ix
+            feature_list.append(feature)
+
+        # initialize an array and fill it
+        array = np.full(
+            shape=(len(data), len(features_to_ix)),
+            fill_value=np.nan
+        )
+        profile_ids = []
+        for profile_index, profile_id in enumerate(data):
+            for feature_id in data[profile_id]:
+                array[profile_index, features_to_ix[feature_id]] = data[profile_id][feature_id]
+            profile_ids.append(profile_id)
+        df = pd.DataFrame(
+            array,
+            index=pd.Index(profile_ids, name="functional_profile_uuid"),
+            columns=feature_list
+        )
+
+        # fill missing here might need to be adjusted for this new method.
         if fill_missing:
             df.fillna(filler, inplace=True)
-        df.index = index
         self._cached["functional_results"] = df
         self._cached["functional_results_content"] = {
             "annotation": annotation,
