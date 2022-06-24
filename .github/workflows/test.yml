@@ -46,9 +46,6 @@ jobs:
           pip install -q -U pip
           pip install --progress-bar=off simplejson
           pip install --progress-bar=off .[all,testing]
-      - name: Install chrome driver
-        run: |
-          apt-get install chromium-chromedriver
       - name: Run tests (w/ simplejson)
         run: |
           . venv/bin/activate
