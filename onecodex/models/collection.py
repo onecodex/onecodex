@@ -403,14 +403,12 @@ class SampleCollection(ResourceList, AnalysisMixin):
         -------
         None, but stores a result in self._cached.
         """
-        # TODO: make sure this is ok in the case where we keep FunctionalProfiles in experimental...
         from onecodex.models import Classifications, Samples, FunctionalProfiles
 
         skip_missing = skip_missing if skip_missing else self._kwargs["skip_missing"]
 
         functional_profiles = []
         for obj in self._res_list:
-            # TODO: test all of these logic pathways
             if isinstance(obj, Samples):
                 sample_id = obj.id
             elif isinstance(obj, Classifications):
@@ -419,9 +417,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
                 raise OneCodexException(
                     "Objects in SampleCollection must be one of: Classifications, Samples"
                 )
-
             functional_profile = FunctionalProfiles.where(sample=sample_id)
-
             if len(functional_profile) == 0:
                 if skip_missing:
                     warnings.warn(f"Functional profile not found for sample {sample_id}. Skipping.")
@@ -445,7 +441,6 @@ class SampleCollection(ResourceList, AnalysisMixin):
                 raise OneCodexException(
                     f"More than one ({len(functional_profile)}) functional analyses found for sample {sample_id}"
                 )
-
         # ensure all the functional profiles are the same job version
         job_ids = set([obj.job.id for obj in functional_profiles])
         if len(job_ids) > 1:
@@ -506,17 +501,17 @@ class SampleCollection(ResourceList, AnalysisMixin):
                 f"if using annotation={annotation}, 'value' must be one of ['cpm', 'rpk']"
             )
 
-        if not taxa_stratified:
-            metric = "total_" + metric
         data = {}
         all_features = set()
         # iterate over functional profiles, subset data, and store in data dict
         for profile in self._functional_profiles:
             # get table from mainline
-            # TODO: check assumption here in this table that taxonomically stratified data does not include totals also
             table = profile.table(annotation=annotation, taxa_stratified=taxa_stratified)
             # filter by indicated metric
-            table = table[table["metric"] == metric]
+            if not taxa_stratified:
+                table = table[table["metric"] == "total_" + metric]
+            else:
+                table = table[table["metric"] == metric]
             # if taxa stratified, concatenate id and taxon_name
             if taxa_stratified:
                 table["id"] = table["id"] + "_" + table["taxon_name"]
@@ -541,7 +536,6 @@ class SampleCollection(ResourceList, AnalysisMixin):
             array, index=pd.Index(profile_ids, name="functional_profile_uuid"), columns=feature_list
         )
 
-        # fill missing here might need to be adjusted for this new method.
         if fill_missing:
             df.fillna(filler, inplace=True)
         self._cached["functional_results"] = df
@@ -549,11 +543,17 @@ class SampleCollection(ResourceList, AnalysisMixin):
             "annotation": annotation,
             "taxa_stratified": taxa_stratified,
             "metric": metric,
+            "fill_missing": fill_missing,
+            "filler": filler,
         }
 
     def _functional_results(self, **kwargs):
         if "functional_results" not in self._cached:
             self._collate_functional_results(**kwargs)
+        # check for diff in kwargs from previous call
+        for k in kwargs:
+            if self._cached["functional_results_content"].get(k) != kwargs[k]:
+                self._collate_functional_results(**kwargs)
         return self._cached["functional_results"]
 
     def to_otu(self, biom_id=None):

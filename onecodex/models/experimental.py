@@ -141,7 +141,6 @@ class FunctionalProfiles(Analyses):
     _resource_path = "/api/v1_experimental/functional_profiles"
 
     def results(self, json=True):
-        # TODO: needs testing
         """Return the complete results table for a functional analysis.
 
         Parameters
