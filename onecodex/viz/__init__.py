@@ -68,7 +68,7 @@ def onecodex_theme():
         "config": {
             "range": {
                 "heatmap": list(reversed(onecodex_palette)),
-                "categroy": DEFAULT_PALETTES["ocx"],
+                "category": DEFAULT_PALETTES["ocx"],
                 "ramp": list(reversed(onecodex_palette)),
             },
             "area": {"fill": OCX_DARK_GREEN},

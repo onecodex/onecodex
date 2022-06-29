@@ -227,7 +227,7 @@ class VizMetadataMixin(object):
 
             chart = (
                 alt.Chart(df)
-                .mark_boxplot(size=box_size)
+                .mark_boxplot(size=box_size, median={"stroke": "black"})
                 .encode(
                     x=alt.X(magic_fields[haxis], axis=alt.Axis(title=xlabel)),
                     y=alt.Y(magic_fields[vaxis], axis=alt.Axis(title=ylabel)),
