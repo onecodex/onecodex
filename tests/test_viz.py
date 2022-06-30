@@ -6,7 +6,7 @@ pytest.importorskip("numpy")  # noqa
 pytest.importorskip("pandas")  # noqa
 
 import numpy as np
-
+import math
 from onecodex.exceptions import OneCodexException, PlottingException, PlottingWarning
 from onecodex.models.collection import SampleCollection
 from onecodex.utils import has_missing_values
