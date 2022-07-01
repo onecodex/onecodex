@@ -120,7 +120,7 @@ def configure_onecodex_theme(altair_module=None):
 
         altair_module.renderers.enable(
             "altair_saver",
-            fmts=["html", "svg"],
+            fmts=["html"],
             embed_options=VEGAEMBED_OPTIONS,
             vega_cli_options=["--loglevel", "error"],
             stderr_filter=stderr_filter,
