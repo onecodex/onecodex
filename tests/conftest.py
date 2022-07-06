@@ -281,21 +281,53 @@ API_DATA = {
 }
 
 SCHEMA_ROUTES = {}
+API_DATA_DIR = os.path.join("tests", "data", "api")
 
-for filename in os.listdir("tests/api_data"):
-    if not filename.startswith("schema"):
-        continue
+for api_version in os.listdir(API_DATA_DIR):
+    api_root = os.path.join(API_DATA_DIR, api_version)
 
-    resource = json.load(open(os.path.join("tests/api_data", filename)))
-    if filename == "schema.json":
-        resource_uri = "GET::api/v1/schema$"
-    elif filename == "schema_all.json":
-        resource_uri = "GET::api/v1/schema\\?expand=all"
-    else:
-        resource_name = filename.replace(".json", "").split("_")[1]
-        resource_uri = "GET::api/v1/{}/schema".format(resource_name)
+    for resource_name in os.listdir(api_root):
+        resource_root = os.path.join(api_root, resource_name)
 
-    SCHEMA_ROUTES[resource_uri] = resource
+        if resource_name == "schema":
+            for filename in os.listdir(resource_root):
+                if not filename.endswith(".json"):
+                    continue
+
+                if filename == "index.json":
+                    resource_uri = f"GET::api/{api_version}/schema$"
+                elif filename == "index_all.json":
+                    resource_uri = f"GET::api/{api_version}/schema\\?expand=all"
+                else:
+                    resource_name = filename.replace(".json", "")
+                    resource_uri = f"GET::api/{api_version}/{resource_name}/schema"
+
+                SCHEMA_ROUTES[resource_uri] = json.load(open(os.path.join(resource_root, filename)))
+        else:
+            for dirpath, _, filenames in os.walk(resource_root):
+                for filename in filenames:
+                    if filename not in {"index.json", "index.json.gz"}:
+                        continue
+
+                    filepath = os.path.join(dirpath, filename)
+                    if filepath.endswith(".json.gz"):
+                        resource = json.load(gzip.open(filepath))
+                    else:
+                        resource = json.load(open(filepath))
+
+                    # Remove tests/data/ from path and normalize path separator to "/" for the API
+                    # route.
+                    api_route = "/".join(dirpath.split(os.sep)[2:])
+                    resource_uri = f"GET::{api_route}"
+                    API_DATA[resource_uri] = resource
+
+                    # If we're processing a resource's instance listing
+                    # (e.g. api/v1/classifications), auto-mock each instance too
+                    # (e.g. api/v1/classifications/<uuid>)
+                    if dirpath == resource_root and isinstance(resource, list):
+                        for instance in resource:
+                            instance_uri = f"GET::{instance['$uri'].lstrip('/')}"
+                            API_DATA[instance_uri] = instance
 
 
 API_DATA.update(SCHEMA_ROUTES)
