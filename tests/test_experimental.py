@@ -108,3 +108,5 @@ def test_to_df_for_functional_profiles(ocx_experimental, api_data):
         filler=0,
     )
     assert df.shape == (3, 7)
+    with pytest.raises(ValueError):
+        sc.to_df(analysis_type="foo")

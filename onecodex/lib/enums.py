@@ -89,3 +89,8 @@ class Linkage(BaseEnum):
 class OrdinationMethod(BaseEnum):
     Pcoa = "pcoa"
     Smacof = "smacof"
+
+
+class AnalysisType(BaseEnum):
+    Classification = "classification"
+    Functional = "functional"

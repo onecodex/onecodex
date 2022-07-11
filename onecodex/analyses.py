@@ -2,7 +2,7 @@ import six
 import warnings
 
 from onecodex.exceptions import OneCodexException
-from onecodex.lib.enums import AbundanceMetric, Rank
+from onecodex.lib.enums import AbundanceMetric, Rank, AnalysisType
 from onecodex.viz import (
     VizPCAMixin,
     VizHeatmapMixin,
@@ -239,7 +239,7 @@ class AnalysisMixin(
 
         return magic_metadata, magic_fields
 
-    def to_df(self, analysis_type="classification", **kwargs):
+    def to_df(self, analysis_type=AnalysisType.Classification, **kwargs):
         """
         Transform Analyses of samples in a SampleCollection into tabular format.
 
@@ -251,12 +251,12 @@ class AnalysisMixin(
              Keyword arguments specific to the analysis_type
         """
         generate_df = {
-            "classification": self.to_classification_df,
-            "functional": self.to_functional_df,
+            AnalysisType.Classification: self._to_classification_df,
+            AnalysisType.Functional: self._to_functional_df,
         }
-        return generate_df[analysis_type](**kwargs)
+        return generate_df[AnalysisType(analysis_type)](**kwargs)
 
-    def to_functional_df(
+    def _to_functional_df(
         self,
         annotation="pathways",
         taxa_stratified=True,
@@ -288,7 +288,7 @@ class AnalysisMixin(
             filler=filler,
         )
 
-    def to_classification_df(
+    def _to_classification_df(
         self,
         rank=Rank.Auto,
         top_n=None,
