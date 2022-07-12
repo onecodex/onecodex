@@ -241,14 +241,14 @@ class AnalysisMixin(
 
     def to_df(self, analysis_type=AnalysisType.Classification, **kwargs):
         """
-        Transform Analyses of samples in a SampleCollection into tabular format.
+        Transform Analyses of samples in a `SampleCollection` into tabular format.
 
         Parameters
         ----------
         analysis_type : {'classification', 'functional'}, optional
-            The analysis_type to aggregate, corresponding to AnalysisJob.analysis_type
-        kwargs : 'dict', optional
-             Keyword arguments specific to the analysis_type
+            The `analysis_type` to aggregate, corresponding to AnalysisJob.analysis_type
+        kwargs : dict, optional
+             Keyword arguments specific to the `analysis_type`; see each individual function definition
         """
         generate_df = {
             AnalysisType.Classification: self._to_classification_df,
@@ -269,15 +269,15 @@ class AnalysisMixin(
 
         Parameters
         ----------
-        annotation : 'onecodex.lib.enum.FunctionalAnnotations', optional
+        annotation : onecodex.lib.enum.FunctionalAnnotations, optional
             Annotation data to return
-        taxa_stratified : 'bool', optional
+        taxa_stratified : bool, optional
             Return taxonomically stratified data
         metric : {'coverage', 'abundance'} for annotation==FunctionalAnnotations.Pathways, {'rpk', 'cpm'} for other annotations
             Metric values to return
-        fill_missing : 'bool', optional
+        fill_missing : bool, optional
             Fill np.nan values
-        filler : 'float', optional
+        filler : float, optional
             Value with which to fill np.nans
         """
         return self._functional_results(
