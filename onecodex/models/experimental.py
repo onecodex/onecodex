@@ -1,6 +1,7 @@
 from onecodex.models import OneCodexBase, ResourceList
 from onecodex.models.helpers import ResourceDownloadMixin
 from onecodex.models.analysis import Analyses
+from onecodex.lib.enums import FunctionalAnnotations
 
 
 class AnnotationSets(OneCodexBase, ResourceDownloadMixin):
@@ -163,21 +164,22 @@ class FunctionalProfiles(Analyses):
 
         Parameters
         ----------
-        annotation : 'str', optional
-            If not 'all', data for which group of annotations to return, one of:
-            {'pathways', 'metacyc', 'eggnog', 'go', 'ko', 'ec', 'pfam', 'reaction'}
-        taxa_stratified : 'bool', optional
+        annotation : {'all', onecodex.lib.enum.FunctionalAnnotation}, optional
+            Either return a table with all annotations or one of `onecodex.lib.enum.FunctionalAnnotation`
+        taxa_stratified : bool, optional
             If False, return data only by annotation ID, ignoring taxonomic stratification
 
         Returns
         -------
-        results_df : `pd.DataFrame`
+        results_df : pd.DataFrame
             A Pandas DataFrame of the functional results.
         """
         import pandas as pd
 
         results_df = pd.DataFrame(self._results()["table"])
         if annotation != "all":
+            # Validate functional annotation
+            FunctionalAnnotations(annotation)
             if taxa_stratified:
                 return results_df[
                     (results_df["group_name"] == annotation) & (results_df["taxa_stratified"])

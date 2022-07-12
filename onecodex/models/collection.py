@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from onecodex.exceptions import OneCodexException
-from onecodex.lib.enums import Metric
+from onecodex.lib.enums import Metric, FunctionalAnnotations
 
 try:
     from onecodex.analyses import AnalysisMixin
@@ -36,10 +36,11 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         Parameters
         ----------
-        objects : `list` of `onecodex.models.Samples` or `onecodex.models.Classifications`
-            A list of objects which will be processed into a SampleCollection
+        objects : list
+            A list of `onecodex.models.Samples` or `onecodex.models.Classifications` objects
+            which will be processed into a `SampleCollection`
 
-        skip_missing : `bool`, optional
+        skip_missing : bool, optional
             If an analysis was not successful, exclude it, warn, and keep going
 
         metric : {'readcount_w_children', 'readcount', 'abundance'}, optional
@@ -49,7 +50,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
             - 'readcount': total reads of this taxon
             - 'abundance': genome size-normalized relative abundances, from shotgun sequencing
 
-        include_host : `bool`, optional
+        include_host : bool, optional
             If True, keep (rather than drop) count/abundance data for host taxa
 
         Examples
@@ -128,14 +129,14 @@ class SampleCollection(ResourceList, AnalysisMixin):
         super(SampleCollection, self).__init__(resources, model, **self._kwargs)
 
     def filter(self, filter_func):
-        """Return a new SampleCollection containing only samples meeting the filter criteria.
+        """Return a new `SampleCollection` containing only samples meeting the filter criteria.
 
-        Will pass any kwargs (e.g., metric or skip_missing) used when instantiating the current class
-        on to the new SampleCollection that is returned.
+        Will pass any kwargs (e.g., `metric` or `skip_missing`) used when instantiating the current class
+        on to the new `SampleCollection` that is returned.
 
         Parameters
         ----------
-        filter_func : `callable`
+        filter_func : callable
             A function that will be evaluated on every object in the collection. The function must
             return a `bool`. If True, the object will be kept. If False, it will be removed from the
             SampleCollection that is returned.
@@ -166,7 +167,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         Parameters
         ----------
-        skip_missing : `bool`
+        skip_missing : bool
             If an analysis was not successful, exclude it, warn, and keep going
 
         Returns
@@ -273,7 +274,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
             - 'readcount': total reads of this taxon
             - 'abundance': genome size-normalized relative abundances, from shotgun sequencing
 
-        include_host : `bool`, optional
+        include_host : bool, optional
             If True, keep (rather than drop) count/abundance data for host taxa
 
         Returns
@@ -396,7 +397,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         Parameters
         ----------
-        skip_missing : `bool`
+        skip_missing : bool
             If an analysis is missing or was not successful, exclude it, warn, and keep going
 
         Returns
@@ -467,45 +468,36 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         Parameters
         ----------
-        annotation : {'pathways', 'metacyc', 'eggnog', 'go', 'ko', 'ec', 'pfam', 'reaction'}, optional
+        annotation : onecodex.lib.enum.Pathways, optional
             Annotation data to return
-        taxa_stratified : 'bool', optional
+        taxa_stratified : bool, optional
             Return taxonomically stratified data
-        metric : {'coverage', 'abundance'} for annotation=='pathways', {'rpk', 'cpm'} for other annotations
-            Metric values to return
-        fill_missing : 'bool', optional
-            Fill np.nan values
-        filler : 'float', optional
-            Value with which to fill np.nans
+        metric : str
+            Metric values to return,
+            `{'coverage', 'abundance'}` for `annotation==onecodex.lib.enum.FunctionalAnnotation.Pathways`,
+            `{'rpk', 'cpm'}` for other annotations
+        fill_missing : bool, optional
+            Fill `np.nan` values
+        filler : float, optional
+            Value with which to fill `np.nan` values
         """
         # validate args
-        valid_annotation_values = [
-            "pathways",
-            "metacyc",
-            "eggnog",
-            "go",
-            "ko",
-            "ec",
-            "pfam",
-            "reaction",
-        ]
-        if annotation not in valid_annotation_values:
-            raise ValueError(f"'annotation' must be one of {', '.join(valid_annotation_values)}")
-        if annotation == "pathways":
+        annotation = FunctionalAnnotations(annotation)
+        if annotation == FunctionalAnnotations.Pathways:
             if metric not in ["coverage", "abundance"]:
                 raise ValueError(
                     "if using annotation='pathways', 'value' must be one of ['coverage', 'abundance']"
                 )
         elif metric not in ["cpm", "rpk"]:
             raise ValueError(
-                f"if using annotation={annotation}, 'value' must be one of ['cpm', 'rpk']"
+                f"if using annotation={annotation.value}, 'value' must be one of ['cpm', 'rpk']"
             )
 
         data = {}
         all_features = set()
         # iterate over functional profiles, subset data, and store in data dict
         for profile in self._functional_profiles:
-            # get table from mainline
+            # get table using One Codex API
             table = profile.table(annotation=annotation, taxa_stratified=taxa_stratified)
             # filter by indicated metric
             if not taxa_stratified:
@@ -554,6 +546,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         for k in kwargs:
             if self._cached["functional_results_content"].get(k) != kwargs[k]:
                 self._collate_functional_results(**kwargs)
+                break
         return self._cached["functional_results"]
 
     def to_otu(self, biom_id=None):
@@ -561,13 +554,13 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         Parameters
         ----------
-        biom_id : `string`, optional
+        biom_id : string, optional
             Optionally specify an `id` field for the generated v1 BIOM file.
 
         Returns
         -------
-        otu_table : `OrderedDict`
-            A BIOM OTU table, returned as a Python OrderedDict (can be dumped to JSON)
+        otu_table : OrderedDict
+            A BIOM OTU table, returned as a Python `OrderedDict` (can be dumped to JSON)
         """
         otu_format = "Biological Observation Matrix 1.0.0"
 

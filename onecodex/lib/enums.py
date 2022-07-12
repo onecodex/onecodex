@@ -94,3 +94,14 @@ class OrdinationMethod(BaseEnum):
 class AnalysisType(BaseEnum):
     Classification = "classification"
     Functional = "functional"
+
+
+class FunctionalAnnotations(BaseEnum):
+    Pathways = "pathways"
+    MetaCyc = "metacyc"
+    EggNOG = "eggnog"
+    GO = "go"
+    KO = "ko"
+    EC = "ec"
+    Pfam = "pfam"
+    Reaction = "reaction"
