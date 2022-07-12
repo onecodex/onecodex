@@ -309,7 +309,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         tax_info = {"tax_id": [], "name": [], "rank": [], "parent_tax_id": []}
         tax_ids = set()
         for c_idx, c in enumerate(self._classifications):
-            # pulling results from mainline is the slowest part of the function, 75% of the execution time
+            # pulling results from API is the slowest part of the function, 75% of the execution time
             results = c.results()
             host_tax_ids = results.get("host_tax_ids", [])
 
@@ -525,7 +525,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
                 array[profile_index, features_to_ix[feature_id]] = data[profile_id][feature_id]
             profile_ids.append(profile_id)
         df = pd.DataFrame(
-            array, index=pd.Index(profile_ids, name="functional_profile_uuid"), columns=feature_list
+            array, index=pd.Index(profile_ids, name="functional_profile_id"), columns=feature_list
         )
 
         if fill_missing:
@@ -543,10 +543,16 @@ class SampleCollection(ResourceList, AnalysisMixin):
         if "functional_results" not in self._cached:
             self._collate_functional_results(**kwargs)
         # check for diff in kwargs from previous call
-        for k in kwargs:
-            if self._cached["functional_results_content"].get(k) != kwargs[k]:
-                self._collate_functional_results(**kwargs)
-                break
+        defaults = {"taxa_stratified": True, "fill_missing": False, "filler": 0}
+        for k in self._cached["functional_results_content"]:
+            if kwargs.get(k):
+                if self._cached["functional_results_content"][k] != kwargs[k]:
+                    self._collate_functional_results(**kwargs)
+                    break
+            else:
+                if self._cached["functional_results_content"][k] != defaults[k]:
+                    self._collate_functional_results(**kwargs)
+                    break
         return self._cached["functional_results"]
 
     def to_otu(self, biom_id=None):

@@ -92,6 +92,16 @@ def test_collate_functional_results(ocx_experimental, api_data):
     with pytest.raises(ValueError):
         sc._functional_results(annotation="pathways", metric="rpk")
 
+    # test cache update logic
+    sc._functional_results(annotation="pfam", metric="cpm", taxa_stratified=False)
+    assert sc._cached['functional_results'].shape == (3, 2)
+    sc._functional_results(annotation="pfam", metric="rpk", taxa_stratified=False)
+    assert sc._cached['functional_results'].shape == (3, 2)
+    sc._functional_results(annotation="go", metric="rpk", taxa_stratified=False)
+    assert sc._cached['functional_results'].shape == (3, 6)
+    sc._functional_results(annotation="go", metric="rpk")
+    assert sc._cached['functional_results'].shape == (3, 39)
+
 
 def test_to_df_for_functional_profiles(ocx_experimental, api_data):
     sample_ids = ["543c9c046e3e4e09", "66c1531cb0b244f6", "37e5151e7bcb4f87"]
