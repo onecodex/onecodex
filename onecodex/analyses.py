@@ -2,7 +2,13 @@ import six
 import warnings
 
 from onecodex.exceptions import OneCodexException
-from onecodex.lib.enums import AbundanceMetric, Rank, AnalysisType, FunctionalAnnotations
+from onecodex.lib.enums import (
+    AbundanceMetric,
+    Rank,
+    AnalysisType,
+    FunctionalAnnotations,
+    FunctionalAnnotationsMetric,
+)
 from onecodex.viz import (
     VizPCAMixin,
     VizHeatmapMixin,
@@ -260,7 +266,7 @@ class AnalysisMixin(
         self,
         annotation=FunctionalAnnotations.Pathways,
         taxa_stratified=True,
-        metric="coverage",
+        metric=FunctionalAnnotationsMetric.Coverage,
         fill_missing=False,
         filler=0,
     ):
@@ -269,19 +275,21 @@ class AnalysisMixin(
 
         Parameters
         ----------
-        annotation : onecodex.lib.enum.FunctionalAnnotations, optional
+        annotation : {onecodex.lib.enum.FunctionalAnnotations, str}, optional
             Annotation data to return
         taxa_stratified : bool, optional
             Return taxonomically stratified data
-        metric : {'coverage', 'abundance'} for annotation==FunctionalAnnotations.Pathways, {'rpk', 'cpm'} for other annotations
+        metric : {onecodex.lib.enum.FunctionalAnnotationsMetric, str}, optional
             Metric values to return
+            {'coverage', 'abundance'} for annotation==FunctionalAnnotations.Pathways or
+            {'rpk', 'cpm'} for other annotations
         fill_missing : bool, optional
             Fill np.nan values
         filler : float, optional
             Value with which to fill np.nans
         """
         return self._functional_results(
-            annotation=FunctionalAnnotations(annotation),
+            annotation=annotation,
             taxa_stratified=taxa_stratified,
             metric=metric,
             fill_missing=fill_missing,

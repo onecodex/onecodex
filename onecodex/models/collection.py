@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from onecodex.exceptions import OneCodexException
-from onecodex.lib.enums import Metric, FunctionalAnnotations
+from onecodex.lib.enums import Metric, FunctionalAnnotations, FunctionalAnnotationsMetric
 
 try:
     from onecodex.analyses import AnalysisMixin
@@ -461,21 +461,21 @@ class SampleCollection(ResourceList, AnalysisMixin):
         return self._cached["functional_profiles"]
 
     def _collate_functional_results(
-        self, annotation, metric, taxa_stratified=True, fill_missing=False, filler=0
+        self, annotation, metric, taxa_stratified, fill_missing, filler
     ):
         """
         Return a dataframe of all functional profile data.
 
         Parameters
         ----------
-        annotation : onecodex.lib.enum.Pathways, optional
+        annotation : {onecodex.lib.enum.FunctionalAnnotations, str}
             Annotation data to return
         taxa_stratified : bool, optional
             Return taxonomically stratified data
-        metric : str
+        metric : {onecodex.lib.enum.FunctionalAnnotationsMetric, str}
             Metric values to return,
             `{'coverage', 'abundance'}` for `annotation==onecodex.lib.enum.FunctionalAnnotation.Pathways`,
-            `{'rpk', 'cpm'}` for other annotations
+            `{'rpk', 'cpm'}` for other `annotation`
         fill_missing : bool, optional
             Fill `np.nan` values
         filler : float, optional
@@ -483,27 +483,28 @@ class SampleCollection(ResourceList, AnalysisMixin):
         """
         # validate args
         annotation = FunctionalAnnotations(annotation)
+        metric = FunctionalAnnotationsMetric(metric)
         if annotation == FunctionalAnnotations.Pathways:
-            if metric not in ["coverage", "abundance"]:
+            if metric.value not in ["coverage", "abundance"]:
                 raise ValueError(
-                    "if using annotation='pathways', 'value' must be one of ['coverage', 'abundance']"
+                    "If using annotation='pathways', 'metric' must be one of ['coverage', 'abundance']"
                 )
-        elif metric not in ["cpm", "rpk"]:
+        elif metric.value not in ["cpm", "rpk"]:
             raise ValueError(
-                f"if using annotation={annotation.value}, 'value' must be one of ['cpm', 'rpk']"
+                f"If using annotation={annotation.value}, 'metric' must be one of ['cpm', 'rpk']"
             )
 
+        # iterate over functional profiles, subset data, and store in data dict
         data = {}
         all_features = set()
-        # iterate over functional profiles, subset data, and store in data dict
         for profile in self._functional_profiles:
             # get table using One Codex API
             table = profile.table(annotation=annotation, taxa_stratified=taxa_stratified)
             # filter by indicated metric
             if not taxa_stratified:
-                table = table[table["metric"] == "total_" + metric]
+                table = table[table["metric"] == "total_" + metric.value]
             else:
-                table = table[table["metric"] == metric]
+                table = table[table["metric"] == metric.value]
             # if taxa stratified, concatenate id and taxon_name
             if taxa_stratified:
                 table["id"] = table["id"] + "_" + table["taxon_name"]
@@ -542,17 +543,8 @@ class SampleCollection(ResourceList, AnalysisMixin):
     def _functional_results(self, **kwargs):
         if "functional_results" not in self._cached:
             self._collate_functional_results(**kwargs)
-        # check for diff in kwargs from previous call
-        defaults = {"taxa_stratified": True, "fill_missing": False, "filler": 0}
-        for k in self._cached["functional_results_content"]:
-            if kwargs.get(k):
-                if self._cached["functional_results_content"][k] != kwargs[k]:
-                    self._collate_functional_results(**kwargs)
-                    break
-            else:
-                if self._cached["functional_results_content"][k] != defaults[k]:
-                    self._collate_functional_results(**kwargs)
-                    break
+        if kwargs != self._cached["functional_results_content"]:
+            self._collate_functional_results(**kwargs)
         return self._cached["functional_results"]
 
     def to_otu(self, biom_id=None):

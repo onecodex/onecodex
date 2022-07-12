@@ -65,7 +65,9 @@ def test_collate_functional_results(ocx_experimental, api_data):
     sample_ids = ["543c9c046e3e4e09", "66c1531cb0b244f6", "37e5151e7bcb4f87"]
     samples = [ocx_experimental.Samples.get(sample_id) for sample_id in sample_ids]
     sc = SampleCollection(samples)
-    df = sc._functional_results(annotation="go", metric="rpk")
+    df = sc._functional_results(
+        annotation="go", metric="rpk", taxa_stratified=True, fill_missing=False, filler=0
+    )
     assert isinstance(df, pd.DataFrame)
     assert df.shape == (3, 39)
     assert sc._cached["functional_results_content"] == {
@@ -85,21 +87,35 @@ def test_collate_functional_results(ocx_experimental, api_data):
         "fill_missing": True,
         "filler": 0,
     }
-    df = sc._functional_results(annotation="pathways", metric="coverage")
+    df = sc._functional_results(
+        annotation="pathways", metric="coverage", taxa_stratified=True, fill_missing=False, filler=0
+    )
     assert df.shape == (3, 27)
     with pytest.raises(ValueError):
-        sc._functional_results(annotation="all", metric="rpk")
+        sc._functional_results(
+            annotation="all", metric="rpk", taxa_stratified=True, fill_missing=False, filler=0
+        )
     with pytest.raises(ValueError):
-        sc._functional_results(annotation="pathways", metric="rpk")
+        sc._functional_results(
+            annotation="pathways", metric="rpk", taxa_stratified=True, fill_missing=False, filler=0
+        )
 
     # test cache update logic
-    sc._functional_results(annotation="pfam", metric="cpm", taxa_stratified=False)
+    sc._functional_results(
+        annotation="pfam", metric="cpm", taxa_stratified=False, fill_missing=False, filler=0
+    )
     assert sc._cached["functional_results"].shape == (3, 2)
-    sc._functional_results(annotation="pfam", metric="rpk", taxa_stratified=False)
+    sc._functional_results(
+        annotation="pfam", metric="rpk", taxa_stratified=False, fill_missing=False, filler=0
+    )
     assert sc._cached["functional_results"].shape == (3, 2)
-    sc._functional_results(annotation="go", metric="rpk", taxa_stratified=False)
+    sc._functional_results(
+        annotation="go", metric="rpk", taxa_stratified=False, fill_missing=True, filler=0
+    )
     assert sc._cached["functional_results"].shape == (3, 6)
-    sc._functional_results(annotation="go", metric="rpk")
+    sc._functional_results(
+        annotation="go", metric="rpk", taxa_stratified=True, fill_missing=False, filler=0
+    )
     assert sc._cached["functional_results"].shape == (3, 39)
 
 

@@ -99,9 +99,16 @@ class AnalysisType(BaseEnum):
 class FunctionalAnnotations(BaseEnum):
     Pathways = "pathways"
     MetaCyc = "metacyc"
-    EggNOG = "eggnog"
-    GO = "go"
-    KO = "ko"
-    EC = "ec"
+    EggNog = "eggnog"
+    Go = "go"
+    Ko = "ko"
+    Ec = "ec"
     Pfam = "pfam"
     Reaction = "reaction"
+
+
+class FunctionalAnnotationsMetric(BaseEnum):
+    Rpk = "rpk"
+    Cpm = "cpm"
+    Abundance = "abundance"
+    Coverage = "coverage"
