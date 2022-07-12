@@ -33,6 +33,21 @@ def test_functional_profiles_table(ocx_experimental, api_data):
     assert set(eggnog_df["group_name"]) == {"eggnog"}
     assert list(eggnog_df["taxon_name"].unique()) == [None]
 
+    all_df = func_profile.table(taxa_stratified=False)
+    assert len(all_df) == 358
+    assert list(all_df["taxon_name"].unique()) == [None]
+    assert list(all_df["group_name"].unique()) == [
+        "gene_family",
+        "metacyc",
+        "pfam",
+        "pathways",
+        "go",
+        "eggnog",
+        "reaction",
+        "ec",
+        "ko",
+    ]
+
 
 def test_functional_profiles_results(ocx_experimental, api_data):
     func_profile = ocx_experimental.FunctionalProfiles.get("eec4ac90d9104d1e")
@@ -99,8 +114,10 @@ def test_collate_functional_results(ocx_experimental, api_data):
         sc._functional_results(
             annotation="pathways", metric="rpk", taxa_stratified=True, fill_missing=False, filler=0
         )
-
-    # test cache update logic
+    with pytest.raises(ValueError):
+        sc._functional_results(
+            annotation="go", metric="coverage", taxa_stratified=False, fill_missing=True, filler=0
+        )
     sc._functional_results(
         annotation="pfam", metric="cpm", taxa_stratified=False, fill_missing=False, filler=0
     )
@@ -109,10 +126,6 @@ def test_collate_functional_results(ocx_experimental, api_data):
         annotation="pfam", metric="rpk", taxa_stratified=False, fill_missing=False, filler=0
     )
     assert sc._cached["functional_results"].shape == (3, 2)
-    sc._functional_results(
-        annotation="go", metric="rpk", taxa_stratified=False, fill_missing=True, filler=0
-    )
-    assert sc._cached["functional_results"].shape == (3, 6)
     sc._functional_results(
         annotation="go", metric="rpk", taxa_stratified=True, fill_missing=False, filler=0
     )
