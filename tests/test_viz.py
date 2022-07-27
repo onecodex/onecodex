@@ -7,7 +7,7 @@ pytest.importorskip("pandas")  # noqa
 
 import numpy as np
 
-from onecodex.exceptions import OneCodexException, PlottingException, PlottingWarning
+from onecodex.exceptions import OneCodexException, PlottingException
 from onecodex.models.collection import SampleCollection
 from onecodex.utils import has_missing_values
 from onecodex.viz._primitives import interleave_palette
@@ -25,7 +25,6 @@ def test_altair_renderer(ocx, api_data):
     assert alt.renderers.active in {"altair_saver", "html"}
 
 
-@pytest.mark.filterwarnings("ignore:.*Groups of size 1.*")
 def test_plot_metadata(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
 
@@ -72,7 +71,6 @@ def test_plot_metadata_facet_by_scatter(ocx, api_data):
     assert chart.encoding.x.axis.title == ""
 
 
-@pytest.mark.filterwarnings("ignore:.*Groups of size 1.*")
 def test_plot_metadata_facet_by_boxplot(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
 
@@ -118,25 +116,25 @@ def test_plot_metadata_exceptions(ocx, api_data):
     assert "too few samples" in str(e.value)
 
 
-def test_plot_metadata_warnings(ocx, api_data):
+def test_plot_metadata_group_with_single_value(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
 
-    with pytest.warns(PlottingWarning, match="Groups of size 1"):
-        samples.plot_metadata(
-            plot_type="boxplot",
-            haxis=("library_type", "external_sample_id"),
-            vaxis="observed_taxa",
-            return_chart=True,
-        )
+    chart = samples.plot_metadata(
+        plot_type="boxplot",
+        haxis=("library_type", "external_sample_id"),
+        vaxis="observed_taxa",
+        return_chart=True,
+    )
+    assert chart.mark.type == "boxplot"
 
-    with pytest.warns(PlottingWarning, match="Groups of size 1"):
-        samples.plot_metadata(
-            plot_type="boxplot",
-            haxis="library_type",
-            vaxis="observed_taxa",
-            facet_by="external_sample_id",
-            return_chart=True,
-        )
+    chart = samples.plot_metadata(
+        plot_type="boxplot",
+        haxis="library_type",
+        vaxis="observed_taxa",
+        facet_by="external_sample_id",
+        return_chart=True,
+    )
+    assert chart.mark.type == "boxplot"
 
 
 def test_plot_pca(ocx, api_data):
