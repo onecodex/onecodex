@@ -1,3 +1,4 @@
+import math
 import mock
 import pytest
 
@@ -93,7 +94,9 @@ def test_plot_metadata_alpha_diversity_with_nans(ocx, api_data):
     with mock.patch.object(SampleCollection, "alpha_diversity", return_value=mock_alpha_div_values):
         chart = samples.plot_metadata(vaxis="shannon", return_chart=True)
 
-    assert chart.data["shannon"].tolist() == [5.2120437645419395]
+    shannon_result = chart.data["shannon"].tolist()
+    assert len(shannon_result) == 1
+    assert math.isclose(shannon_result[0], 5.212043764541939)
     assert chart.mark == "circle"
 
 
