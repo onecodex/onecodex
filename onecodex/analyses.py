@@ -2,7 +2,13 @@ import six
 import warnings
 
 from onecodex.exceptions import OneCodexException
-from onecodex.lib.enums import AbundanceMetric, Rank
+from onecodex.lib.enums import (
+    AbundanceMetric,
+    Rank,
+    AnalysisType,
+    FunctionalAnnotations,
+    FunctionalAnnotationsMetric,
+)
 from onecodex.viz import (
     VizPCAMixin,
     VizHeatmapMixin,
@@ -239,7 +245,58 @@ class AnalysisMixin(
 
         return magic_metadata, magic_fields
 
-    def to_df(
+    def to_df(self, analysis_type=AnalysisType.Classification, **kwargs):
+        """
+        Transform Analyses of samples in a `SampleCollection` into tabular format.
+
+        Parameters
+        ----------
+        analysis_type : {'classification', 'functional'}, optional
+            The `analysis_type` to aggregate, corresponding to AnalysisJob.analysis_type
+        kwargs : dict, optional
+             Keyword arguments specific to the `analysis_type`; see each individual function definition
+        """
+        generate_df = {
+            AnalysisType.Classification: self._to_classification_df,
+            AnalysisType.Functional: self._to_functional_df,
+        }
+        return generate_df[AnalysisType(analysis_type)](**kwargs)
+
+    def _to_functional_df(
+        self,
+        annotation=FunctionalAnnotations.Pathways,
+        taxa_stratified=True,
+        metric=FunctionalAnnotationsMetric.Coverage,
+        fill_missing=False,
+        filler=0,
+    ):
+        """
+        Return a dataframe of results from a functional analysis.
+
+        Parameters
+        ----------
+        annotation : {onecodex.lib.enum.FunctionalAnnotations, str}, optional
+            Annotation data to return
+        taxa_stratified : bool, optional
+            Return taxonomically stratified data
+        metric : {onecodex.lib.enum.FunctionalAnnotationsMetric, str}, optional
+            Metric values to return
+            {'coverage', 'abundance'} for annotation==FunctionalAnnotations.Pathways or
+            {'rpk', 'cpm'} for other annotations
+        fill_missing : bool, optional
+            Fill np.nan values
+        filler : float, optional
+            Value with which to fill np.nans
+        """
+        return self._functional_results(
+            annotation=annotation,
+            taxa_stratified=taxa_stratified,
+            metric=metric,
+            fill_missing=fill_missing,
+            filler=filler,
+        )
+
+    def _to_classification_df(
         self,
         rank=Rank.Auto,
         top_n=None,

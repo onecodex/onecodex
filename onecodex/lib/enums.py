@@ -89,3 +89,26 @@ class Linkage(BaseEnum):
 class OrdinationMethod(BaseEnum):
     Pcoa = "pcoa"
     Smacof = "smacof"
+
+
+class AnalysisType(BaseEnum):
+    Classification = "classification"
+    Functional = "functional"
+
+
+class FunctionalAnnotations(BaseEnum):
+    Pathways = "pathways"
+    MetaCyc = "metacyc"
+    EggNog = "eggnog"
+    Go = "go"
+    Ko = "ko"
+    Ec = "ec"
+    Pfam = "pfam"
+    Reaction = "reaction"
+
+
+class FunctionalAnnotationsMetric(BaseEnum):
+    Rpk = "rpk"
+    Cpm = "cpm"
+    Abundance = "abundance"
+    Coverage = "coverage"

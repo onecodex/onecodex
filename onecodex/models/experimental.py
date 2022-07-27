@@ -1,6 +1,7 @@
 from onecodex.models import OneCodexBase, ResourceList
 from onecodex.models.helpers import ResourceDownloadMixin
 from onecodex.models.analysis import Analyses
+from onecodex.lib.enums import FunctionalAnnotations
 
 
 class AnnotationSets(OneCodexBase, ResourceDownloadMixin):
@@ -158,14 +159,37 @@ class FunctionalProfiles(Analyses):
         else:
             return self.table()
 
-    def table(self):
-        """Return the complete results table for the functional analysis.
+    def table(self, annotation="all", taxa_stratified=True):
+        """Return a results table for the functional analysis.
+
+        Parameters
+        ----------
+        annotation : {'all', onecodex.lib.enum.FunctionalAnnotation}, optional
+            Either return a table with all annotations or one of `onecodex.lib.enum.FunctionalAnnotation`
+        taxa_stratified : bool, optional
+            If False, return data only by annotation ID, ignoring taxonomic stratification
 
         Returns
         -------
-        table : `pd.DataFrame`
+        results_df : pd.DataFrame
             A Pandas DataFrame of the functional results.
         """
         import pandas as pd
 
-        return pd.DataFrame(self._results()["table"])
+        results_df = pd.DataFrame(self._results()["table"])
+        if annotation != "all":
+            # Validate functional annotation
+            FunctionalAnnotations(annotation)
+            if taxa_stratified:
+                return results_df[
+                    (results_df["group_name"] == annotation) & (results_df["taxa_stratified"])
+                ]
+            else:
+                return results_df[
+                    (results_df["group_name"] == annotation) & ~results_df["taxa_stratified"]
+                ]
+        else:
+            if taxa_stratified:
+                return results_df[results_df["taxa_stratified"]]
+            else:
+                return results_df[~results_df["taxa_stratified"]]

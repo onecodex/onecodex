@@ -3,8 +3,11 @@ from datetime import datetime
 import json
 import warnings
 
+import numpy as np
+import pandas as pd
+
 from onecodex.exceptions import OneCodexException
-from onecodex.lib.enums import Metric
+from onecodex.lib.enums import Metric, FunctionalAnnotations, FunctionalAnnotationsMetric
 
 try:
     from onecodex.analyses import AnalysisMixin
@@ -33,10 +36,11 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         Parameters
         ----------
-        objects : `list` of `onecodex.models.Samples` or `onecodex.models.Classifications`
-            A list of objects which will be processed into a SampleCollection
+        objects : list
+            A list of `onecodex.models.Samples` or `onecodex.models.Classifications` objects
+            which will be processed into a `SampleCollection`
 
-        skip_missing : `bool`, optional
+        skip_missing : bool, optional
             If an analysis was not successful, exclude it, warn, and keep going
 
         metric : {'readcount_w_children', 'readcount', 'abundance'}, optional
@@ -46,7 +50,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
             - 'readcount': total reads of this taxon
             - 'abundance': genome size-normalized relative abundances, from shotgun sequencing
 
-        include_host : `bool`, optional
+        include_host : bool, optional
             If True, keep (rather than drop) count/abundance data for host taxa
 
         Examples
@@ -125,14 +129,14 @@ class SampleCollection(ResourceList, AnalysisMixin):
         super(SampleCollection, self).__init__(resources, model, **self._kwargs)
 
     def filter(self, filter_func):
-        """Return a new SampleCollection containing only samples meeting the filter criteria.
+        """Return a new `SampleCollection` containing only samples meeting the filter criteria.
 
-        Will pass any kwargs (e.g., metric or skip_missing) used when instantiating the current class
-        on to the new SampleCollection that is returned.
+        Will pass any kwargs (e.g., `metric` or `skip_missing`) used when instantiating the current class
+        on to the new `SampleCollection` that is returned.
 
         Parameters
         ----------
-        filter_func : `callable`
+        filter_func : callable
             A function that will be evaluated on every object in the collection. The function must
             return a `bool`. If True, the object will be kept. If False, it will be removed from the
             SampleCollection that is returned.
@@ -163,7 +167,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         Parameters
         ----------
-        skip_missing : `bool`
+        skip_missing : bool
             If an analysis was not successful, exclude it, warn, and keep going
 
         Returns
@@ -216,12 +220,8 @@ class SampleCollection(ResourceList, AnalysisMixin):
         return self._cached["classifications"]
 
     def _collate_metadata(self):
-        """Transform a list of Samples or Classifications into a `pd.DataFrame` of metadata.
+        """Transform a list of Samples or Classifications into a `pd.DataFrame` of metadata."""
 
-        Returns
-        -------
-        None, but stores a result in self._cached.
-        """
         import pandas as pd
 
         DEFAULT_FIELDS = None
@@ -274,7 +274,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
             - 'readcount': total reads of this taxon
             - 'abundance': genome size-normalized relative abundances, from shotgun sequencing
 
-        include_host : `bool`, optional
+        include_host : bool, optional
             If True, keep (rather than drop) count/abundance data for host taxa
 
         Returns
@@ -292,6 +292,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         except ValueError:
             raise OneCodexException("Specified metric ({}) not valid.".format(metric))
 
+        # getting classification IDs is 15% of execution time
         classification_ids = [c.id for c in self._classifications]
 
         if metric == Metric.Auto:
@@ -308,7 +309,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         tax_info = {"tax_id": [], "name": [], "rank": [], "parent_tax_id": []}
         tax_ids = set()
         for c_idx, c in enumerate(self._classifications):
-            # pulling results from mainline is the slowest part of the function
+            # pulling results from API is the slowest part of the function, 75% of the execution time
             results = c.results()
             host_tax_ids = results.get("host_tax_ids", [])
 
@@ -371,6 +372,8 @@ class SampleCollection(ResourceList, AnalysisMixin):
     @property
     def _is_metagenomic(self):
         if "is_metagenomic" not in self._cached:
+            # It looks like ._collate_results() does not actually populate 'is_metagenomic';
+            # should call _classification_fetch() instead?
             self._collate_results()
 
         return self._cached["is_metagenomic"]
@@ -389,18 +392,173 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         return self._cached["taxonomy"]
 
+    def _functional_profiles_fetch(self, skip_missing=None):
+        """Transform a list of Samples or Classifications into a list of FunctionalProfiles objects.
+
+        Parameters
+        ----------
+        skip_missing : bool
+            If an analysis is missing or was not successful, exclude it, warn, and keep going
+
+        Returns
+        -------
+        None, but stores a result in self._cached.
+        """
+        from onecodex.models import Classifications, Samples, FunctionalProfiles
+
+        skip_missing = skip_missing if skip_missing else self._kwargs["skip_missing"]
+
+        functional_profiles = []
+        for obj in self._res_list:
+            if isinstance(obj, Samples):
+                sample_id = obj.id
+            elif isinstance(obj, Classifications):
+                sample_id = obj.sample.id
+            else:
+                raise OneCodexException(
+                    "Objects in SampleCollection must be one of: Classifications, Samples"
+                )
+            functional_profile = FunctionalProfiles.where(sample=sample_id)
+            if len(functional_profile) == 0:
+                if skip_missing:
+                    warnings.warn(f"Functional profile not found for sample {sample_id}. Skipping.")
+                    continue
+                else:
+                    raise OneCodexException(f"Functional profile not found for sample {sample_id}.")
+            elif len(functional_profile) == 1:
+                if not functional_profile[0].success:
+                    if skip_missing:
+                        warnings.warn(
+                            f"Functional profile for sample {sample_id} not successful. Skipping."
+                        )
+                        continue
+                    else:
+                        raise OneCodexException(
+                            f"Functional profile for sample {sample_id} not successful."
+                        )
+                else:
+                    functional_profiles.append(functional_profile[0])
+            else:
+                raise OneCodexException(
+                    f"More than one ({len(functional_profile)}) functional analyses found for sample {sample_id}"
+                )
+        # ensure all the functional profiles are the same job version
+        job_ids = set([obj.job.id for obj in functional_profiles])
+        if len(job_ids) > 1:
+            raise OneCodexException(
+                "FunctionalProfiles contain multiple analysis job versions: {}".format(
+                    ", ".join(job_ids)
+                )
+            )
+
+        self._cached["functional_profiles"] = functional_profiles
+
+    @property
+    def _functional_profiles(self):
+        if "functional_profiles" not in self._cached:
+            self._functional_profiles_fetch()
+
+        return self._cached["functional_profiles"]
+
+    def _collate_functional_results(
+        self, annotation, metric, taxa_stratified, fill_missing, filler
+    ):
+        """
+        Return a dataframe of all functional profile data.
+
+        Parameters
+        ----------
+        annotation : {onecodex.lib.enum.FunctionalAnnotations, str}
+            Annotation data to return
+        taxa_stratified : bool, optional
+            Return taxonomically stratified data
+        metric : {onecodex.lib.enum.FunctionalAnnotationsMetric, str}
+            Metric values to return,
+            `{'coverage', 'abundance'}` for `annotation==onecodex.lib.enum.FunctionalAnnotation.Pathways`,
+            `{'rpk', 'cpm'}` for other `annotation`
+        fill_missing : bool, optional
+            Fill `np.nan` values
+        filler : float, optional
+            Value with which to fill `np.nan` values
+        """
+        # validate args
+        annotation = FunctionalAnnotations(annotation)
+        metric = FunctionalAnnotationsMetric(metric)
+        if annotation == FunctionalAnnotations.Pathways:
+            if metric.value not in ["coverage", "abundance"]:
+                raise ValueError(
+                    "If using annotation='pathways', 'metric' must be one of ['coverage', 'abundance']"
+                )
+        elif metric.value not in ["cpm", "rpk"]:
+            raise ValueError(
+                f"If using annotation={annotation.value}, 'metric' must be one of ['cpm', 'rpk']"
+            )
+
+        # iterate over functional profiles, subset data, and store in data dict
+        data = {}
+        all_features = set()
+        for profile in self._functional_profiles:
+            # get table using One Codex API
+            table = profile.table(annotation=annotation, taxa_stratified=taxa_stratified)
+            # filter by indicated metric
+            if not taxa_stratified:
+                table = table[table["metric"] == "total_" + metric.value]
+            else:
+                table = table[table["metric"] == metric.value]
+            # if taxa stratified, concatenate id and taxon_name
+            if taxa_stratified:
+                table["id"] = table["id"] + "_" + table["taxon_name"]
+            # store tables for later retrieval
+            data[profile.id] = dict(zip(table.id, table.value))
+            all_features.update(set(table["id"]))
+
+        features_to_ix = {}
+        feature_list = []
+        for ix, feature in enumerate(all_features):
+            features_to_ix[feature] = ix
+            feature_list.append(feature)
+
+        # initialize an array and fill it
+        array = np.full(shape=(len(data), len(features_to_ix)), fill_value=np.nan)
+        profile_ids = []
+        for profile_index, profile_id in enumerate(data):
+            for feature_id in data[profile_id]:
+                array[profile_index, features_to_ix[feature_id]] = data[profile_id][feature_id]
+            profile_ids.append(profile_id)
+        df = pd.DataFrame(
+            array, index=pd.Index(profile_ids, name="functional_profile_id"), columns=feature_list
+        )
+
+        if fill_missing:
+            df.fillna(filler, inplace=True)
+        self._cached["functional_results"] = df
+        self._cached["functional_results_content"] = {
+            "annotation": annotation,
+            "taxa_stratified": taxa_stratified,
+            "metric": metric,
+            "fill_missing": fill_missing,
+            "filler": filler,
+        }
+
+    def _functional_results(self, **kwargs):
+        if "functional_results" not in self._cached:
+            self._collate_functional_results(**kwargs)
+        if kwargs != self._cached["functional_results_content"]:
+            self._collate_functional_results(**kwargs)
+        return self._cached["functional_results"]
+
     def to_otu(self, biom_id=None):
         """Transform a list of Classifications objects into a `dict` resembling an OTU table.
 
         Parameters
         ----------
-        biom_id : `string`, optional
+        biom_id : string, optional
             Optionally specify an `id` field for the generated v1 BIOM file.
 
         Returns
         -------
-        otu_table : `OrderedDict`
-            A BIOM OTU table, returned as a Python OrderedDict (can be dumped to JSON)
+        otu_table : OrderedDict
+            A BIOM OTU table, returned as a Python `OrderedDict` (can be dumped to JSON)
         """
         otu_format = "Biological Observation Matrix 1.0.0"
 

@@ -203,6 +203,8 @@ We use [pytest](https://docs.pytest.org/) as our unit testing framework. Tests s
 
 > **Tip:** Any API calls that do not have a matching mock will raise an error. You can figure out which API calls need to be mocked by writing a test, running it, and inspecting the error message to see which route(s) are missing.
 
+> **Warning:** Mocked URLs *without* a query string will ignore query strings in any matching requests. If the mocked URL *includes* a query string, it will be used when matching requests.
+
 ### Fixtures
 
 These pytest fixtures may be helpful when writing unit tests:
