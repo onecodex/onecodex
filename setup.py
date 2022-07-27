@@ -53,6 +53,7 @@ REPORT_DEPS = ALL_DEPS + [
     "jinja2<=3.1",
     "WeasyPrint==54.2",
     "altair_saver==0.5.0",
+    "selenium<4.3.0",  # see https://github.com/altair-viz/altair_saver/issues/104
 ]
 
 setup(
