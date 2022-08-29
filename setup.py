@@ -44,6 +44,7 @@ ALL_DEPS = [
     "pillow>=9.0.1",
     "scikit-bio>=0.5.7",
     "scikit-learn>=0.19.0",
+    "scipy<1.9",  # https://github.com/biocore/scikit-bio/issues/1818
     "jupyter-client==7.2.0",
 ]
 REPORT_DEPS = ALL_DEPS + [

@@ -52,20 +52,7 @@ class BetaDiversityMetric(BaseEnum):
     Aitchison = "aitchison"
 
 
-class NormalizedRank(BaseEnum):
-    Superkingdom = "superkingdom"
-    Kingdom = "kingdom"
-    Phylum = "phylum"
-    Class = "class"
-    Order = "order"
-    Family = "family"
-    Genus = "genus"
-    Species = "species"
-
-
 class Rank(BaseEnum):
-    """Python does not allow extending enums so we have to repeat the ranks."""
-
     Superkingdom = "superkingdom"
     Kingdom = "kingdom"
     Phylum = "phylum"

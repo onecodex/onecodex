@@ -1,5 +1,5 @@
 from onecodex.exceptions import OneCodexException, PlottingException
-from onecodex.lib.enums import AbundanceMetric, Rank, Metric
+from onecodex.lib.enums import Rank, Metric
 from onecodex.viz._primitives import (
     interleave_palette,
     prepare_props,
@@ -68,7 +68,7 @@ class VizBargraphMixin(object):
         sort_x : `list` or `callable`, optional
             Either a list of sorted labels or a function that will be called with a list of x-axis labels
             as the only argument, and must return the same list in a user-specified order.
-        include_no_level : `bool`, optional
+        include_taxa_missing_rank : `bool`, optional
             Whether or not a row should be plotted for taxa that do not have a designated parent at `rank`.
 
         Examples
@@ -100,23 +100,20 @@ class VizBargraphMixin(object):
         elif top_n != "auto" and threshold == "auto":
             threshold = None
 
-        df = self.to_df(rank=rank, normalize=normalize, threshold=threshold)
+        if include_taxa_missing_rank is None:
+            if self._metric == Metric.AbundanceWChildren:
+                include_taxa_missing_rank = True
+            else:
+                include_taxa_missing_rank = False
 
-        if AbundanceMetric.has_value(self._metric) and include_taxa_missing_rank is None:
-            include_taxa_missing_rank = True
-
-        if include_taxa_missing_rank:
-            if self._metric != Metric.AbundanceWChildren:
-                raise OneCodexException(
-                    "No-level data can only be imputed on abundances w/ children"
-                )
-
-            name = "No {}".format(rank)
-
-            df[name] = 1 - df.sum(axis=1)
+        df = self.to_df(
+            rank=rank,
+            normalize=normalize,
+            threshold=threshold,
+            include_taxa_missing_rank=include_taxa_missing_rank,
+        )
 
         top_n = df.mean().sort_values(ascending=False).iloc[:top_n].index
-
         df = df[top_n]
 
         if include_other and normalize:

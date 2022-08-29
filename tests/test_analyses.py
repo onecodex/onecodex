@@ -5,6 +5,8 @@ pytest.importorskip("pandas")  # noqa
 import warnings
 
 from onecodex.exceptions import OneCodexException
+from onecodex.analyses import RANK_TO_LEVEL
+from onecodex.lib.enums import Rank
 
 
 def test_auto_rank(ocx, api_data):
@@ -170,9 +172,8 @@ def test_results_filtering_rank(ocx, api_data):
     )
 
     # catch invalid ranks
-    with pytest.raises(OneCodexException) as e:
+    with pytest.raises(OneCodexException, match="does_not_exist"):
         samples.to_df(rank="does_not_exist")
-    assert "No taxa kept" in str(e.value)
 
     # should warn if using rank=kingdom
     with warnings.catch_warnings(record=True) as w:
@@ -229,3 +230,31 @@ def test_results_filtering_other(ocx, api_data):
     with pytest.raises(OneCodexException) as e:
         samples.to_df(table_format="does_not_exist")
     assert "must be one of" in str(e.value)
+
+
+@pytest.mark.parametrize("metric", ["readcount_w_children", "abundance_w_children"])
+@pytest.mark.parametrize("rank", [Rank.Phylum, Rank.Genus])
+def test_to_df_include_taxa_missing_rank(ocx, api_data, metric, rank):
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+    samples._collate_results(metric=metric)
+
+    df = samples.to_df(rank=rank, include_taxa_missing_rank=True)
+    assert f"No {rank.value}" in df.columns
+
+
+@pytest.mark.parametrize("metric", ["readcount", "abundance"])
+def test_to_df_include_taxa_missing_rank_invalid_usage(ocx, api_data, metric):
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+    samples._collate_results(metric=metric)
+
+    with pytest.raises(OneCodexException, match="`rank`.*include_taxa_missing_rank"):
+        samples.to_df(rank=None, include_taxa_missing_rank=True)
+
+    with pytest.raises(OneCodexException, match="`include_taxa_missing_rank`.*metrics"):
+        samples.to_df(include_taxa_missing_rank=True)
+
+
+def test_all_ranks_have_a_level():
+    for rank in Rank:
+        if rank != Rank.Auto:
+            assert isinstance(RANK_TO_LEVEL[rank], int)

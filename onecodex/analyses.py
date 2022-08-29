@@ -3,6 +3,7 @@ import warnings
 
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.enums import (
+    Metric,
     AbundanceMetric,
     Rank,
     AnalysisType,
@@ -16,6 +17,18 @@ from onecodex.viz import (
     VizDistanceMixin,
     VizBargraphMixin,
 )
+
+
+RANK_TO_LEVEL = {
+    "species": 0,
+    "genus": 1,
+    "family": 2,
+    "order": 3,
+    "class": 4,
+    "phylum": 5,
+    "kingdom": 6,
+    "superkingdom": 7,
+}
 
 
 class AnalysisMixin(
@@ -304,6 +317,7 @@ class AnalysisMixin(
         remove_zeros=True,
         normalize="auto",
         table_format="wide",
+        include_taxa_missing_rank=False,
     ):
         """Generate a ClassificationDataFrame, performing any specified transformations.
 
@@ -312,7 +326,7 @@ class AnalysisMixin(
 
         Parameters
         ----------
-        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+        rank : {'auto', 'superkingdom', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
             Analysis will be restricted to abundances of taxa at the specified level.
         top_n : `integer`, optional
             Return only the top N most abundant taxa.
@@ -325,6 +339,9 @@ class AnalysisMixin(
         table_format : {'long', 'wide'}
             If wide, rows are classifications, cols are taxa, elements are counts. If long, rows are
             observations with three cols each: classification_id, tax_id, and count.
+        include_taxa_missing_rank : bool, optional
+            Whether or not to include taxa that do not have a designated parent at `rank` (will be
+            grouped into a "No <rank>" column).
 
         Returns
         -------
@@ -332,22 +349,55 @@ class AnalysisMixin(
         """
         from onecodex.dataframes import ClassificationsDataFrame
 
+        if include_taxa_missing_rank:
+            if not rank:
+                raise OneCodexException(
+                    "`rank` must be specified when passing `include_taxa_missing_rank=True`."
+                )
+
+            if self._metric not in {Metric.ReadcountWChildren, Metric.AbundanceWChildren}:
+                raise OneCodexException(
+                    "`include_taxa_missing_rank` can only be used with `readcount_w_children` or "
+                    "`abundance_w_children` metrics."
+                )
+
         rank = self._get_auto_rank(rank)
         df = self._results.copy()
 
         # subset by taxa
         if rank:
+            try:
+                rank = Rank(rank)
+            except ValueError:
+                raise OneCodexException(f"Invalid rank: {rank}")
+
             if rank == "kingdom":
                 warnings.warn(
                     "Did you mean to specify rank=kingdom? Use rank=superkingdom to see Bacteria, "
                     "Archaea and Eukaryota."
                 )
 
+            level = RANK_TO_LEVEL[rank]
             tax_ids_to_keep = []
+            unclassified_tax_ids = set()
 
             for tax_id in df.keys():
-                if self.taxonomy["rank"][tax_id] == rank:
+                tax_id_level = RANK_TO_LEVEL.get(self.taxonomy["rank"][tax_id], None)
+
+                if tax_id_level == level:
                     tax_ids_to_keep.append(tax_id)
+                elif (
+                    include_taxa_missing_rank and tax_id_level is not None and tax_id_level < level
+                ):
+                    unclassified_tax_id = self._get_highest_unclassified_tax_id(tax_id, level)
+
+                    if unclassified_tax_id is not None:
+                        unclassified_tax_ids.add(unclassified_tax_id)
+
+            if unclassified_tax_ids:
+                no_level_name = f"No {rank}"
+                df[no_level_name] = df[unclassified_tax_ids].sum(axis=1)
+                tax_ids_to_keep.append(no_level_name)
 
             if len(tax_ids_to_keep) == 0:
                 raise OneCodexException("No taxa kept--is rank ({}) correct?".format(rank))
@@ -404,6 +454,32 @@ class AnalysisMixin(
             raise OneCodexException("table_format must be one of: long, wide")
 
         return results_df
+
+    def _get_highest_unclassified_tax_id(self, tax_id, level):
+        # try to determine if child nodes have parent nodes at the search level. we use this to make
+        # counts of branches that "disappear" at different levels so we can insert an extra
+        # abundance for them ("No <level>")
+        curr_tax_id = tax_id
+        highest_tax_id = tax_id
+
+        while curr_tax_id is not None:
+            curr_level = RANK_TO_LEVEL.get(self.taxonomy["rank"][curr_tax_id], None)
+
+            if curr_level is not None:
+                if curr_level > level:
+                    break
+
+                if curr_level == level:
+                    # there's something at the level we're interested in, so this is actually
+                    # classified and we don't have to keep track of it
+                    return None
+
+                # the highest tax id with a level definitely under the level we're classifying to
+                highest_tax_id = curr_tax_id
+
+            curr_tax_id = self.taxonomy["parent_tax_id"][curr_tax_id]
+
+        return highest_tax_id
 
     @staticmethod
     def _make_pretty_metric_name(metric, normalized):
