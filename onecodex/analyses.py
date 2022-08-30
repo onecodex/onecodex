@@ -19,18 +19,6 @@ from onecodex.viz import (
 )
 
 
-RANK_TO_LEVEL = {
-    "species": 0,
-    "genus": 1,
-    "family": 2,
-    "order": 3,
-    "class": 4,
-    "phylum": 5,
-    "kingdom": 6,
-    "superkingdom": 7,
-}
-
-
 class AnalysisMixin(
     VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceMixin, VizBargraphMixin
 ):
@@ -371,18 +359,21 @@ class AnalysisMixin(
             except ValueError:
                 raise OneCodexException(f"Invalid rank: {rank}")
 
-            if rank == "kingdom":
+            if rank == Rank.Kingdom:
                 warnings.warn(
                     "Did you mean to specify rank=kingdom? Use rank=superkingdom to see Bacteria, "
                     "Archaea and Eukaryota."
                 )
 
-            level = RANK_TO_LEVEL[rank]
+            level = rank.level
             tax_ids_to_keep = []
             unclassified_tax_ids = set()
 
             for tax_id in df.keys():
-                tax_id_level = RANK_TO_LEVEL.get(self.taxonomy["rank"][tax_id], None)
+                try:
+                    tax_id_level = Rank(self.taxonomy["rank"][tax_id]).level
+                except ValueError:
+                    tax_id_level = None
 
                 if tax_id_level == level:
                     tax_ids_to_keep.append(tax_id)
@@ -395,12 +386,12 @@ class AnalysisMixin(
                         unclassified_tax_ids.add(unclassified_tax_id)
 
             if unclassified_tax_ids:
-                no_level_name = f"No {rank}"
+                no_level_name = f"No {rank.value}"
                 df[no_level_name] = df[unclassified_tax_ids].sum(axis=1)
                 tax_ids_to_keep.append(no_level_name)
 
             if len(tax_ids_to_keep) == 0:
-                raise OneCodexException("No taxa kept--is rank ({}) correct?".format(rank))
+                raise OneCodexException(f"No taxa kept--is rank ({rank.value}) correct?")
 
             df = df.loc[:, tax_ids_to_keep]
 
@@ -456,14 +447,17 @@ class AnalysisMixin(
         return results_df
 
     def _get_highest_unclassified_tax_id(self, tax_id, level):
-        # try to determine if child nodes have parent nodes at the search level. we use this to make
-        # counts of branches that "disappear" at different levels so we can insert an extra
-        # abundance for them ("No <level>")
+        # try to determine if child nodes have parent nodes at the specified level. we use this to
+        # make counts of branches that "disappear" at different levels so we can insert an extra
+        # abundance for them (e.g. "No genus")
         curr_tax_id = tax_id
         highest_tax_id = tax_id
 
         while curr_tax_id is not None:
-            curr_level = RANK_TO_LEVEL.get(self.taxonomy["rank"][curr_tax_id], None)
+            try:
+                curr_level = Rank(self.taxonomy["rank"][curr_tax_id]).level
+            except ValueError:
+                curr_level = None
 
             if curr_level is not None:
                 if curr_level > level:

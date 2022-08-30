@@ -5,7 +5,6 @@ pytest.importorskip("pandas")  # noqa
 import warnings
 
 from onecodex.exceptions import OneCodexException
-from onecodex.analyses import RANK_TO_LEVEL
 from onecodex.lib.enums import Rank
 
 
@@ -252,9 +251,3 @@ def test_to_df_include_taxa_missing_rank_invalid_usage(ocx, api_data, metric):
 
     with pytest.raises(OneCodexException, match="`include_taxa_missing_rank`.*metrics"):
         samples.to_df(include_taxa_missing_rank=True)
-
-
-def test_all_ranks_have_a_level():
-    for rank in Rank:
-        if rank != Rank.Auto:
-            assert isinstance(RANK_TO_LEVEL[rank], int)

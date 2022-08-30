@@ -63,6 +63,24 @@ class Rank(BaseEnum):
     Species = "species"
     Auto = "auto"
 
+    @property
+    def level(self):
+        if self not in _RANK_TO_LEVEL:
+            raise ValueError(f"Rank {self} has no level.")
+        return _RANK_TO_LEVEL[self]
+
+
+_RANK_TO_LEVEL = {
+    Rank.Species: 0,
+    Rank.Genus: 1,
+    Rank.Family: 2,
+    Rank.Order: 3,
+    Rank.Class: 4,
+    Rank.Phylum: 5,
+    Rank.Kingdom: 6,
+    Rank.Superkingdom: 7,
+}
+
 
 class Linkage(BaseEnum):
     Average = "average"
