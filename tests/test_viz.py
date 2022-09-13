@@ -5,6 +5,7 @@ import pytest
 pytest.importorskip("numpy")  # noqa
 pytest.importorskip("pandas")  # noqa
 
+import altair as alt
 import numpy as np
 
 from onecodex.exceptions import OneCodexException, PlottingException
@@ -476,6 +477,29 @@ def test_plot_bargraph_chart_result(ocx, api_data, metric, rank, label):
     assert chart.encoding.x.axis.title == "Exemplary Samples"
     assert chart.encoding.y.shorthand == label
     assert chart.encoding.y.axis.title == "Glorious Abundances"
+    assert chart.encoding.color.legend.title == label
+
+
+@pytest.mark.parametrize(
+    "legend,expected_title",
+    [
+        ("auto", "Reads"),
+        ("my plot title", "my plot title"),
+        (alt.Legend(title="a different title"), "a different title"),
+    ],
+)
+def test_plot_bargraph_legend(ocx, api_data, legend, expected_title):
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+    samples._collate_results(metric="readcount_w_children")
+    chart = samples.plot_bargraph(return_chart=True, legend=legend)
+
+    assert chart.encoding.color.legend.title == expected_title
+
+
+def test_plot_bargraph_legend_error(ocx, api_data):
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+    with pytest.raises(TypeError, match="legend.*list"):
+        samples.plot_bargraph(legend=[4, 2])
 
 
 @pytest.mark.parametrize(

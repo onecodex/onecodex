@@ -58,9 +58,10 @@ class VizBargraphMixin(object):
         haxis : `string`, optional
             The metadata field (or tuple containing multiple categorical fields) used to group
             samples together.
-        legend: `string`, optional
-            Title for color scale. Defaults to the metric used to generate the plot, e.g.
-            readcount_w_children or abundance.
+        legend: `string` or `altair.Legend`, optional
+            If a string is provided, it will be used as the legend title. Defaults to the metric
+            used to generate the plot, e.g. readcount_w_children or abundance. Alternatively, an
+            `altair.Legend` instance may be provided for legend customization.
         label : `string` or `callable`, optional
             A metadata field (or function) used to label each analysis. If passing a function, a
             dict containing the metadata for each analysis is passed as the first and only
@@ -119,8 +120,13 @@ class VizBargraphMixin(object):
         if include_other and normalize:
             df["Other"] = 1 - df.sum(axis=1)
 
-        if legend == "auto":
-            legend = self.metric
+        if isinstance(legend, str):
+            if legend == "auto":
+                legend = self.metric
+            legend = alt.Legend(title=legend, symbolLimit=40, labelLimit=0)
+
+        if not isinstance(legend, alt.Legend):
+            raise TypeError(f"`legend` must be of type str or altair.Legend, not {type(legend)}")
 
         if tooltip:
             if not isinstance(tooltip, list):
@@ -213,14 +219,14 @@ class VizBargraphMixin(object):
                 ),
                 color=alt.Color(
                     "tax_name",
-                    legend=alt.Legend(title=legend),
+                    legend=legend,
                     sort=domain,
                     scale=alt.Scale(domain=domain, range=color_range),
                 ),
                 tooltip=tooltip_for_altair,
                 href="url:N",
                 order=alt.Order("order", sort="descending"),
-                **kwargs
+                **kwargs,
             )
         )
 
