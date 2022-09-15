@@ -28,6 +28,7 @@ class VizBargraphMixin(object):
         include_other=True,
         width=None,
         height=None,
+        group_by=None,
     ):
         """Plot a bargraph of relative abundance of taxa for multiple samples.
 
@@ -56,8 +57,8 @@ class VizBargraphMixin(object):
             plot is hovered over, the value of the metadata associated with that sample will be
             displayed in a modal.
         haxis : `string`, optional
-            The metadata field (or tuple containing multiple categorical fields) used to group
-            samples together.
+            The metadata field (or tuple containing multiple categorical fields) used to facet
+            samples.
         legend: `string` or `altair.Legend`, optional
             If a string is provided, it will be used as the legend title. Defaults to the metric
             used to generate the plot, e.g. readcount_w_children or abundance. Alternatively, an
@@ -71,6 +72,9 @@ class VizBargraphMixin(object):
             as the only argument, and must return the same list in a user-specified order.
         include_taxa_missing_rank : `bool`, optional
             Whether or not a row should be plotted for taxa that do not have a designated parent at `rank`.
+        group_by : `string`, optional
+            The metadata field used to group samples together. Readcounts or abundances will be
+            averaged within each group.
 
         Examples
         --------
@@ -93,6 +97,53 @@ class VizBargraphMixin(object):
                 "more samples to plot."
             )
 
+        if not normalize and self._guess_normalized():
+            raise OneCodexException("Data has already been normalized and this cannot be undone.")
+
+        if group_by:
+            if not all(kwarg is None for kwarg in (tooltip, haxis, label, sort_x)):
+                raise OneCodexException(
+                    "`tooltip`, `haxis`, `label`, and `sort_x` are not supported with `group_by`."
+                )
+            if group_by not in self.metadata:
+                raise OneCodexException(
+                    f"Metadata field {group_by} not found. Choose from: {', '.join(self.metadata.keys())}"
+                )
+            if (
+                self._metric in {Metric.Readcount, Metric.ReadcountWChildren}
+                and self._guess_normalized()
+            ):
+                raise OneCodexException(
+                    "`group_by` may not be used with readcounts that have already been normalized."
+                )
+
+        if include_taxa_missing_rank is None:
+            if self._metric == Metric.AbundanceWChildren:
+                include_taxa_missing_rank = True
+            else:
+                include_taxa_missing_rank = False
+
+        # We're intentionally *not* normalizing or filtering by top_n/threshold in to_df() in case
+        # group_by was passed. Grouping samples needs to happen *before* normalization.
+        df = self.to_df(
+            rank=rank,
+            top_n=None,
+            threshold=None,
+            normalize=None,
+            include_taxa_missing_rank=include_taxa_missing_rank,
+        )
+        pretty_metric_name = self.metric
+
+        if group_by:
+            df = df.fillna(0.0).join(self.metadata[group_by]).groupby(group_by, dropna=False).mean()
+            # Nicer display for missing metadata values than `null`
+            df.index = df.index.fillna("N/A")
+            pretty_metric_name = f"Mean {pretty_metric_name}"
+
+        if normalize and (not self._guess_normalized() or group_by):
+            # Replace nans with zeros for samples that have a total abundance of zero.
+            df = df.div(df.sum(axis=1), axis=0).fillna(0.0)
+
         if top_n == "auto" and threshold == "auto":
             top_n = 10
             threshold = None
@@ -101,54 +152,54 @@ class VizBargraphMixin(object):
         elif top_n != "auto" and threshold == "auto":
             threshold = None
 
-        if include_taxa_missing_rank is None:
-            if self._metric == Metric.AbundanceWChildren:
-                include_taxa_missing_rank = True
-            else:
-                include_taxa_missing_rank = False
+        if threshold:
+            df = df.loc[:, df.max() >= threshold]
 
-        df = self.to_df(
-            rank=rank,
-            normalize=normalize,
-            threshold=threshold,
-            include_taxa_missing_rank=include_taxa_missing_rank,
-        )
-
-        top_n = df.mean().sort_values(ascending=False).iloc[:top_n].index
-        df = df[top_n]
+        if top_n:
+            df = df[df.mean().sort_values(ascending=False).iloc[:top_n].index]
 
         if include_other and normalize:
             df["Other"] = 1 - df.sum(axis=1)
 
         if isinstance(legend, str):
             if legend == "auto":
-                legend = self.metric
+                legend = pretty_metric_name
             legend = alt.Legend(title=legend, symbolLimit=40, labelLimit=0)
 
         if not isinstance(legend, alt.Legend):
             raise TypeError(f"`legend` must be of type str or altair.Legend, not {type(legend)}")
 
         if tooltip:
-            if not isinstance(tooltip, list):
+            if isinstance(tooltip, list):
+                tooltip = tooltip.copy()
+            else:
                 tooltip = [tooltip]
         else:
             tooltip = []
 
-        if haxis:
-            tooltip.append(haxis)
+        if group_by:
+            tooltip.append(group_by)
+            metadata_columns = []
+        else:
+            tooltip.insert(0, "Label")
+            if haxis:
+                tooltip.append(haxis)
 
-        tooltip.insert(0, "Label")
+            # takes metadata columns and returns a dataframe with just those columns
+            # renames columns in the case where columns are taxids
+            magic_metadata, magic_fields = self._metadata_fetch(tooltip, label=label)
+            df = df.join(magic_metadata)
+            metadata_columns = magic_metadata.columns.tolist()
+            tooltip = [magic_fields[f] for f in tooltip]
 
-        # takes metadata columns and returns a dataframe with just those columns
-        # renames columns in the case where columns are taxids
-        magic_metadata, magic_fields = self._metadata_fetch(tooltip, label=label)
-
-        df = df.join(magic_metadata)
+        # should ultimately be Label/`group_by`, tax_name, metric name, then custom fields
+        tooltip.insert(1, "tax_name")
+        tooltip.insert(2, "{}:Q".format(pretty_metric_name))
 
         df = df.reset_index().melt(
-            id_vars=["classification_id"] + magic_metadata.columns.tolist(),
+            id_vars=[df.index.name] + metadata_columns,
             var_name="tax_id",
-            value_name=self.metric,
+            value_name=pretty_metric_name,
         )
 
         # add taxa names
@@ -166,27 +217,22 @@ class VizBargraphMixin(object):
         # OCX this should be okay)
         #
 
-        ylabel = ylabel or self.metric
-        xlabel = xlabel or ""
+        ylabel = ylabel or pretty_metric_name
 
-        # should ultimately be Label, tax_name, readcount_w_children, then custom fields
-        tooltip_for_altair = [magic_fields[f] for f in tooltip]
-        tooltip_for_altair.insert(1, "tax_name")
-        tooltip_for_altair.insert(2, "{}:Q".format(self.metric))
+        if xlabel is None:
+            xlabel = group_by if group_by else ""
 
-        kwargs = {}
-
+        encode_kwargs = {}
         if haxis:
-            kwargs["column"] = alt.Column(
+            encode_kwargs["column"] = alt.Column(
                 haxis, header=alt.Header(titleOrient="bottom", labelOrient="bottom")
             )
+        if not group_by:
+            encode_kwargs["href"] = "url:N"
 
         domain = sorted(df["tax_name"].unique())
-
         no_level_name = "No {}".format(rank)
-
         color_range = interleave_palette(set(domain) - {"Other", no_level_name})
-
         other_color = ["#DCE0E5"]
         no_level_color = ["#eeefe1"]
 
@@ -200,7 +246,9 @@ class VizBargraphMixin(object):
             domain = ["Other"] + domain
             color_range = other_color + color_range
 
-        sort_order = sort_helper(sort_x, df["Label"].tolist())
+        sort_order = None
+        if not group_by:
+            sort_order = sort_helper(sort_x, df["Label"].tolist())
 
         df["order"] = df["tax_name"].apply(domain.index)
 
@@ -210,12 +258,15 @@ class VizBargraphMixin(object):
 
         chart = (
             alt.Chart(df)
-            .transform_calculate(url=get_base_classification_url() + alt.datum.classification_id)
             .mark_bar()
             .encode(
-                x=alt.X("Label", axis=alt.Axis(title=xlabel), sort=sort_order),
+                x=alt.X(
+                    group_by if group_by else "Label", axis=alt.Axis(title=xlabel), sort=sort_order
+                ),
                 y=alt.Y(
-                    self.metric, axis=alt.Axis(title=ylabel), scale=alt.Scale(**y_scale_kwargs)
+                    pretty_metric_name,
+                    axis=alt.Axis(title=ylabel),
+                    scale=alt.Scale(**y_scale_kwargs),
                 ),
                 color=alt.Color(
                     "tax_name",
@@ -223,12 +274,16 @@ class VizBargraphMixin(object):
                     sort=domain,
                     scale=alt.Scale(domain=domain, range=color_range),
                 ),
-                tooltip=tooltip_for_altair,
-                href="url:N",
+                tooltip=tooltip,
                 order=alt.Order("order", sort="descending"),
-                **kwargs,
+                **encode_kwargs,
             )
         )
+
+        if not group_by:
+            chart = chart.transform_calculate(
+                url=get_base_classification_url() + alt.datum.classification_id
+            )
 
         if haxis:
             chart = chart.resolve_scale(x="independent")
