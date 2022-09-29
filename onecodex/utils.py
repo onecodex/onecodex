@@ -1,4 +1,3 @@
-import base64
 import click
 import concurrent.futures
 from functools import partial, wraps
@@ -242,36 +241,64 @@ def _setup_sentry_for_ipython():
     return False
 
 
+# sentry-sdk dropped raven's support for password sanitization so this is an adaptation of that:
+# https://github.com/getsentry/raven-python/blob/master/raven/processors.py
+MASK = "*" * 8
+KEYS = {
+    "password",
+    "secret",
+    "passwd",
+    "authorization",
+    "api_key",
+    "apikey",
+    "sentry_dsn",
+    "access_token",
+}
+VALUES_RE = re.compile(r"^(?:\d[ -]*?){13,16}$")
+
+
+def _preprocess_sentry_event(event, hint):
+    from sentry_sdk._compat import string_types
+
+    for key, value in event.items():
+        lower_key = key.lower()
+        for bad_key in KEYS:
+            if bad_key in lower_key:
+                event[key] = MASK
+                break
+        if isinstance(value, string_types) and VALUES_RE.match(value):
+            event[key] = MASK
+
+    if "sys.argv" in event.get("extra", {}):
+        event["extra"]["sys.argv"] = []  # don't leak user's API key on command line
+
+    return event
+
+
 def init_sentry(user_context=None, extra_context=None):
     if os.environ.get("ONE_CODEX_NO_TELEMETRY") is None:
-        default_dsn = base64.b64decode(
-            b"aHR0cHM6Ly9mYTU1ODliNTgxYTY0NDI5YWVhMmM2OTQ2MTdjNjI0YkBvNTUzNTU4LmluZ2VzdC5zZW50cnkuaW8vNTcyNjcwMQ=="
-        ).decode("utf-8")
-        # Capture exceptions on exit if onecodex CLI being invoked
-        if os.path.basename(sys.argv[0]) in ["onecodex", "py.test"]:
-            install_sys_hook = True
-        else:
-            install_sys_hook = False
-
         try:
             ipython_active = _setup_sentry_for_ipython()
             ignore_exceptions = []
             if ipython_active:
-                # Patch the client to not raise too many exceptions in interactive environment
-                # For now, we accept string and wildcard variables parsed from a special environment
-                # variable. We can add support for hard-coded Exception classes here in the future as needed.
+                # Patch the client to not raise too many exceptions in interactive environment.
+                # For now, we accept string exception type names or paths parsed from a special
+                # environment variable. We can add support for hard-coded Exception classes here in
+                # the future as needed.
                 ignore_exceptions = [
                     x
                     for x in os.environ.get("ONE_CODEX_SENTRY_IGNORE_EXCEPTIONS", "").split(",")
                     if x
                 ]
             sentry_sdk.init(
-                dsn=os.environ.get("ONE_CODEX_SENTRY_DSN", default_dsn),
-                install_sys_hook=install_sys_hook,
-                raise_send_errors=False,
-                ignore_exceptions=ignore_exceptions,
-                include_paths=[__name__.split(".", 1)[0]],
+                dsn=os.environ.get(
+                    "ONE_CODEX_SENTRY_DSN",
+                    "https://17d7645468fa404fa9c49f29c954cc09@o1429107.ingest.sentry.io/4503887549628416",
+                ),
                 release=__version__,
+                in_app_include=[__name__.split(".", 1)[0]],
+                before_send=_preprocess_sentry_event,
+                ignore_errors=ignore_exceptions,
             )
             with sentry_sdk.configure_scope() as scope:
                 if extra_context is None:
@@ -282,7 +309,6 @@ def init_sentry(user_context=None, extra_context=None):
                 scope.set_extra("platform", platform.platform())
                 if ipython_active:
                     scope.set_extra("ipython", True)
-
         except Exception:
             pass
 
