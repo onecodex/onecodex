@@ -8,6 +8,7 @@ pytest.importorskip("pandas")  # noqa
 import altair as alt
 import numpy as np
 
+from onecodex.lib.enums import Metric, AbundanceMetric
 from onecodex.exceptions import OneCodexException, PlottingException
 from onecodex.models.collection import SampleCollection
 from onecodex.utils import has_missing_values
@@ -15,14 +16,10 @@ from onecodex.viz._primitives import interleave_palette
 
 
 def test_altair_ocx_theme(ocx, api_data):
-    import altair as alt
-
     assert alt.themes.active == "onecodex"
 
 
 def test_altair_renderer(ocx, api_data):
-    import altair as alt
-
     assert alt.renderers.active in {"altair_saver", "html"}
 
 
@@ -435,18 +432,44 @@ def test_plot_mds_exceptions(ocx, api_data):
     assert "too few samples" in str(e.value)
 
 
-def test_plot_bargraph_arguments(ocx, api_data):
+@pytest.mark.parametrize(
+    "kwargs,metric,msg",
+    [
+        ({"rank": None}, None, "specify a rank"),
+        ({"threshold": None, "top_n": None}, None, "threshold, top_n"),
+        ({"normalize": False}, Metric.AbundanceWChildren, "already been normalized"),
+        ({"group_by": "foo", "tooltip": "bar"}, None, "not supported with `group_by`"),
+        ({"group_by": "foo", "haxis": "bar"}, None, "not supported with `group_by`"),
+        ({"group_by": "foo", "label": "bar"}, None, "not supported with `group_by`"),
+        ({"group_by": "foo", "sort_x": []}, None, "not supported with `group_by`"),
+        ({"group_by": "foo"}, None, "field foo not found"),
+    ],
+)
+def test_plot_bargraph_errors(ocx, api_data, kwargs, metric, msg):
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+    if metric:
+        samples._collate_results(metric=metric)
+
+    with pytest.raises(OneCodexException, match=msg):
+        samples.plot_bargraph(**kwargs)
+
+
+def test_plot_bargraph_too_few_samples(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
 
-    # expect error if rank is None, since that could lead to weird results
-    with pytest.raises(OneCodexException) as e:
-        samples.plot_bargraph(rank=None)
-    assert "specify a rank" in str(e.value)
-
     # need at least 1 sample
-    with pytest.raises(PlottingException) as e:
+    with pytest.raises(PlottingException, match="too few samples"):
         samples[:0].plot_bargraph()
-    assert "too few samples" in str(e.value)
+
+
+@pytest.mark.parametrize("metric", [Metric.Readcount, Metric.ReadcountWChildren])
+def test_plot_bargraph_group_by_counts_already_normalized(ocx, api_data, metric):
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+    samples._collate_results(metric=metric)
+
+    with pytest.raises(OneCodexException, match="`group_by`.*readcounts.*already been normalized"):
+        with mock.patch.object(samples, "_guess_normalized", return_value=True):
+            samples.plot_bargraph(group_by="barley")
 
 
 @pytest.mark.parametrize(
@@ -478,6 +501,35 @@ def test_plot_bargraph_chart_result(ocx, api_data, metric, rank, label):
     assert chart.encoding.y.shorthand == label
     assert chart.encoding.y.axis.title == "Glorious Abundances"
     assert chart.encoding.color.legend.title == label
+    assert chart.encoding.href.shorthand == "url:N"
+
+
+@pytest.mark.parametrize(
+    "metric,kwargs",
+    [
+        (Metric.Readcount, {}),
+        (Metric.ReadcountWChildren, {}),
+        (Metric.ReadcountWChildren, {"threshold": 0.1, "top_n": 15, "normalize": True}),
+        (Metric.ReadcountWChildren, {"threshold": 0.1, "top_n": None, "normalize": True}),
+        (Metric.ReadcountWChildren, {"threshold": None, "top_n": 12, "normalize": True}),
+        (Metric.ReadcountWChildren, {"threshold": 2, "top_n": 12, "normalize": False}),
+        (Metric.Abundance, {}),
+        (Metric.AbundanceWChildren, {}),
+    ],
+)
+def test_plot_bargraph_with_group_by(ocx, api_data, metric, kwargs):
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+    samples._collate_results(metric=metric)
+    chart = samples.plot_bargraph(group_by="barley", return_chart=True, **kwargs)
+
+    assert chart.encoding.x.shorthand == "barley"
+    assert chart.encoding.x.axis.title == "barley"
+
+    metric_label = (
+        "Mean Relative Abundance:Q" if AbundanceMetric.has_value(metric) else "Mean Reads:Q"
+    )
+    assert [x.shorthand for x in chart.encoding.tooltip] == ["barley", "tax_name", metric_label]
+    assert not hasattr(chart.encoding.href, "shorthand")
 
 
 @pytest.mark.parametrize(
