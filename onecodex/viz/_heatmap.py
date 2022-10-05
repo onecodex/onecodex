@@ -1,6 +1,12 @@
-from onecodex.lib.enums import Rank, Linkage
+from onecodex.lib.enums import Rank, Linkage, Link
 from onecodex.exceptions import OneCodexException, PlottingException
-from onecodex.viz._primitives import prepare_props, sort_helper, get_base_classification_url
+from onecodex.viz._primitives import (
+    prepare_props,
+    sort_helper,
+    get_classification_url,
+    get_ncbi_taxonomy_browser_url,
+    open_links_in_new_tab,
+)
 
 
 class VizHeatmapMixin(object):
@@ -24,6 +30,7 @@ class VizHeatmapMixin(object):
         sort_y=None,
         width=None,
         height=None,
+        link=Link.Ocx,
     ):
         """Plot heatmap of taxa abundance/count data for several samples.
 
@@ -72,6 +79,10 @@ class VizHeatmapMixin(object):
         sort_y : `list` or `callable`, optional
             Either a list of sorted labels or a function that will be called with a list of y-axis labels
             as the only argument, and must return the same list in a user-specified order.
+        link : {'ocx', 'ncbi'}, optional
+            If `link` is 'ocx', clicking a sample will open its classification results in the One
+            Codex app in a new tab. If `link` is 'ncbi', clicking a taxon will open the NCBI
+            taxonomy browser in a new tab.
 
         Examples
         --------
@@ -213,21 +224,21 @@ class VizHeatmapMixin(object):
             y=alt.Y("tax_name:N", axis=alt.Axis(title=ylabel), sort=taxa_cluster),
             color=alt.Color("{}:Q".format(df.ocx.metric), legend=alt.Legend(title=legend)),
             tooltip=tooltip_for_altair,
-            href="url:N",
-            url=get_base_classification_url() + alt.datum.classification_id,
         )
+
+        if link == Link.Ocx:
+            df["url"] = df["classification_id"].apply(get_classification_url)
+            alt_kwargs["href"] = "url:N"
+        elif link == Link.Ncbi:
+            df["url"] = df["tax_id"].apply(get_ncbi_taxonomy_browser_url)
+            alt_kwargs["href"] = "url:N"
 
         if haxis:
             alt_kwargs["column"] = alt.Column(
                 haxis, header=alt.Header(titleOrient="bottom", labelOrient="bottom")
             )
 
-        chart = (
-            alt.Chart(df)
-            .transform_calculate(url=alt_kwargs.pop("url"))
-            .mark_rect()
-            .encode(**alt_kwargs)
-        )
+        chart = alt.Chart(df).mark_rect().encode(**alt_kwargs)
 
         col_count = len(labels_in_order)
         row_count = len(taxa_cluster)
@@ -237,6 +248,7 @@ class VizHeatmapMixin(object):
                 title=title, height=(height or 15 * row_count), width=(width or 15 * col_count)
             )
         )
+        open_links_in_new_tab(chart)
 
         if haxis:
             chart = chart.resolve_scale(x="independent")

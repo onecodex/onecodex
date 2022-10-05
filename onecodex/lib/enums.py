@@ -117,3 +117,8 @@ class FunctionalAnnotationsMetric(BaseEnum):
     Cpm = "cpm"
     Abundance = "abundance"
     Coverage = "coverage"
+
+
+class Link(BaseEnum):
+    Ocx = "ocx"
+    Ncbi = "ncbi"

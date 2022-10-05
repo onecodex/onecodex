@@ -1,10 +1,12 @@
 from onecodex.exceptions import OneCodexException, PlottingException
-from onecodex.lib.enums import Rank, Metric
+from onecodex.lib.enums import Rank, Metric, Link
 from onecodex.viz._primitives import (
     interleave_palette,
     prepare_props,
     sort_helper,
-    get_base_classification_url,
+    get_ncbi_taxonomy_browser_url,
+    get_classification_url,
+    open_links_in_new_tab,
 )
 
 
@@ -29,6 +31,7 @@ class VizBargraphMixin(object):
         width=None,
         height=None,
         group_by=None,
+        link=Link.Ocx,
     ):
         """Plot a bargraph of relative abundance of taxa for multiple samples.
 
@@ -75,6 +78,10 @@ class VizBargraphMixin(object):
         group_by : `string`, optional
             The metadata field used to group samples together. Readcounts or abundances will be
             averaged within each group.
+        link: {'ocx', 'ncbi'}, optional
+            If `link` is 'ocx', clicking a sample will open its classification results in the One
+            Codex app in a new tab. If `link` is 'ncbi', clicking a taxon will open the NCBI
+            taxonomy browser in a new tab.
 
         Examples
         --------
@@ -227,9 +234,6 @@ class VizBargraphMixin(object):
             encode_kwargs["column"] = alt.Column(
                 haxis, header=alt.Header(titleOrient="bottom", labelOrient="bottom")
             )
-        if not group_by:
-            encode_kwargs["href"] = "url:N"
-
         domain = sorted(df["tax_name"].unique())
         no_level_name = "No {}".format(rank)
         color_range = interleave_palette(set(domain) - {"Other", no_level_name})
@@ -251,6 +255,13 @@ class VizBargraphMixin(object):
             sort_order = sort_helper(sort_x, df["Label"].tolist())
 
         df["order"] = df["tax_name"].apply(domain.index)
+
+        if link == Link.Ocx and not group_by:
+            df["url"] = df["classification_id"].apply(get_classification_url)
+            encode_kwargs["href"] = "url:N"
+        elif link == Link.Ncbi:
+            df["url"] = df["tax_id"].apply(get_ncbi_taxonomy_browser_url)
+            encode_kwargs["href"] = "url:N"
 
         y_scale_kwargs = {"zero": True, "nice": False}
         if normalize:
@@ -280,14 +291,10 @@ class VizBargraphMixin(object):
             )
         )
 
-        if not group_by:
-            chart = chart.transform_calculate(
-                url=get_base_classification_url() + alt.datum.classification_id
-            )
-
         if haxis:
             chart = chart.resolve_scale(x="independent")
 
         chart = chart.properties(**prepare_props(title=title, width=width, height=height))
+        open_links_in_new_tab(chart)
 
         return chart if return_chart else chart.display()
