@@ -163,7 +163,7 @@ class VizBargraphMixin(object):
             df = df.loc[:, df.max() >= threshold]
 
         if top_n:
-            df = df[df.mean().sort_values(ascending=False).iloc[:top_n].index]
+            df = df.loc[:, df.mean().sort_values(ascending=False).iloc[:top_n].index]
 
         if include_other and normalize:
             df["Other"] = 1 - df.sum(axis=1)
