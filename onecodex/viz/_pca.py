@@ -1,5 +1,10 @@
 from onecodex.lib.enums import Rank
-from onecodex.viz._primitives import interleave_palette, prepare_props, get_base_classification_url
+from onecodex.viz._primitives import (
+    interleave_palette,
+    prepare_props,
+    get_classification_url,
+    open_links_in_new_tab,
+)
 from onecodex.exceptions import OneCodexException, PlottingException
 from onecodex.utils import is_continuous, has_missing_values
 
@@ -129,13 +134,13 @@ class VizPCAMixin(object):
         plot_data = pd.concat(
             [pca_vals.loc[:, ("PC1", "PC2")], magic_metadata], axis=1
         ).reset_index()
+        plot_data["url"] = plot_data["classification_id"].apply(get_classification_url)
 
         alt_kwargs = dict(
             x=alt.X("PC1", axis=alt.Axis(title=xlabel)),
             y=alt.Y("PC2", axis=alt.Axis(title=ylabel)),
             tooltip=[magic_fields[t] for t in tooltip],
             href="url:N",
-            url=get_base_classification_url() + alt.datum.classification_id,
         )
 
         # only add these parameters if they are in use
@@ -153,11 +158,7 @@ class VizPCAMixin(object):
         if size:
             alt_kwargs["size"] = magic_fields[size]
 
-        chart = (
-            alt.Chart(plot_data)
-            .transform_calculate(url=alt_kwargs.pop("url"))
-            .mark_circle(size=mark_size)
-        )
+        chart = alt.Chart(plot_data).mark_circle(size=mark_size)
 
         vector_chart = None
         # plot the organism eigenvectors that contribute the most
@@ -209,6 +210,7 @@ class VizPCAMixin(object):
             chart = alt.layer(chart, vector_chart).resolve_scale(color="independent")
 
         chart = chart.properties(**prepare_props(title=title, height=height, width=width))
+        open_links_in_new_tab(chart)
 
         if return_chart:
             return chart

@@ -5,7 +5,12 @@ import warnings
 from onecodex.lib.enums import BetaDiversityMetric, Rank, Linkage, OrdinationMethod
 from onecodex.exceptions import OneCodexException, PlottingException
 from onecodex.distance import DistanceMixin
-from onecodex.viz._primitives import interleave_palette, prepare_props, get_base_classification_url
+from onecodex.viz._primitives import (
+    interleave_palette,
+    prepare_props,
+    get_classification_url,
+    open_links_in_new_tab,
+)
 from onecodex.utils import is_continuous, has_missing_values
 
 
@@ -176,8 +181,8 @@ class VizDistanceMixin(DistanceMixin):
                     plot_data[field_group[1]].append(magic_metadata[magic_field][id2])
 
         plot_data = pd.DataFrame(data=plot_data)
-
         labels_in_order = magic_metadata["Label"][clust["ids_in_order"]].tolist()
+        plot_data["url"] = plot_data["classification_id"].apply(get_classification_url)
 
         # it's important to tell altair to order the cells in the heatmap according to the clustering
         # obtained from scipy
@@ -189,7 +194,6 @@ class VizDistanceMixin(DistanceMixin):
             color=alt.Color("Distance:Q", legend=alt.Legend(title="Distance")),
             tooltip=list(chain.from_iterable(formatted_fields)) + ["Distance:Q"],
             href="url:N",
-            url=get_base_classification_url() + alt.datum.classification_id,
         )
 
         chart = (
@@ -198,7 +202,6 @@ class VizDistanceMixin(DistanceMixin):
                 width=15 * len(clust["dist_matrix"].index),
                 height=15 * len(clust["dist_matrix"].index),
             )
-            .transform_calculate(url=alt_kwargs.pop("url"))
             .mark_rect()
             .encode(**alt_kwargs)
         )
@@ -215,6 +218,8 @@ class VizDistanceMixin(DistanceMixin):
         concat_chart = alt.hconcat(dendro_chart, chart, spacing=0, **title_kwargs).configure_view(
             strokeWidth=0
         )
+        open_links_in_new_tab(concat_chart)
+
         if return_chart:
             return concat_chart
         else:
@@ -335,6 +340,7 @@ class VizDistanceMixin(DistanceMixin):
             )
             pos = mds.fit(dists).embedding_
             plot_data = pd.DataFrame(pos, columns=[x_field, y_field], index=dists.index)
+            plot_data.index.names = ["classification_id"]
             plot_data = plot_data.div(plot_data.abs().max(axis=0), axis=1)  # normalize to [0,1]
 
             # determine how much of the original distance is captured by each of the axes after MDS.
@@ -382,13 +388,13 @@ class VizDistanceMixin(DistanceMixin):
             ylabel = "{} ({})".format(y_field, y_extra_label)
 
         plot_data = pd.concat([plot_data, magic_metadata], axis=1).reset_index()
+        plot_data["url"] = plot_data["classification_id"].apply(get_classification_url)
 
         alt_kwargs = dict(
             x=alt.X(x_field, axis=alt.Axis(title=xlabel)),
             y=alt.Y(y_field, axis=alt.Axis(title=ylabel)),
             tooltip=[magic_fields[t] for t in tooltip],
             href="url:N",
-            url=get_base_classification_url() + alt.datum.classification_id,
         )
 
         # only add these parameters if they are in use
@@ -406,14 +412,10 @@ class VizDistanceMixin(DistanceMixin):
         if size:
             alt_kwargs["size"] = magic_fields[size]
 
-        chart = (
-            alt.Chart(plot_data)
-            .transform_calculate(url=alt_kwargs.pop("url"))
-            .mark_circle(size=mark_size)
-            .encode(**alt_kwargs)
-        )
+        chart = alt.Chart(plot_data).mark_circle(size=mark_size).encode(**alt_kwargs)
 
         chart = chart.properties(**prepare_props(title=title, height=height, width=width))
+        open_links_in_new_tab(chart)
 
         if return_chart:
             return chart

@@ -5,8 +5,28 @@ from math import ceil
 from onecodex.exceptions import OneCodexException
 
 
-def get_base_classification_url():
-    return os.environ.get("ONE_CODEX_API_BASE", "https://app.onecodex.com") + "/classification/"
+# We use custom IDs in some databases and we don't want to link them to NCBI. They are always after 2e9
+CUSTOM_TAX_ID_START = 2e9
+
+
+def get_classification_url(classification_id):
+    return f"{os.environ.get('ONE_CODEX_API_BASE', 'https://app.onecodex.com')}/classification/{classification_id}"
+
+
+def get_ncbi_taxonomy_browser_url(tax_id):
+    try:
+        tax_id = int(tax_id)
+    except (TypeError, ValueError):  # "Other", "No genus", etc.
+        return ""
+
+    if tax_id < CUSTOM_TAX_ID_START:
+        return f"https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id={tax_id}"
+    return ""
+
+
+# https://stackoverflow.com/a/72241020/3776794
+def open_links_in_new_tab(chart):
+    chart["usermeta"] = {"embedOptions": {"loader": {"target": "_blank", "rel": "noreferrer"}}}
 
 
 def sort_helper(sort, values):

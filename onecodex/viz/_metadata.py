@@ -1,6 +1,11 @@
 from onecodex.lib.enums import AlphaDiversityMetric, Rank, BaseEnum
 from onecodex.exceptions import OneCodexException, PlottingException
-from onecodex.viz._primitives import prepare_props, sort_helper, get_base_classification_url
+from onecodex.viz._primitives import (
+    prepare_props,
+    sort_helper,
+    get_classification_url,
+    open_links_in_new_tab,
+)
 
 
 class PlotType(BaseEnum):
@@ -171,8 +176,8 @@ class VizMetadataMixin(object):
 
         if plot_type == "scatter":
             df = df.reset_index()
-
             sort_order = sort_helper(sort_x, df[magic_fields[haxis]].tolist())
+            df["url"] = df["classification_id"].apply(get_classification_url)
 
             alt_kwargs.update(
                 dict(
@@ -180,16 +185,10 @@ class VizMetadataMixin(object):
                     y=alt.Y(magic_fields[vaxis], axis=alt.Axis(title=ylabel)),
                     tooltip=["Label", "{}:Q".format(magic_fields[vaxis])],
                     href="url:N",
-                    url=get_base_classification_url() + alt.datum.classification_id,
                 )
             )
 
-            chart = (
-                alt.Chart(df)
-                .transform_calculate(url=alt_kwargs.pop("url"))
-                .mark_circle()
-                .encode(**alt_kwargs)
-            )
+            chart = alt.Chart(df).mark_circle().encode(**alt_kwargs)
 
         elif plot_type == PlotType.BoxPlot:
             if sort_x:
@@ -217,6 +216,7 @@ class VizMetadataMixin(object):
             chart = chart.resolve_scale(x="independent")
 
         chart = chart.properties(**prepare_props(title=title, height=height, width=width))
+        open_links_in_new_tab(chart)
 
         if return_chart:
             return chart

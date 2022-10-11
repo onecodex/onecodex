@@ -8,11 +8,15 @@ pytest.importorskip("pandas")  # noqa
 import altair as alt
 import numpy as np
 
-from onecodex.lib.enums import Metric, AbundanceMetric
+from onecodex.lib.enums import Metric, AbundanceMetric, Link
 from onecodex.exceptions import OneCodexException, PlottingException
 from onecodex.models.collection import SampleCollection
 from onecodex.utils import has_missing_values
-from onecodex.viz._primitives import interleave_palette
+from onecodex.viz._primitives import (
+    interleave_palette,
+    get_classification_url,
+    get_ncbi_taxonomy_browser_url,
+)
 
 
 def test_altair_ocx_theme(ocx, api_data):
@@ -555,6 +559,44 @@ def test_plot_bargraph_legend_error(ocx, api_data):
 
 
 @pytest.mark.parametrize(
+    "plot_type",
+    ["bargraph", "heatmap"],
+)
+@pytest.mark.parametrize(
+    "link",
+    [Link.Ocx, Link.Ncbi],
+)
+def test_plot_bargraph_and_heatmap_link(ocx, api_data, plot_type, link):
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+
+    if plot_type == "bargraph":
+        chart = samples.plot_bargraph(
+            return_chart=True,
+            link=link,
+        )
+    elif plot_type == "heatmap":
+        chart = samples.plot_heatmap(
+            return_chart=True,
+            link=link,
+        )
+    else:
+        raise NotImplementedError()
+
+    assert chart.encoding.href.shorthand == "url:N"
+
+    urls = chart.data["url"]
+    for url in urls:
+        if link == Link.Ocx:
+            assert "/classification/" in url
+        elif link == Link.Ncbi:
+            if url != "":
+                assert url.startswith("https://www.ncbi")
+                assert "id=" in url
+        else:
+            raise NotImplementedError()
+
+
+@pytest.mark.parametrize(
     "method,kwargs",
     [
         ("plot_metadata", {"haxis": "does_not_exist"}),
@@ -576,3 +618,21 @@ def test_plotting_missing_fields(ocx, api_data, method, kwargs):
 
 def test_interleave_palette_empty_domain():
     assert interleave_palette([]) == []
+
+
+def test_get_classification_url():
+    assert get_classification_url("abc123").endswith("abc123")
+
+
+@pytest.mark.parametrize(
+    "tax_id,expected",
+    [
+        (None, ""),
+        ("", ""),
+        ("foo", ""),
+        ("2000000000", ""),
+        ("123", "https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=123"),
+    ],
+)
+def test_get_ncbi_taxonomy_browser_url(tax_id, expected):
+    assert get_ncbi_taxonomy_browser_url(tax_id) == expected
