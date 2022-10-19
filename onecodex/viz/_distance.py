@@ -221,7 +221,7 @@ class VizDistanceMixin(DistanceMixin):
         open_links_in_new_tab(concat_chart)
 
         if return_chart:
-            return concat_chart
+            return concat_chart, chart.data
         else:
             concat_chart.display()
 
