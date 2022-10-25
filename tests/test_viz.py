@@ -281,7 +281,7 @@ def test_plot_heatmap_exceptions(ocx, api_data):
 def test_plot_distance(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
 
-    chart = samples.plot_distance(
+    chart, chart_data = samples.plot_distance(
         metric="weighted_unifrac",
         xlabel="my xlabel",
         ylabel="my ylabel",
@@ -611,7 +611,10 @@ def test_plot_bargraph_and_heatmap_link(ocx, api_data, plot_type, link):
 )
 def test_plotting_missing_fields(ocx, api_data, method, kwargs):
     samples = ocx.Samples.where(project="4b53797444f846c4")
-    chart = getattr(samples, method)(**kwargs, title="my plot", return_chart=True)
+    if method == "plot_distance":
+        chart, chart_data = getattr(samples, method)(**kwargs, title="my plot", return_chart=True)
+    else:
+        chart = getattr(samples, method)(**kwargs, title="my plot", return_chart=True)
 
     assert chart.title == "my plot"
 
