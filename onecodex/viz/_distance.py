@@ -82,7 +82,7 @@ class VizDistanceMixin(DistanceMixin):
             "labels_in_order": labels_in_order,
         }
 
-    def plot_distance(
+    def _plot_distance(
         self,
         rank=Rank.Auto,
         metric=BetaDiversityMetric.BrayCurtis,
@@ -96,7 +96,8 @@ class VizDistanceMixin(DistanceMixin):
         width=None,
         height=None,
     ):
-        """Plot beta diversity distance matrix as a heatmap and dendrogram.
+        """'Private' method that accompanies `plot_distance` so we can return chart data as well as
+        concat_chart, for use in creating data exports.
 
         Parameters
         ----------
@@ -121,12 +122,6 @@ class VizDistanceMixin(DistanceMixin):
             A metadata field (or function) used to label each analysis. If passing a function, a
             dict containing the metadata for each analysis is passed as the first and only
             positional argument. The callable function must return a string.
-
-        Examples
-        --------
-        Plot the weighted UniFrac distance between all our samples, using counts at the genus level.
-
-        >>> plot_distance(rank='genus', metric='unifrac')
         """
         import altair as alt
         import numpy as np
@@ -224,6 +219,59 @@ class VizDistanceMixin(DistanceMixin):
             return concat_chart, chart.data
         else:
             concat_chart.display()
+
+    def plot_distance(
+        self,
+        rank=Rank.Auto,
+        metric=BetaDiversityMetric.BrayCurtis,
+        title=None,
+        xlabel=None,
+        ylabel=None,
+        tooltip=None,
+        return_chart=False,
+        linkage=Linkage.Average,
+        label=None,
+        width=None,
+        height=None,
+    ):
+        """Plot beta diversity distance matrix as a heatmap and dendrogram.
+
+        Parameters
+        ----------
+        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+            Analysis will be restricted to abundances of taxa at the specified level.
+        metric : {'braycurtis', 'cityblock', 'manhattan', 'jaccard', 'unifrac', 'unweighted_unifrac', 'aitchison'}, optional
+            Function to use when calculating the distance between two samples.
+            Note that 'cityblock' and 'manhattan' are equivalent metrics.
+        linkage : {'average', 'single', 'complete', 'weighted', 'centroid', 'median'}
+            The type of linkage to use when clustering axes.
+        title : `string`, optional
+            Text label at the top of the plot.
+        xlabel : `string`, optional
+            Text label along the horizontal axis.
+        ylabel : `string`, optional
+            Text label along the vertical axis.
+        tooltip : `string` or `list`, optional
+            A string or list containing strings representing metadata fields. When a point in the
+            plot is hovered over, the value of the metadata associated with that sample will be
+            displayed in a modal.
+        label : `string` or `callable`, optional
+            A metadata field (or function) used to label each analysis. If passing a function, a
+            dict containing the metadata for each analysis is passed as the first and only
+            positional argument. The callable function must return a string.
+
+        Examples
+        --------
+        Plot the weighted UniFrac distance between all our samples, using counts at the genus level.
+
+        >>> plot_distance(rank='genus', metric='unifrac')
+        """
+        chart, chart_data = self._plot_distance(
+            rank, metric, title, xlabel, ylabel, tooltip,
+            return_chart, linkage, label, width, height
+        )
+        if return_chart:
+            return chart
 
     def plot_pcoa(self, *args, **kwargs):
         return self.plot_mds(*args, method=OrdinationMethod.Pcoa, **kwargs)
