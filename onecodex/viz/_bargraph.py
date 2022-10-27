@@ -151,6 +151,10 @@ class VizBargraphMixin(object):
             # Replace nans with zeros for samples that have a total abundance of zero.
             df = df.div(df.sum(axis=1), axis=0).fillna(0.0)
 
+        # Keep track of empty rows *before* filtering taxa by threshold/top_n. We'll use this below
+        # to calculate "Other".
+        empty_rows = df[df.sum(axis=1) == 0.0].index
+
         if top_n == "auto" and threshold == "auto":
             top_n = 10
             threshold = None
@@ -166,7 +170,9 @@ class VizBargraphMixin(object):
             df = df.loc[:, df.mean().sort_values(ascending=False).iloc[:top_n].index]
 
         if include_other and normalize:
-            df["Other"] = 1 - df.sum(axis=1)
+            df["Other"] = df.apply(
+                lambda row: 0.0 if row.name in empty_rows else 1 - row.sum(), axis=1
+            )
 
         if isinstance(legend, str):
             if legend == "auto":

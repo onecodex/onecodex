@@ -8,7 +8,7 @@ pytest.importorskip("pandas")  # noqa
 import altair as alt
 import numpy as np
 
-from onecodex.lib.enums import Metric, AbundanceMetric, Link
+from onecodex.lib.enums import Metric, AbundanceMetric, Link, Rank
 from onecodex.exceptions import OneCodexException, PlottingException
 from onecodex.models.collection import SampleCollection
 from onecodex.utils import has_missing_values
@@ -534,6 +534,17 @@ def test_plot_bargraph_with_group_by(ocx, api_data, metric, kwargs):
     )
     assert [x.shorthand for x in chart.encoding.tooltip] == ["barley", "tax_name", metric_label]
     assert not hasattr(chart.encoding.href, "shorthand")
+
+
+def test_plot_bargraph_include_other_with_empty_samples(ocx, api_data):
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+    classification_id = samples._results.index[1]
+    samples._results.loc[classification_id] = 0.0
+
+    df = samples.plot_bargraph(rank=Rank.Genus, include_other=True, return_chart=True).data
+    total_abundance = df[df["classification_id"] == classification_id]["Relative Abundance"].sum()
+
+    assert total_abundance == 0.0
 
 
 @pytest.mark.parametrize(
