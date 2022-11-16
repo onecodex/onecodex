@@ -1,4 +1,4 @@
-{%- extends 'full.tpl' -%}
+{%- extends 'classic/index.html.j2' -%}
 
 {%- block html_head -%}
 <meta charset="utf-8" />
