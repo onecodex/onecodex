@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.11.0] - 2022-11-29
+
+### Added
+
+- Adds support for testing experimental API
+- Adds functionality to `SampleCollection` objects to generate tabular data for `FunctionalRun`s using the `.to_df()` method
+- Adds `include_taxa_missing_rank` parameter to `to_df()` method for including taxa that do not have a designated parent at `rank` (will be grouped into a "No <rank>" column) (metrics `readcount_w_children` and `abundance_w_children` are supported)
+- Adds support for `readcount_w_children` metric to `plot_bargraph()` when passing `include_taxa_missing_rank` (only `abundance_w_children` was supported previously)
+- Adds increased customization of plot legend; `plot_bargraph()`'s `legend` parameter now accepts an `altair.Legend` instance
+- Adds `group_by` support to `plot_bargraph`
+- Adds support for linking to NCBI taxonomy browser from plots
+
+### Changed
+
+- Pins selenium to <4.3.0
+- Pins scipy<1.9
+- Default plot legend is bigger (displaying up to 40 items)
+
+### Fixed
+
+- Fixes metadata fetching to support fields that match neither metadata nor taxa instead of raising an error
+- Fixes box plot display bug for samples with same value
+- Fixes pandas `SettingWithCopyWarning` previously raised by `to_df` and `plot_bargraph`
+- Fixes `plot_bargraph` display bug for empty samples (total count or abundance of zero)
+- Fixes `None` artifact in PDFs
 
 ## [v0.10.0] - 2022-04-05
 
