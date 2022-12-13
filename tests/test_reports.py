@@ -4,6 +4,7 @@ import pytest
 import mock
 import os
 import nbformat
+import datetime
 
 from traitlets.config import Config
 
@@ -24,6 +25,16 @@ def nb():
     yield nbformat.read("notebook_examples/example.ipynb", as_version=4)
 
 
+@pytest.fixture
+def generate_pdf_report(capsys, nb, nb_config):
+    def _generate_pdf_report():
+        exporter = OneCodexPDFExporter(config=nb_config)
+        body, _ = exporter.from_notebook_node(nb)
+        return body
+
+    return _generate_pdf_report
+
+
 def test_html_report_generation(capsys, nb, nb_config):
     exporter = HTMLExporter(config=nb_config)
     body, resource = exporter.from_notebook_node(nb)
@@ -36,16 +47,32 @@ def test_html_report_generation(capsys, nb, nb_config):
     assert capsys.readouterr().err == ""
 
 
-def test_pdf_report_generation(capsys, nb, nb_config):
-    exporter = OneCodexPDFExporter(config=nb_config)
+@pytest.mark.parametrize("do_not_insert_date", [True, False])
+def test_pdf_report_generation_do_not_insert_date(generate_pdf_report, do_not_insert_date):
+    patched_env = os.environ.copy()
+    patched_env["ONE_CODEX_DO_NOT_INSERT_DATE"] = str(do_not_insert_date)
 
+    with mock.patch.object(os, "environ", patched_env):
+        body = generate_pdf_report()
+
+    pdf = pdfplumber.open(io.BytesIO(body))
+
+    page = pdf.pages[0]
+    pdf_text = page.extract_text()
+
+    timestamp = datetime.date.today().strftime("%B %-d, %Y")
+
+    if do_not_insert_date:
+        assert timestamp not in pdf_text
+    else:
+        assert timestamp in pdf_text
+
+
+def test_pdf_report_generation(generate_pdf_report, capsys):
     patched_env = os.environ.copy()
     patched_env["ONE_CODEX_DO_NOT_INSERT_DATE"] = "True"
-
-    # do not insert date to prevent from showing up in diff
     with mock.patch.object(os, "environ", patched_env):
-        body, _ = exporter.from_notebook_node(nb)
-
+        body = generate_pdf_report()
     pdf = pdfplumber.open(io.BytesIO(body))
     page = pdf.pages[0]
     pdf_text = page.extract_text()
