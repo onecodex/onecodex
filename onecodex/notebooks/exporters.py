@@ -91,8 +91,9 @@ class OneCodexHTMLExporter(HTMLExporter):
         elif "metadata" not in resources:
             resources["metadata"] = {}
 
+        do_not_insert_date = os.environ.get("ONE_CODEX_DO_NOT_INSERT_DATE") == "True"
+
         # iterate over cells in the notebook and transform data as necessary
-        do_not_insert_date = False
 
         # add one codex logo unless told not to
         if not os.environ.get("ONE_CODEX_REPORT_NO_LOGO", False):

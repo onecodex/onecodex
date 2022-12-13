@@ -1,6 +1,8 @@
 import io
 import pytest
 
+import mock
+import os
 import nbformat
 
 from traitlets.config import Config
@@ -36,7 +38,14 @@ def test_html_report_generation(capsys, nb, nb_config):
 
 def test_pdf_report_generation(capsys, nb, nb_config):
     exporter = OneCodexPDFExporter(config=nb_config)
-    body, resource = exporter.from_notebook_node(nb)
+
+    patched_env = os.environ.copy()
+    patched_env["ONE_CODEX_DO_NOT_INSERT_DATE"] = "True"
+
+    # do not insert date to prevent from showing up in diff
+    with mock.patch.object(os, "environ", patched_env):
+        body, _ = exporter.from_notebook_node(nb)
+
     pdf = pdfplumber.open(io.BytesIO(body))
     page = pdf.pages[0]
     pdf_text = page.extract_text()
