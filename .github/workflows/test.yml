@@ -76,6 +76,11 @@ jobs:
         run: |
           . venv/bin/activate
           py.test tests/test_reports.py -vv
+      - name: Upload Report PDFs
+        uses: actions/upload-artifact@v2
+        with:
+          name: example reports
+          path: test-report-*.pdf
 
   coverage:
     runs-on: ubuntu-latest

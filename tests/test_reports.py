@@ -51,3 +51,8 @@ def test_pdf_report_generation(capsys, nb, nb_config):
 
     # Check no stderr from vega CLI or similar
     assert capsys.readouterr().err == ""
+
+    # copy test report to $pwd so that it can be uploaded to github as an
+    # artifact
+    with open("test-report-example.pdf", "wb") as handle:
+        handle.write(body)
