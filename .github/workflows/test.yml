@@ -76,7 +76,15 @@ jobs:
         run: |
           . venv/bin/activate
           py.test tests/test_reports.py -vv
+
+      - uses: nowsprinting/diff-pdf-action@v1
+        with:
+          file1: tests/data/test-report-expected.pdf
+          file2: test-report-generated.pdf
+          options: --verbose --output-diff=test-report-diff.pdf
+
       - name: Upload Report PDFs
+        if: always()
         uses: actions/upload-artifact@v2
         with:
           name: example reports

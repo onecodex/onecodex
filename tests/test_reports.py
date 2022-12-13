@@ -54,5 +54,5 @@ def test_pdf_report_generation(capsys, nb, nb_config):
 
     # copy test report to $pwd so that it can be uploaded to github as an
     # artifact
-    with open("test-report-example.pdf", "wb") as handle:
+    with open("test-report-generated.pdf", "wb") as handle:
         handle.write(body)
