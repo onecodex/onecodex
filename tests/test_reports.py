@@ -70,7 +70,7 @@ def test_pdf_report_generation_do_not_insert_date(generate_pdf_report, insert_da
 
 def test_pdf_report_generation(generate_pdf_report, capsys):
     patched_env = os.environ.copy()
-    patched_env["ONE_CODEX_DO_NOT_INSERT_DATE"] = "True"
+    patched_env["ONE_CODEX_INSERT_DATE"] = "False"
     with mock.patch.object(os, "environ", patched_env):
         body = generate_pdf_report()
     pdf = pdfplumber.open(io.BytesIO(body))
