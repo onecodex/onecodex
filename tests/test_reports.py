@@ -47,10 +47,10 @@ def test_html_report_generation(capsys, nb, nb_config):
     assert capsys.readouterr().err == ""
 
 
-@pytest.mark.parametrize("do_not_insert_date", [True, False])
-def test_pdf_report_generation_do_not_insert_date(generate_pdf_report, do_not_insert_date):
+@pytest.mark.parametrize("insert_date", [True, False])
+def test_pdf_report_generation_do_not_insert_date(generate_pdf_report, insert_date):
     patched_env = os.environ.copy()
-    patched_env["ONE_CODEX_DO_NOT_INSERT_DATE"] = str(do_not_insert_date)
+    patched_env["ONE_CODEX_INSERT_DATE"] = str(insert_date)
 
     with mock.patch.object(os, "environ", patched_env):
         body = generate_pdf_report()
@@ -62,10 +62,10 @@ def test_pdf_report_generation_do_not_insert_date(generate_pdf_report, do_not_in
 
     timestamp = datetime.date.today().strftime("%B %-d, %Y")
 
-    if do_not_insert_date:
-        assert timestamp not in pdf_text
-    else:
+    if insert_date:
         assert timestamp in pdf_text
+    else:
+        assert timestamp not in pdf_text
 
 
 def test_pdf_report_generation(generate_pdf_report, capsys):
