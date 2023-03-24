@@ -21,3 +21,4 @@ node_modules
 geckodriver.log
 package.json
 package-lock.json
+test-report-generated.pdf
