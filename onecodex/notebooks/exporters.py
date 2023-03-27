@@ -91,8 +91,9 @@ class OneCodexHTMLExporter(HTMLExporter):
         elif "metadata" not in resources:
             resources["metadata"] = {}
 
+        insert_date = os.environ.get("ONE_CODEX_INSERT_DATE", "True") == "True"
+
         # iterate over cells in the notebook and transform data as necessary
-        do_not_insert_date = False
 
         # add one codex logo unless told not to
         if not os.environ.get("ONE_CODEX_REPORT_NO_LOGO", False):
@@ -105,7 +106,7 @@ class OneCodexHTMLExporter(HTMLExporter):
             resources["metadata"]["head_block"] = head_block
 
         # add today's date unless told not to (i.e. a custom date was specified)
-        if not do_not_insert_date:
+        if insert_date:
             date_div = report.set_date()._repr_mimebundle_()[0]["text/html"]
             head_block = resources["metadata"].get("head_block", "") + date_div
             resources["metadata"]["head_block"] = head_block

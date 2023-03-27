@@ -1,7 +1,10 @@
 import io
 import pytest
 
+import mock
+import os
 import nbformat
+import datetime
 
 from traitlets.config import Config
 
@@ -22,6 +25,16 @@ def nb():
     yield nbformat.read("notebook_examples/example.ipynb", as_version=4)
 
 
+@pytest.fixture
+def generate_pdf_report(capsys, nb, nb_config):
+    def _generate_pdf_report():
+        exporter = OneCodexPDFExporter(config=nb_config)
+        body, _ = exporter.from_notebook_node(nb)
+        return body
+
+    return _generate_pdf_report
+
+
 def test_html_report_generation(capsys, nb, nb_config):
     exporter = HTMLExporter(config=nb_config)
     body, resource = exporter.from_notebook_node(nb)
@@ -34,9 +47,32 @@ def test_html_report_generation(capsys, nb, nb_config):
     assert capsys.readouterr().err == ""
 
 
-def test_pdf_report_generation(capsys, nb, nb_config):
-    exporter = OneCodexPDFExporter(config=nb_config)
-    body, resource = exporter.from_notebook_node(nb)
+@pytest.mark.parametrize("insert_date", [True, False])
+def test_pdf_report_generation_do_not_insert_date(generate_pdf_report, insert_date):
+    patched_env = os.environ.copy()
+    patched_env["ONE_CODEX_INSERT_DATE"] = str(insert_date)
+
+    with mock.patch.object(os, "environ", patched_env):
+        body = generate_pdf_report()
+
+    pdf = pdfplumber.open(io.BytesIO(body))
+
+    page = pdf.pages[0]
+    pdf_text = page.extract_text()
+
+    timestamp = datetime.date.today().strftime("%B %-d, %Y")
+
+    if insert_date:
+        assert timestamp in pdf_text
+    else:
+        assert timestamp not in pdf_text
+
+
+def test_pdf_report_generation(generate_pdf_report, capsys):
+    patched_env = os.environ.copy()
+    patched_env["ONE_CODEX_INSERT_DATE"] = "False"
+    with mock.patch.object(os, "environ", patched_env):
+        body = generate_pdf_report()
     pdf = pdfplumber.open(io.BytesIO(body))
     page = pdf.pages[0]
     pdf_text = page.extract_text()
@@ -51,3 +87,8 @@ def test_pdf_report_generation(capsys, nb, nb_config):
 
     # Check no stderr from vega CLI or similar
     assert capsys.readouterr().err == ""
+
+    # copy test report to $pwd so that it can be uploaded to github as an
+    # artifact
+    with open("test-report-generated.pdf", "wb") as handle:
+        handle.write(body)
