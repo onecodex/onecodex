@@ -1,6 +1,13 @@
 import pytest
 
-from onecodex.lib.enums import Rank
+from onecodex.lib.enums import BaseEnum, Rank
+
+
+def test_base_enum_format_compat():
+    class MyEnum(BaseEnum):
+        Foo = "foo"
+
+    assert f"{MyEnum.Foo}" == "foo"
 
 
 def test_rank_level():
