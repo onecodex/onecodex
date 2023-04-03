@@ -7,6 +7,8 @@ import logging
 import os
 from requests.auth import HTTPBasicAuth
 import warnings
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.auth import BearerTokenAuth
@@ -103,6 +105,15 @@ class Api(object):
         )
         self._client._fetch_schema(cache_schema=cache_schema)
         self._session = self._client.session
+
+        # Set backoff / retry strategy for 429s
+        retry_strategy = Retry(
+            total=3, backoff_factor=4, method_whitelist=False, status_forcelist=[429]
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        self._session.mount('http://', adapter)
+        self._session.mount('https://', adapter)
+
         self._copy_resources()
 
         # Optionally configure custom One Codex altair theme
