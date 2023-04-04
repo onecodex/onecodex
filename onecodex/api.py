@@ -43,7 +43,6 @@ class Api(object):
         load_extensions=True,
         **kwargs
     ):
-
         if base_url is None:
             base_url = os.environ.get("ONE_CODEX_API_BASE", "https://app.onecodex.com")
             if base_url != "https://app.onecodex.com":
@@ -111,8 +110,8 @@ class Api(object):
             total=3, backoff_factor=4, method_whitelist=False, status_forcelist=[429]
         )
         adapter = HTTPAdapter(max_retries=retry_strategy)
-        self._session.mount('http://', adapter)
-        self._session.mount('https://', adapter)
+        self._session.mount("http://", adapter)
+        self._session.mount("https://", adapter)
 
         self._copy_resources()
 
