@@ -11,9 +11,6 @@ from onecodex.exceptions import OneCodexException, raise_connectivity_error, rai
 from onecodex.utils import snake_case, FakeProgressBar
 from onecodex.lib.files import FilePassthru, get_file_wrapper
 
-from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry
-
 
 log = logging.getLogger("onecodex")
 DEFAULT_THREADS = 4
@@ -412,6 +409,7 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):
     from boto3.exceptions import S3UploadFailedError
 
     boto3_session = boto3.session.Session()
+
     # actually do the upload
     client = boto3_session.client(
         "s3",
@@ -468,13 +466,6 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):
 
     # issue a callback
     try:
-        # retry on 502, 503, 429, with a backoff timing of 4s, 8s, and 16s, False retries on all HTTP methods
-        retry_strategy = Retry(
-            total=3, backoff_factor=4, method_whitelist=False, status_forcelist=[502, 503, 429]
-        )
-        adapter = HTTPAdapter(max_retries=retry_strategy)
-        session.mount(callback_url, adapter)
-
         resp = session.post(
             callback_url,
             json={

@@ -193,25 +193,6 @@ def test_unicode_filenames(caplog):
             assert after in caplog.text
 
 
-def test_callback_retry_handling():
-    with patch("boto3.session.Session") as _:
-        sample_resource = FakeSamplesResource()
-        files = ("tests/data/files/test_R1_L001.fq.gz", "tests/data/files/test_R2_L001.fq.gz")
-        upload_sequence(files, sample_resource)
-        assert (
-            sample_resource._client.session.adapters[
-                "http://localhost:3000/s3_confirm"
-            ].max_retries.total
-            == 3
-        )
-        assert (
-            sample_resource._client.session.adapters[
-                "http://localhost:3000/s3_confirm"
-            ].max_retries.method_whitelist
-            is False
-        )
-
-
 def test_single_end_files():
     with patch("boto3.session.Session") as b3:
         upload_sequence("tests/data/files/test_R1_L001.fq.gz", FakeSamplesResource())
