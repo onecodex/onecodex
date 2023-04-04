@@ -5,10 +5,10 @@ import filelock
 import json
 import logging
 import os
-from requests.auth import HTTPBasicAuth
-import warnings
 from requests.adapters import HTTPAdapter
+from requests.auth import HTTPBasicAuth
 from requests.packages.urllib3.util.retry import Retry
+import warnings
 
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.auth import BearerTokenAuth
