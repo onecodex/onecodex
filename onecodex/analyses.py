@@ -367,7 +367,7 @@ class AnalysisMixin(
 
             level = rank.level
             tax_ids_to_keep = []
-            unclassified_tax_ids = []
+            unclassified_tax_ids = set()
 
             for tax_id in df.keys():
                 try:
@@ -383,11 +383,11 @@ class AnalysisMixin(
                     unclassified_tax_id = self._get_highest_unclassified_tax_id(tax_id, level)
 
                     if unclassified_tax_id is not None:
-                        unclassified_tax_ids.append(unclassified_tax_id)
+                        unclassified_tax_ids.add(unclassified_tax_id)
 
             if unclassified_tax_ids:
                 no_level_name = f"No {rank.value}"
-                df[no_level_name] = df[unclassified_tax_ids].sum(axis=1)
+                df[no_level_name] = df[list(unclassified_tax_ids)].sum(axis=1)
                 tax_ids_to_keep.append(no_level_name)
 
             if len(tax_ids_to_keep) == 0:
