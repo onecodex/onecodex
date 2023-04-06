@@ -1,4 +1,8 @@
-from enum import Enum
+try:
+    # Python 3.11 changed `__str__`/`__format__` behavior for enums with mixed-in data types
+    from enum import ReprEnum as Enum
+except ImportError:
+    from enum import Enum
 
 __all__ = ["Metric", "AbundanceMetric", "AlphaDiversityMetric", "BetaDiversityMetric"]
 
