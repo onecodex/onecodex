@@ -34,6 +34,8 @@ def test_retries_set_on_client_session(api_data):
 
     assert ocx._session.adapters["http://"].max_retries.total == 3
     assert ocx._session.adapters["http://"].max_retries.method_whitelist is False
+    assert ocx._session.adapters["https://"].max_retries.total == 3
+    assert ocx._session.adapters["https://"].max_retries.method_whitelist is False
 
 
 def test_sample_int_id(ocx, api_data):
