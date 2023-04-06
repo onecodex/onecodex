@@ -387,7 +387,7 @@ class AnalysisMixin(
 
             if unclassified_tax_ids:
                 no_level_name = f"No {rank.value}"
-                df[no_level_name] = df[unclassified_tax_ids].sum(axis=1)
+                df[no_level_name] = df[list(unclassified_tax_ids)].sum(axis=1)
                 tax_ids_to_keep.append(no_level_name)
 
             if len(tax_ids_to_keep) == 0:
@@ -433,7 +433,7 @@ class AnalysisMixin(
             long_df = {"classification_id": [], "tax_id": [], pretty_metric_name: []}
 
             for t_id in df:
-                for c_id, count in df[t_id].iteritems():
+                for c_id, count in df[t_id].items():
                     long_df["classification_id"].append(c_id)
                     long_df["tax_id"].append(t_id)
                     long_df[pretty_metric_name].append(count)
