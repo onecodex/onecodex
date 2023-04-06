@@ -38,7 +38,7 @@ TESTING_DEPS = [
     "pdfplumber",
 ]
 ALL_DEPS = [
-    "altair==4.2.0",
+    "altair==4.2.1",
     "numpy>=1.11.0",
     "pandas>=1.0.3",
     "pillow>=9.0.1",
