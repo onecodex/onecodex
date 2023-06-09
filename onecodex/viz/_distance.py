@@ -2,6 +2,8 @@
 from itertools import chain
 import warnings
 
+import numpy as np
+
 from onecodex.lib.enums import BetaDiversityMetric, Rank, Linkage, OrdinationMethod
 from onecodex.exceptions import OneCodexException, PlottingException
 from onecodex.distance import DistanceMixin
@@ -48,30 +50,48 @@ class VizDistanceMixin(DistanceMixin):
         from scipy.spatial.distance import squareform
         from sklearn.metrics.pairwise import euclidean_distances
 
+        all_nan_classification_ids = []
+
+        for class_id, is_all_nan in self._results.isnull().all(1).items():
+            if is_all_nan:
+                all_nan_classification_ids.append(class_id)
+
+        df_without_all_nan_rows = self._results.dropna(how="all")
+        df_without_all_nan_rows = df_without_all_nan_rows.replace(np.nan, 0)
+
         if metric == "euclidean":
-            dist_matrix = euclidean_distances(self._results).round(6)
+            dist_matrix = euclidean_distances(df_without_all_nan_rows).round(6)
         else:
             dist_matrix = self._compute_distance(rank=rank, metric=metric).to_data_frame().round(6)
+
         clustering = hierarchy.linkage(squareform(dist_matrix), method=linkage)
         scipy_tree = hierarchy.dendrogram(clustering, no_plot=True)
-        ids_in_order = [self._results.index[int(x)] for x in scipy_tree["ivl"]]
+        ids_in_order = [df_without_all_nan_rows.index[int(x)] for x in scipy_tree["ivl"]]
+        ids_in_order.extend(all_nan_classification_ids)
 
-        return {
-            "dist_matrix": dist_matrix,
-            "clustering": clustering,
-            "scipy_tree": scipy_tree,
-            "ids_in_order": ids_in_order,
-        }
+        return (
+            {
+                "dist_matrix": dist_matrix,
+                "clustering": clustering,
+                "scipy_tree": scipy_tree,
+                "ids_in_order": ids_in_order,
+            },
+            all_nan_classification_ids,
+        )
 
     def _cluster_by_taxa(self, linkage=Linkage.Average):
         from scipy.cluster import hierarchy
         from scipy.spatial.distance import squareform
         from sklearn.metrics.pairwise import euclidean_distances
 
-        dist_matrix = euclidean_distances(self._results.T).round(6)
-        clustering = hierarchy.linkage(squareform(dist_matrix), method=linkage)
+        df_without_all_nan_rows = self._results.dropna(how="all")
+        df_without_all_nan_rows = df_without_all_nan_rows.replace(np.nan, 0)
+
+        dist_matrix = euclidean_distances(df_without_all_nan_rows.T).round(6)
+
+        clustering = hierarchy.linkage(squareform(dist_matrix, checks=False), method=linkage)
         scipy_tree = hierarchy.dendrogram(clustering, no_plot=True)
-        ids_in_order = [self._results.T.index[int(x)] for x in scipy_tree["ivl"]]
+        ids_in_order = [df_without_all_nan_rows.T.index[int(x)] for x in scipy_tree["ivl"]]
         labels_in_order = ["{} ({})".format(self.taxonomy["name"][t], t) for t in ids_in_order]
 
         return {

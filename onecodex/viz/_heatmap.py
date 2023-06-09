@@ -1,3 +1,5 @@
+import numpy as np
+
 from onecodex.lib.enums import Rank, Linkage, Link
 from onecodex.exceptions import OneCodexException, PlottingException
 from onecodex.viz._primitives import (
@@ -179,7 +181,10 @@ class VizHeatmapMixin(object):
         if sort_x is None:
             if haxis is None:
                 # cluster samples only once
-                sample_cluster = df_sample_cluster.ocx._cluster_by_sample(
+                (
+                    sample_cluster,
+                    all_nan_classification_ids,
+                ) = df_sample_cluster.ocx._cluster_by_sample(
                     rank=rank, metric=metric, linkage=linkage
                 )
                 labels_in_order = magic_metadata["Label"][sample_cluster["ids_in_order"]].tolist()
@@ -237,6 +242,21 @@ class VizHeatmapMixin(object):
             alt_kwargs["column"] = alt.Column(
                 haxis, header=alt.Header(titleOrient="bottom", labelOrient="bottom")
             )
+
+        # Drop all-NaN rows, convert remaining NaNs to 0s, and concat
+        # dropped all-NaN rows to the end
+        dropped = []
+        for classification_id in all_nan_classification_ids:
+            d = df[(df == classification_id).any(axis=1)]
+            dropped.append(d)
+            index = df[(df == classification_id).any(axis=1)].index
+            df = df.drop(index)
+
+        df = df.replace(np.nan, 0)
+        for dropped_df in dropped:
+            df = pd.concat([df, dropped_df])
+
+        assert set(df["Label"].values) == set(labels_in_order)
 
         chart = alt.Chart(df).mark_rect().encode(**alt_kwargs)
 

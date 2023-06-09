@@ -339,6 +339,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         data = np.zeros((len(self._classifications), len(tax_info.index)), dtype=metric_dtype)
 
+        data[:] = np.nan
         for c_idx, c in enumerate(self._classifications):
             # results are cached from the call earlier in this method
             results = c.results()
@@ -350,7 +351,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
                 if not include_host and d_tax_id in host_tax_ids:
                     continue
 
-                data[c_idx, tax_id_to_idx[d_tax_id]] = d[metric] or 0
+                data[c_idx, tax_id_to_idx[d_tax_id]] = d[metric]
 
         df = pd.DataFrame(
             data,
