@@ -306,6 +306,7 @@ class AnalysisMixin(
         normalize="auto",
         table_format="wide",
         include_taxa_missing_rank=False,
+        include_nans=False,
     ):
         """Generate a ClassificationDataFrame, performing any specified transformations.
 
@@ -350,7 +351,7 @@ class AnalysisMixin(
                 )
 
         rank = self._get_auto_rank(rank)
-        df = self._results.copy()
+        df = self._collate_results(include_nans=include_nans).copy()
 
         # subset by taxa
         if rank:

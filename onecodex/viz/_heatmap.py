@@ -117,7 +117,12 @@ class VizHeatmapMixin(object):
             threshold = None
 
         df = self.to_df(
-            rank=rank, normalize=normalize, top_n=top_n, threshold=threshold, table_format="long"
+            rank=rank,
+            normalize=normalize,
+            top_n=top_n,
+            threshold=threshold,
+            table_format="long",
+            include_nans=True,
         )
 
         if len(df["tax_id"].unique()) < 2:
@@ -159,16 +164,16 @@ class VizHeatmapMixin(object):
                 )
 
             df_sample_cluster = self.to_df(
-                rank=rank, normalize=normalize, top_n=top_n, threshold=threshold
+                rank=rank, normalize=normalize, top_n=top_n, threshold=threshold, include_nans=True
             )
             df_taxa_cluster = df_sample_cluster
         else:
             df_sample_cluster = self.to_df(
-                rank=rank, normalize=False, top_n=top_n, threshold=threshold
+                rank=rank, normalize=False, top_n=top_n, threshold=threshold, include_nans=True
             )
 
             df_taxa_cluster = self.to_df(
-                rank=rank, normalize=normalize, top_n=top_n, threshold=threshold
+                rank=rank, normalize=normalize, top_n=top_n, threshold=threshold, include_nans=True
             )
 
         # applying clustering to determine order of taxa, or use custom sorting function if given

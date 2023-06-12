@@ -56,17 +56,16 @@ class VizDistanceMixin(DistanceMixin):
             if is_all_nan:
                 all_nan_classification_ids.append(class_id)
 
-        df_without_all_nan_rows = self._results.dropna(how="all")
-        df_without_all_nan_rows = df_without_all_nan_rows.replace(np.nan, 0)
+        df = self._results.dropna(how="all").replace(np.nan, 0)
 
         if metric == "euclidean":
-            dist_matrix = euclidean_distances(df_without_all_nan_rows).round(6)
+            dist_matrix = euclidean_distances(df).round(6)
         else:
             dist_matrix = self._compute_distance(rank=rank, metric=metric).to_data_frame().round(6)
 
         clustering = hierarchy.linkage(squareform(dist_matrix), method=linkage)
         scipy_tree = hierarchy.dendrogram(clustering, no_plot=True)
-        ids_in_order = [df_without_all_nan_rows.index[int(x)] for x in scipy_tree["ivl"]]
+        ids_in_order = [df.index[int(x)] for x in scipy_tree["ivl"]]
         ids_in_order.extend(all_nan_classification_ids)
 
         return (
@@ -84,14 +83,13 @@ class VizDistanceMixin(DistanceMixin):
         from scipy.spatial.distance import squareform
         from sklearn.metrics.pairwise import euclidean_distances
 
-        df_without_all_nan_rows = self._results.dropna(how="all")
-        df_without_all_nan_rows = df_without_all_nan_rows.replace(np.nan, 0)
+        df = self._results.dropna(how="all").replace(np.nan, 0)
 
-        dist_matrix = euclidean_distances(df_without_all_nan_rows.T).round(6)
+        dist_matrix = euclidean_distances(df.T).round(6)
 
         clustering = hierarchy.linkage(squareform(dist_matrix, checks=False), method=linkage)
         scipy_tree = hierarchy.dendrogram(clustering, no_plot=True)
-        ids_in_order = [df_without_all_nan_rows.T.index[int(x)] for x in scipy_tree["ivl"]]
+        ids_in_order = [df.T.index[int(x)] for x in scipy_tree["ivl"]]
         labels_in_order = ["{} ({})".format(self.taxonomy["name"][t], t) for t in ids_in_order]
 
         return {
