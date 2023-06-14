@@ -2,8 +2,6 @@
 from itertools import chain
 import warnings
 
-import numpy as np
-
 from onecodex.lib.enums import BetaDiversityMetric, Rank, Linkage, OrdinationMethod
 from onecodex.exceptions import OneCodexException, PlottingException
 from onecodex.distance import DistanceMixin
@@ -47,6 +45,7 @@ class VizDistanceMixin(DistanceMixin):
     def _cluster_by_sample(
         self, rank=Rank.Auto, metric=BetaDiversityMetric.BrayCurtis, linkage=Linkage.Average
     ):
+        import numpy as np
         from scipy.cluster import hierarchy
         from scipy.spatial.distance import squareform
         from sklearn.metrics.pairwise import euclidean_distances
@@ -73,6 +72,7 @@ class VizDistanceMixin(DistanceMixin):
         }
 
     def _cluster_by_taxa(self, linkage=Linkage.Average):
+        import numpy as np
         from scipy.cluster import hierarchy
         from scipy.spatial.distance import squareform
         from sklearn.metrics.pairwise import euclidean_distances
