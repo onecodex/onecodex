@@ -1,5 +1,3 @@
-import numpy as np
-
 from onecodex.lib.enums import Rank, Linkage, Link
 from onecodex.exceptions import OneCodexException, PlottingException
 from onecodex.viz._primitives import (
@@ -103,6 +101,7 @@ class VizHeatmapMixin(object):
         # Deferred imports
         import altair as alt
         import pandas as pd
+        import numpy as np
 
         if rank is None:
             raise OneCodexException("Please specify a rank or 'auto' to choose automatically")
