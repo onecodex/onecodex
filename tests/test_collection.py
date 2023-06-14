@@ -162,7 +162,7 @@ def test_collate_results(ocx, api_data, metric, sha):
     for col in sorted(samples._results.columns.tolist()):
         for row in sorted(samples._results.index.tolist()):
             try:
-                string_to_hash += samples._results.loc[row, col].astype(str)
+                string_to_hash += samples._results.fillna(0).loc[row, col].astype(str)
             except AttributeError:
                 pass
 

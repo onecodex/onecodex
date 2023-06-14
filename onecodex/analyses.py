@@ -351,7 +351,10 @@ class AnalysisMixin(
                 )
 
         rank = self._get_auto_rank(rank)
-        df = self._collate_results(include_nans=include_nans).copy()
+
+        df = self._results.copy()
+        if not include_nans:
+            df = df.fillna(0)
 
         # subset by taxa
         if rank:

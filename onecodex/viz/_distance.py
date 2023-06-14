@@ -13,6 +13,7 @@ from onecodex.viz._primitives import (
     get_classification_url,
     open_links_in_new_tab,
 )
+from onecodex.viz._heatmap import get_all_nan_classification_ids
 from onecodex.utils import is_continuous, has_missing_values
 
 
@@ -50,13 +51,9 @@ class VizDistanceMixin(DistanceMixin):
         from scipy.spatial.distance import squareform
         from sklearn.metrics.pairwise import euclidean_distances
 
-        all_nan_classification_ids = []
+        all_nan_classification_ids = get_all_nan_classification_ids(self._results)
 
-        for class_id, is_all_nan in self._results.isnull().all(1).items():
-            if is_all_nan:
-                all_nan_classification_ids.append(class_id)
-
-        df = self._results.dropna(how="all").replace(np.nan, 0)
+        df = self._results.dropna(how="all", axis="rows").replace(np.nan, 0)
 
         if metric == "euclidean":
             dist_matrix = euclidean_distances(df).round(6)
@@ -68,15 +65,12 @@ class VizDistanceMixin(DistanceMixin):
         ids_in_order = [df.index[int(x)] for x in scipy_tree["ivl"]]
         ids_in_order.extend(all_nan_classification_ids)
 
-        return (
-            {
-                "dist_matrix": dist_matrix,
-                "clustering": clustering,
-                "scipy_tree": scipy_tree,
-                "ids_in_order": ids_in_order,
-            },
-            all_nan_classification_ids,
-        )
+        return {
+            "dist_matrix": dist_matrix,
+            "clustering": clustering,
+            "scipy_tree": scipy_tree,
+            "ids_in_order": ids_in_order,
+        }
 
     def _cluster_by_taxa(self, linkage=Linkage.Average):
         from scipy.cluster import hierarchy

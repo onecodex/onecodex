@@ -11,6 +11,14 @@ from onecodex.viz._primitives import (
 )
 
 
+def get_all_nan_classification_ids(df):
+    all_nan_classification_ids = []
+    for class_id, is_all_nan in df.isnull().all(1).items():
+        if is_all_nan:
+            all_nan_classification_ids.append(class_id)
+    return all_nan_classification_ids
+
+
 class VizHeatmapMixin(object):
     def plot_heatmap(
         self,
@@ -124,6 +132,8 @@ class VizHeatmapMixin(object):
             table_format="long",
             include_nans=True,
         )
+        # this won't work because we've already taken the top_n
+        all_nan_classification_ids = get_all_nan_classification_ids(df)
 
         if len(df["tax_id"].unique()) < 2:
             raise PlottingException(
@@ -186,10 +196,7 @@ class VizHeatmapMixin(object):
         if sort_x is None:
             if haxis is None:
                 # cluster samples only once
-                (
-                    sample_cluster,
-                    all_nan_classification_ids,
-                ) = df_sample_cluster.ocx._cluster_by_sample(
+                sample_cluster = df_sample_cluster.ocx._cluster_by_sample(
                     rank=rank, metric=metric, linkage=linkage
                 )
                 labels_in_order = magic_metadata["Label"][sample_cluster["ids_in_order"]].tolist()
