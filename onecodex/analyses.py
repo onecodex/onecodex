@@ -19,6 +19,14 @@ from onecodex.viz import (
 )
 
 
+def get_all_nan_classification_ids(df):
+    all_nan_classification_ids = []
+    for class_id, is_all_nan in df.isnull().all(1).items():
+        if is_all_nan:
+            all_nan_classification_ids.append(class_id)
+    return all_nan_classification_ids
+
+
 class AnalysisMixin(
     VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceMixin, VizBargraphMixin
 ):
@@ -245,6 +253,11 @@ class AnalysisMixin(
                         magic_fields[f] = str_f
 
         return magic_metadata, magic_fields
+
+    @property
+    def all_nan_classification_ids(self):
+        df = self._results.copy()
+        return get_all_nan_classification_ids(df)
 
     def to_df(self, analysis_type=AnalysisType.Classification, **kwargs):
         """

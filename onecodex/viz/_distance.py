@@ -11,7 +11,6 @@ from onecodex.viz._primitives import (
     get_classification_url,
     open_links_in_new_tab,
 )
-from onecodex.viz._heatmap import get_all_nan_classification_ids
 from onecodex.utils import is_continuous, has_missing_values
 
 
@@ -49,6 +48,7 @@ class VizDistanceMixin(DistanceMixin):
         from scipy.cluster import hierarchy
         from scipy.spatial.distance import squareform
         from sklearn.metrics.pairwise import euclidean_distances
+        from onecodex.analyses import get_all_nan_classification_ids
 
         all_nan_classification_ids = get_all_nan_classification_ids(self._results)
 
