@@ -30,6 +30,7 @@ class VizMetadataMixin(object):
         width=200,
         height=400,
         facet_by=None,
+        exclude_usermeta=False,
     ):
         """Plot an arbitrary metadata field versus an arbitrary quantity as a boxplot or scatter plot.
 
@@ -75,6 +76,10 @@ class VizMetadataMixin(object):
         facet_by : `string`, optional
             The metadata field used to facet samples by (i.e. to create a separate subplot for each
             group of samples).
+
+        exclude_usermeta: `bool`, optional
+            Whether or not `usermeta` should be added to the chart. Currently, we use this to open
+            links in new tabs by default.
 
         Examples
         --------
@@ -216,7 +221,8 @@ class VizMetadataMixin(object):
             chart = chart.resolve_scale(x="independent")
 
         chart = chart.properties(**prepare_props(title=title, height=height, width=width))
-        open_links_in_new_tab(chart)
+        if not exclude_usermeta:
+            open_links_in_new_tab(chart)
 
         if return_chart:
             return chart

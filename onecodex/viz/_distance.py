@@ -95,6 +95,7 @@ class VizDistanceMixin(DistanceMixin):
         label=None,
         width=None,
         height=None,
+        exclude_usermeta=False,
     ):
         """Plot beta diversity distance matrix as a heatmap and dendrogram.
 
@@ -121,6 +122,9 @@ class VizDistanceMixin(DistanceMixin):
             A metadata field (or function) used to label each analysis. If passing a function, a
             dict containing the metadata for each analysis is passed as the first and only
             positional argument. The callable function must return a string.
+        exclude_usermeta: `bool`, optional
+            Whether or not `usermeta` should be added to the chart. Currently, we use this to open
+            links in new tabs by default.
 
         Examples
         --------
@@ -218,7 +222,8 @@ class VizDistanceMixin(DistanceMixin):
         concat_chart = alt.hconcat(dendro_chart, chart, spacing=0, **title_kwargs).configure_view(
             strokeWidth=0
         )
-        open_links_in_new_tab(concat_chart)
+        if not exclude_usermeta:
+            open_links_in_new_tab(concat_chart)
 
         if return_chart:
             return concat_chart
@@ -244,6 +249,7 @@ class VizDistanceMixin(DistanceMixin):
         mark_size=100,
         width=None,
         height=None,
+        exclude_usermeta=False,
     ):
         """Plot beta diversity distance matrix using multidimensional scaling (MDS).
 
@@ -278,6 +284,9 @@ class VizDistanceMixin(DistanceMixin):
             A metadata field (or function) used to label each analysis. If passing a function, a
             dict containing the metadata for each analysis is passed as the first and only
             positional argument. The callable function must return a string.
+        exclude_usermeta: `bool`, optional
+            Whether or not `usermeta` should be added to the chart. Currently, we use this to open
+            links in new tabs by default.
 
         Examples
         --------
@@ -415,7 +424,8 @@ class VizDistanceMixin(DistanceMixin):
         chart = alt.Chart(plot_data).mark_circle(size=mark_size).encode(**alt_kwargs)
 
         chart = chart.properties(**prepare_props(title=title, height=height, width=width))
-        open_links_in_new_tab(chart)
+        if not exclude_usermeta:
+            open_links_in_new_tab(chart)
 
         if return_chart:
             return chart

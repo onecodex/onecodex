@@ -31,6 +31,7 @@ class VizHeatmapMixin(object):
         width=None,
         height=None,
         link=Link.Ocx,
+        exclude_usermeta=False,
     ):
         """Plot heatmap of taxa abundance/count data for several samples.
 
@@ -83,6 +84,9 @@ class VizHeatmapMixin(object):
             If `link` is 'ocx', clicking a sample will open its classification results in the One
             Codex app in a new tab. If `link` is 'ncbi', clicking a taxon will open the NCBI
             taxonomy browser in a new tab.
+        exclude_usermeta: `bool`, optional
+            Whether or not `usermeta` should be added to the chart. Currently, we use this to open
+            links in new tabs by default.
 
         Examples
         --------
@@ -248,7 +252,8 @@ class VizHeatmapMixin(object):
                 title=title, height=(height or 15 * row_count), width=(width or 15 * col_count)
             )
         )
-        open_links_in_new_tab(chart)
+        if not exclude_usermeta:
+            open_links_in_new_tab(chart)
 
         if haxis:
             chart = chart.resolve_scale(x="independent")

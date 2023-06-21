@@ -32,6 +32,7 @@ class VizBargraphMixin(object):
         height=None,
         group_by=None,
         link=Link.Ocx,
+        exclude_usermeta=False,
     ):
         """Plot a bargraph of relative abundance of taxa for multiple samples.
 
@@ -82,6 +83,9 @@ class VizBargraphMixin(object):
             If `link` is 'ocx', clicking a sample will open its classification results in the One
             Codex app in a new tab. If `link` is 'ncbi', clicking a taxon will open the NCBI
             taxonomy browser in a new tab.
+        exclude_usermeta: `bool`, optional
+            Whether or not `usermeta` should be added to the chart. Currently, we use this to open
+            links in new tabs by default.
 
         Examples
         --------
@@ -301,6 +305,8 @@ class VizBargraphMixin(object):
             chart = chart.resolve_scale(x="independent")
 
         chart = chart.properties(**prepare_props(title=title, width=width, height=height))
-        open_links_in_new_tab(chart)
+
+        if not exclude_usermeta:
+            open_links_in_new_tab(chart)
 
         return chart if return_chart else chart.display()

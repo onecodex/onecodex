@@ -27,6 +27,7 @@ class VizPCAMixin(object):
         mark_size=100,
         width=None,
         height=None,
+        exclude_usermeta=False,
     ):
         """Perform principal component analysis and plot first two axes.
 
@@ -63,6 +64,9 @@ class VizPCAMixin(object):
             positional argument. The callable function must return a string.
         mark_size: `int`, optional
             The size of the points in the scatter plot.
+        exclude_usermeta: `bool`, optional
+            Whether or not `usermeta` should be added to the chart. Currently, we use this to open
+            links in new tabs by default.
 
         Examples
         --------
@@ -210,7 +214,8 @@ class VizPCAMixin(object):
             chart = alt.layer(chart, vector_chart).resolve_scale(color="independent")
 
         chart = chart.properties(**prepare_props(title=title, height=height, width=width))
-        open_links_in_new_tab(chart)
+        if not exclude_usermeta:
+            open_links_in_new_tab(chart)
 
         if return_chart:
             return chart
