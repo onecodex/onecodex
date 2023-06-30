@@ -38,7 +38,14 @@ class ClassificationsDataFrame(pd.DataFrame):
         Whether the results in this DataFrame were normalized, each sample summing to 1.0.
     """
 
-    _metadata = ["ocx_rank", "ocx_metric", "ocx_taxonomy", "ocx_metadata", "ocx_normalized"]
+    _metadata = [
+        "ocx_rank",
+        "ocx_metric",
+        "ocx_taxonomy",
+        "ocx_metadata",
+        "ocx_normalized",
+        "_all_nan_classification_ids",
+    ]
 
     def __init__(
         self,
@@ -52,12 +59,14 @@ class ClassificationsDataFrame(pd.DataFrame):
         ocx_taxonomy=None,
         ocx_metadata=None,
         ocx_normalized=None,
+        _all_nan_classification_ids=None,
     ):
         self.ocx_rank = ocx_rank
         self.ocx_metric = ocx_metric
         self.ocx_taxonomy = ocx_taxonomy
         self.ocx_metadata = ocx_metadata
         self.ocx_normalized = ocx_normalized
+        self._all_nan_classification_ids = _all_nan_classification_ids
 
         pd.DataFrame.__init__(self, data=data, index=index, columns=columns, dtype=dtype, copy=copy)
 
@@ -160,6 +169,7 @@ class OneCodexAccessor(AnalysisMixin):
         self._metric = pandas_obj.ocx_metric
         self._rank = pandas_obj.ocx_rank
         self._results = pandas_obj
+        self._all_nan_classification_ids = pandas_obj._all_nan_classification_ids
 
         # prune back _taxonomy df to contain only taxa and parents in the ClassificationsDataFrame
         tree = self.tree_build()

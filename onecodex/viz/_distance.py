@@ -42,17 +42,21 @@ class VizDistanceMixin(DistanceMixin):
         return distances
 
     def _cluster_by_sample(
-        self, rank=Rank.Auto, metric=BetaDiversityMetric.BrayCurtis, linkage=Linkage.Average
+        self,
+        all_nan_classification_ids=None,
+        rank=Rank.Auto,
+        metric=BetaDiversityMetric.BrayCurtis,
+        linkage=Linkage.Average,
     ):
         import numpy as np
         from scipy.cluster import hierarchy
         from scipy.spatial.distance import squareform
         from sklearn.metrics.pairwise import euclidean_distances
-        from onecodex.analyses import get_all_nan_classification_ids
 
-        all_nan_classification_ids = get_all_nan_classification_ids(self._results)
-
-        df = self._results.dropna(how="all", axis="rows").replace(np.nan, 0)
+        df = self._results
+        if all_nan_classification_ids:
+            df = df.drop(all_nan_classification_ids)
+        df = df.replace(np.nan, 0)
 
         if metric == "euclidean":
             dist_matrix = euclidean_distances(df).round(6)
@@ -62,7 +66,9 @@ class VizDistanceMixin(DistanceMixin):
         clustering = hierarchy.linkage(squareform(dist_matrix), method=linkage)
         scipy_tree = hierarchy.dendrogram(clustering, no_plot=True)
         ids_in_order = [df.index[int(x)] for x in scipy_tree["ivl"]]
-        ids_in_order.extend(all_nan_classification_ids)
+
+        if all_nan_classification_ids:
+            ids_in_order.extend(all_nan_classification_ids)
 
         return {
             "dist_matrix": dist_matrix,

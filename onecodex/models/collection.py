@@ -262,7 +262,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         return self._cached["metadata"]
 
-    def _collate_results(self, metric=None, include_host=None, include_nans=False):
+    def _collate_results(self, metric=None, include_host=None):
         """Transform a list of Classifications into `pd.DataFrames` of taxonomy and results data.
 
         Parameters

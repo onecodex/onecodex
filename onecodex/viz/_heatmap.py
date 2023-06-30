@@ -187,7 +187,10 @@ class VizHeatmapMixin(object):
             if haxis is None:
                 # cluster samples only once
                 sample_cluster = df_sample_cluster.ocx._cluster_by_sample(
-                    rank=rank, metric=metric, linkage=linkage
+                    all_nan_classification_ids=all_nan_classification_ids,
+                    rank=rank,
+                    metric=metric,
+                    linkage=linkage,
                 )
                 labels_in_order = magic_metadata["Label"][sample_cluster["ids_in_order"]].tolist()
             else:
@@ -213,7 +216,10 @@ class VizHeatmapMixin(object):
                         continue
 
                     sample_cluster = group_df.drop(columns=[haxis]).ocx._cluster_by_sample(
-                        rank=rank, metric=metric, linkage=linkage
+                        all_nan_classification_ids=all_nan_classification_ids,
+                        rank=rank,
+                        metric=metric,
+                        linkage=linkage,
                     )
                     labels_in_order.extend(
                         magic_metadata["Label"][sample_cluster["ids_in_order"]].tolist()
@@ -224,12 +230,12 @@ class VizHeatmapMixin(object):
         # should ultimately be Label, tax_name, readcount_w_children, then custom fields
         tooltip_for_altair = [magic_fields[f] for f in tooltip]
         tooltip_for_altair.insert(1, "tax_name")
-        tooltip_for_altair.insert(2, "{}:Q".format(df.ocx.metric))
+        tooltip_for_altair.insert(2, f"{df.ocx.metric}:Q")
 
         alt_kwargs = dict(
             x=alt.X("Label:N", axis=alt.Axis(title=xlabel), sort=labels_in_order),
             y=alt.Y("tax_name:N", axis=alt.Axis(title=ylabel), sort=taxa_cluster),
-            color=alt.Color("{}:Q".format(df.ocx.metric), legend=alt.Legend(title=legend)),
+            color=alt.Color(f"{df.ocx.metric}:Q", legend=alt.Legend(title=legend)),
             tooltip=tooltip_for_altair,
         )
 
@@ -250,6 +256,10 @@ class VizHeatmapMixin(object):
         dropped = []
         for classification_id in all_nan_classification_ids:
             d = df[(df == classification_id).any(axis=1)]
+            if self.__class__.__name__ == "OneCodexAccessor":
+                # the df of a `OneCodexAccessor` does not have NaNs, and we want to display
+                # all_nan_classificaion_id columns as white instead of color corresponding to 0
+                d = d.replace(0.0, np.nan)
             dropped.append(d)
             index = df[(df == classification_id).any(axis=1)].index
             df = df.drop(index)

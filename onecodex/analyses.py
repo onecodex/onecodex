@@ -256,8 +256,9 @@ class AnalysisMixin(
 
     @property
     def all_nan_classification_ids(self):
-        df = self._results.copy()
-        return get_all_nan_classification_ids(df)
+        if self.__class__.__name__ == "OneCodexAccessor":
+            return self._all_nan_classification_ids
+        return get_all_nan_classification_ids(self._results)
 
     def to_df(self, analysis_type=AnalysisType.Classification, **kwargs):
         """
@@ -321,7 +322,7 @@ class AnalysisMixin(
         include_taxa_missing_rank=False,
         include_nans=False,
     ):
-        """Generate a ClassificationDataFrame, performing any specified transformations.
+        """Generate a ClassificationsDataFrame, performing any specified transformations.
 
         Takes the ClassificationsDataFrame associated with these samples, or SampleCollection,
         does some filtering, and returns a ClassificationsDataFrame copy.
@@ -441,6 +442,7 @@ class AnalysisMixin(
             "ocx_metric": self._metric,
             "ocx_taxonomy": self.taxonomy.copy(),
             "ocx_normalized": normalize,
+            "_all_nan_classification_ids": self.all_nan_classification_ids,
         }
 
         # generate long-format table
