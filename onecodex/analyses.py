@@ -257,6 +257,8 @@ class AnalysisMixin(
     @property
     def all_nan_classification_ids(self):
         if self.__class__.__name__ == "OneCodexAccessor":
+            if self._all_nan_classification_ids is None:
+                raise OneCodexException("Unable to fetch list of all_nan_classification_ids")
             return self._all_nan_classification_ids
         return get_all_nan_classification_ids(self._results)
 
