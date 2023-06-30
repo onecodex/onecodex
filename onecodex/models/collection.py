@@ -3,9 +3,6 @@ from datetime import datetime
 import json
 import warnings
 
-import numpy as np
-import pandas as pd
-
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.enums import Metric, FunctionalAnnotations, FunctionalAnnotationsMetric
 
@@ -481,6 +478,9 @@ class SampleCollection(ResourceList, AnalysisMixin):
         filler : float, optional
             Value with which to fill `np.nan` values
         """
+        import numpy as np
+        import pandas as pd
+
         # validate args
         annotation = FunctionalAnnotations(annotation)
         metric = FunctionalAnnotationsMetric(metric)
