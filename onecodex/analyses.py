@@ -19,7 +19,7 @@ from onecodex.viz import (
 )
 
 
-def get_all_nan_classification_ids(df):
+def _get_all_nan_classification_ids(df):
     all_nan_classification_ids = []
     for class_id, is_all_nan in df.isnull().all(1).items():
         if is_all_nan:
@@ -258,9 +258,11 @@ class AnalysisMixin(
     def all_nan_classification_ids(self):
         if self.__class__.__name__ == "OneCodexAccessor":
             if self._all_nan_classification_ids is None:
+                # We rely on this list for accurate plot data, and it shouldn't ever be None, but if
+                # it is None, we raise an exception to avoid generating misleading plots
                 raise OneCodexException("Unable to fetch list of all_nan_classification_ids")
             return self._all_nan_classification_ids
-        return get_all_nan_classification_ids(self._results)
+        return _get_all_nan_classification_ids(self._results)
 
     def to_df(self, analysis_type=AnalysisType.Classification, **kwargs):
         """
@@ -322,7 +324,8 @@ class AnalysisMixin(
         normalize="auto",
         table_format="wide",
         include_taxa_missing_rank=False,
-        include_nans=False,
+        fill_missing=True,
+        filler=0,
     ):
         """Generate a ClassificationsDataFrame, performing any specified transformations.
 
@@ -347,6 +350,10 @@ class AnalysisMixin(
         include_taxa_missing_rank : bool, optional
             Whether or not to include taxa that do not have a designated parent at `rank` (will be
             grouped into a "No <rank>" column).
+        fill_missing : bool, optional
+            Fill np.nan values
+        filler : float, optional
+            Value with which to fill np.nans
 
         Returns
         -------
@@ -369,8 +376,8 @@ class AnalysisMixin(
         rank = self._get_auto_rank(rank)
 
         df = self._results.copy()
-        if not include_nans:
-            df = df.fillna(0)
+        if fill_missing:
+            df = df.fillna(filler)
 
         # subset by taxa
         if rank:
@@ -444,7 +451,7 @@ class AnalysisMixin(
             "ocx_metric": self._metric,
             "ocx_taxonomy": self.taxonomy.copy(),
             "ocx_normalized": normalize,
-            "_all_nan_classification_ids": self.all_nan_classification_ids,
+            "ocx_all_nan_classification_ids": self.all_nan_classification_ids,
         }
 
         # generate long-format table

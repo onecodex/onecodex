@@ -121,7 +121,7 @@ class VizHeatmapMixin(object):
             top_n=top_n,
             threshold=threshold,
             table_format="long",
-            include_nans=True,
+            fill_missing=False,
         )
         all_nan_classification_ids = self.all_nan_classification_ids
 
@@ -164,16 +164,16 @@ class VizHeatmapMixin(object):
                 )
 
             df_sample_cluster = self.to_df(
-                rank=rank, normalize=normalize, top_n=top_n, threshold=threshold, include_nans=True
+                rank=rank, normalize=normalize, top_n=top_n, threshold=threshold, fill_missing=False
             )
             df_taxa_cluster = df_sample_cluster
         else:
             df_sample_cluster = self.to_df(
-                rank=rank, normalize=False, top_n=top_n, threshold=threshold, include_nans=True
+                rank=rank, normalize=False, top_n=top_n, threshold=threshold, fill_missing=False
             )
 
             df_taxa_cluster = self.to_df(
-                rank=rank, normalize=normalize, top_n=top_n, threshold=threshold, include_nans=True
+                rank=rank, normalize=normalize, top_n=top_n, threshold=threshold, fill_missing=False
             )
 
         # applying clustering to determine order of taxa, or use custom sorting function if given
@@ -265,8 +265,7 @@ class VizHeatmapMixin(object):
             df = df.drop(index)
 
         df = df.replace(np.nan, 0)
-        for dropped_df in dropped:
-            df = pd.concat([df, dropped_df])
+        df = pd.concat([df, *dropped])
 
         assert set(df["Label"].values) == set(labels_in_order)
 
