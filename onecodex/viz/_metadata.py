@@ -4,7 +4,6 @@ from onecodex.viz._primitives import (
     prepare_props,
     sort_helper,
     get_classification_url,
-    open_links_in_new_tab,
 )
 
 
@@ -30,7 +29,6 @@ class VizMetadataMixin(object):
         width=200,
         height=400,
         facet_by=None,
-        open_links_in_new_tabs=True,
     ):
         """Plot an arbitrary metadata field versus an arbitrary quantity as a boxplot or scatter plot.
 
@@ -76,10 +74,6 @@ class VizMetadataMixin(object):
         facet_by : `string`, optional
             The metadata field used to facet samples by (i.e. to create a separate subplot for each
             group of samples).
-
-        open_links_in_new_tabs: `bool`, optional
-            Whether or not `usermeta` should be added to the chart with link_target = _blank, which opens
-            links in new tabs.
 
         Examples
         --------
@@ -221,8 +215,6 @@ class VizMetadataMixin(object):
             chart = chart.resolve_scale(x="independent")
 
         chart = chart.properties(**prepare_props(title=title, height=height, width=width))
-        if open_links_in_new_tabs:
-            open_links_in_new_tab(chart)
 
         if return_chart:
             return chart

@@ -5,7 +5,6 @@ from onecodex.viz._primitives import (
     sort_helper,
     get_classification_url,
     get_ncbi_taxonomy_browser_url,
-    open_links_in_new_tab,
 )
 
 
@@ -31,7 +30,6 @@ class VizHeatmapMixin(object):
         width=None,
         height=None,
         link=Link.Ocx,
-        open_links_in_new_tabs=True,
     ):
         """Plot heatmap of taxa abundance/count data for several samples.
 
@@ -82,11 +80,7 @@ class VizHeatmapMixin(object):
             as the only argument, and must return the same list in a user-specified order.
         link : {'ocx', 'ncbi'}, optional
             If `link` is 'ocx', clicking a sample will open its classification results in the One
-            Codex app in a new tab. If `link` is 'ncbi', clicking a taxon will open the NCBI
-            taxonomy browser in a new tab.
-        open_links_in_new_tabs: `bool`, optional
-            Whether or not `usermeta` should be added to the chart with link_target = _blank, which opens
-            links in new tabs.
+            Codex app. If `link` is 'ncbi', clicking a taxon will open the NCBI taxonomy browser.
 
         Examples
         --------
@@ -252,8 +246,6 @@ class VizHeatmapMixin(object):
                 title=title, height=(height or 15 * row_count), width=(width or 15 * col_count)
             )
         )
-        if open_links_in_new_tabs:
-            open_links_in_new_tab(chart)
 
         if haxis:
             chart = chart.resolve_scale(x="independent")

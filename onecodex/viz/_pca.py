@@ -3,7 +3,6 @@ from onecodex.viz._primitives import (
     interleave_palette,
     prepare_props,
     get_classification_url,
-    open_links_in_new_tab,
 )
 from onecodex.exceptions import OneCodexException, PlottingException
 from onecodex.utils import is_continuous, has_missing_values
@@ -27,7 +26,6 @@ class VizPCAMixin(object):
         mark_size=100,
         width=None,
         height=None,
-        open_links_in_new_tabs=True,
     ):
         """Perform principal component analysis and plot first two axes.
 
@@ -64,9 +62,6 @@ class VizPCAMixin(object):
             positional argument. The callable function must return a string.
         mark_size: `int`, optional
             The size of the points in the scatter plot.
-        open_links_in_new_tabs: `bool`, optional
-            Whether or not `usermeta` should be added to the chart with link_target = _blank, which opens
-            links in new tabs.
 
         Examples
         --------
@@ -214,8 +209,6 @@ class VizPCAMixin(object):
             chart = alt.layer(chart, vector_chart).resolve_scale(color="independent")
 
         chart = chart.properties(**prepare_props(title=title, height=height, width=width))
-        if open_links_in_new_tabs:
-            open_links_in_new_tab(chart)
 
         if return_chart:
             return chart

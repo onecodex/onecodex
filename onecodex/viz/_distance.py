@@ -9,7 +9,6 @@ from onecodex.viz._primitives import (
     interleave_palette,
     prepare_props,
     get_classification_url,
-    open_links_in_new_tab,
 )
 from onecodex.utils import is_continuous, has_missing_values
 
@@ -95,7 +94,6 @@ class VizDistanceMixin(DistanceMixin):
         label=None,
         width=None,
         height=None,
-        open_links_in_new_tabs=True,
     ):
         """Plot beta diversity distance matrix as a heatmap and dendrogram.
 
@@ -122,9 +120,6 @@ class VizDistanceMixin(DistanceMixin):
             A metadata field (or function) used to label each analysis. If passing a function, a
             dict containing the metadata for each analysis is passed as the first and only
             positional argument. The callable function must return a string.
-        open_links_in_new_tabs: `bool`, optional
-            Whether or not `usermeta` should be added to the chart with link_target = _blank, which opens
-            links in new tabs.
 
         Examples
         --------
@@ -222,8 +217,6 @@ class VizDistanceMixin(DistanceMixin):
         concat_chart = alt.hconcat(dendro_chart, chart, spacing=0, **title_kwargs).configure_view(
             strokeWidth=0
         )
-        if open_links_in_new_tabs:
-            open_links_in_new_tab(concat_chart)
 
         if return_chart:
             return concat_chart
@@ -249,7 +242,6 @@ class VizDistanceMixin(DistanceMixin):
         mark_size=100,
         width=None,
         height=None,
-        open_links_in_new_tabs=True,
     ):
         """Plot beta diversity distance matrix using multidimensional scaling (MDS).
 
@@ -284,9 +276,6 @@ class VizDistanceMixin(DistanceMixin):
             A metadata field (or function) used to label each analysis. If passing a function, a
             dict containing the metadata for each analysis is passed as the first and only
             positional argument. The callable function must return a string.
-        open_links_in_new_tabs: `bool`, optional
-            Whether or not `usermeta` should be added to the chart with link_target = _blank, which opens
-            links in new tabs.
 
         Examples
         --------
@@ -422,10 +411,7 @@ class VizDistanceMixin(DistanceMixin):
             alt_kwargs["size"] = magic_fields[size]
 
         chart = alt.Chart(plot_data).mark_circle(size=mark_size).encode(**alt_kwargs)
-
         chart = chart.properties(**prepare_props(title=title, height=height, width=width))
-        if open_links_in_new_tabs:
-            open_links_in_new_tab(chart)
 
         if return_chart:
             return chart
