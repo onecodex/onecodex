@@ -258,7 +258,7 @@ class VizHeatmapMixin(object):
             d = df[(df == classification_id).any(axis=1)]
             if self.__class__.__name__ == "OneCodexAccessor":
                 # the df of a `OneCodexAccessor` does not have NaNs, and we want to display
-                # all_nan_classificaion_id columns as white instead of color corresponding to 0
+                # all_nan_classification_id columns as white instead of color corresponding to 0
                 d = d.replace(0.0, np.nan)
             dropped.append(d)
             index = df[(df == classification_id).any(axis=1)].index

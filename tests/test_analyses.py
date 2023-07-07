@@ -35,6 +35,22 @@ def test_default_metric(ocx, api_data):
     assert samples.metric == "Relative Abundance"
 
 
+def test_all_nan_classification_id_property(ocx, api_data):
+    import numpy as np
+
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+    # should be the same when called on `SampleCollection` and on `OneCodexAccessor`
+    assert samples.all_nan_classification_ids == []
+    assert samples.to_df(fill_missing=False).ocx.all_nan_classification_ids == []
+
+    samples._results.iloc[0] = np.nan
+
+    assert samples.to_df(fill_missing=False).ocx.all_nan_classification_ids == [
+        samples._results.iloc[0].name
+    ]
+    assert samples.all_nan_classification_ids == [samples._results.iloc[0].name]
+
+
 def test_guess_normalization(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
 
@@ -64,6 +80,14 @@ def test_normalization_with_zero_abundance_samples(ocx, api_data):
     df = samples.to_df(normalize=True)
 
     assert list(df.sum(axis=1, skipna=False).round(6)) == [0.0, 0.0, 1.0]
+
+
+def test_fill_missing_df(ocx, api_data):
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+    samples._collate_results(metric="abundance_w_children")
+
+    assert samples.to_df(fill_missing=False).isnull().values.any() is True
+    assert samples.to_df(fill_missing=True).isnull().values.any() is False
 
 
 def test_metadata_fetch(ocx, api_data):
