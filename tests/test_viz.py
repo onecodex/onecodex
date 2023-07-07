@@ -276,7 +276,7 @@ def test_plot_heatmap_plots_all_nan_samples_with_nans(ocx, api_data):
         chart_data[(chart_data == all_nan_classification_id).any(axis=1)]["Relative Abundance"]
         .isnull()
         .all()
-        is True
+        == True  # noqa
     )
     assert (
         chart_data[(chart_data == samples[1].primary_classification.id).any(axis=1)][
@@ -284,7 +284,7 @@ def test_plot_heatmap_plots_all_nan_samples_with_nans(ocx, api_data):
         ]
         .isnull()
         .any()
-        is False
+        == False  # noqa
     )
 
     # Sample with all NaNs should be at the end
@@ -313,7 +313,7 @@ def test_plot_heatmap_on_df_plots_all_nan_samples_with_nans(ocx, api_data):
         chart_data[(chart_data == all_nan_classification_id).any(axis=1)]["Relative Abundance"]
         .isnull()
         .all()
-        is True
+        == True  # noqa
     )
     assert (
         chart_data[(chart_data == samples[1].primary_classification.id).any(axis=1)][
@@ -321,7 +321,7 @@ def test_plot_heatmap_on_df_plots_all_nan_samples_with_nans(ocx, api_data):
         ]
         .isnull()
         .any()
-        is False
+        == False  # noqa
     )
 
     # Sample with all NaNs should be at the end
