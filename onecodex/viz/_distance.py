@@ -54,9 +54,7 @@ class VizDistanceMixin(DistanceMixin):
         from sklearn.metrics.pairwise import euclidean_distances
 
         df = self._results
-        import pdb
 
-        pdb.set_trace()
         if all_nan_classification_ids:
             df = df.drop(all_nan_classification_ids)
         df = df.replace(np.nan, 0)
