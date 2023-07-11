@@ -86,8 +86,8 @@ def test_fill_missing_df(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
     samples._collate_results(metric="abundance_w_children")
 
-    assert samples.to_df(fill_missing=False).isnull().values.any() is True
-    assert samples.to_df(fill_missing=True).isnull().values.any() is False
+    assert samples.to_df(fill_missing=False).isnull().values.any() == True  # noqa
+    assert samples.to_df(fill_missing=True).isnull().values.any() == False  # noqa
 
 
 def test_metadata_fetch(ocx, api_data):
