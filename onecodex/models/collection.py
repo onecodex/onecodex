@@ -354,7 +354,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
                     continue
 
                 if metric in [Metric.AbundanceWChildren, Metric.Abundance]:
-                    data[c_idx, tax_id_to_idx[d_tax_id]] = d[metric] or np.nan
+                    data[c_idx, tax_id_to_idx[d_tax_id]] = d[metric]
                 else:
                     data[c_idx, tax_id_to_idx[d_tax_id]] = d[metric] or 0
 
