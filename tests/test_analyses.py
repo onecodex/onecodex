@@ -40,15 +40,15 @@ def test_all_nan_classification_id_property(ocx, api_data):
 
     samples = ocx.Samples.where(project="4b53797444f846c4")
     # should be the same when called on `SampleCollection` and on `OneCodexAccessor`
-    assert samples.all_nan_classification_ids == []
-    assert samples.to_df(fill_missing=False).ocx.all_nan_classification_ids == []
+    assert samples._all_nan_classification_ids == []
+    assert samples.to_df(fill_missing=False).ocx._all_nan_classification_ids == []
 
     samples._results.iloc[0] = np.nan
 
-    assert samples.to_df(fill_missing=False).ocx.all_nan_classification_ids == [
+    assert samples.to_df(fill_missing=False).ocx._all_nan_classification_ids == [
         samples._results.iloc[0].name
     ]
-    assert samples.all_nan_classification_ids == [samples._results.iloc[0].name]
+    assert samples._all_nan_classification_ids == [samples._results.iloc[0].name]
 
 
 def test_guess_normalization(ocx, api_data):

@@ -42,10 +42,11 @@ class AnalysisMixin(
 
     def _get_auto_rank(self, rank):
         """Attempt to figure out what rank we should use for analyses."""
+        from onecodex.dataframes import OneCodexAccessor
 
         if rank == Rank.Auto:
             # if we're an accessor for a ClassificationsDataFrame, use its _rank property
-            if self.__class__.__name__ == "OneCodexAccessor":
+            if isinstance(self, OneCodexAccessor):
                 return self._rank
 
             if AbundanceMetric.has_value(self._metric) or self._is_metagenomic:
@@ -255,13 +256,23 @@ class AnalysisMixin(
         return magic_metadata, magic_fields
 
     @property
-    def all_nan_classification_ids(self):
-        if self.__class__.__name__ == "OneCodexAccessor":
-            if self._all_nan_classification_ids is None:
+    def _all_nan_classification_ids(self):
+        """
+        Provide list of classification ids for which there are no abundances calculated.
+
+        This can be used in plotting functions that may want to exclude or represent samples or
+        classifications in this category differently. Since plotting functions can be called on
+        `SampleCollection`s or `OneCodexAccessor`s, storing this list is safest, before
+        dataframe manipulation happens and information is possibly lost.
+        """
+        from onecodex.dataframes import OneCodexAccessor
+
+        if isinstance(self, OneCodexAccessor):
+            if self.ocx_all_nan_classification_ids is None:
                 # We rely on this list for accurate plot data, and it shouldn't ever be None, but if
                 # it is None, we raise an exception to avoid generating misleading plots
                 raise OneCodexException("Unable to fetch list of all_nan_classification_ids")
-            return self._all_nan_classification_ids
+            return self.ocx_all_nan_classification_ids
         return _get_all_nan_classification_ids(self._results)
 
     def to_df(self, analysis_type=AnalysisType.Classification, **kwargs):
@@ -451,7 +462,7 @@ class AnalysisMixin(
             "ocx_metric": self._metric,
             "ocx_taxonomy": self.taxonomy.copy(),
             "ocx_normalized": normalize,
-            "ocx_all_nan_classification_ids": self.all_nan_classification_ids,
+            "ocx_all_nan_classification_ids": self._all_nan_classification_ids,
         }
 
         # generate long-format table

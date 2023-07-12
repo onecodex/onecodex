@@ -94,6 +94,7 @@ class VizHeatmapMixin(object):
         import altair as alt
         import pandas as pd
         import numpy as np
+        from onecodex.dataframes import OneCodexAccessor
 
         if rank is None:
             raise OneCodexException("Please specify a rank or 'auto' to choose automatically")
@@ -123,7 +124,7 @@ class VizHeatmapMixin(object):
             table_format="long",
             fill_missing=False,
         )
-        all_nan_classification_ids = self.all_nan_classification_ids
+        all_nan_classification_ids = self._all_nan_classification_ids
 
         if len(df["tax_id"].unique()) < 2:
             raise PlottingException(
@@ -256,7 +257,7 @@ class VizHeatmapMixin(object):
         dropped = []
         for classification_id in all_nan_classification_ids:
             d = df[(df == classification_id).any(axis=1)]
-            if self.__class__.__name__ == "OneCodexAccessor":
+            if isinstance(self, OneCodexAccessor):
                 # the df of a `OneCodexAccessor` does not have NaNs, and we want to display
                 # all_nan_classification_id columns as white instead of color corresponding to 0
                 d = d.replace(0.0, np.nan)

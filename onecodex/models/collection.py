@@ -340,7 +340,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         data = np.zeros((len(self._classifications), len(tax_info.index)), dtype=metric_dtype)
 
         if metric in [Metric.AbundanceWChildren, Metric.Abundance]:
-            data[:] = np.nan
+            data.fill(np.nan)
 
         for c_idx, c in enumerate(self._classifications):
             # results are cached from the call earlier in this method
@@ -354,7 +354,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
                     continue
 
                 if metric in [Metric.AbundanceWChildren, Metric.Abundance]:
-                    data[c_idx, tax_id_to_idx[d_tax_id]] = d[metric]
+                    data[c_idx, tax_id_to_idx[d_tax_id]] = d[metric] or np.nan
                 else:
                     data[c_idx, tax_id_to_idx[d_tax_id]] = d[metric] or 0
 

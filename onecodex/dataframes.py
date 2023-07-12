@@ -172,7 +172,7 @@ class OneCodexAccessor(AnalysisMixin):
         self._metric = pandas_obj.ocx_metric
         self._rank = pandas_obj.ocx_rank
         self._results = pandas_obj
-        self._all_nan_classification_ids = pandas_obj.ocx_all_nan_classification_ids
+        self.ocx_all_nan_classification_ids = pandas_obj.ocx_all_nan_classification_ids
 
         # prune back _taxonomy df to contain only taxa and parents in the ClassificationsDataFrame
         tree = self.tree_build()
