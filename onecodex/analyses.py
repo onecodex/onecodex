@@ -268,11 +268,11 @@ class AnalysisMixin(
         from onecodex.dataframes import OneCodexAccessor
 
         if isinstance(self, OneCodexAccessor):
-            if self.ocx_all_nan_classification_ids is None:
+            if self._ocx_all_nan_classification_ids is None:
                 # We rely on this list for accurate plot data, and it shouldn't ever be None, but if
                 # it is None, we raise an exception to avoid generating misleading plots
                 raise OneCodexException("Unable to fetch list of all_nan_classification_ids")
-            return self.ocx_all_nan_classification_ids
+            return self._ocx_all_nan_classification_ids
         return _get_all_nan_classification_ids(self._results)
 
     def to_df(self, analysis_type=AnalysisType.Classification, **kwargs):
