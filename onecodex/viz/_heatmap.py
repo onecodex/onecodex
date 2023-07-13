@@ -91,6 +91,8 @@ class VizHeatmapMixin(object):
         # Deferred imports
         import altair as alt
         import pandas as pd
+        import numpy as np
+        from onecodex.dataframes import OneCodexAccessor
 
         if rank is None:
             raise OneCodexException("Please specify a rank or 'auto' to choose automatically")
@@ -113,8 +115,14 @@ class VizHeatmapMixin(object):
             threshold = None
 
         df = self.to_df(
-            rank=rank, normalize=normalize, top_n=top_n, threshold=threshold, table_format="long"
+            rank=rank,
+            normalize=normalize,
+            top_n=top_n,
+            threshold=threshold,
+            table_format="long",
+            fill_missing=False,
         )
+        all_nan_classification_ids = self._all_nan_classification_ids
 
         if len(df["tax_id"].unique()) < 2:
             raise PlottingException(
@@ -155,16 +163,16 @@ class VizHeatmapMixin(object):
                 )
 
             df_sample_cluster = self.to_df(
-                rank=rank, normalize=normalize, top_n=top_n, threshold=threshold
+                rank=rank, normalize=normalize, top_n=top_n, threshold=threshold, fill_missing=False
             )
             df_taxa_cluster = df_sample_cluster
         else:
             df_sample_cluster = self.to_df(
-                rank=rank, normalize=False, top_n=top_n, threshold=threshold
+                rank=rank, normalize=False, top_n=top_n, threshold=threshold, fill_missing=False
             )
 
             df_taxa_cluster = self.to_df(
-                rank=rank, normalize=normalize, top_n=top_n, threshold=threshold
+                rank=rank, normalize=normalize, top_n=top_n, threshold=threshold, fill_missing=False
             )
 
         # applying clustering to determine order of taxa, or use custom sorting function if given
@@ -178,7 +186,10 @@ class VizHeatmapMixin(object):
             if haxis is None:
                 # cluster samples only once
                 sample_cluster = df_sample_cluster.ocx._cluster_by_sample(
-                    rank=rank, metric=metric, linkage=linkage
+                    all_nan_classification_ids=all_nan_classification_ids,
+                    rank=rank,
+                    metric=metric,
+                    linkage=linkage,
                 )
                 labels_in_order = magic_metadata["Label"][sample_cluster["ids_in_order"]].tolist()
             else:
@@ -204,7 +215,10 @@ class VizHeatmapMixin(object):
                         continue
 
                     sample_cluster = group_df.drop(columns=[haxis]).ocx._cluster_by_sample(
-                        rank=rank, metric=metric, linkage=linkage
+                        all_nan_classification_ids=all_nan_classification_ids,
+                        rank=rank,
+                        metric=metric,
+                        linkage=linkage,
                     )
                     labels_in_order.extend(
                         magic_metadata["Label"][sample_cluster["ids_in_order"]].tolist()
@@ -215,12 +229,12 @@ class VizHeatmapMixin(object):
         # should ultimately be Label, tax_name, readcount_w_children, then custom fields
         tooltip_for_altair = [magic_fields[f] for f in tooltip]
         tooltip_for_altair.insert(1, "tax_name")
-        tooltip_for_altair.insert(2, "{}:Q".format(df.ocx.metric))
+        tooltip_for_altair.insert(2, f"{df.ocx.metric}:Q")
 
         alt_kwargs = dict(
             x=alt.X("Label:N", axis=alt.Axis(title=xlabel), sort=labels_in_order),
             y=alt.Y("tax_name:N", axis=alt.Axis(title=ylabel), sort=taxa_cluster),
-            color=alt.Color("{}:Q".format(df.ocx.metric), legend=alt.Legend(title=legend)),
+            color=alt.Color(f"{df.ocx.metric}:Q", legend=alt.Legend(title=legend)),
             tooltip=tooltip_for_altair,
         )
 
@@ -235,6 +249,24 @@ class VizHeatmapMixin(object):
             alt_kwargs["column"] = alt.Column(
                 haxis, header=alt.Header(titleOrient="bottom", labelOrient="bottom")
             )
+
+        # Drop all-NaN rows, convert remaining NaNs to 0s, and concat
+        # dropped all-NaN rows to the end
+        dropped = []
+        for classification_id in all_nan_classification_ids:
+            d = df[(df == classification_id).any(axis=1)]
+            if isinstance(self, OneCodexAccessor):
+                # the df of a `OneCodexAccessor` does not have NaNs, and we want to display
+                # all_nan_classification_id columns as white instead of color corresponding to 0
+                d = d.replace(0.0, np.nan)
+            dropped.append(d)
+            index = df[(df == classification_id).any(axis=1)].index
+            df = df.drop(index)
+
+        df = df.replace(np.nan, 0)
+        df = pd.concat([df, *dropped])
+
+        assert set(df["Label"].values) == set(labels_in_order)
 
         chart = alt.Chart(df).mark_rect().encode(**alt_kwargs)
 

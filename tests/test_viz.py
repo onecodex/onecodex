@@ -254,6 +254,55 @@ def test_plot_heatmap(ocx, api_data):
     assert all(chart.data.groupby("tax_id").max()["Relative Abundance"] > 0.01)
 
 
+@pytest.mark.parametrize(
+    "is_onecodex_accessor",
+    [
+        (False),
+        (True),
+    ],
+)
+def test_plot_heatmap_plots_all_nan_samples_with_nans(ocx, api_data, is_onecodex_accessor):
+    import numpy as np
+
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+
+    # Set abundances for first sample to be all NaN
+    all_nan_sample = samples[0]
+    samples._results.loc[all_nan_sample.primary_classification.id] = np.nan
+    assert len(samples._all_nan_classification_ids) == 1
+
+    all_nan_classification_id = samples._all_nan_classification_ids[0]
+    if is_onecodex_accessor:
+        chart = samples.to_df().ocx.plot_heatmap(
+            title="my title", xlabel="my xlabel", ylabel="my ylabel", return_chart=True
+        )
+    else:
+        chart = samples.plot_heatmap(
+            top_n=10, title="my title", xlabel="my xlabel", ylabel="my ylabel", return_chart=True
+        )
+    chart_data = chart["data"]
+
+    # Samples with no abundances calculated for them should have all-NaN rows in chart data df
+    # Other classification_id rows should not have any `NaN`s
+    assert (
+        chart_data[(chart_data == all_nan_classification_id).any(axis=1)]["Relative Abundance"]
+        .isnull()
+        .all()
+        == True  # noqa
+    )
+    assert (
+        chart_data[(chart_data == samples[1].primary_classification.id).any(axis=1)][
+            "Relative Abundance"
+        ]
+        .isnull()
+        .any()
+        == False  # noqa
+    )
+
+    # Sample with all NaNs should be at the end
+    assert chart.encoding.x.sort[-1] == all_nan_sample.filename
+
+
 def test_plot_heatmap_exceptions(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
 

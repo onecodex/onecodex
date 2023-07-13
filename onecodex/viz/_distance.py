@@ -41,19 +41,34 @@ class VizDistanceMixin(DistanceMixin):
         return distances
 
     def _cluster_by_sample(
-        self, rank=Rank.Auto, metric=BetaDiversityMetric.BrayCurtis, linkage=Linkage.Average
+        self,
+        all_nan_classification_ids=None,
+        rank=Rank.Auto,
+        metric=BetaDiversityMetric.BrayCurtis,
+        linkage=Linkage.Average,
     ):
+        import numpy as np
         from scipy.cluster import hierarchy
         from scipy.spatial.distance import squareform
         from sklearn.metrics.pairwise import euclidean_distances
 
+        df = self._results
+
+        if all_nan_classification_ids:
+            df = df.drop(all_nan_classification_ids)
+        df = df.replace(np.nan, 0)
+
         if metric == "euclidean":
-            dist_matrix = euclidean_distances(self._results).round(6)
+            dist_matrix = euclidean_distances(df).round(6)
         else:
             dist_matrix = self._compute_distance(rank=rank, metric=metric).to_data_frame().round(6)
+
         clustering = hierarchy.linkage(squareform(dist_matrix), method=linkage)
         scipy_tree = hierarchy.dendrogram(clustering, no_plot=True)
-        ids_in_order = [self._results.index[int(x)] for x in scipy_tree["ivl"]]
+        ids_in_order = [df.index[int(x)] for x in scipy_tree["ivl"]]
+
+        if all_nan_classification_ids:
+            ids_in_order.extend(all_nan_classification_ids)
 
         return {
             "dist_matrix": dist_matrix,
@@ -63,14 +78,18 @@ class VizDistanceMixin(DistanceMixin):
         }
 
     def _cluster_by_taxa(self, linkage=Linkage.Average):
+        import numpy as np
         from scipy.cluster import hierarchy
         from scipy.spatial.distance import squareform
         from sklearn.metrics.pairwise import euclidean_distances
 
-        dist_matrix = euclidean_distances(self._results.T).round(6)
-        clustering = hierarchy.linkage(squareform(dist_matrix), method=linkage)
+        df = self._results.dropna(how="all").replace(np.nan, 0)
+
+        dist_matrix = euclidean_distances(df.T).round(6)
+
+        clustering = hierarchy.linkage(squareform(dist_matrix, checks=False), method=linkage)
         scipy_tree = hierarchy.dendrogram(clustering, no_plot=True)
-        ids_in_order = [self._results.T.index[int(x)] for x in scipy_tree["ivl"]]
+        ids_in_order = [df.T.index[int(x)] for x in scipy_tree["ivl"]]
         labels_in_order = ["{} ({})".format(self.taxonomy["name"][t], t) for t in ids_in_order]
 
         return {

@@ -3,9 +3,6 @@ from datetime import datetime
 import json
 import warnings
 
-import numpy as np
-import pandas as pd
-
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.enums import Metric, FunctionalAnnotations, FunctionalAnnotationsMetric
 
@@ -339,6 +336,9 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         data = np.zeros((len(self._classifications), len(tax_info.index)), dtype=metric_dtype)
 
+        if metric in [Metric.AbundanceWChildren, Metric.Abundance]:
+            data.fill(np.nan)
+
         for c_idx, c in enumerate(self._classifications):
             # results are cached from the call earlier in this method
             results = c.results()
@@ -350,7 +350,10 @@ class SampleCollection(ResourceList, AnalysisMixin):
                 if not include_host and d_tax_id in host_tax_ids:
                     continue
 
-                data[c_idx, tax_id_to_idx[d_tax_id]] = d[metric] or 0
+                if metric in [Metric.AbundanceWChildren, Metric.Abundance]:
+                    data[c_idx, tax_id_to_idx[d_tax_id]] = d[metric]
+                else:
+                    data[c_idx, tax_id_to_idx[d_tax_id]] = d[metric] or 0
 
         df = pd.DataFrame(
             data,
@@ -481,6 +484,9 @@ class SampleCollection(ResourceList, AnalysisMixin):
         filler : float, optional
             Value with which to fill `np.nan` values
         """
+        import numpy as np
+        import pandas as pd
+
         # validate args
         annotation = FunctionalAnnotations(annotation)
         metric = FunctionalAnnotationsMetric(metric)
