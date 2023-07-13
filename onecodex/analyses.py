@@ -19,6 +19,14 @@ from onecodex.viz import (
 )
 
 
+def _get_all_nan_classification_ids(df):
+    all_nan_classification_ids = []
+    for class_id, is_all_nan in df.isnull().all(1).items():
+        if is_all_nan:
+            all_nan_classification_ids.append(class_id)
+    return all_nan_classification_ids
+
+
 class AnalysisMixin(
     VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceMixin, VizBargraphMixin
 ):
@@ -34,10 +42,11 @@ class AnalysisMixin(
 
     def _get_auto_rank(self, rank):
         """Attempt to figure out what rank we should use for analyses."""
+        from onecodex.dataframes import OneCodexAccessor
 
         if rank == Rank.Auto:
             # if we're an accessor for a ClassificationsDataFrame, use its _rank property
-            if self.__class__.__name__ == "OneCodexAccessor":
+            if isinstance(self, OneCodexAccessor):
                 return self._rank
 
             if AbundanceMetric.has_value(self._metric) or self._is_metagenomic:
@@ -246,6 +255,26 @@ class AnalysisMixin(
 
         return magic_metadata, magic_fields
 
+    @property
+    def _all_nan_classification_ids(self):
+        """
+        Provide list of classification ids for which there are no abundances calculated.
+
+        This can be used in plotting functions that may want to exclude or represent samples or
+        classifications in this category differently. Since plotting functions can be called on
+        `SampleCollection`s or `OneCodexAccessor`s, storing this list is safest, before
+        dataframe manipulation happens and information is possibly lost.
+        """
+        from onecodex.dataframes import OneCodexAccessor
+
+        if isinstance(self, OneCodexAccessor):
+            if self._ocx_all_nan_classification_ids is None:
+                # We rely on this list for accurate plot data, and it shouldn't ever be None, but if
+                # it is None, we raise an exception to avoid generating misleading plots
+                raise OneCodexException("Unable to fetch list of all_nan_classification_ids")
+            return self._ocx_all_nan_classification_ids
+        return _get_all_nan_classification_ids(self._results)
+
     def to_df(self, analysis_type=AnalysisType.Classification, **kwargs):
         """
         Transform Analyses of samples in a `SampleCollection` into tabular format.
@@ -306,8 +335,10 @@ class AnalysisMixin(
         normalize="auto",
         table_format="wide",
         include_taxa_missing_rank=False,
+        fill_missing=True,
+        filler=0,
     ):
-        """Generate a ClassificationDataFrame, performing any specified transformations.
+        """Generate a ClassificationsDataFrame, performing any specified transformations.
 
         Takes the ClassificationsDataFrame associated with these samples, or SampleCollection,
         does some filtering, and returns a ClassificationsDataFrame copy.
@@ -330,6 +361,10 @@ class AnalysisMixin(
         include_taxa_missing_rank : bool, optional
             Whether or not to include taxa that do not have a designated parent at `rank` (will be
             grouped into a "No <rank>" column).
+        fill_missing : bool, optional
+            Fill np.nan values
+        filler : float, optional
+            Value with which to fill np.nans
 
         Returns
         -------
@@ -350,7 +385,10 @@ class AnalysisMixin(
                 )
 
         rank = self._get_auto_rank(rank)
+
         df = self._results.copy()
+        if fill_missing:
+            df = df.fillna(filler)
 
         # subset by taxa
         if rank:
@@ -424,6 +462,7 @@ class AnalysisMixin(
             "ocx_metric": self._metric,
             "ocx_taxonomy": self.taxonomy.copy(),
             "ocx_normalized": normalize,
+            "ocx_all_nan_classification_ids": self._all_nan_classification_ids,
         }
 
         # generate long-format table
