@@ -24,11 +24,6 @@ def get_ncbi_taxonomy_browser_url(tax_id):
     return ""
 
 
-# https://stackoverflow.com/a/72241020/3776794
-def open_links_in_new_tab(chart):
-    chart["usermeta"] = {"embedOptions": {"loader": {"target": "_blank", "rel": "noreferrer"}}}
-
-
 def sort_helper(sort, values):
     """Return a sorted list of values for the Altair chart axes."""
     sort_order = None

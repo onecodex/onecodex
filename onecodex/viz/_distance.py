@@ -9,7 +9,6 @@ from onecodex.viz._primitives import (
     interleave_palette,
     prepare_props,
     get_classification_url,
-    open_links_in_new_tab,
 )
 from onecodex.utils import is_continuous, has_missing_values
 
@@ -237,7 +236,6 @@ class VizDistanceMixin(DistanceMixin):
         concat_chart = alt.hconcat(dendro_chart, chart, spacing=0, **title_kwargs).configure_view(
             strokeWidth=0
         )
-        open_links_in_new_tab(concat_chart)
 
         if return_chart:
             return concat_chart
@@ -432,9 +430,7 @@ class VizDistanceMixin(DistanceMixin):
             alt_kwargs["size"] = magic_fields[size]
 
         chart = alt.Chart(plot_data).mark_circle(size=mark_size).encode(**alt_kwargs)
-
         chart = chart.properties(**prepare_props(title=title, height=height, width=width))
-        open_links_in_new_tab(chart)
 
         if return_chart:
             return chart

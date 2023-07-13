@@ -3,7 +3,6 @@ from onecodex.viz._primitives import (
     interleave_palette,
     prepare_props,
     get_classification_url,
-    open_links_in_new_tab,
 )
 from onecodex.exceptions import OneCodexException, PlottingException
 from onecodex.utils import is_continuous, has_missing_values
@@ -210,7 +209,6 @@ class VizPCAMixin(object):
             chart = alt.layer(chart, vector_chart).resolve_scale(color="independent")
 
         chart = chart.properties(**prepare_props(title=title, height=height, width=width))
-        open_links_in_new_tab(chart)
 
         if return_chart:
             return chart

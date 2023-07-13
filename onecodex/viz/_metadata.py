@@ -4,7 +4,6 @@ from onecodex.viz._primitives import (
     prepare_props,
     sort_helper,
     get_classification_url,
-    open_links_in_new_tab,
 )
 
 
@@ -216,7 +215,6 @@ class VizMetadataMixin(object):
             chart = chart.resolve_scale(x="independent")
 
         chart = chart.properties(**prepare_props(title=title, height=height, width=width))
-        open_links_in_new_tab(chart)
 
         if return_chart:
             return chart

@@ -6,7 +6,6 @@ from onecodex.viz._primitives import (
     sort_helper,
     get_ncbi_taxonomy_browser_url,
     get_classification_url,
-    open_links_in_new_tab,
 )
 
 
@@ -80,8 +79,7 @@ class VizBargraphMixin(object):
             averaged within each group.
         link: {'ocx', 'ncbi'}, optional
             If `link` is 'ocx', clicking a sample will open its classification results in the One
-            Codex app in a new tab. If `link` is 'ncbi', clicking a taxon will open the NCBI
-            taxonomy browser in a new tab.
+            Codex app. If `link` is 'ncbi', clicking a taxon will open the NCBI taxonomy browser.
 
         Examples
         --------
@@ -301,6 +299,5 @@ class VizBargraphMixin(object):
             chart = chart.resolve_scale(x="independent")
 
         chart = chart.properties(**prepare_props(title=title, width=width, height=height))
-        open_links_in_new_tab(chart)
 
         return chart if return_chart else chart.display()
