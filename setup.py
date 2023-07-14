@@ -38,7 +38,7 @@ TESTING_DEPS = [
     "pdfplumber",
 ]
 ALL_DEPS = [
-    "altair==4.2.1",
+    "altair==4.2.2",
     "numpy>=1.11.0",
     "pandas>=1.0.3",
     "pillow>=9.0.1",
@@ -65,7 +65,7 @@ setup(
     install_requires=[
         "boto3>=1.17.98",
         "click>=8.0",
-        "jsonschema>=2.4",
+        "jsonschema>=3.0",
         "python-dateutil>=2.5.3",
         "pytz>=2014.1",
         "sentry-sdk>=0.10.2",
