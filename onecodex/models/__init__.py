@@ -580,6 +580,7 @@ from onecodex.models.sample import Samples, Metadata  # noqa
 
 __all__ = [
     "Alignments",
+    "Assets",
     "Classifications",
     "Documents",
     "Jobs",

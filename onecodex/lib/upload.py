@@ -349,7 +349,7 @@ def _upload_document_fileobj(file_obj, file_name, documents_resource):
 
     Returns
     -------
-    `string` containing sample UUID of newly uploaded file.
+    `string` id of newly uploaded document.
     """
     try:
         fields = documents_resource.init_multipart_upload()
@@ -366,10 +366,56 @@ def _upload_document_fileobj(file_obj, file_name, documents_resource):
         documents_resource._client._root_url + fields["callback_url"],  # full callback url
     )
 
-    msg = "{}: finished".format(file_name)
+    msg = f"{file_name}: finished"
     document_id = s3_upload.get("document_id")
     if document_id is not None:
-        msg += " as document {}".format(document_id)
+        msg += f" as document {document_id}"
+
+    log.info(msg)
+    return document_id
+
+
+def _upload_asset_fileobj(file_obj, file_name, assets_resource):
+    """Upload a single file-like object to a One Codex Asset directly to S3.
+
+    Parameters
+    ----------
+    file_obj : `FilePassthru`, or a file-like object
+        If a file-like object is given, its mime-type will be sent as 'text/plain'. Otherwise,
+        `FilePassthru` will send a compressed type if the file is gzip'd or bzip'd.
+    file_name : `string`
+        The file_name you wish to associate this file with at One Codex.
+    assets_resource : `onecodex.models.Assets`
+        Wrapped potion-client object exposing `init_upload` and `confirm_upload` routes to mainline.
+
+    Raises
+    ------
+    UploadException
+        In the case of a fatal exception during an upload.
+
+    Returns
+    -------
+    `string` id of newly uploaded asset.
+    """
+    try:
+        fields = assets_resource.init_multipart_upload()
+    except requests.exceptions.HTTPError as e:
+        raise_api_error(e.response, state="init")
+    except requests.exceptions.ConnectionError:
+        raise_connectivity_error(file_name)
+
+    s3_upload = _s3_intermediate_upload(
+        file_obj,
+        file_name,
+        fields,
+        assets_resource._client.session,
+        assets_resource._client._root_url + fields["callback_url"],  # full callback url
+    )
+
+    msg = f"{file_name}: finished"
+    document_id = s3_upload.get("document_id")
+    if document_id is not None:
+        msg += f" as document {document_id}"
 
     log.info(msg)
     return document_id
@@ -386,7 +432,7 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):
         In the case of a single file, it will simply be passed through (`FilePassthru`) to One Codex, compressed
         or otherwise. If a file-like object is given, its mime-type will be sent as 'text/plain'.
     file_name : `string`
-        The file_name you wish to associate this fastx file with at One Codex.
+        The file_name you wish to associate this file with at One Codex.
     fields : `dict`
         Additional data fields to include as JSON in the POST.
     session : `requests.Session`
@@ -438,7 +484,7 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):
                 fields["file_id"],
                 ExtraArgs={"ServerSideEncryption": "AES256"},
                 Config=config,
-                **boto_kwargs
+                **boto_kwargs,
             )
             break
         except S3UploadFailedError as e:
@@ -470,7 +516,7 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):
             callback_url,
             json={
                 "s3_path": "s3://{}/{}".format(fields["s3_bucket"], fields["file_id"]),
-                "filename": file_name,  #
+                "filename": file_name,
                 "import_as_document": fields.get("import_as_document", False),
             },
         )
@@ -484,3 +530,38 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):
         return resp.json()
     except ValueError:
         return {}
+
+
+def upload_asset(file_path, assets_resource, progressbar=None):
+    """Upload file to One Codex directly to S3 via an intermediate bucket.
+
+    Parameters
+    ----------
+    file_path : `str`
+        A path to a file on the system.
+    assets_resource : `onecodex.models.Assets`
+        Wrapped potion-client object exposing `init_upload` and `confirm_upload` methods.
+    progressbar : `click.progressbar`, optional
+        If passed, display a progress bar using Click.
+
+    Raises
+    ------
+    UploadException
+        In the case of a fatal exception during an upload.
+
+    Returns
+    -------
+    A `str` asset ID for the newly uploaded file.
+    """
+    if not isinstance(file_path, six.string_types):
+        raise ValueError(f"Expected file_path to be a string, got {type(file_path).__name__}")
+
+    # disable progressbar while keeping context manager
+    if not progressbar:
+        progressbar = FakeProgressBar()
+
+    with progressbar as bar:
+        file_obj = FilePassthru(file_path, bar)
+        asset_id = _upload_asset_fileobj(file_obj, file_obj.filename, assets_resource)
+        bar.finish()
+        return asset_id

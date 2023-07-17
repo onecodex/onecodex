@@ -1,7 +1,7 @@
 import warnings
 
 from onecodex.exceptions import OneCodexException, MethodNotSupported
-from onecodex.lib.upload import upload_document
+from onecodex.lib.upload import upload_document, upload_asset
 from onecodex.models import OneCodexBase
 from onecodex.models.helpers import truncate_string, ResourceDownloadMixin
 
@@ -78,3 +78,26 @@ class Documents(OneCodexBase, ResourceDownloadMixin):
         doc_id = upload_document(file_path, cls._resource, progressbar=progressbar)
 
         return cls.get(doc_id)
+
+
+class Assets(OneCodexBase, ResourceDownloadMixin):
+    _resource_path = "/api/v1/assets"
+
+    @classmethod
+    def upload(cls, file_path, progressbar=None):
+        """Upload a file to an asset.
+
+        Parameters
+        ----------
+        file_path : `string`
+            A path to a file on the system.
+        progressbar : `click.progressbar`, optional
+            If passed, display a progress bar using Click.
+
+        Returns
+        -------
+        An `Assets` object upon successful upload. None if the upload failed.
+        """
+        asset_id = upload_asset(file_path, cls._resource, progressbar=progressbar)
+
+        return cls.get(asset_id)

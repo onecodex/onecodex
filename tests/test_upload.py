@@ -12,6 +12,7 @@ from onecodex.lib.upload import (
     FilePassthru,
     upload_document,
     _upload_document_fileobj,
+    upload_asset,
     upload_sequence,
     _upload_sequence_fileobj,
 )
@@ -35,6 +36,35 @@ class FakeAPISession:
 
     def mount(self, url, adapter):
         self.adapters[url] = adapter
+
+
+class FakeAssetsResource:
+    @staticmethod
+    def err_resp():
+        resp = lambda: None  # noqa
+        resp.status_code = 400
+        resp.json = lambda: {}  # noqa
+        raise HTTPError(response=resp)
+
+    def init_multipart_upload(self):
+        return {
+            "callback_url": "/s3_confirm",
+            "s3_bucket": "some_bucket",
+            "file_id": "hey",
+            "upload_aws_access_key_id": "key",
+            "upload_aws_secret_access_key": "secret",
+        }
+
+    def confirm_upload(self, obj):
+        if self.what_fails == "confirm":
+            self.err_resp()
+
+        assert "sample_id" in obj
+        assert "upload_type" in obj
+
+    class _client(object):
+        _root_url = "http://localhost:3000"
+        session = FakeAPISession()
 
 
 class FakeSamplesResource:
@@ -159,6 +189,21 @@ def test_upload_lots_of_files(files, n_uploads, fxi_calls, fxp_calls):
                     else n_uploads
                 )
                 assert passthru.call_count == fxp_calls + fxi_calls
+
+
+def test_upload_asset():
+    with patch("boto3.session.Session"):
+        file = "test_asset_file.fa"
+        n_uploads = 1
+        fake_size = 1000
+
+        with patch("onecodex.lib.upload._upload_asset_fileobj") as upload_asset_fileobj, patch(
+            "onecodex.lib.upload.FilePassthru"
+        ) as passthru, patch("os.path.getsize", size_effect=fake_size):
+            upload_asset(file, FakeAssetsResource())
+
+            assert upload_asset_fileobj.call_count == n_uploads
+            assert passthru.call_count == 1
 
 
 def test_api_failures(caplog):
