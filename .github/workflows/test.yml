@@ -96,29 +96,6 @@ jobs:
           name: example reports
           path: test-report-*.pdf
 
-  coverage:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.11'
-      - name: Install dependencies in a venv
-        run: |
-          python3 -m venv venv
-          . venv/bin/activate
-          pip install -q -U pip
-          pip install --progress-bar=off simplejson
-          pip install --progress-bar=off .[all,testing]
-      - name: Generate coverage
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: |
-          . venv/bin/activate
-          make coverage
-          codecov
-
   import-times:
     runs-on: ubuntu-latest
     steps:
