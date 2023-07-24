@@ -27,7 +27,6 @@ with open("README.md") as readme:
 # Dependencies
 TESTING_DEPS = [
     "coverage",
-    "codecov",
     "pytest",
     "pytest-cov",
     "responses",
