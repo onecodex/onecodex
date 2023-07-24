@@ -39,6 +39,8 @@ def test_html_report_generation(capsys, nb, nb_config):
     exporter = HTMLExporter(config=nb_config)
     body, resource = exporter.from_notebook_node(nb)
 
+    assert "Traceback" not in body  # make sure there were no Python exceptions
+
     # Check visualization is generated
     assert "vega-embed" in body
     assert '<div class="vega-visualization"' in body
@@ -59,6 +61,8 @@ def test_pdf_report_generation_do_not_insert_date(generate_pdf_report, insert_da
 
     page = pdf.pages[0]
     pdf_text = page.extract_text()
+
+    assert "Traceback" not in pdf_text  # make sure there were no Python exceptions
 
     timestamp = datetime.date.today().strftime("%B %-d, %Y")
 
@@ -84,6 +88,7 @@ def test_pdf_report_generation(generate_pdf_report, capsys):
     # Check text
     assert "Example Report" in pdf_text
     assert "NOT FOR DIAGNOSTIC USE" in pdf_text
+    assert "Traceback" not in pdf_text  # make sure there were no Python exceptions
 
     # Check no stderr from vega CLI or similar
     assert capsys.readouterr().err == ""
