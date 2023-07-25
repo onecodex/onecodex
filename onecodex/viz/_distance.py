@@ -55,7 +55,10 @@ class VizDistanceMixin(DistanceMixin):
         df = self._results
 
         if all_nan_classification_ids:
+            # subset in case we're plotting a facet
+            all_nan_classification_ids = [x for x in all_nan_classification_ids if x in df.index]
             df = df.drop(all_nan_classification_ids)
+
         df = df.replace(np.nan, 0)
 
         if metric == "euclidean":

@@ -303,6 +303,39 @@ def test_plot_heatmap_plots_all_nan_samples_with_nans(ocx, api_data, is_onecodex
     assert chart.encoding.x.sort[-1] == all_nan_sample.filename
 
 
+def test_plot_heatmap_with_haxis_two_cluster_groups(ocx, api_data):
+    import numpy as np
+
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+    sample1 = ocx.Samples.get("cc18208d98ad48b3")
+    sample2 = ocx.Samples.get("5445740666134eee")
+    samples.extend([sample1, sample2])
+
+    # Set abundances for one sample to be all NaN
+    # (It should not be in the clustering group)
+    all_nan_sample = samples[1]
+    samples._results.loc[all_nan_sample.primary_classification.id] = np.nan
+    assert len(samples._all_nan_classification_ids) == 1
+
+    # Make sure we are actually calling _cluster_by_sample
+    with mock.patch("onecodex.viz._distance.VizDistanceMixin._cluster_by_sample") as cluster_fn:
+        # The _cluster_by_sample method returns other things as well, but `ids_in_order` is the
+        # only thing needed for the rest of `plot_heatmap`
+        cluster_fn.return_value = {
+            "ids_in_order": [
+                "4eed25415f6945dd",
+                "6579e99943f84ad2",
+                "e0422602de41479f",
+                "1198c7ce565643f9",
+            ]
+        }
+        samples.plot_heatmap(rank="genus", top_n=15, haxis="wheat", return_chart=True)
+        assert cluster_fn.call_count == 1
+
+    # Does not raise exception
+    samples.plot_heatmap(rank="genus", top_n=15, haxis="wheat", return_chart=True)
+
+
 def test_plot_heatmap_exceptions(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
 
