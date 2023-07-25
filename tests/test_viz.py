@@ -317,11 +317,8 @@ def test_plot_heatmap_with_haxis_two_cluster_groups(ocx, api_data):
     samples._results.loc[all_nan_sample.primary_classification.id] = np.nan
     assert len(samples._all_nan_classification_ids) == 1
 
-    # # Make sure we are actually calling _cluster_by_sample
-    with mock.patch(
-        "onecodex.viz._distance.VizDistanceMixin._cluster_by_sample",
-        return_value="['4eed25415f6945dd', '6579e99943f84ad2', 'e0422602de41479f', '1198c7ce565643f9']",
-    ) as cluster_fn:
+    # Make sure we are actually calling _cluster_by_sample
+    with mock.patch("onecodex.viz._distance.VizDistanceMixin._cluster_by_sample") as cluster_fn:
         # The _cluster_by_sample method returns other things as well, but `ids_in_order` is the
         # only thing needed for the rest of `plot_heatmap`
         cluster_fn.return_value = {
