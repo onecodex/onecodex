@@ -141,7 +141,7 @@ class DistanceMixin(TaxonomyMixin):
         """
         import skbio.diversity
 
-        df = self.to_df(rank=rank, normalize=self._guess_normalized())
+        df = self.to_df(rank=rank, normalize=self._guess_normalized(), fill_missing=True)
 
         ocx_rank = df.ocx_rank
         # The scikit-bio implementations of phylogenetic metrics require integer counts

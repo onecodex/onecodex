@@ -22,6 +22,12 @@ jobs:
         run: python -c "import sys; print(sys.version)"
       - name: Install dependencies in a venv
         run: |
+          # fix for installing scikit-bio==0.5.7 on python-3.7
+          if [[ $(python3 --version 2>&1) == *"Python 3.7"* ]]; then
+              echo "--- Manually installing build deps for scikit-bio==0.5.7 w/ Python 3.7"
+              pip install 'cython==0.29.32' 'numpy>=1.9.2' 'setuptools' 'wheel'
+              pip install --no-build-isolation scikit-bio==0.5.7
+          fi
           python3 -m venv venv
           . venv/bin/activate
           pip install -q -U pip
@@ -62,7 +68,7 @@ jobs:
       - name: Set Up Node
         uses: actions/setup-node@v1
         with:
-          node-version: '10.x'
+          node-version: '20.x'
       - name: Set Up vega CLI
         run: |
           npm install -g vega-lite vega-cli canvas
@@ -89,29 +95,6 @@ jobs:
         with:
           name: example reports
           path: test-report-*.pdf
-
-  coverage:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.11'
-      - name: Install dependencies in a venv
-        run: |
-          python3 -m venv venv
-          . venv/bin/activate
-          pip install -q -U pip
-          pip install --progress-bar=off simplejson
-          pip install --progress-bar=off .[all,testing]
-      - name: Generate coverage
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: |
-          . venv/bin/activate
-          make coverage
-          codecov
 
   import-times:
     runs-on: ubuntu-latest
