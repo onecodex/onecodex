@@ -213,7 +213,7 @@ def upload_sequence(
             else:
                 filename = fobj.filename
 
-            log.info("Canceled upload for {} as sample {}".format(filename, fields["sample_id"]))
+            log.info(f"Canceled upload for {filename} as sample {fields['sample_id']}")
 
             try:
                 samples_resource.cancel_upload({"sample_id": fields["sample_id"]})
@@ -222,9 +222,7 @@ def upload_sequence(
                 # already succeeded. try to catch that instead of blowing up
                 if e.response and e.response.get("message") == "Upload already successful":
                     log.debug(
-                        "Fail to cancel sample {}, upload already successful".format(
-                            fields["sample_id"]
-                        )
+                        f"Failed to cancel sample {fields['sample_id']}, upload already successful"
                     )
                 else:
                     raise
@@ -398,7 +396,7 @@ def _upload_asset_fileobj(file_obj, file_name, assets_resource):
     `string` id of newly uploaded asset.
     """
     try:
-        fields = assets_resource.init_multipart_upload()
+        fields = assets_resource.init_multipart_upload({"name": file_name})
     except requests.exceptions.HTTPError as e:
         raise_api_error(e.response, state="init")
     except requests.exceptions.ConnectionError:
@@ -540,7 +538,7 @@ def upload_asset(file_path, assets_resource, progressbar=None):
     file_path : `str`
         A path to a file on the system.
     assets_resource : `onecodex.models.Assets`
-        Wrapped potion-client object exposing `init_upload` and `confirm_upload` methods.
+        Wrapped potion-client object exposing `upload` method.
     progressbar : `click.progressbar`, optional
         If passed, display a progress bar using Click.
 

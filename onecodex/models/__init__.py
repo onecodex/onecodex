@@ -574,7 +574,7 @@ from onecodex.models.analysis import (  # noqa
     Panels,
 )
 from onecodex.models.collection import SampleCollection  # noqa
-from onecodex.models.misc import Jobs, Projects, Tags, Users, Documents  # noqa
+from onecodex.models.misc import Assets, Jobs, Projects, Tags, Users, Documents  # noqa
 from onecodex.models.sample import Samples, Metadata  # noqa
 
 

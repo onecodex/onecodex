@@ -81,7 +81,7 @@ class Documents(OneCodexBase, ResourceDownloadMixin):
 
 
 class Assets(OneCodexBase, ResourceDownloadMixin):
-    _resource_path = "/api/v1/assets"
+    _resource_path = "/api/v1_experimental/assets"
 
     @classmethod
     def upload(cls, file_path, progressbar=None):
