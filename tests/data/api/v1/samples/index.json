@@ -1994,5 +1994,41 @@
     "size": 2267482973,
     "tags": [],
     "visibility": "public"
+  },
+  {
+    "$uri": "/api/v1/samples/cc18208d98ad48b3",
+    "created_at": "2016-11-21T21:53:01.650703-08:00",
+    "filename": "ERR688372.fastq",
+    "metadata": {
+      "$ref": "/api/v1/metadata/c1453aa92676431d"
+    },
+    "owner": {
+      "$ref": "/api/v1/users/4ada56103d9a48b8"
+    },
+    "primary_classification": {
+      "$ref": "/api/v1/classifications/1198c7ce565643f9"
+    },
+    "project": null,
+    "size": 70362884,
+    "tags": [],
+    "visibility": "public"
+  },
+  {
+    "$uri": "/api/v1/samples/5445740666134eee",
+    "created_at": "2016-11-21T21:53:01.650703-08:00",
+    "filename": "'SRR16685069.fastq'",
+    "metadata": {
+      "$ref": "/api/v1/metadata/ee903ba04f1744bd"
+    },
+    "owner": {
+      "$ref": "/api/v1/users/4ada56103d9a48b8"
+    },
+    "primary_classification": {
+      "$ref": "/api/v1/classifications/4eed25415f6945dd"
+    },
+    "project": null,
+    "size": 1624017719,
+    "tags": [],
+    "visibility": "public"
   }
 ]
