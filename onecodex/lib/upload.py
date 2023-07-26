@@ -515,7 +515,6 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):
             json={
                 "s3_path": "s3://{}/{}".format(fields["s3_bucket"], fields["file_id"]),
                 "filename": file_name,
-                "import_as_document": fields.get("import_as_document", False),
             },
         )
     except requests.exceptions.ConnectionError:
