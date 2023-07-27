@@ -410,13 +410,16 @@ def _upload_asset_fileobj(file_obj, file_name, assets_resource):
         assets_resource._client._root_url + fields["callback_url"],  # full callback url
     )
 
-    msg = f"{file_name}: finished"
-    document_id = s3_upload.get("document_id")
-    if document_id is not None:
-        msg += f" as document {document_id}"
+    output_msg = f"{file_name}: finished"
 
-    log.info(msg)
-    return document_id
+    message = s3_upload.get("message")
+    if message is not None:
+        output_msg += message
+
+    log.info(output_msg)
+    asset_uuid = s3_upload.get("asset")["$ref"].split("/")[-1]
+
+    return asset_uuid
 
 
 def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):

@@ -9,7 +9,13 @@ import time
 import warnings
 
 from onecodex.api import Api
-from onecodex.auth import _login, _logout, _remove_creds, login_required
+from onecodex.auth import (
+    _login,
+    _logout,
+    _remove_creds,
+    login_required,
+    login_required_experimental_api,
+)
 from onecodex.lib.upload import DEFAULT_THREADS
 from onecodex.metadata_upload import validate_appendables
 from onecodex.scripts import subset_reads
@@ -509,7 +515,7 @@ def upload(
 @click.pass_context
 @pretty_errors
 @telemetry
-@login_required(experimental=True)
+@login_required_experimental_api()
 def asset_upload(ctx, max_threads, file):
     """Upload an asset to One Codex."""
     if len(file) == 0:
