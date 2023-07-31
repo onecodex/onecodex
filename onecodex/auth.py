@@ -2,7 +2,7 @@ from __future__ import print_function
 import click
 import datetime
 import errno
-from functools import wraps, partial
+from functools import wraps
 import json
 import logging
 import filelock
@@ -229,5 +229,5 @@ def login_required_with_args(experimental=False):
     return decorator
 
 
-login_required = partial(login_required_with_args, experimental=False)
-login_required_experimental_api = partial(login_required_with_args, experimental=True)
+login_required = login_required_with_args(experimental=False)
+login_required_experimental_api = login_required_with_args(experimental=True)

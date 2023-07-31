@@ -384,7 +384,7 @@ def _upload_asset_fileobj(file_obj, file_name, assets_resource):
     file_name : `string`
         The file_name you wish to associate this file with at One Codex.
     assets_resource : `onecodex.models.Assets`
-        Wrapped potion-client object exposing `init_upload` and `confirm_upload` routes to mainline.
+        Wrapped potion-client object exposing `init_multipart_upload` mainline route.
 
     Raises
     ------

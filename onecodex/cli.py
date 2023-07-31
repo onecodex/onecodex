@@ -101,7 +101,7 @@ def documents():
 @click.option("--json", is_flag=True, default=False, help="Output JSON instead of prettified table")
 @click.pass_context
 @telemetry
-@login_required()
+@login_required
 def documents_list(ctx, json):
     docs_list = cli_resource_fetcher(ctx, "documents", [], print_results=json)
 
@@ -175,7 +175,7 @@ def documents_list(ctx, json):
 @click.pass_context
 @pretty_errors
 @telemetry
-@login_required()
+@login_required
 def documents_upload(ctx, max_threads, files):
     """Upload a document file (of any type) to One Codex."""
     if len(files) == 0:
@@ -208,7 +208,7 @@ def documents_upload(ctx, max_threads, files):
 @click.pass_context
 @pretty_errors
 @telemetry
-@login_required()
+@login_required
 def documents_download(ctx, file_id, file_path):
     doc_obj = ctx.obj["API"].Documents.get(file_id)
 
@@ -233,7 +233,7 @@ documents.add_command(documents_download, "download")
 @click.argument("analyses", nargs=-1, required=False)
 @click.pass_context
 @telemetry
-@login_required()
+@login_required
 def analyses(ctx, analyses):
     """Retrieve performed analyses."""
     cli_resource_fetcher(ctx, "analyses", analyses)
@@ -253,7 +253,7 @@ def analyses(ctx, analyses):
 @click.pass_context
 @click.argument("classifications", nargs=-1, required=False)
 @telemetry
-@login_required()
+@login_required
 def classifications(ctx, classifications, results, readlevel, readlevel_path):
     """Retrieve performed metagenomic classifications."""
 
@@ -299,7 +299,7 @@ def classifications(ctx, classifications, results, readlevel, readlevel_path):
 @click.pass_context
 @click.argument("panels", nargs=-1, required=False)
 @telemetry
-@login_required()
+@login_required
 def panels(ctx, panels):
     """Retrieve performed in silico panel results."""
     cli_resource_fetcher(ctx, "panels", panels)
@@ -309,7 +309,7 @@ def panels(ctx, panels):
 @click.pass_context
 @click.argument("samples", nargs=-1, required=False)
 @telemetry
-@login_required()
+@login_required
 def samples(ctx, samples):
     """Retrieve uploaded samples."""
     cli_resource_fetcher(ctx, "samples", samples)
@@ -344,7 +344,7 @@ def download_group():
 @click.pass_context
 @pretty_errors
 @telemetry
-@login_required()
+@login_required
 def download_samples_command(ctx, outdir, project, tags, prompt):
     """Download FASTA/Q files from One Codex.
 
@@ -402,7 +402,7 @@ def download_samples_command(ctx, outdir, project, tags, prompt):
 @click.pass_context
 @pretty_errors
 @telemetry
-@login_required()
+@login_required
 def upload(
     ctx,
     files,
@@ -515,7 +515,7 @@ def upload(
 @click.pass_context
 @pretty_errors
 @telemetry
-@login_required_experimental_api()
+@login_required_experimental_api
 def asset_upload(ctx, max_threads, file):
     """Upload an asset to One Codex."""
     if len(file) == 0:

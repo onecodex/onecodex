@@ -184,7 +184,7 @@ def too_many_fastx_records():
 )
 @click.pass_context
 @pretty_errors
-@login_required()
+@login_required
 def cli(
     ctx,
     classification_id,
