@@ -200,6 +200,12 @@ class VizDistanceMixin(DistanceMixin):
             exclude_all_nan=True,
         )
 
+        if self._all_nan_classification_ids:
+            warnings.warn(
+                f"{len(self._all_nan_classification_ids)} sample(s) have no abundances "
+                "calculated and have been omitted from the distance heatmap."
+            )
+
         # must convert to long format for heatmap plotting
         for idx1, id1 in enumerate(clust["dist_matrix"].index):
             for idx2, id2 in enumerate(clust["dist_matrix"].index):
