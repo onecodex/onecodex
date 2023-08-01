@@ -396,7 +396,7 @@ def _upload_asset_fileobj(file_obj, file_name, assets_resource):
     `string` id of newly uploaded asset.
     """
     try:
-        fields = assets_resource.init_multipart_upload({"name": file_name})
+        fields = assets_resource.init_multipart_upload()
     except requests.exceptions.HTTPError as e:
         raise_api_error(e.response, state="init")
     except requests.exceptions.ConnectionError:
