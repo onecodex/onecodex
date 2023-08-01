@@ -417,7 +417,7 @@ def _upload_asset_fileobj(file_obj, file_name, assets_resource):
         output_msg += message
 
     log.info(output_msg)
-    asset_uuid = s3_upload.get("asset")["$ref"].split("/")[-1]
+    asset_uuid = s3_upload.get("asset_uuid")
 
     return asset_uuid
 
