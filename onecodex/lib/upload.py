@@ -382,7 +382,7 @@ def _upload_asset_fileobj(file_obj, file_name, assets_resource):
         If a file-like object is given, its mime-type will be sent as 'text/plain'. Otherwise,
         `FilePassthru` will send a compressed type if the file is gzip'd or bzip'd.
     file_name : `string`
-        The file_name you wish to associate this file with at One Codex.
+        The name of the file you are uploading.
     assets_resource : `onecodex.models.Assets`
         Wrapped potion-client object exposing `init_multipart_upload` mainline route.
 
