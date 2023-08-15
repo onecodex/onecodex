@@ -43,9 +43,7 @@ class DistanceMixin(TaxonomyMixin):
 
         return pd.DataFrame(output, columns=[metric])
 
-    def beta_diversity(
-        self, metric=BetaDiversityMetric.BrayCurtis, rank=Rank.Auto, exclude_all_nan=False
-    ):
+    def beta_diversity(self, metric=BetaDiversityMetric.BrayCurtis, rank=Rank.Auto):
         """Calculate the diversity between two communities.
 
         Parameters
@@ -55,8 +53,6 @@ class DistanceMixin(TaxonomyMixin):
             Note that 'cityblock' and 'manhattan' are equivalent metrics.
         rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
             Analysis will be restricted to abundances of taxa at the specified level.
-        exclude_all_nan : bool, optional
-            If true, samples with no abundances calculated will be excluded.
 
         Returns
         -------
@@ -79,12 +75,6 @@ class DistanceMixin(TaxonomyMixin):
             return self.aitchison_distance(rank=rank)
 
         df = self.to_df(rank=rank, normalize=self._guess_normalized())
-
-        if exclude_all_nan:
-            all_nan_classification_ids = [
-                x for x in self._all_nan_classification_ids if x in df.index
-            ]
-            df = df.drop(all_nan_classification_ids)
 
         if metric == BetaDiversityMetric.Jaccard:
             df = df > 0  # Jaccard requires a boolean matrix, otherwise it throws a warning

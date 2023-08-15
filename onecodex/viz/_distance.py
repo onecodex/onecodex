@@ -3,7 +3,7 @@ from itertools import chain
 import warnings
 
 from onecodex.lib.enums import BetaDiversityMetric, Rank, Linkage, OrdinationMethod
-from onecodex.exceptions import OneCodexException, PlottingException
+from onecodex.exceptions import OneCodexException, PlottingException, PlottingWarning
 from onecodex.distance import DistanceMixin
 from onecodex.viz._primitives import (
     interleave_palette,
@@ -22,9 +22,7 @@ class VizDistanceMixin(DistanceMixin):
         if callable(metric):
             distances = metric(self, rank=rank)
         elif metric in (BetaDiversityMetric.BrayCurtis, "bray-curtis", "bray curtis"):
-            distances = self.beta_diversity(
-                metric=BetaDiversityMetric.BrayCurtis, rank=rank, exclude_all_nan=exclude_all_nan
-            )
+            distances = self.beta_diversity(metric=BetaDiversityMetric.BrayCurtis, rank=rank)
         elif metric in ("manhattan", BetaDiversityMetric.CityBlock):
             distances = self.beta_diversity(metric=BetaDiversityMetric.CityBlock, rank=rank)
         elif metric == BetaDiversityMetric.Jaccard:
@@ -39,6 +37,14 @@ class VizDistanceMixin(DistanceMixin):
             raise OneCodexException(
                 "Metric must be one of: {}".format(", ".join(BetaDiversityMetric.values()))
             )
+
+        if exclude_all_nan:
+            ids = [
+                classification_id
+                for classification_id in distances.ids
+                if classification_id not in self._all_nan_classification_ids
+            ]
+            distances = distances.filter(ids)
 
         return distances
 
@@ -201,7 +207,7 @@ class VizDistanceMixin(DistanceMixin):
         )
 
         if self._all_nan_classification_ids:
-            warnings.warn(
+            raise PlottingWarning(
                 f"{len(self._all_nan_classification_ids)} sample(s) have no abundances "
                 "calculated and have been omitted from the distance heatmap."
             )
