@@ -207,9 +207,11 @@ class VizDistanceMixin(DistanceMixin):
         )
 
         if self._all_nan_classification_ids:
-            raise PlottingWarning(
-                f"{len(self._all_nan_classification_ids)} sample(s) have no abundances "
-                "calculated and have been omitted from the distance heatmap."
+            warnings.warn(
+                PlottingWarning(
+                    f"{len(self._all_nan_classification_ids)} sample(s) have no abundances "
+                    "calculated and have been omitted from the distance heatmap."
+                )
             )
 
         # must convert to long format for heatmap plotting
