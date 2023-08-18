@@ -176,7 +176,7 @@ def _logout(creds_file=None):
         sys.exit(1)
 
 
-def login_required_with_args(experimental=False):
+def login_required_with_args(experimental_api=False):
     def decorator(fn):
         """Require login before proceeding, but does not prompt the user to login.
 
@@ -217,7 +217,7 @@ def login_required_with_args(experimental=False):
                 )
                 ctx.exit(1)
 
-            if experimental:
+            if experimental_api:
                 api_kwargs["experimental"] = True
 
             ctx.obj["API"] = Api(**api_kwargs)
@@ -229,5 +229,5 @@ def login_required_with_args(experimental=False):
     return decorator
 
 
-login_required = login_required_with_args(experimental=False)
-login_required_experimental_api = login_required_with_args(experimental=True)
+login_required = login_required_with_args(experimental_api=False)
+login_required_experimental_api = login_required_with_args(experimental_api=True)
