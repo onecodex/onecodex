@@ -3,7 +3,7 @@ from itertools import chain
 import warnings
 
 from onecodex.lib.enums import BetaDiversityMetric, Rank, Linkage, OrdinationMethod
-from onecodex.exceptions import OneCodexException, PlottingException
+from onecodex.exceptions import OneCodexException, PlottingException, PlottingWarning
 from onecodex.distance import DistanceMixin
 from onecodex.viz._primitives import (
     interleave_palette,
@@ -14,7 +14,7 @@ from onecodex.utils import is_continuous, has_missing_values
 
 
 class VizDistanceMixin(DistanceMixin):
-    def _compute_distance(self, rank, metric):
+    def _compute_distance(self, rank, metric, exclude_all_nan=False):
         if rank is None:
             raise OneCodexException("Please specify a rank or 'auto' to choose automatically")
 
@@ -38,6 +38,14 @@ class VizDistanceMixin(DistanceMixin):
                 "Metric must be one of: {}".format(", ".join(BetaDiversityMetric.values()))
             )
 
+        if exclude_all_nan:
+            ids = [
+                classification_id
+                for classification_id in distances.ids
+                if classification_id not in self._all_nan_classification_ids
+            ]
+            distances = distances.filter(ids)
+
         return distances
 
     def _cluster_by_sample(
@@ -46,6 +54,7 @@ class VizDistanceMixin(DistanceMixin):
         rank=Rank.Auto,
         metric=BetaDiversityMetric.BrayCurtis,
         linkage=Linkage.Average,
+        exclude_all_nan=False,
     ):
         import numpy as np
         from scipy.cluster import hierarchy
@@ -64,13 +73,17 @@ class VizDistanceMixin(DistanceMixin):
         if metric == "euclidean":
             dist_matrix = euclidean_distances(df).round(6)
         else:
-            dist_matrix = self._compute_distance(rank=rank, metric=metric).to_data_frame().round(6)
+            dist_matrix = (
+                self._compute_distance(rank=rank, metric=metric, exclude_all_nan=exclude_all_nan)
+                .to_data_frame()
+                .round(6)
+            )
 
         clustering = hierarchy.linkage(squareform(dist_matrix), method=linkage)
         scipy_tree = hierarchy.dendrogram(clustering, no_plot=True)
         ids_in_order = [df.index[int(x)] for x in scipy_tree["ivl"]]
 
-        if all_nan_classification_ids:
+        if all_nan_classification_ids and not exclude_all_nan:
             ids_in_order.extend(all_nan_classification_ids)
 
         return {
@@ -185,7 +198,20 @@ class VizDistanceMixin(DistanceMixin):
 
             formatted_fields.append(field_group)
 
-        clust = self._cluster_by_sample(rank=rank, metric=metric, linkage=linkage)
+        clust = self._cluster_by_sample(
+            rank=rank,
+            metric=metric,
+            linkage=linkage,
+            all_nan_classification_ids=self._all_nan_classification_ids,
+            exclude_all_nan=True,
+        )
+
+        if self._all_nan_classification_ids:
+            warnings.warn(
+                f"{len(self._all_nan_classification_ids)} sample(s) have no abundances "
+                "calculated and have been omitted from the distance heatmap.",
+                PlottingWarning,
+            )
 
         # must convert to long format for heatmap plotting
         for idx1, id1 in enumerate(clust["dist_matrix"].index):
