@@ -10,7 +10,7 @@ import pytest
 from onecodex import Cli
 
 
-@pytest.mark.skipif(sys.version_info < (3, 7), reason="requires python3.7 or higher")
+@pytest.mark.skipif(sys.version_info < (3, 8), reason="requires python3.8 or higher")
 @pytest.mark.parametrize(
     "import_command,package_max_import_times,total_time_secs",
     [
