@@ -176,47 +176,58 @@ def _logout(creds_file=None):
         sys.exit(1)
 
 
-def login_required(fn):
-    """Require login before proceeding, but does not prompt the user to login.
+def login_required_with_args(experimental_api=False):
+    def decorator(fn):
+        """Require login before proceeding, but does not prompt the user to login.
 
-    Decorator should be used only on Click CLI commands.
+        Decorator should be used only on Click CLI commands.
 
-    Notes
-    -----
-    Different means of authentication will be attempted in this order:
-        1. An API key present in the Click context object from a previous successful authentication.
-        2. A bearer token (ONE_CODEX_BEARER_TOKEN) in the environment.
-        3. An API key (ONE_CODEX_API_KEY) in the environment.
-        4. An API key in the credentials file (~/.onecodex).
-    """
+        Notes
+        -----
+        Different means of authentication will be attempted in this order:
+            1. An API key present in the Click context object from a previous successful authentication.
+            2. A bearer token (ONE_CODEX_BEARER_TOKEN) in the environment.
+            3. An API key (ONE_CODEX_API_KEY) in the environment.
+            4. An API key in the credentials file (~/.onecodex).
+        """
 
-    @wraps(fn)
-    def login_wrapper(ctx, *args, **kwargs):
-        base_url = os.environ.get("ONE_CODEX_API_BASE", "https://app.onecodex.com")
+        @wraps(fn)
+        def login_wrapper(ctx, *args, **kwargs):
+            base_url = os.environ.get("ONE_CODEX_API_BASE", "https://app.onecodex.com")
 
-        api_kwargs = {"telemetry": ctx.obj["TELEMETRY"], "load_extensions": False}
+            api_kwargs = {"telemetry": ctx.obj["TELEMETRY"], "load_extensions": False}
 
-        api_key_prior_login = ctx.obj.get("API_KEY")
-        bearer_token_env = os.environ.get("ONE_CODEX_BEARER_TOKEN")
-        api_key_env = os.environ.get("ONE_CODEX_API_KEY")
-        api_key_creds_file = _login(base_url, silent=True)
+            api_key_prior_login = ctx.obj.get("API_KEY")
+            bearer_token_env = os.environ.get("ONE_CODEX_BEARER_TOKEN")
+            api_key_env = os.environ.get("ONE_CODEX_API_KEY")
+            api_key_creds_file = _login(base_url, silent=True)
 
-        if api_key_prior_login is not None:
-            api_kwargs["api_key"] = api_key_prior_login
-        elif bearer_token_env is not None:
-            api_kwargs["bearer_token"] = bearer_token_env
-        elif api_key_env is not None:
-            api_kwargs["api_key"] = api_key_env
-        elif api_key_creds_file is not None:
-            api_kwargs["api_key"] = api_key_creds_file
-        else:
-            click.echo(
-                "The command you specified requires authentication. Please login first.\n", err=True
-            )
-            ctx.exit(1)
+            if api_key_prior_login is not None:
+                api_kwargs["api_key"] = api_key_prior_login
+            elif bearer_token_env is not None:
+                api_kwargs["bearer_token"] = bearer_token_env
+            elif api_key_env is not None:
+                api_kwargs["api_key"] = api_key_env
+            elif api_key_creds_file is not None:
+                api_kwargs["api_key"] = api_key_creds_file
+            else:
+                click.echo(
+                    "The command you specified requires authentication. Please login first.\n",
+                    err=True,
+                )
+                ctx.exit(1)
 
-        ctx.obj["API"] = Api(**api_kwargs)
+            if experimental_api:
+                api_kwargs["experimental"] = True
 
-        return fn(ctx, *args, **kwargs)
+            ctx.obj["API"] = Api(**api_kwargs)
 
-    return login_wrapper
+            return fn(ctx, *args, **kwargs)
+
+        return login_wrapper
+
+    return decorator
+
+
+login_required = login_required_with_args(experimental_api=False)
+login_required_experimental_api = login_required_with_args(experimental_api=True)

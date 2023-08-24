@@ -9,7 +9,13 @@ import time
 import warnings
 
 from onecodex.api import Api
-from onecodex.auth import _login, _logout, _remove_creds, login_required
+from onecodex.auth import (
+    _login,
+    _logout,
+    _remove_creds,
+    login_required,
+    login_required_experimental_api,
+)
 from onecodex.lib.upload import DEFAULT_THREADS
 from onecodex.metadata_upload import validate_appendables
 from onecodex.scripts import subset_reads
@@ -220,6 +226,51 @@ def documents_download(ctx, file_id, file_path):
 documents.add_command(documents_list, "list")
 documents.add_command(documents_upload, "upload")
 documents.add_command(documents_download, "download")
+
+
+# assets
+
+
+@onecodex.group("assets", help="Manage Assets.")
+def assets():
+    pass
+
+
+@onecodex.command("upload")
+@click.option(
+    "--max-threads",
+    default=DEFAULT_THREADS,
+    help=OPTION_HELP["max_threads"],
+    metavar="<int:threads>",
+)
+@click.argument(
+    "file",
+    nargs=1,
+    required=True,
+    type=click.Path(exists=True),
+    shell_complete=partial(click_path_autocomplete_helper, directory=False),
+)
+@click.pass_context
+@pretty_errors
+@telemetry
+@login_required_experimental_api
+def assets_upload(ctx, max_threads, file):
+    """Upload an asset to One Codex."""
+    if len(file) == 0:
+        click.echo(ctx.get_help())
+        return
+
+    bar = click.progressbar(length=os.path.getsize(file), label="Uploading... ")
+    run_via_threadpool(
+        ctx.obj["API"].Assets.upload,
+        [file],
+        {"progressbar": bar},
+        max_threads=8 if max_threads > 8 else max_threads,
+        graceful_exit=False,
+    )
+
+
+assets.add_command(assets_upload, "upload")
 
 
 # resources
