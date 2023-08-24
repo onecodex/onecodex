@@ -243,6 +243,11 @@ def assets():
     help=OPTION_HELP["max_threads"],
     metavar="<int:threads>",
 )
+@click.option(
+    "--name",
+    nargs=1,
+    required=False,
+)
 @click.argument(
     "file",
     nargs=1,
@@ -254,7 +259,7 @@ def assets():
 @pretty_errors
 @telemetry
 @login_required_experimental_api
-def assets_upload(ctx, max_threads, file):
+def assets_upload(ctx, max_threads, file, name):
     """Upload an asset to One Codex."""
     if len(file) == 0:
         click.echo(ctx.get_help())
@@ -264,7 +269,7 @@ def assets_upload(ctx, max_threads, file):
     run_via_threadpool(
         ctx.obj["API"].Assets.upload,
         [file],
-        {"progressbar": bar},
+        {"progressbar": bar, "name": name},
         max_threads=8 if max_threads > 8 else max_threads,
         graceful_exit=False,
     )
