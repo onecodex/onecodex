@@ -231,7 +231,7 @@ documents.add_command(documents_download, "download")
 # assets
 
 
-@onecodex.group("assets", help="Upload an Asset to One Codex")
+@onecodex.group("assets", help="Manage Assets.")
 def assets():
     pass
 
