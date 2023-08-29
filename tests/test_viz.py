@@ -385,6 +385,24 @@ def test_plot_distance_excludes_all_nan_class_id_not_in_chart(ocx, api_data):
         )
 
 
+def test_plot_distance_min_with_abundances(ocx, api_data):
+    import numpy as np
+
+    sample1 = ocx.Samples.get("cc18208d98ad48b3")
+    sample2 = ocx.Samples.get("5445740666134eee")
+    samples = SampleCollection([sample1, sample2])
+
+    # Set abundances for both samples to be all NaN
+    samples._results.loc[sample1.primary_classification.id] = np.nan
+    samples._results.loc[sample2.primary_classification.id] = np.nan
+    assert len(samples._all_nan_classification_ids) == 2
+
+    # We should raise a PlottingException if we don't have >= 2 samples with abundances calculated
+    with pytest.raises(PlottingException) as e:
+        samples.plot_distance()
+        assert "There are too few samples for distance matrix plots" in str(e.value)
+
+
 def test_plot_heatmap_exceptions(ocx, api_data):
     samples = ocx.Samples.where(project="4b53797444f846c4")
 
