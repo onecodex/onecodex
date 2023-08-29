@@ -172,6 +172,11 @@ class VizDistanceMixin(DistanceMixin):
                 "There are too few samples for distance matrix plots after filtering. Please "
                 "select 2 or more samples to plot."
             )
+        elif len(self._results) - len(self._all_nan_classification_ids) < 2:
+            raise PlottingException(
+                "There are too few samples for distance matrix plots after filtering out samples "
+                "with no abundances calculated; please select more samples to plot."
+            )
 
         # this will be passed to the heatmap chart as a dataframe eventually
         plot_data = {"1) Label": [], "2) Label": [], "Distance": [], "classification_id": []}
