@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.12.0] - 2023-08-30
+
+### Added
+
+- Adds support for Python 3.11
+- Adds `assets upload` command in experimental API mode
+
+### Changed
+
+- Handles heatmap display of samples with no abundances calculated
+- Excludes samples with no abundances calculated from distance heatmap with abundances metric
+- Pins altair to 4.2.2
+- Requires jsonschema version >= 3.0
+- Improves retry handling
+- Pins version of altair-saver that includes a fix for npm >= 9
+
+### Fixed
+
+- Fixes unnecessary global loading of numpy and pandas
+- Fixes chart concatenation
+
+### Removed
+
+- Removes support for Python 3.7
+- Removes opening links in new tab functionality (can be added manually to a returned chart with `usermeta`)
+
 ## [v0.11.0] - 2022-11-29
 
 ### Added
