@@ -203,7 +203,21 @@ def test_upload_asset():
             upload_asset(file, FakeAssetsResource())
 
             assert upload_asset_fileobj.call_count == n_uploads
+            assert upload_asset_fileobj.call_args[-1] == {"name": None}
             assert passthru.call_count == 1
+
+
+def test_upload_asset_with_name():
+    with patch("boto3.session.Session"):
+        file = "test_asset_file.fa"
+        fake_size = 1000
+        name = "user-friendly-name"
+
+        with patch("onecodex.lib.upload._upload_asset_fileobj") as upload_asset_fileobj, patch(
+            "onecodex.lib.upload.FilePassthru"
+        ), patch("os.path.getsize", size_effect=fake_size):
+            upload_asset(file, FakeAssetsResource(), name=name)
+            assert upload_asset_fileobj.call_args[-1] == {"name": name}
 
 
 def test_api_failures(caplog):
