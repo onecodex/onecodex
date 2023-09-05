@@ -247,6 +247,7 @@ def assets():
     "--name",
     nargs=1,
     required=False,
+    help=OPTION_HELP["name"],
 )
 @click.argument(
     "file",
@@ -261,7 +262,7 @@ def assets():
 @login_required_experimental_api
 def assets_upload(ctx, max_threads, file, name):
     """Upload an asset to One Codex."""
-    if len(file) == 0:
+    if len(file) == 0 or name == "":
         click.echo(ctx.get_help())
         return
 
