@@ -16,6 +16,7 @@ from onecodex.viz import (
     VizMetadataMixin,
     VizDistanceMixin,
     VizBargraphMixin,
+    VizFunctionalHeatmapMixin,
 )
 
 
@@ -28,7 +29,12 @@ def _get_all_nan_classification_ids(df):
 
 
 class AnalysisMixin(
-    VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceMixin, VizBargraphMixin
+    VizPCAMixin,
+    VizHeatmapMixin,
+    VizMetadataMixin,
+    VizDistanceMixin,
+    VizBargraphMixin,
+    VizFunctionalHeatmapMixin,
 ):
     """Contains methods for analyzing Classifications results.
 
