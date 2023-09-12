@@ -10,13 +10,34 @@ from onecodex.viz._primitives import (
 class VizFunctionalHeatmapMixin(object):
     def plot_functional_heatmap(
         self,
-        return_chart=False,
         num_of_functions=10,
+        return_chart=False,
         title=None,
         width=None,
         height=None,
     ):
-        """TODO"""
+        """Plot a TODO heatmap.
+
+        Parameters
+        ----------
+        num_of_functions : `int`, optional
+            Display the top N most abundant taxa in the entire cohort of samples.
+        return_chart : `bool`, optional
+            When True, return an `altair.Chart` object instead of displaying the resulting plot in
+            the current notebook.
+        title : `string`, optional
+            Text label at the top of the plot.
+        width : `float` or `string` or `dict`, optional
+            Set `altair.Chart.width`.
+        height : `float` or `string` or `dict`, optional
+            Set `altair.Chart.height`.
+
+        Examples
+        --------
+        TODO
+
+        >>> "TODO"
+        """
         # TODO: num_of_functions validate???
         # TODO: default_size_kwargs = {"width": "container", "height": "container"}
 
