@@ -1,7 +1,7 @@
 from onecodex.models import OneCodexBase, ResourceList
 from onecodex.models.helpers import ResourceDownloadMixin
 from onecodex.models.analysis import Analyses
-from onecodex.lib.enums import FunctionalAnnotations, FunctionalAnnotationsMetric
+from onecodex.lib.enums import FunctionalAnnotations
 
 
 class AnnotationSets(OneCodexBase, ResourceDownloadMixin):
@@ -164,7 +164,7 @@ class FunctionalProfiles(Analyses):
         else:
             return self.table()
 
-    def table(self, annotation="all", taxa_stratified: bool = True):
+    def table(self, annotation="all", taxa_stratified=True):
         """Return a results table for the functional analysis.
 
         Parameters
@@ -214,12 +214,7 @@ class FunctionalProfiles(Analyses):
             else results_df[~results_df["taxa_stratified"]]
         )
 
-    def filtered_table(
-        self,
-        annotation: FunctionalAnnotations,
-        metric: FunctionalAnnotationsMetric,
-        taxa_stratified: bool = True,
-    ):
+    def filtered_table(self, annotation, metric, taxa_stratified=True):
         """Return a results table for the functional analysis.
 
         Parameters

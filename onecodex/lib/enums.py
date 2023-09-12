@@ -123,7 +123,7 @@ class FunctionalAnnotationsMetric(BaseEnum):
     Coverage = "coverage"
 
     @classmethod
-    def metrics_for_annotation(cls, annotation: FunctionalAnnotations):
+    def metrics_for_annotation(cls, annotation):
         return (
             [FunctionalAnnotationsMetric.Abundance, FunctionalAnnotationsMetric.Coverage]
             if annotation == FunctionalAnnotations.Pathways
