@@ -66,7 +66,7 @@ class VizFunctionalHeatmapMixin(object):
 
         # TODO: Funtional/Sample labels
         labels = [f"Label {i}" for i in range(len(df))]
-        df.insert(1, "__label", labels)
+        df.insert(0, "__label", labels)
 
         # TODO: chart/tooltip labels
         chart = (
