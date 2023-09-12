@@ -11808,6 +11808,33 @@
                         "type": "object"
                     }
                 },
+              {
+                    "href": "/api/v1_experimental/functional_profiles/{id}/filtered_results",
+                    "method": "GET",
+                    "rel": "filtered_results",
+                    "targetSchema": {
+                        "additionalProperties": false,
+                        "properties": {
+                            "table": {
+                                "default": [],
+                                "items": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "id": {
+                                            "type": "string"
+                                        },
+                                        "value": {
+                                            "type": "number"
+                                        }
+                                    },
+                                    "type": "object"
+                                },
+                                "type": "array"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
                 {
                     "href": "/api/v1_experimental/functional_profiles/{id}",
                     "method": "GET",

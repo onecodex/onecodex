@@ -141,6 +141,11 @@ class Taxa(OneCodexBase):
 class FunctionalProfiles(Analyses):
     _resource_path = "/api/v1_experimental/functional_profiles"
 
+    def _filtered_results(self, functional_group, metric, taxa_stratified):
+        return self._resource.filtered_results(
+            functional_group=functional_group, metric=metric, taxa_stratified=taxa_stratified
+        )
+
     def results(self, json=True):
         """Return the complete results table for a functional analysis.
 
@@ -176,20 +181,66 @@ class FunctionalProfiles(Analyses):
         """
         import pandas as pd
 
-        results_df = pd.DataFrame(self._results()["table"])
+        result_json = self._results()
+        if not result_json["table"]:
+            return pd.DataFrame(
+                {
+                    "group_name": pd.Series(dtype="str"),
+                    "id": pd.Series(dtype="str"),
+                    "name": pd.Series(dtype="str"),
+                    "metric": pd.Series(dtype="str"),
+                    "value": pd.Series(dtype="float"),
+                    "taxa_stratified": pd.Series(dtype="bool"),
+                    "taxon_id": pd.Series(dtype="str"),
+                    "taxon_name": pd.Series(dtype="str"),
+                }
+            )
+        results_df = pd.DataFrame(result_json["table"])
         if annotation != "all":
             # Validate functional annotation
             FunctionalAnnotations(annotation)
-            if taxa_stratified:
-                return results_df[
+            return (
+                results_df[
                     (results_df["group_name"] == annotation) & (results_df["taxa_stratified"])
                 ]
-            else:
-                return results_df[
+                if taxa_stratified
+                else results_df[
                     (results_df["group_name"] == annotation) & ~results_df["taxa_stratified"]
                 ]
-        else:
-            if taxa_stratified:
-                return results_df[results_df["taxa_stratified"]]
-            else:
-                return results_df[~results_df["taxa_stratified"]]
+            )
+        return (
+            results_df[results_df["taxa_stratified"]]
+            if taxa_stratified
+            else results_df[~results_df["taxa_stratified"]]
+        )
+
+    def filtered_table(self, annotation, metric, taxa_stratified=True):
+        """Return a results table for the functional analysis.
+
+        Parameters
+        ----------
+        annotation : onecodex.lib.enum.FunctionalAnnotation, required
+            Return a table for a given `onecodex.lib.enum.FunctionalAnnotation`
+        metric : onecodex.lib.enum.FunctionalAnnotationMetric, required
+            Return a table for a given `onecodex.lib.enum.FunctionalAnnotationMetric`
+        taxa_stratified : bool, optional
+            If False, return data only by annotation ID, ignoring taxonomic stratification
+
+        Returns
+        -------
+        results_df : pd.DataFrame
+            A Pandas DataFrame of the functional results.
+        """
+        import pandas as pd
+
+        result_json = self._filtered_results(
+            functional_group=annotation, metric=metric, taxa_stratified=taxa_stratified
+        )
+        if not result_json["table"]:
+            return pd.DataFrame(
+                {
+                    "id": pd.Series(dtype="str"),
+                    "value": pd.Series(dtype="float"),
+                }
+            )
+        return pd.DataFrame(result_json["table"])
