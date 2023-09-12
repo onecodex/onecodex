@@ -79,6 +79,7 @@ OPTION_HELP = {
     "then short name in that order.",
     "sample_id": "Provide an ID for a sample that was previously 'pre-uploaded' along with metadata.",
     "external_sample_id": "Provide an external sample ID for a sample that was previously 'pre-uploaded' along with metadata.",
+    "name": "Provide a display name for your asset (optional).",
 }
 
 SUPPORTED_EXTENSIONS = [

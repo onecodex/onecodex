@@ -373,7 +373,7 @@ def _upload_document_fileobj(file_obj, file_name, documents_resource):
     return document_id
 
 
-def _upload_asset_fileobj(file_obj, file_name, assets_resource):
+def _upload_asset_fileobj(file_obj, file_name, assets_resource, name=None):
     """Upload a single file-like object to a One Codex Asset directly to S3.
 
     Parameters
@@ -382,9 +382,11 @@ def _upload_asset_fileobj(file_obj, file_name, assets_resource):
         If a file-like object is given, its mime-type will be sent as 'text/plain'. Otherwise,
         `FilePassthru` will send a compressed type if the file is gzip'd or bzip'd.
     file_name : `string`
-        The name of the file you are uploading.
+        The filename of the file you are uploading.
     assets_resource : `onecodex.models.Assets`
         Wrapped potion-client object exposing `init_multipart_upload` mainline route.
+    name : `string`, optional
+        Optionally, a name to be associated with the file you are uploading instead of its filename.
 
     Raises
     ------
@@ -408,6 +410,7 @@ def _upload_asset_fileobj(file_obj, file_name, assets_resource):
         fields,
         assets_resource._client.session,
         assets_resource._client._root_url + fields["callback_url"],  # full callback url
+        name=name,
     )
 
     output_msg = f"{file_name}: finished"
@@ -422,7 +425,7 @@ def _upload_asset_fileobj(file_obj, file_name, assets_resource):
     return asset_uuid
 
 
-def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):
+def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url, name=None):
     """Upload a single file-like object to an intermediate S3 bucket.
 
     One Codex will pull the file from S3 after receiving a callback.
@@ -433,13 +436,15 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):
         In the case of a single file, it will simply be passed through (`FilePassthru`) to One Codex, compressed
         or otherwise. If a file-like object is given, its mime-type will be sent as 'text/plain'.
     file_name : `string`
-        The file_name you wish to associate this file with at One Codex.
+        The file_name of the uploaded file.
     fields : `dict`
         Additional data fields to include as JSON in the POST.
     session : `requests.Session`
         Authenticated connection to One Codex API used to POST callback.
     callback_url : `string`
         API callback at One Codex which will trigger a pull from this S3 bucket.
+    name : `string`, optional
+        Optionally, a name you wish to associate the file with
 
     Raises
     ------
@@ -513,13 +518,13 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):
 
     # issue a callback
     try:
-        resp = session.post(
-            callback_url,
-            json={
-                "s3_path": "s3://{}/{}".format(fields["s3_bucket"], fields["file_id"]),
-                "filename": file_name,
-            },
-        )
+        payload = {
+            "s3_path": f"s3://{fields['s3_bucket']}/{fields['file_id']}",
+            "filename": file_name,
+        }
+        if name:
+            payload["name"] = name
+        resp = session.post(callback_url, json=payload)
     except requests.exceptions.ConnectionError:
         raise_connectivity_error(file_name)
 
@@ -532,7 +537,7 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url):
         return {}
 
 
-def upload_asset(file_path, assets_resource, progressbar=None):
+def upload_asset(file_path, assets_resource, progressbar=None, name=None):
     """Upload file to One Codex directly to S3 via an intermediate bucket.
 
     Parameters
@@ -543,6 +548,8 @@ def upload_asset(file_path, assets_resource, progressbar=None):
         Wrapped potion-client object exposing `upload` method.
     progressbar : `click.progressbar`, optional
         If passed, display a progress bar using Click.
+    name : `string`, optional
+        If passed, name is sent with upload request and associated with asset.
 
     Raises
     ------
@@ -562,6 +569,6 @@ def upload_asset(file_path, assets_resource, progressbar=None):
 
     with progressbar as bar:
         file_obj = FilePassthru(file_path, bar)
-        asset_id = _upload_asset_fileobj(file_obj, file_obj.filename, assets_resource)
+        asset_id = _upload_asset_fileobj(file_obj, file_obj.filename, assets_resource, name=name)
         bar.finish()
         return asset_id

@@ -10,6 +10,7 @@ import re
 import responses
 
 from onecodex import Api
+from onecodex.analyses import FunctionalAnnotations, FunctionalAnnotationsMetric
 
 
 # TODO: Fix a bug wherein this will return all the items to potion
@@ -57,6 +58,21 @@ def update_metadata_callback(req):
     metadata["$uri"] = "/api/v1/metadata/4fe05e748b5a4f0e"
     metadata["sample"] = {"$ref": "/api/v1/samples/761bc54b97f64980"}
     return _make_callback_resp(metadata)
+
+
+def filtered_raw_results(raw_results, annotation, metric, taxa_stratified):
+    metric = "total_" + metric if not taxa_stratified and annotation != "pathways" else metric
+    table = [
+        {
+            "id": elem["id"] + "_" + elem["taxon_name"] if taxa_stratified else elem["id"],
+            "value": elem["value"],
+        }
+        for elem in raw_results["table"]
+        if elem["group_name"] == annotation
+        and elem["metric"] == metric
+        and elem["taxa_stratified"] == taxa_stratified
+    ]
+    return {"table": table, "n_reads": raw_results["n_reads"], "n_mapped": raw_results["n_mapped"]}
 
 
 # All of the mocked API data. Scheme is METHOD:CONTENT_TYPE:URL (content-type is optional) and then
@@ -279,6 +295,21 @@ API_DATA = {
         },
     ],
 }
+
+for functional_uuid in {"31ddae978aff475f", "bde18eb9407d4c2f", "eec4ac90d9104d1e"}:
+    raw_results = json.load(
+        open(
+            f"tests/data/api/v1_experimental/functional_profiles/{functional_uuid}/results/index.json"
+        )
+    )
+    for annotation in FunctionalAnnotations:
+        for metric in FunctionalAnnotationsMetric.metrics_for_annotation(annotation):
+            API_DATA[
+                f"GET::api/v1_experimental/functional_profiles/{functional_uuid}/filtered_results\\?.*functional_group=%22{annotation}%22\\&metric=%22{metric}%22\\&taxa_stratified=true"
+            ] = filtered_raw_results(raw_results, annotation, metric, True)
+            API_DATA[
+                f"GET::api/v1_experimental/functional_profiles/{functional_uuid}/filtered_results\\?.*functional_group=%22{annotation}%22\\&metric=%22{metric}%22\\&taxa_stratified=false"
+            ] = filtered_raw_results(raw_results, annotation, metric, False)
 
 SCHEMA_ROUTES = {}
 API_DATA_DIR = os.path.join("tests", "data", "api")

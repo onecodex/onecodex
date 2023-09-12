@@ -85,23 +85,24 @@ def test_collate_functional_results(ocx_experimental, api_data):
     )
     assert isinstance(df, pd.DataFrame)
     assert df.shape == (3, 39)
-    assert sc._cached["functional_results_content"] == {
-        "annotation": "go",
-        "taxa_stratified": True,
-        "metric": "rpk",
-        "fill_missing": False,
-        "filler": 0,
-    }
+    assert df.compare(
+        sc._cached[
+            "functional_results_annotation=go_metric=rpk_taxa_stratified=True_fill_missing=False_filler=0"
+        ]
+    ).empty
     df = sc._functional_results(
         annotation="eggnog", metric="cpm", taxa_stratified=False, fill_missing=True, filler=0
     )
-    assert sc._cached["functional_results_content"] == {
-        "annotation": "eggnog",
-        "taxa_stratified": False,
-        "metric": "cpm",
-        "fill_missing": True,
-        "filler": 0,
-    }
+    # Old cache is still kept
+    assert (
+        "functional_results_annotation=go_metric=rpk_taxa_stratified=True_fill_missing=False_filler=0"
+        in sc._cached
+    )
+    assert df.compare(
+        sc._cached[
+            "functional_results_annotation=eggnog_metric=cpm_taxa_stratified=False_fill_missing=True_filler=0"
+        ]
+    ).empty
     df = sc._functional_results(
         annotation="pathways", metric="coverage", taxa_stratified=True, fill_missing=False, filler=0
     )
@@ -121,15 +122,21 @@ def test_collate_functional_results(ocx_experimental, api_data):
     sc._functional_results(
         annotation="pfam", metric="cpm", taxa_stratified=False, fill_missing=False, filler=0
     )
-    assert sc._cached["functional_results"].shape == (3, 2)
+    assert sc._cached[
+        "functional_results_annotation=pfam_metric=cpm_taxa_stratified=False_fill_missing=False_filler=0"
+    ].shape == (3, 2)
     sc._functional_results(
         annotation="pfam", metric="rpk", taxa_stratified=False, fill_missing=False, filler=0
     )
-    assert sc._cached["functional_results"].shape == (3, 2)
+    assert sc._cached[
+        "functional_results_annotation=pfam_metric=rpk_taxa_stratified=False_fill_missing=False_filler=0"
+    ].shape == (3, 2)
     sc._functional_results(
         annotation="go", metric="rpk", taxa_stratified=True, fill_missing=False, filler=0
     )
-    assert sc._cached["functional_results"].shape == (3, 39)
+    assert sc._cached[
+        "functional_results_annotation=go_metric=rpk_taxa_stratified=True_fill_missing=False_filler=0"
+    ].shape == (3, 39)
 
 
 def test_to_df_for_functional_profiles(ocx_experimental, api_data):

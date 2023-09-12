@@ -122,6 +122,14 @@ class FunctionalAnnotationsMetric(BaseEnum):
     Abundance = "abundance"
     Coverage = "coverage"
 
+    @classmethod
+    def metrics_for_annotation(cls, annotation):
+        return (
+            [FunctionalAnnotationsMetric.Abundance, FunctionalAnnotationsMetric.Coverage]
+            if annotation == FunctionalAnnotations.Pathways
+            else [FunctionalAnnotationsMetric.Cpm, FunctionalAnnotationsMetric.Rpk]
+        )
+
 
 class Link(BaseEnum):
     Ocx = "ocx"

@@ -84,7 +84,7 @@ class Assets(OneCodexBase, ResourceDownloadMixin):
     _resource_path = "/api/v1_experimental/assets"
 
     @classmethod
-    def upload(cls, file_path, progressbar=None):
+    def upload(cls, file_path, progressbar=None, name=None):
         """Upload a file to an asset.
 
         Parameters
@@ -93,11 +93,13 @@ class Assets(OneCodexBase, ResourceDownloadMixin):
             A path to a file on the system.
         progressbar : `click.progressbar`, optional
             If passed, display a progress bar using Click.
+        name : `string`, optional
+            If passed, name is sent with upload request and is associated with asset.
 
         Returns
         -------
         An `Assets` object upon successful upload. None if the upload failed.
         """
-        asset_id = upload_asset(file_path, cls._resource, progressbar=progressbar)
+        asset_id = upload_asset(file_path, cls._resource, progressbar=progressbar, name=name)
 
         return cls.get(asset_id)
