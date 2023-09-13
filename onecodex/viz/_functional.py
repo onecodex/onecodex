@@ -83,10 +83,11 @@ class VizFunctionalHeatmapMixin(object):
         # TODO: Funtional/Sample labels
         labels = [f"Label {i}" for i in range(len(df))]
         df.insert(0, "__label", labels)
+        # TODO: Maybe just use UUID? df.reset_index(names=["__label"], inplace=True)
 
+        # TODO: add sorting. This is default
         y_sort = list(df.columns)
 
-        # TODO: chart/tooltip labels
         chart = (
             alt.Chart(
                 df.melt(
@@ -97,11 +98,11 @@ class VizFunctionalHeatmapMixin(object):
             )
             .mark_rect()
             .encode(
-                x=alt.X("__label:N", title="File"),
+                x=alt.X("__label:N", title="TODO"),
                 y=alt.Y("function_id:N", title="Function ID", sort=y_sort),
                 color=alt.Color("value:Q", title=metric.name),
                 tooltip=[
-                    alt.Tooltip("__label", title="File"),
+                    alt.Tooltip("__label", title="TODO"),
                     alt.Tooltip("function_id", title="Function ID"),
                     alt.Tooltip("value:Q", format=".02f", title=metric.name),
                 ],
