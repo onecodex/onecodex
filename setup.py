@@ -52,7 +52,7 @@ REPORT_DEPS = ALL_DEPS + [
     # Hardcoding jinja2 version for https://github.com/jupyter/nbconvert/issues/1742
     "jinja2<=3.1",
     "WeasyPrint==59.0",
-    "altair-saver @ git+https://github.com/onecodex/altair_saver@andyreagan-upstream/patch-1",
+    "altair-saver==0.5.0",
     "selenium<4.3.0",  # see https://github.com/altair-viz/altair_saver/issues/104
 ]
 
