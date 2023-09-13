@@ -7,6 +7,7 @@ from onecodex.viz._primitives import dendrogram
 from onecodex.viz._metadata import VizMetadataMixin
 from onecodex.viz._distance import VizDistanceMixin
 from onecodex.viz._bargraph import VizBargraphMixin
+from onecodex.viz._functional import VizFunctionalHeatmapMixin
 
 
 OCX_DARK_GREEN = "#128887"
@@ -168,4 +169,5 @@ __all__ = [
     "VizDistanceMixin",
     "dendrogram",
     "VizBargraphMixin",
+    "VizFunctionalHeatmapMixin",
 ]
