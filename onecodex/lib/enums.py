@@ -120,12 +120,17 @@ class FunctionalAnnotationsMetric(BaseEnum):
     Rpk = "rpk"
     Cpm = "cpm"
     Abundance = "abundance"
+    CompleteAbundance = "complete_abundance"
     Coverage = "coverage"
 
     @classmethod
     def metrics_for_annotation(cls, annotation):
         return (
-            [FunctionalAnnotationsMetric.Abundance, FunctionalAnnotationsMetric.Coverage]
+            [
+                FunctionalAnnotationsMetric.Abundance,
+                FunctionalAnnotationsMetric.CompleteAbundance,
+                FunctionalAnnotationsMetric.Coverage,
+            ]
             if annotation == FunctionalAnnotations.Pathways
             else [FunctionalAnnotationsMetric.Cpm, FunctionalAnnotationsMetric.Rpk]
         )
