@@ -1,16 +1,17 @@
-from onecodex.lib.enums import (
-    FunctionalAnnotations,
-    FunctionalAnnotationsMetric,
-)
-from onecodex.viz._primitives import (
-    prepare_props,
-)
+from math import floor
+
+from onecodex.lib.enums import (FunctionalAnnotations,
+                                FunctionalAnnotationsMetric)
+from onecodex.viz._primitives import prepare_props
 
 
 class VizFunctionalHeatmapMixin(object):
     def plot_functional_heatmap(
         self,
         num_of_functions=10,
+        annotation=FunctionalAnnotations.Go,
+        metric=None,
+        complete_pathways=False,
         return_chart=False,
         title=None,
         width=None,
@@ -22,14 +23,20 @@ class VizFunctionalHeatmapMixin(object):
         ----------
         num_of_functions : `int`, optional
             Display the top N most abundant taxa in the entire cohort of samples.
+        annotation : `FunctionalAnnotations` or `str`, optional
+            TODO
+        metric : `FunctionalAnnotationsMetric` or `str`, optional
+            TODO
+        complete_pathways : `bool`, optional
+            TODO.
         return_chart : `bool`, optional
             When True, return an `altair.Chart` object instead of displaying the resulting plot in
             the current notebook.
-        title : `string`, optional
+        title : `str`, optional
             Text label at the top of the plot.
-        width : `float` or `string` or `dict`, optional
+        width : `float` or `str` or `dict`, optional
             Set `altair.Chart.width`.
-        height : `float` or `string` or `dict`, optional
+        height : `float` or `str` or `dict`, optional
             Set `altair.Chart.height`.
 
         Examples
@@ -41,27 +48,36 @@ class VizFunctionalHeatmapMixin(object):
         # TODO: num_of_functions validate???
         # TODO: default_size_kwargs = {"width": "container", "height": "container"}
 
-        # TODO: Placeholder. Remove.
-
         import altair as alt
         import pandas as pd
 
         def key_func(key):
             return pd.Index([df[c].mean() for c in key])
 
-        df = self._to_functional_df(
-            annotation=FunctionalAnnotations.Go,
-            metric=FunctionalAnnotationsMetric.Cpm,
-            taxa_stratified=False,
-            fill_missing=True,
-        )
+        annotation = FunctionalAnnotations(annotation)
+        if metric is None:
+            if annotation == FunctionalAnnotations.Pathways:
+                metric = FunctionalAnnotationsMetric.Abundance
+            else:
+                metric = FunctionalAnnotationsMetric.Cpm
+        metric = FunctionalAnnotationsMetric(metric)
+
+        df = self._to_normalized_functional_df(annotation=annotation, metric=metric)
+        if annotation == FunctionalAnnotations.Pathways and complete_pathways:
+            # TODO: comments
+            if metric == FunctionalAnnotationsMetric.Coverage:
+                coverage_df = df
+            else:
+                coverage_df = self._to_normalized_functional_df(
+                    annotation,
+                    FunctionalAnnotationsMetric.Coverage,
+                )
+
+            # TODO: comment
+            coverage_df = coverage_df.applymap(floor)
+            df = df.mul(coverage_df)
+
         df.sort_index(axis=1, key=key_func, ascending=False, inplace=True)
-        df.drop(
-            axis=1,
-            labels=["UNGROUPED", "UNMAPPED", "UNINTEGRATED"],
-            inplace=True,
-            errors="ignore",
-        )  # TODO: Pathways has somethings as well
         df = df.iloc[:, :num_of_functions]
 
         # TODO: Funtional/Sample labels
@@ -96,3 +112,18 @@ class VizFunctionalHeatmapMixin(object):
             return chart
         else:
             chart.interactive().display()
+
+    def _to_normalized_functional_df(self, annotation, metric):
+        result = self._to_functional_df(
+            annotation=annotation,
+            metric=metric,
+            taxa_stratified=False,
+            fill_missing=True,
+        )
+        result.drop(
+            axis=1,
+            labels=["UNGROUPED", "UNMAPPED", "UNINTEGRATED"],
+            inplace=True,
+            errors="ignore",
+        )
+        return result
