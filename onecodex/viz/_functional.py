@@ -84,6 +84,8 @@ class VizFunctionalHeatmapMixin(object):
         labels = [f"Label {i}" for i in range(len(df))]
         df.insert(0, "__label", labels)
 
+        y_sort = list(df.columns)
+
         # TODO: chart/tooltip labels
         chart = (
             alt.Chart(
@@ -96,12 +98,12 @@ class VizFunctionalHeatmapMixin(object):
             .mark_rect()
             .encode(
                 x=alt.X("__label:N", title="File"),
-                y=alt.Y("function_id:N", title="Function ID"),
-                color=alt.Color("value:Q"),
+                y=alt.Y("function_id:N", title="Function ID", sort=y_sort),
+                color=alt.Color("value:Q", title=metric.name),
                 tooltip=[
                     alt.Tooltip("__label", title="File"),
                     alt.Tooltip("function_id", title="Function ID"),
-                    alt.Tooltip("value:Q", format=".02f", title="CPM"),
+                    alt.Tooltip("value:Q", format=".02f", title=metric.name),
                 ],
             )
         )
