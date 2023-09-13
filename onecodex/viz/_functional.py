@@ -1,7 +1,9 @@
 from math import floor
 
-from onecodex.lib.enums import (FunctionalAnnotations,
-                                FunctionalAnnotationsMetric)
+from onecodex.lib.enums import (
+    FunctionalAnnotations,
+    FunctionalAnnotationsMetric,
+)
 from onecodex.viz._primitives import prepare_props
 
 
@@ -11,7 +13,6 @@ class VizFunctionalHeatmapMixin(object):
         num_of_functions=10,
         annotation=FunctionalAnnotations.Go,
         metric=None,
-        complete_pathways=False,
         return_chart=False,
         title=None,
         width=None,
@@ -27,8 +28,6 @@ class VizFunctionalHeatmapMixin(object):
             TODO
         metric : `FunctionalAnnotationsMetric` or `str`, optional
             TODO
-        complete_pathways : `bool`, optional
-            TODO.
         return_chart : `bool`, optional
             When True, return an `altair.Chart` object instead of displaying the resulting plot in
             the current notebook.
@@ -63,15 +62,11 @@ class VizFunctionalHeatmapMixin(object):
         metric = FunctionalAnnotationsMetric(metric)
 
         df = self._to_normalized_functional_df(annotation=annotation, metric=metric)
-        if annotation == FunctionalAnnotations.Pathways and complete_pathways:
-            # TODO: comments
-            if metric == FunctionalAnnotationsMetric.Coverage:
-                coverage_df = df
-            else:
-                coverage_df = self._to_normalized_functional_df(
-                    annotation,
-                    FunctionalAnnotationsMetric.Coverage,
-                )
+        if metric == FunctionalAnnotationsMetric.CompleteAbundance:
+            coverage_df = self._to_normalized_functional_df(
+                annotation,
+                FunctionalAnnotationsMetric.Coverage,
+            )
 
             # TODO: comment
             coverage_df = coverage_df.applymap(floor)

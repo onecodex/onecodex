@@ -491,9 +491,10 @@ class SampleCollection(ResourceList, AnalysisMixin):
         annotation = FunctionalAnnotations(annotation)
         metric = FunctionalAnnotationsMetric(metric)
         if annotation == FunctionalAnnotations.Pathways:
-            if metric.value not in ["coverage", "abundance"]:
+            if metric.value not in ["coverage", "abundance", "complete_abundance"]:
                 raise ValueError(
-                    "If using annotation='pathways', 'metric' must be one of ['coverage', 'abundance']"
+                    "If using annotation='pathways', 'metric' must be one of "
+                    "['coverage', 'abundance', 'complete_abundance']"
                 )
         elif metric.value not in ["cpm", "rpk"]:
             raise ValueError(
