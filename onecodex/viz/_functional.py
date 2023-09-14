@@ -69,7 +69,7 @@ class VizFunctionalHeatmapMixin(object):
             df = df.mul(coverage_df)
 
         # TODO: comment to explain
-        agg_row: pd.Series = df.mean()
+        agg_row = df.mean()
         agg_row.sort_values(ascending=False, inplace=True)
         to_keep = agg_row[:num_of_functions]
         to_drop = agg_row[num_of_functions:]
