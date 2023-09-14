@@ -47,7 +47,6 @@ class VizFunctionalHeatmapMixin(object):
         # TODO: num_of_functions validate???
 
         import altair as alt
-        import pandas as pd
 
         annotation = FunctionalAnnotations(annotation)
         if metric is None:
