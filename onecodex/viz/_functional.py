@@ -23,7 +23,7 @@ class VizFunctionalHeatmapMixin(object):
         Parameters
         ----------
         num_of_functions : `int`, optional
-            Display the top N most abundant taxa in the entire cohort of samples.
+            TODO
         annotation : `FunctionalAnnotations` or `str`, optional
             TODO
         metric : `FunctionalAnnotationsMetric` or `str`, optional
@@ -45,13 +45,8 @@ class VizFunctionalHeatmapMixin(object):
         >>> "TODO"
         """
         # TODO: num_of_functions validate???
-        # TODO: default_size_kwargs = {"width": "container", "height": "container"}
 
         import altair as alt
-        import pandas as pd
-
-        def key_func(key):
-            return pd.Index([df[c].mean() for c in key])
 
         annotation = FunctionalAnnotations(annotation)
         if metric is None:
@@ -72,8 +67,13 @@ class VizFunctionalHeatmapMixin(object):
             coverage_df = coverage_df.applymap(floor)
             df = df.mul(coverage_df)
 
-        df.sort_index(axis=1, key=key_func, ascending=False, inplace=True)
-        df = df.iloc[:, :num_of_functions]
+        # TODO: comment to explain
+        agg_row = df.mean()
+        agg_row.sort_values(ascending=False, inplace=True)
+        to_keep = agg_row[:num_of_functions]
+        to_drop = agg_row[num_of_functions:]
+
+        df.drop(columns=to_drop.index, inplace=True)
 
         # TODO: Funtional/Sample labels
         labels = [f"Label {i}" for i in range(len(df))]
@@ -81,7 +81,7 @@ class VizFunctionalHeatmapMixin(object):
         # TODO: Maybe just use UUID? df.reset_index(names=["__label"], inplace=True)
 
         # TODO: add sorting. This is default
-        y_sort = list(df.columns)
+        y_sort = list(to_keep.index)
 
         chart = (
             alt.Chart(
