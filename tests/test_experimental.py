@@ -154,5 +154,17 @@ def test_to_df_for_functional_profiles(ocx_experimental, api_data):
         filler=0,
     )
     assert df.shape == (3, 7)
+    assert df.ocx_functional_group == "eggnog"
+    assert df.ocx_metric == "cpm"
+    assert df.ocx_metadata.shape == (3, 92)
+    assert df.index.name == "sample_id"
+    assert list(df.index.values) == sample_ids
+
+    # Functional df doesn't have classification df attributes
+    with pytest.raises(AttributeError):
+        df.ocx_taxonomy
+    with pytest.raises(AttributeError):
+        df.ocx_rank
+
     with pytest.raises(ValueError):
         sc.to_df(analysis_type="foo")
