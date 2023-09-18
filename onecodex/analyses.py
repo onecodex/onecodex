@@ -76,7 +76,7 @@ class AnalysisMixin(
             or bool((self._results.sum(axis=1).round(4) == 1.0).all())
         )  # noqa
 
-    def _metadata_fetch(self, metadata_fields, label=None):
+    def _metadata_fetch(self, metadata_fields, label=None, match_taxonomy=True):
         """Fetch and transform given metadata fields from `self.metadata`.
 
         Takes a list of metadata fields, some of which can contain taxon names or taxon IDs, and
@@ -93,6 +93,9 @@ class AnalysisMixin(
 
             If this argument is not given, and "Label" is in `metadata_fields`, "Label" will be set
             to the filename associated with an analysis.
+        match_taxonomy : `bool`, optional
+            Whether the returned metadata should resolve `metadata_fields` against taxonomy
+            if they're not included in sample metadata. Defaults to true.
 
         Notes
         -----
@@ -219,7 +222,7 @@ class AnalysisMixin(
                     # exactly matches existing metadata field
                     magic_metadata[f] = self.metadata[str_f]
                     magic_fields[f] = str_f
-                elif str_f in self._results.keys():
+                elif match_taxonomy and str_f in self._results.keys():
                     # is a tax_id
                     tax_name = self.taxonomy["name"][str_f]
 
@@ -229,7 +232,7 @@ class AnalysisMixin(
                     renamed_field = "{} ({})".format(tax_name, str_f)
                     magic_metadata[renamed_field] = df[str_f]
                     magic_fields[f] = renamed_field
-                else:
+                elif match_taxonomy:
                     # try to match it up with a taxon name
                     hits = []
 
@@ -258,6 +261,10 @@ class AnalysisMixin(
                         # matched nothing
                         magic_metadata[f] = None
                         magic_fields[f] = str_f
+                else:
+                    # matched nothing
+                    magic_metadata[f] = None
+                    magic_fields[f] = str_f
 
         return magic_metadata, magic_fields
 
@@ -307,7 +314,7 @@ class AnalysisMixin(
         filler=0,
     ):
         """
-        Return a dataframe of results from a functional analysis.
+        Return a `ClassificationsDataFrame` of results from a functional analysis.
 
         Parameters
         ----------
@@ -324,12 +331,20 @@ class AnalysisMixin(
         filler : float, optional
             Value with which to fill np.nans
         """
-        return self._functional_results(
+        from onecodex.dataframes import FunctionalDataFrame
+
+        df = self._functional_results(
             annotation=annotation,
             taxa_stratified=taxa_stratified,
             metric=metric,
             fill_missing=fill_missing,
             filler=filler,
+        )
+        return FunctionalDataFrame(
+            df,
+            ocx_metadata=self.metadata.copy(),
+            ocx_functional_group=annotation,
+            ocx_metric=metric,
         )
 
     def _to_classification_df(
