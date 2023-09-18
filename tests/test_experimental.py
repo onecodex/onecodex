@@ -80,17 +80,19 @@ def test_collate_functional_results(ocx_experimental, api_data):
     sample_ids = ["543c9c046e3e4e09", "66c1531cb0b244f6", "37e5151e7bcb4f87"]
     samples = [ocx_experimental.Samples.get(sample_id) for sample_id in sample_ids]
     sc = SampleCollection(samples)
-    df = sc._functional_results(
+    df, mapping = sc._functional_results(
         annotation="go", metric="rpk", taxa_stratified=True, fill_missing=False, filler=0
     )
     assert isinstance(df, pd.DataFrame)
     assert df.shape == (3, 39)
+    assert len(mapping) == 39
+    assert sorted(list(mapping.keys())) == sorted(list(df.columns))
     assert df.compare(
         sc._cached[
             "functional_results_annotation=go_metric=rpk_taxa_stratified=True_fill_missing=False_filler=0"
         ]
     ).empty
-    df = sc._functional_results(
+    df, mapping = sc._functional_results(
         annotation="eggnog", metric="cpm", taxa_stratified=False, fill_missing=True, filler=0
     )
     # Old cache is still kept
@@ -103,10 +105,12 @@ def test_collate_functional_results(ocx_experimental, api_data):
             "functional_results_annotation=eggnog_metric=cpm_taxa_stratified=False_fill_missing=True_filler=0"
         ]
     ).empty
-    df = sc._functional_results(
+    df, mapping = sc._functional_results(
         annotation="pathways", metric="coverage", taxa_stratified=True, fill_missing=False, filler=0
     )
     assert df.shape == (3, 27)
+    assert len(mapping) == 27
+    assert sorted(list(mapping.keys())) == sorted(list(df.columns))
     with pytest.raises(ValueError):
         sc._functional_results(
             annotation="all", metric="rpk", taxa_stratified=True, fill_missing=False, filler=0
@@ -159,6 +163,8 @@ def test_to_df_for_functional_profiles(ocx_experimental, api_data):
     assert df.ocx_metadata.shape == (3, 92)
     assert df.index.name == "sample_id"
     assert list(df.index.values) == sample_ids
+    assert list(df.ocx_metadata["sample_id"]) == sample_ids
+    assert sorted(list(df.ocx_feature_name_map.keys())) == sorted(list(df.columns))
 
     # Functional df doesn't have classification df attributes
     with pytest.raises(AttributeError):

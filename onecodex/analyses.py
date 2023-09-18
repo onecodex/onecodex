@@ -333,7 +333,7 @@ class AnalysisMixin(
         """
         from onecodex.dataframes import FunctionalDataFrame
 
-        df = self._functional_results(
+        df, feature_name_map = self._functional_results(
             annotation=annotation,
             taxa_stratified=taxa_stratified,
             metric=metric,
@@ -345,6 +345,7 @@ class AnalysisMixin(
             ocx_metadata=self.metadata.copy(),
             ocx_functional_group=annotation,
             ocx_metric=metric,
+            ocx_feature_name_map=feature_name_map,
         )
 
     def _to_classification_df(

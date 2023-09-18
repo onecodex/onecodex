@@ -240,6 +240,7 @@ class FunctionalProfiles(Analyses):
             return pd.DataFrame(
                 {
                     "id": pd.Series(dtype="str"),
+                    "name": pd.Series(dtype="str"),
                     "value": pd.Series(dtype="float"),
                 }
             )
