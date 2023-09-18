@@ -218,14 +218,19 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
     def _collate_metadata(self):
         """Transform a list of Samples or Classifications into a `pd.DataFrame` of metadata."""
-
+        from onecodex.models import Classifications
         import pandas as pd
 
         DEFAULT_FIELDS = None
         metadata = []
 
-        for c in self._classifications:
-            m = c.sample.metadata
+        for obj in self._res_list:
+            classification_id = (
+                obj.id if isinstance(obj, Classifications) else obj.primary_classification.id
+            )
+            sample = obj.sample if isinstance(obj, Classifications) else obj
+
+            m = sample.metadata
 
             if DEFAULT_FIELDS is None:
                 DEFAULT_FIELDS = list(m._resource._schema["properties"].keys())
@@ -233,12 +238,12 @@ class SampleCollection(ResourceList, AnalysisMixin):
                 DEFAULT_FIELDS.remove("sample")
 
             metadatum = {f: getattr(m, f) for f in DEFAULT_FIELDS}
-            metadatum["classification_id"] = c.id
-            metadatum["sample_id"] = m.sample.id
+            metadatum["classification_id"] = classification_id
+            metadatum["sample_id"] = sample.id
             metadatum["metadata_id"] = m.id
-            metadatum["created_at"] = m.sample.created_at
-            metadatum["filename"] = c.sample.filename
-            metadatum["project"] = getattr(c.sample.project, "name", "")
+            metadatum["created_at"] = sample.created_at
+            metadatum["filename"] = sample.filename
+            metadatum["project"] = getattr(sample.project, "name", "")
 
             metadatum.update(m.custom)
             metadata.append(metadatum)
@@ -505,13 +510,15 @@ class SampleCollection(ResourceList, AnalysisMixin):
         data = {}
         all_features = set()
         for profile in self._functional_profiles:
+            sample_id = profile.sample.id
+
             # get table using One Codex API
             table = profile.filtered_table(
                 annotation=annotation, metric=metric, taxa_stratified=taxa_stratified
             )
 
             # store tables for later retrieval
-            data[profile.id] = dict(zip(table.id, table.value))
+            data[sample_id] = dict(zip(table.id, table.value))
             all_features.update(set(table["id"]))
 
         features_to_ix = {}
@@ -522,14 +529,12 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         # initialize an array and fill it
         array = np.full(shape=(len(data), len(features_to_ix)), fill_value=np.nan)
-        profile_ids = []
-        for profile_index, profile_id in enumerate(data):
-            for feature_id in data[profile_id]:
-                array[profile_index, features_to_ix[feature_id]] = data[profile_id][feature_id]
-            profile_ids.append(profile_id)
-        df = pd.DataFrame(
-            array, index=pd.Index(profile_ids, name="functional_profile_id"), columns=feature_list
-        )
+        sample_ids = []
+        for sample_index, sample_id in enumerate(data):
+            for feature_id in data[sample_id]:
+                array[sample_index, features_to_ix[feature_id]] = data[sample_id][feature_id]
+            sample_ids.append(sample_id)
+        df = pd.DataFrame(array, index=pd.Index(sample_ids, name="sample_id"), columns=feature_list)
 
         if fill_missing:
             df.fillna(filler, inplace=True)
