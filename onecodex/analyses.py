@@ -314,18 +314,18 @@ class AnalysisMixin(
         filler=0,
     ):
         """
-        Return a `ClassificationsDataFrame` of results from a functional analysis.
+        Generate a FunctionalDataFrame associated with functional analysis results.
 
         Parameters
         ----------
         annotation : {onecodex.lib.enum.FunctionalAnnotations, str}, optional
-            Annotation data to return
+            Annotation data to return, defaults to `pathways`
         taxa_stratified : bool, optional
-            Return taxonomically stratified data
+            Return taxonomically stratified data, defaults to `True`
         metric : {onecodex.lib.enum.FunctionalAnnotationsMetric, str}, optional
             Metric values to return
             {'coverage', 'abundance'} for annotation==FunctionalAnnotations.Pathways or
-            {'rpk', 'cpm'} for other annotations
+            {'rpk', 'cpm'} for other annotations, defaults to `coverage`
         fill_missing : bool, optional
             Fill np.nan values
         filler : float, optional
