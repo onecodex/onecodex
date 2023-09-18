@@ -54,7 +54,12 @@ class VizFunctionalHeatmapMixin(object):
                 metric = FunctionalAnnotationsMetric.Cpm
         metric = FunctionalAnnotationsMetric(metric)
 
-        df = self._to_normalized_functional_df(annotation=annotation, metric=metric)
+        df = self._to_functional_df(
+            annotation=annotation,
+            metric=metric,
+            taxa_stratified=False,
+            fill_missing=True,
+        )
 
         # TODO: comment to explain
         agg_row = df.mean()
@@ -62,31 +67,41 @@ class VizFunctionalHeatmapMixin(object):
         to_keep = agg_row[:num_of_functions]
         to_drop = agg_row[num_of_functions:]
 
+        function_id_to_name = df.ocx_feature_name_map
+
         df.drop(columns=to_drop.index, inplace=True)
 
-        # TODO: Funtional/Sample labels
-        labels = [f"Label {i}" for i in range(len(df))]
+        metadata = df.ocx_metadata
+        if metadata.index.name != "sample_id":
+            metadata = metadata.reindex(metadata["sample_id"])
+        metadata.drop("created_at", axis=1, inplace=True)
+        with_metadata = df.join(metadata)
+
+        labels = with_metadata["name"]  # TODO: is that the proper label?
         df.insert(0, "__label", labels)
         # TODO: Maybe just use UUID? df.reset_index(names=["__label"], inplace=True)
 
         # TODO: add sorting. This is default
         y_sort = list(to_keep.index)
 
+        data = with_metadata.melt(
+            id_vars=list(metadata.columns),
+            var_name="function_id",
+            value_name="value",
+        )
+        data["function_id"] = data["function_id"].apply(
+            lambda fid: function_id_to_name.get(fid, fid)
+        )
+
         chart = (
-            alt.Chart(
-                df.melt(
-                    id_vars=["__label"],
-                    var_name="function_id",
-                    value_name="value",
-                ),
-            )
+            alt.Chart(data)
             .mark_rect()
             .encode(
-                x=alt.X("__label:N", title="TODO"),
+                x=alt.X("name:N", title="TODO"),
                 y=alt.Y("function_id:N", title="Function ID", sort=y_sort),
                 color=alt.Color("value:Q", title=metric.name),
                 tooltip=[
-                    alt.Tooltip("__label", title="TODO"),
+                    alt.Tooltip("name", title="TODO"),
                     alt.Tooltip("function_id", title="Function ID"),
                     alt.Tooltip("value:Q", format=".02f", title=metric.name),
                 ],
