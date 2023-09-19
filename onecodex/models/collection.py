@@ -225,9 +225,12 @@ class SampleCollection(ResourceList, AnalysisMixin):
         metadata = []
 
         for obj in self._res_list:
-            classification_id = (
-                obj.id if isinstance(obj, Classifications) else obj.primary_classification.id
-            )
+            try:
+                classification_id = (
+                    obj.id if isinstance(obj, Classifications) else obj.primary_classification.id
+                )
+            except AttributeError:
+                classification_id = None
             sample = obj.sample if isinstance(obj, Classifications) else obj
 
             m = sample.metadata
@@ -249,7 +252,9 @@ class SampleCollection(ResourceList, AnalysisMixin):
             metadata.append(metadatum)
 
         if metadata:
-            metadata = pd.DataFrame(metadata).set_index("classification_id")
+            df = pd.DataFrame(metadata)
+            index = "classification_id" if df["classification_id"].is_unique else "sample_id"
+            metadata = df.set_index(index)
         else:
             metadata = pd.DataFrame(
                 columns=["classification_id", "sample_id", "metadata_id", "created_at"]
