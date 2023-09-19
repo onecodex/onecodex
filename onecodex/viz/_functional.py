@@ -77,8 +77,6 @@ class VizFunctionalHeatmapMixin(object):
         metadata.drop("created_at", axis=1, inplace=True)
         with_metadata = df.join(metadata)
 
-        labels = with_metadata["name"]  # TODO: is that the proper label?
-        df.insert(0, "__label", labels)
         # TODO: Maybe just use UUID? df.reset_index(names=["__label"], inplace=True)
 
         # TODO: add sorting. This is default
@@ -97,7 +95,7 @@ class VizFunctionalHeatmapMixin(object):
             alt.Chart(data)
             .mark_rect()
             .encode(
-                x=alt.X("name:N", title="TODO"),
+                x=alt.X("name:N", title="TODO"),  # name is sample name
                 y=alt.Y("function_id:N", title="Function ID", sort=y_sort),
                 color=alt.Color("value:Q", title=metric.name),
                 tooltip=[
@@ -114,18 +112,3 @@ class VizFunctionalHeatmapMixin(object):
             return chart
         else:
             chart.interactive().display()
-
-    def _to_normalized_functional_df(self, annotation, metric):
-        result = self._to_functional_df(
-            annotation=annotation,
-            metric=metric,
-            taxa_stratified=False,
-            fill_missing=True,
-        )
-        result.drop(
-            axis=1,
-            labels=["UNGROUPED", "UNMAPPED", "UNINTEGRATED"],
-            inplace=True,
-            errors="ignore",
-        )
-        return result
