@@ -189,7 +189,13 @@ class FunctionalSeries(pd.Series):
     """
 
     # 'name' is a piece of metadata specified by pd.Series--it's not ours
-    _metadata = ["name", "ocx_metadata", "ocx_functional_group", "ocx_metric"]
+    _metadata = [
+        "name",
+        "ocx_metadata",
+        "ocx_functional_group",
+        "ocx_metric",
+        "ocx_feature_name_map",
+    ]
 
     def __init__(
         self,
