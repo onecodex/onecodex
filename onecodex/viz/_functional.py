@@ -1,5 +1,3 @@
-import pandas as pd
-
 from onecodex.lib.enums import (
     FunctionalAnnotations,
     FunctionalAnnotationsMetric,
@@ -47,6 +45,7 @@ class VizFunctionalHeatmapMixin(object):
         # TODO: num_of_functions validate???
 
         import altair as alt
+        import pandas as pd
 
         annotation = FunctionalAnnotations(annotation)
         if metric is None:
@@ -72,9 +71,9 @@ class VizFunctionalHeatmapMixin(object):
         df.drop(columns=to_drop.index, inplace=True)
 
         # TODO: comment to explain
-        metadata = df.ocx_metadata
+        metadata: pd.DataFrame = df.ocx_metadata
         if metadata.index.name != "sample_id":
-            metadata.index = pd.Index(metadata["sample_id"], name="sample_id")
+            metadata.set_index("sample_id", drop=False, inplace=True)
         metadata.drop("created_at", axis=1, inplace=True)
         with_metadata = df.join(metadata)
 
