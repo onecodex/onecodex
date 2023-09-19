@@ -1,5 +1,3 @@
-from math import floor
-
 from onecodex.lib.enums import (
     FunctionalAnnotations,
     FunctionalAnnotationsMetric,
@@ -57,15 +55,6 @@ class VizFunctionalHeatmapMixin(object):
         metric = FunctionalAnnotationsMetric(metric)
 
         df = self._to_normalized_functional_df(annotation=annotation, metric=metric)
-        if metric == FunctionalAnnotationsMetric.CompleteAbundance:
-            coverage_df = self._to_normalized_functional_df(
-                annotation,
-                FunctionalAnnotationsMetric.Coverage,
-            )
-
-            # TODO: comment
-            coverage_df = coverage_df.applymap(floor)
-            df = df.mul(coverage_df)
 
         # TODO: comment to explain
         agg_row = df.mean()
