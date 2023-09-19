@@ -515,6 +515,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         data = {}
         all_features = set()
         feature_id_to_name = {}
+        profile_id_to_sample_id = {}
         for profile in self._functional_profiles:
             sample_id = profile.sample.id
 
@@ -527,6 +528,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
             data[sample_id] = dict(zip(table.id, table.value))
             feature_id_to_name.update(dict(zip(table.id, table.name)))
             all_features.update(set(table["id"]))
+            profile_id_to_sample_id[profile.id] = sample_id
 
         features_to_ix = {}
         feature_list = []
@@ -545,6 +547,12 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         if fill_missing:
             df.fillna(filler, inplace=True)
+
+        profile_ids = sorted(
+            [fp.id for fp in self._functional_profiles],
+            key=lambda x: sample_ids.index(profile_id_to_sample_id[x]),
+        )
+        df.insert(loc=0, column="functional_profile_id", value=profile_ids)
 
         return df, feature_id_to_name
 

@@ -13,6 +13,12 @@ def get_classification_url(classification_id):
     return f"{os.environ.get('ONE_CODEX_API_BASE', 'https://app.onecodex.com')}/classification/{classification_id}"
 
 
+def get_analysis_url(analysis_id):
+    return (
+        f"{os.environ.get('ONE_CODEX_API_BASE', 'https://app.onecodex.com')}/analysis/{analysis_id}"
+    )
+
+
 def get_ncbi_taxonomy_browser_url(tax_id):
     try:
         tax_id = int(tax_id)

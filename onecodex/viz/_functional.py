@@ -2,7 +2,7 @@ from onecodex.lib.enums import (
     FunctionalAnnotations,
     FunctionalAnnotationsMetric,
 )
-from onecodex.viz._primitives import prepare_props, sort_helper
+from onecodex.viz._primitives import prepare_props, sort_helper, get_analysis_url
 
 
 class VizFunctionalHeatmapMixin(object):
@@ -82,7 +82,7 @@ class VizFunctionalHeatmapMixin(object):
         ocx_feature_name_map = df.ocx_feature_name_map
 
         # TODO: comment to explain
-        agg_row = df.mean()
+        agg_row = df.drop("functional_profile_id", axis=1).mean()
         agg_row.sort_values(ascending=False, inplace=True)
         to_keep = agg_row[:num_of_functions]
         to_drop = agg_row[num_of_functions:]
@@ -99,11 +99,13 @@ class VizFunctionalHeatmapMixin(object):
             metadata["Label"] = self._make_labels_by_item_id(metadata, label)
         else:
             metadata["Label"] = metadata["name"]  # TODO: can we assume that name exists?
+
+        df["url"] = df["functional_profile_id"].apply(lambda fpid: get_analysis_url(fpid))
         df = df.join(metadata)
 
         # Wide-form data -> Long-form data
         df = df.melt(
-            id_vars=list(metadata.columns),  # TODO: do we need a functional_id ?
+            id_vars=list(metadata.columns) + ["functional_profile_id", "url"],
             var_name="function_id",
             value_name="value",
         )
@@ -136,6 +138,7 @@ class VizFunctionalHeatmapMixin(object):
                     alt.Tooltip("function_id", title="Function ID"),
                     alt.Tooltip("value:Q", format=".02f", title=metric.name),
                 ],
+                href="url:N",
             )
         )
 
