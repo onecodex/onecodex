@@ -45,6 +45,7 @@ class VizFunctionalHeatmapMixin(object):
         # TODO: num_of_functions validate???
 
         import altair as alt
+        import pandas as pd
 
         annotation = FunctionalAnnotations(annotation)
         if metric is None:
@@ -67,40 +68,38 @@ class VizFunctionalHeatmapMixin(object):
         to_keep = agg_row[:num_of_functions]
         to_drop = agg_row[num_of_functions:]
 
-        function_id_to_name = df.ocx_feature_name_map
-
         df.drop(columns=to_drop.index, inplace=True)
 
-        metadata = df.ocx_metadata
+        # TODO: comment to explain
+        metadata: pd.DataFrame = df.ocx_metadata
         if metadata.index.name != "sample_id":
-            metadata = metadata.reindex(metadata["sample_id"])
+            metadata.set_index("sample_id", drop=False, inplace=True)
         metadata.drop("created_at", axis=1, inplace=True)
         with_metadata = df.join(metadata)
 
-        # TODO: Maybe just use UUID? df.reset_index(names=["__label"], inplace=True)
-
-        # TODO: add sorting. This is default
-        y_sort = list(to_keep.index)
-
         data = with_metadata.melt(
-            id_vars=list(metadata.columns),
+            id_vars=list(metadata.columns),  # TODO: do we need a functional_id ?
             var_name="function_id",
             value_name="value",
         )
         data["function_id"] = data["function_id"].apply(
-            lambda fid: function_id_to_name.get(fid, fid)
+            lambda fid: df.ocx_feature_name_map.get(fid, fid)
         )
+
+        # TODO: add sorting. This is default
+        y_sort = list(to_keep.index)
+        y_sort = [df.ocx_feature_name_map.get(x, x) for x in y_sort]
 
         chart = (
             alt.Chart(data)
             .mark_rect()
             .encode(
-                x=alt.X("name:N", title="TODO"),  # name is sample name
-                y=alt.Y("function_id:N", title="Function ID", sort=y_sort),
+                x=alt.X("name:N", title="Sample Name"),  # TODO: from params
+                y=alt.Y("function_id:N", title="Function ID", sort=y_sort),  # TODO: Maybe name?
                 color=alt.Color("value:Q", title=metric.name),
                 tooltip=[
-                    alt.Tooltip("name", title="TODO"),
-                    alt.Tooltip("function_id", title="Function ID"),
+                    alt.Tooltip("name", title="Sample name"),  # TODO: from params
+                    alt.Tooltip("function_id", title="Function ID"),  # TODO: Maybe name?
                     alt.Tooltip("value:Q", format=".02f", title=metric.name),
                 ],
             )
