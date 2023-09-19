@@ -151,7 +151,7 @@ class ClassificationsSeries(pd.Series):
 class FunctionalDataFrame(pd.DataFrame):
     """A DataFrame containing additional One Codex metadata."""
 
-    _metadata = ["ocx_metadata", "ocx_functional_group", "ocx_metric"]
+    _metadata = ["ocx_metadata", "ocx_functional_group", "ocx_metric", "ocx_feature_name_map"]
 
     def __init__(
         self,
@@ -163,10 +163,12 @@ class FunctionalDataFrame(pd.DataFrame):
         ocx_metadata=None,
         ocx_functional_group=None,
         ocx_metric=None,
+        ocx_feature_name_map=None,
     ):
         self.ocx_metadata = ocx_metadata
         self.ocx_functional_group = ocx_functional_group
         self.ocx_metric = ocx_metric
+        self.ocx_feature_name_map = ocx_feature_name_map
 
         pd.DataFrame.__init__(self, data=data, index=index, columns=columns, dtype=dtype, copy=copy)
 
@@ -200,10 +202,12 @@ class FunctionalSeries(pd.Series):
         ocx_metadata=None,
         ocx_functional_group=None,
         ocx_metric=None,
+        ocx_feature_name_map=None,
     ):
         self.ocx_metadata = ocx_metadata
         self.ocx_functional_group = ocx_functional_group
         self.ocx_metric = ocx_metric
+        self.ocx_feature_name_map = ocx_feature_name_map
 
         pd.Series.__init__(
             self, data=data, index=index, dtype=dtype, name=name, copy=copy, fastpath=fastpath
@@ -263,3 +267,5 @@ class OneCodexAccessor(AnalysisMixin):
 
             tax_ids_to_keep = [x.name for x in tree.traverse()]
             self.taxonomy = self.taxonomy.loc[tax_ids_to_keep]
+        elif isinstance(pandas_obj, FunctionalDataFrame):
+            self.feature_name_map = pandas_obj.ocx_feature_name_map

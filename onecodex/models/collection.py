@@ -472,7 +472,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         self, annotation, metric, taxa_stratified, fill_missing, filler
     ):
         """
-        Return a dataframe of all functional profile data.
+        Return a dataframe of all functional profile data and feature id to name mapping.
 
         Parameters
         ----------
@@ -509,6 +509,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         # iterate over functional profiles, subset data, and store in data dict
         data = {}
         all_features = set()
+        feature_id_to_name = {}
         for profile in self._functional_profiles:
             sample_id = profile.sample.id
 
@@ -519,6 +520,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
             # store tables for later retrieval
             data[sample_id] = dict(zip(table.id, table.value))
+            feature_id_to_name.update(dict(zip(table.id, table.name)))
             all_features.update(set(table["id"]))
 
         features_to_ix = {}
@@ -539,13 +541,16 @@ class SampleCollection(ResourceList, AnalysisMixin):
         if fill_missing:
             df.fillna(filler, inplace=True)
 
-        return df
+        return df, feature_id_to_name
 
     def _functional_results(self, **kwargs):
-        key = "functional_results_" + "_".join([f"{k}={v}" for k, v in kwargs.items()])
-        if key not in self._cached:
-            self._cached[key] = self._collate_functional_results(**kwargs)
-        return self._cached[key]
+        result_key = "functional_results_" + "_".join([f"{k}={v}" for k, v in kwargs.items()])
+        feature_map_key = "functional_features_" + "_".join([f"{k}={v}" for k, v in kwargs.items()])
+        if result_key not in self._cached or feature_map_key not in self._cached:
+            df, feature_map = self._collate_functional_results(**kwargs)
+            self._cached[result_key] = df
+            self._cached[feature_map_key] = feature_map
+        return self._cached[result_key], self._cached[feature_map_key]
 
     def to_otu(self, biom_id=None):
         """Transform a list of Classifications objects into a `dict` resembling an OTU table.
