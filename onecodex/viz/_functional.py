@@ -122,6 +122,7 @@ class VizFunctionalHeatmapMixin(object):
 
         # Altair chart
         # ------------
+
         chart = (
             alt.Chart(df)
             .mark_rect()
@@ -130,7 +131,7 @@ class VizFunctionalHeatmapMixin(object):
                 y=alt.Y("function_id:N", title="Function ID", sort=sort_y_values),  # TODO: Maybe name?
                 color=alt.Color("value:Q", title=metric.name),
                 tooltip=[
-                    alt.Tooltip("Label", title="Label"),
+                    alt.Tooltip("Label", title="Label"),  # TODO: maybe change title ?
                     # TODO: Display function ID **and** name?
                     alt.Tooltip("function_id", title="Function ID"),
                     alt.Tooltip("value:Q", format=".02f", title=metric.name),
