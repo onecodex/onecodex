@@ -1,5 +1,6 @@
 import six
 import warnings
+from collections import Counter
 
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.enums import (
@@ -169,55 +170,8 @@ class AnalysisMixin(
                 if str_f == "Label":
                     magic_metadata[str_f] = self.metadata["filename"]
                     magic_fields[f] = str_f
-
-                    if isinstance(label, six.string_types):
-                        if label in self.metadata.columns:
-                            magic_metadata[str_f] = self.metadata[label].astype(str)
-                        else:
-                            raise OneCodexException(
-                                "Label field {} not found. Choose from: {}".format(
-                                    label, help_metadata
-                                )
-                            )
-                    elif callable(label):
-                        for classification_id, metadata in self.metadata.to_dict(
-                            orient="index"
-                        ).items():
-                            c_id_label = label(metadata)
-
-                            if not isinstance(c_id_label, six.string_types):
-                                raise OneCodexException(
-                                    "Expected string from label function, got: {}".format(
-                                        type(c_id_label).__name__
-                                    )
-                                )
-
-                            magic_metadata.loc[classification_id, "Label"] = c_id_label
-                    elif label is not None:
-                        raise OneCodexException(
-                            "Expected string or callable for label, got: {}".format(
-                                type(label).__name__
-                            )
-                        )
-
-                    # add an incremented number to duplicate labels (e.g., same filename)
-                    duplicate_labels = (
-                        magic_metadata[str_f]
-                        .where(magic_metadata[str_f].duplicated(keep=False))
-                        .dropna()
-                    )
-
-                    if not duplicate_labels.empty:
-                        duplicate_counts = {label: 1 for label in duplicate_labels}
-
-                        for c_id in magic_metadata.index:
-                            label = magic_metadata[str_f][c_id]
-
-                            if duplicate_labels.isin([label]).any():
-                                magic_metadata[str_f][c_id] = "{} ({})".format(
-                                    label, duplicate_counts[label]
-                                )
-                                duplicate_counts[label] += 1
+                    if label is not None:
+                        magic_metadata[str_f] = self._make_labels_by_item_id(self.metadata, label)
                 elif str_f in self.metadata:
                     # exactly matches existing metadata field
                     magic_metadata[f] = self.metadata[str_f]
@@ -535,6 +489,63 @@ class AnalysisMixin(
             curr_tax_id = self.taxonomy["parent_tax_id"][curr_tax_id]
 
         return highest_tax_id
+
+    @staticmethod
+    def _make_labels_by_item_id(metadata, label):
+        """Make labels from
+
+        Parameters
+        ----------
+        metadata : `pandas.DataFrame`
+        label : `str` or `callable`
+
+        Returns
+        -------
+        `dict`
+            Keys are from metadata.index. Values are generated labels.
+        """
+        import pandas as pd
+
+        raw_result = {}
+
+        if isinstance(label, str):
+            if label in metadata.columns:
+                raw_result = dict(metadata[label].items())
+            else:
+                raise OneCodexException(
+                    "Label field {} not found. Choose from: {}".format(
+                        label, ", ".join(metadata.keys())
+                    )
+                )
+        elif callable(label):
+            for item_id, item_meta in metadata.to_dict(orient="index").items():
+                item_label = label(item_meta)
+                if not isinstance(item_label, six.string_types):
+                    wrong_type = type(item_label).__name__
+                    raise OneCodexException(
+                        "Expected string from label function, got: {}".format(wrong_type)
+                    )
+                raw_result[item_id] = item_label
+
+        elif label is not None:
+            wrong_type = type(label).__name__
+            raise OneCodexException(
+                "Expected string or callable for label, got: {}".format(wrong_type)
+            )
+
+        # add an incremented number to duplicate labels (e.g., same filename)
+        duplicates_counter = Counter(raw_result.values())
+        duplicated_labels = [label for label, n in duplicates_counter.items() if n > 1]
+        indexing = {x: 1 for x in duplicated_labels}
+        result = {}
+        for item_id, label in raw_result.items():
+            if label in indexing:
+                result[item_id] = "{} ({})".format(label, indexing[label])
+                indexing[label] += 1
+            else:
+                result[item_id] = label
+
+        return pd.Series(result)
 
     @staticmethod
     def _make_pretty_metric_name(metric, normalized):
