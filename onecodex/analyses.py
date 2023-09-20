@@ -1,4 +1,3 @@
-import six
 import warnings
 from collections import Counter
 
@@ -520,7 +519,7 @@ class AnalysisMixin(
         elif callable(label):
             for item_id, item_meta in metadata.to_dict(orient="index").items():
                 item_label = label(item_meta)
-                if not isinstance(item_label, six.string_types):
+                if not isinstance(item_label, str):
                     wrong_type = type(item_label).__name__
                     raise OneCodexException(
                         "Expected string from label function, got: {}".format(wrong_type)
