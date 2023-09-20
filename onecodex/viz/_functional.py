@@ -107,9 +107,7 @@ class VizFunctionalHeatmapMixin(object):
             var_name="function_id",
             value_name="value",
         )
-        df["function_id"] = df["function_id"].apply(
-            lambda fid: ocx_feature_name_map.get(fid, fid)
-        )
+        df["function_id"] = df["function_id"].apply(lambda fid: ocx_feature_name_map.get(fid, fid))
 
         # Sorting X/Y axis
         if sort_x:
@@ -128,7 +126,9 @@ class VizFunctionalHeatmapMixin(object):
             .mark_rect()
             .encode(
                 x=alt.X("Label:N", title=xlabel, sort=sort_x_values),
-                y=alt.Y("function_id:N", title="Function ID", sort=sort_y_values),  # TODO: Maybe name?
+                y=alt.Y(
+                    "function_id:N", title="Function ID", sort=sort_y_values
+                ),  # TODO: Maybe name?
                 color=alt.Color("value:Q", title=metric.name),
                 tooltip=[
                     alt.Tooltip("Label", title="Label"),  # TODO: maybe change title ?

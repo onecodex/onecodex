@@ -492,7 +492,7 @@ class AnalysisMixin(
 
     @staticmethod
     def _make_labels_by_item_id(metadata, label):
-        """Make labels from
+        """Make labels from.
 
         Parameters
         ----------
