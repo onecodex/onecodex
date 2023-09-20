@@ -510,7 +510,7 @@ class AnalysisMixin(
 
         if isinstance(label, str):
             if label in metadata.columns:
-                raw_result = dict(metadata[label].items())
+                raw_result = dict(metadata[label].astype(str).items())
             else:
                 raise OneCodexException(
                     "Label field {} not found. Choose from: {}".format(
