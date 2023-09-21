@@ -116,7 +116,9 @@ class VizFunctionalHeatmapMixin(object):
         if haxis:
             column_kwargs = {
                 "column": alt.Column(
-                    haxis, type="nominal", header=alt.Header(titleOrient="bottom", labelOrient="bottom")
+                    haxis,
+                    type="nominal",
+                    header=alt.Header(titleOrient="bottom", labelOrient="bottom"),
                 ),
             }
 
