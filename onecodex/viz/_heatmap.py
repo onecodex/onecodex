@@ -152,6 +152,9 @@ class VizHeatmapMixin(object):
 
         # and for metadata
         for f in tooltip:
+            if f == haxis:
+                magic_metadata[[haxis]] = magic_metadata[[haxis]].replace(np.nan, "None")
+
             df[magic_fields[f]] = magic_metadata[magic_fields[f]][df["classification_id"]].tolist()
 
         # if we've already been normalized, we must cluster samples by euclidean distance. beta
@@ -265,10 +268,6 @@ class VizHeatmapMixin(object):
 
         df = df.replace(np.nan, 0)
         df = pd.concat([df, *dropped])
-
-        if haxis and type(haxis) == str:
-            # If there are samples without the specified haxis, update to `None`
-            df[[haxis]] = df[[haxis]].replace({0: "None"})
 
         assert set(df["Label"].values) == set(labels_in_order)
 
