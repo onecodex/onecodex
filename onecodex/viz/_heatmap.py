@@ -145,6 +145,7 @@ class VizHeatmapMixin(object):
         tooltip.insert(0, "Label")
 
         magic_metadata, magic_fields = self._metadata_fetch(tooltip, label=label)
+        magic_metadata.replace(np.nan, "None", inplace=True)
 
         # add columns for prettier display
         df["Label"] = magic_metadata["Label"][df["classification_id"]].tolist()
@@ -152,9 +153,6 @@ class VizHeatmapMixin(object):
 
         # and for metadata
         for f in tooltip:
-            if f == haxis:
-                magic_metadata[[haxis]] = magic_metadata[[haxis]].replace(np.nan, "None")
-
             df[magic_fields[f]] = magic_metadata[magic_fields[f]][df["classification_id"]].tolist()
 
         # if we've already been normalized, we must cluster samples by euclidean distance. beta
