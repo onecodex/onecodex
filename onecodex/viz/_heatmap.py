@@ -205,7 +205,7 @@ class VizHeatmapMixin(object):
                 labels_in_order = []
                 df_sample_cluster[haxis] = self.metadata[haxis]
 
-                for group, group_df in df_sample_cluster.groupby(haxis):
+                for group, group_df in df_sample_cluster.groupby(haxis, dropna=False):
 
                     if group_df.shape[0] <= 3:
                         # we can't cluster
@@ -265,6 +265,10 @@ class VizHeatmapMixin(object):
 
         df = df.replace(np.nan, 0)
         df = pd.concat([df, *dropped])
+
+        if haxis and type(haxis) == str:
+            # If there are samples without the specified haxis, update to `None`
+            df[[haxis]] = df[[haxis]].replace({0: "None"})
 
         assert set(df["Label"].values) == set(labels_in_order)
 
