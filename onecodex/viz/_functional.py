@@ -81,6 +81,9 @@ class VizFunctionalHeatmapMixin(object):
         num_of_items = len(df.index)
         ocx_feature_name_map = df.ocx_feature_name_map
 
+        def get_feature_name(feature_id):
+            return ocx_feature_name_map.get(feature_id) or feature_id or ""
+
         # TODO: comment to explain
         agg_row = df.mean()
         agg_row.sort_values(ascending=False, inplace=True)
@@ -110,7 +113,7 @@ class VizFunctionalHeatmapMixin(object):
             value_name="value",
         )
         # It is helpful to have function_id and function_name not just one of them
-        df["function_name"] = pd.Series([ocx_feature_name_map.get(x, x) for x in df["function_id"]])
+        df["function_name"] = pd.Series([get_feature_name(x) for x in df["function_id"]])
 
         column_kwargs = {}
         if haxis:
@@ -128,7 +131,7 @@ class VizFunctionalHeatmapMixin(object):
         else:
             sort_x_values = None
 
-        sort_y_values = [ocx_feature_name_map.get(x, x) for x in to_keep.index]
+        sort_y_values = [get_feature_name(x) for x in to_keep.index]
 
         # Altair chart
         # ------------
