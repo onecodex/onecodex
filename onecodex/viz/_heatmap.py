@@ -145,7 +145,7 @@ class VizHeatmapMixin(object):
         tooltip.insert(0, "Label")
 
         magic_metadata, magic_fields = self._metadata_fetch(tooltip, label=label)
-        magic_metadata.replace(np.nan, "None", inplace=True)
+        magic_metadata.replace(np.nan, "N/A", inplace=True)
 
         # add columns for prettier display
         df["Label"] = magic_metadata["Label"][df["classification_id"]].tolist()
