@@ -145,6 +145,7 @@ class VizHeatmapMixin(object):
         tooltip.insert(0, "Label")
 
         magic_metadata, magic_fields = self._metadata_fetch(tooltip, label=label)
+        magic_metadata.replace(np.nan, "N/A", inplace=True)
 
         # add columns for prettier display
         df["Label"] = magic_metadata["Label"][df["classification_id"]].tolist()
@@ -205,7 +206,7 @@ class VizHeatmapMixin(object):
                 labels_in_order = []
                 df_sample_cluster[haxis] = self.metadata[haxis]
 
-                for group, group_df in df_sample_cluster.groupby(haxis):
+                for group, group_df in df_sample_cluster.groupby(haxis, dropna=False):
 
                     if group_df.shape[0] <= 3:
                         # we can't cluster

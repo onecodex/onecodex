@@ -254,6 +254,16 @@ def test_plot_heatmap(ocx, api_data):
     assert all(chart.data.groupby("tax_id").max()["Relative Abundance"] > 0.01)
 
 
+def test_plot_heatmap_with_missing_haxis_sample(ocx, api_data):
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+    samples[2].metadata.custom.pop("eggs")
+
+    # Does not raise exception if a sample is missing `haxis` value in custom metadata
+    chart = samples.plot_heatmap(top_n=10, threshold=0.1, haxis="eggs", return_chart=True)
+
+    assert "N/A" in chart.data["eggs"].unique()
+
+
 @pytest.mark.parametrize(
     "is_onecodex_accessor",
     [
