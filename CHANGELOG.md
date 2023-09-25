@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.13.0] - 2023-09-25
+
+### Added
+
+- Adds `name` option to `assets upload` command in experimental API mode
+
+### Fixed
+
+- Fixes heatmap plotting for samples without a specified `haxis` value
+- Fixes installation by monkeypatching altair-saver for npm >=9
+
 ## [v0.12.0] - 2023-08-30
 
 ### Added
