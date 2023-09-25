@@ -110,6 +110,38 @@ def configure_onecodex_theme(altair_module=None):
 
     # Render using `altair_saver` if installed (report environment only, requires node deps)
     if "altair_saver" in altair_module.renderers.names():
+        import functools
+        import shutil
+        import altair_saver.savers._node
+        from altair_saver._utils import check_output_with_stderr
+
+        # Change `npm bin` to `npm root` for compatibility with npm >=9 (also backwards compatible
+        # with npm 8). We are monkeypatching because altair-saver appears to be an unmaintained
+        # project. We are pinned at v0.5.0 so this hack should be safe.
+        #
+        # Function copied and modified from:
+        # https://github.com/altair-viz/altair_saver/blob/v0.5.0/altair_saver/savers/_node.py#L15-L24
+        #
+        # Applied the fix from:
+        # https://github.com/altair-viz/altair_saver/pull/116
+        #
+        # altair-saver is BSD-3-Clause:
+        # https://github.com/altair-viz/altair_saver/blob/v0.5.0/LICENSE
+        #
+        # altair-saver license is included with this software in `licenses/altair-saver.txt`
+        @functools.lru_cache(2)
+        def npm_bin(global_: bool) -> str:
+            """Locate the npm binary directory."""
+            npm = shutil.which("npm")
+            if not npm:
+                raise altair_saver.savers._node.ExecutableNotFound("npm")
+            cmd = [npm, "root"]
+            if global_:
+                cmd.append("--global")
+            return check_output_with_stderr(cmd).decode().strip()
+
+        altair_saver.savers._node.npm_bin = npm_bin
+
         # Filter out vega-lite warning about boxplots not yet supporting selection (DEV-4237). This
         # can be removed when vega-lite adds selection support to boxplots:
         #
