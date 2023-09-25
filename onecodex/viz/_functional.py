@@ -1,6 +1,7 @@
 from onecodex.lib.enums import (
     FunctionalAnnotations,
     FunctionalAnnotationsMetric,
+    FunctionalLabel,
 )
 from onecodex.viz._primitives import prepare_props, sort_helper
 
@@ -13,6 +14,7 @@ class VizFunctionalHeatmapMixin(object):
         metric=None,
         sort_x=None,
         label=None,
+        function_label=FunctionalLabel.Name,
         haxis=None,
         return_chart=False,
         xlabel="",
@@ -46,6 +48,9 @@ class VizFunctionalHeatmapMixin(object):
             A metadata field (or function) used to label each analysis. If passing a function, a
             dict containing the metadata for each analysis is passed as the first and only
             positional argument. The callable function must return a string.
+        function_label : `str`, optional
+            {'name', 'id' }
+            Used to label functions. Defaults to `name`.
         haxis : `string`, optional
             The metadata field (or tuple containing multiple categorical fields) used to facet
             samples.
@@ -72,6 +77,7 @@ class VizFunctionalHeatmapMixin(object):
             else:
                 metric = FunctionalAnnotationsMetric.Cpm
         metric = FunctionalAnnotationsMetric(metric)
+        function_label = FunctionalLabel(function_label)
 
         df = self._to_functional_df(
             annotation=annotation,
@@ -131,17 +137,20 @@ class VizFunctionalHeatmapMixin(object):
         else:
             sort_x_values = None
 
-        sort_y_values = [get_feature_name(x) for x in to_keep.index]
+        if function_label == FunctionalLabel.Id:
+            y_axis_shorthand = "function_id:N"
+            sort_y_values = [x for x in to_keep.index]
+        else:
+            y_axis_shorthand = "function_name:N"
+            sort_y_values = [get_feature_name(x) for x in to_keep.index]
 
         # Altair chart
-        # ------------
-
         chart = (
             alt.Chart(df)
             .mark_rect()
             .encode(
                 x=alt.X("Label:N", title=xlabel, sort=sort_x_values),
-                y=alt.Y("function_name:N", title="Function", sort=sort_y_values),
+                y=alt.Y(y_axis_shorthand, title="Function", sort=sort_y_values),
                 color=alt.Color("value:Q", title=metric.name),
                 tooltip=[
                     alt.Tooltip("Label:N", title="Label"),
