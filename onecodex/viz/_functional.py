@@ -65,9 +65,6 @@ class VizFunctionalHeatmapMixin(object):
         import altair as alt
         import pandas as pd
 
-        # Preparing params
-        # ----------------
-
         annotation = FunctionalAnnotations(annotation)
         if metric is None:
             if annotation == FunctionalAnnotations.Pathways:
@@ -75,9 +72,6 @@ class VizFunctionalHeatmapMixin(object):
             else:
                 metric = FunctionalAnnotationsMetric.Cpm
         metric = FunctionalAnnotationsMetric(metric)
-
-        # Data/Pandas stuff
-        # ---------------------------
 
         df = self._to_functional_df(
             annotation=annotation,
@@ -147,9 +141,7 @@ class VizFunctionalHeatmapMixin(object):
             .mark_rect()
             .encode(
                 x=alt.X("Label:N", title=xlabel, sort=sort_x_values),
-                y=alt.Y(
-                    "function_name:N", title="Function", sort=sort_y_values
-                ),
+                y=alt.Y("function_name:N", title="Function", sort=sort_y_values),
                 color=alt.Color("value:Q", title=metric.name),
                 tooltip=[
                     alt.Tooltip("Label:N", title="Label"),
