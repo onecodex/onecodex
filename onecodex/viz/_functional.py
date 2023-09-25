@@ -20,16 +20,25 @@ class VizFunctionalHeatmapMixin(object):
         width=None,
         height=None,
     ):
-        """Plot a TODO heatmap.
+        """Plot heatmap of functional profile data.
 
         Parameters
         ----------
         num_of_functions : `int`, optional
-            TODO
+            Display the top N most abundant or covered functions in the entire cohort of samples.
         annotation : `FunctionalAnnotations` or `str`, optional
-            TODO
+            {'go', 'eggnog', 'ko', 'ec', 'pfam', 'pathways'}
+            Grouping (annotation) sub-database used to group gene families by.
         metric : `FunctionalAnnotationsMetric` or `str`, optional
-            TODO
+            {'cpm', 'rpk', 'abundance', 'coverage'}
+            Normalization or value to display.
+            If annotation is one of 'go', 'eggnog', 'ko', 'ec' or 'pfam', then available metrics include
+                'rpk' (read counts normalized by kilobase of gene length), or
+                'cpm' (relative copy of gene depth, normalized to a million RPK total).
+            If pathways are selected for annotation, then available metrics include
+                'abundance' (summed copy numbers of reactions' constituent enzymes)
+                'coverage' (probabilistic measure of a complete metabolic pathway,
+                    where 1 is high confidence of a complete pathway is covered, and 0 is low confidence)
         sort_x : `list` or `callable`, optional
             Either a list of sorted labels or a function that will be called with a list of x-axis labels
             as the only argument, and must return the same list in a user-specified order.
@@ -52,8 +61,6 @@ class VizFunctionalHeatmapMixin(object):
         height : `float` or `str` or `dict`, optional
             Set `altair.Chart.height`.
         """
-        # TODO: num_of_functions validate???
-
         # Deferred imports
         import altair as alt
         import pandas as pd
@@ -84,10 +91,10 @@ class VizFunctionalHeatmapMixin(object):
         def get_feature_name(feature_id):
             return ocx_feature_name_map.get(feature_id) or feature_id or ""
 
-        # TODO: comment to explain
+        # Using fast pandas/numpy approach to select top N functions
         agg_row = df.mean()
         agg_row.sort_values(ascending=False, inplace=True)
-        to_keep = agg_row[:num_of_functions]
+        to_keep = agg_row[:num_of_functions]  # Needed to sort y-axis
         to_drop = agg_row[num_of_functions:]
 
         df.drop(columns=to_drop.index, inplace=True)
@@ -100,7 +107,6 @@ class VizFunctionalHeatmapMixin(object):
 
         # Preparing "Label" column before the merge. So function ids would not override metadata columns
         if label is not None:
-            # TODO: double check if other plots are ignoring `Labels` and just overriding it.
             metadata["Label"] = self._make_labels_by_item_id(metadata, label)
         else:
             metadata["Label"] = metadata["sample_name"]
@@ -108,7 +114,7 @@ class VizFunctionalHeatmapMixin(object):
 
         # Wide-form data -> Long-form data
         df = df.melt(
-            id_vars=list(metadata.columns),  # TODO: do we need a functional_id ?
+            id_vars=list(metadata.columns),
             var_name="function_id",
             value_name="value",
         )
@@ -143,11 +149,10 @@ class VizFunctionalHeatmapMixin(object):
                 x=alt.X("Label:N", title=xlabel, sort=sort_x_values),
                 y=alt.Y(
                     "function_name:N", title="Function", sort=sort_y_values
-                ),  # TODO: Maybe name?
+                ),
                 color=alt.Color("value:Q", title=metric.name),
                 tooltip=[
-                    alt.Tooltip("Label:N", title="Label"),  # TODO: maybe change title ?
-                    # TODO: Display function ID **and** name?
+                    alt.Tooltip("Label:N", title="Label"),
                     alt.Tooltip("function_name:N", title="Function Name"),
                     alt.Tooltip("function_id:N", title="Function ID"),
                     alt.Tooltip("value:Q", format=".02f", title=metric.name),
