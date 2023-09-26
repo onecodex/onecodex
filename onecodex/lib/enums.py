@@ -136,6 +136,11 @@ class FunctionalAnnotationsMetric(BaseEnum):
         )
 
 
+class FunctionalLabel(BaseEnum):
+    Name = "name"
+    Id = "id"
+
+
 class Link(BaseEnum):
     Ocx = "ocx"
     Ncbi = "ncbi"
