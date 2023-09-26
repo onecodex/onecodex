@@ -806,3 +806,28 @@ def test_get_classification_url():
 )
 def test_get_ncbi_taxonomy_browser_url(tax_id, expected):
     assert get_ncbi_taxonomy_browser_url(tax_id) == expected
+
+
+def test_plot_functional_heatmap(ocx_experimental, api_data):
+    sample_ids = ["543c9c046e3e4e09", "66c1531cb0b244f6", "37e5151e7bcb4f87"]
+    samples = ocx_experimental.Samples.where(*sample_ids)
+
+    chart = samples.plot_functional_heatmap(return_chart=True, num_of_functions=3)
+
+    assert len(chart.data.index) == 9  # 3 samples * 3 num_of_functions == 9
+    assert set(chart.data["Label"]) == set(x.filename for x in samples)
+
+    assert chart.encoding.x.shorthand == "Label:N"
+    assert chart.encoding.y.shorthand == "function_name:N"
+    assert {t.shorthand for t in chart.encoding.tooltip} == {'Label:N', 'function_id:N', 'function_name:N', 'value:Q'}
+
+
+def test_plot_functional_heatmap_only_max_values(ocx_experimental, api_data):
+    samples = SampleCollection([ocx_experimental.Samples.get("543c9c046e3e4e09")])
+    chart1 = samples.plot_functional_heatmap(return_chart=True, num_of_functions=2)
+    chart2 = samples.plot_functional_heatmap(return_chart=True, num_of_functions=10_000)
+
+    values1 = sorted(list(chart1.data["value"]))
+    values2 = sorted(list(chart2.data["value"]))
+
+    assert values1 == values2[len(values2) - 2:]

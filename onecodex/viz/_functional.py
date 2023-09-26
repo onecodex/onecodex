@@ -17,7 +17,8 @@ class VizFunctionalHeatmapMixin(object):
         function_label=FunctionalLabel.Name,
         haxis=None,
         return_chart=False,
-        xlabel="",
+        xlabel="Sample",
+        ylabel="Function",
         title=None,
         width=None,
         height=None,
@@ -59,6 +60,8 @@ class VizFunctionalHeatmapMixin(object):
             the current notebook.
         xlabel : `str, optional
             Text label along the horizontal axis.
+        ylabel : `str, optional
+            Text label along the vertical axis.
         title : `str`, optional
             Text label at the top of the plot.
         width : `float` or `str` or `dict`, optional
@@ -105,11 +108,20 @@ class VizFunctionalHeatmapMixin(object):
             metadata.set_index("sample_id", drop=False, inplace=True)
         metadata.drop("created_at", axis=1, inplace=True)
 
-        # Preparing "Label" column before the merge. So function ids would not override metadata columns
+        # Preparing "Label" column before the merge with metadata.
         if label is not None:
             metadata["Label"] = self._make_labels_by_item_id(metadata, label)
+        elif "filename" in metadata.columns:
+            metadata["Label"] = metadata["filename"]
         else:
-            metadata["Label"] = metadata["sample_name"]
+            # Fall back to sample UUIDs
+            metadata["Label"] = pd.Series(metadata.index, name="Label")
+
+        # Fill NA, and None with sample UUIDs
+        metadata["Label"].fillna(dict(zip(metadata.index, metadata.index)), inplace=True)
+        metadata["Label"] = metadata["Label"].astype(str)
+
+        # Merge with metadata itself
         df = df.join(metadata)
 
         # Wide-form data -> Long-form data
@@ -150,7 +162,7 @@ class VizFunctionalHeatmapMixin(object):
             .mark_rect()
             .encode(
                 x=alt.X("Label:N", title=xlabel, sort=sort_x_values),
-                y=alt.Y(y_axis_shorthand, title="Function", sort=sort_y_values),
+                y=alt.Y(y_axis_shorthand, title=ylabel, sort=sort_y_values),
                 color=alt.Color("value:Q", title=metric.name),
                 tooltip=[
                     alt.Tooltip("Label:N", title="Label"),
