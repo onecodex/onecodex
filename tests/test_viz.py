@@ -819,7 +819,12 @@ def test_plot_functional_heatmap(ocx_experimental, api_data):
 
     assert chart.encoding.x.shorthand == "Label:N"
     assert chart.encoding.y.shorthand == "function_name:N"
-    assert {t.shorthand for t in chart.encoding.tooltip} == {'Label:N', 'function_id:N', 'function_name:N', 'value:Q'}
+    assert {t.shorthand for t in chart.encoding.tooltip} == {
+        "Label:N",
+        "function_id:N",
+        "function_name:N",
+        "value:Q",
+    }
 
 
 def test_plot_functional_heatmap_only_max_values(ocx_experimental, api_data):
@@ -830,4 +835,4 @@ def test_plot_functional_heatmap_only_max_values(ocx_experimental, api_data):
     values1 = sorted(list(chart1.data["value"]))
     values2 = sorted(list(chart2.data["value"]))
 
-    assert values1 == values2[len(values2) - 2:]
+    assert values1 == values2[len(values2) - 2 :]
