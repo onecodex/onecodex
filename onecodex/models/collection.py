@@ -449,11 +449,11 @@ class SampleCollection(ResourceList, AnalysisMixin):
             if sample_id not in functional_sample_ids:
                 if skip_missing:
                     warnings.warn(
-                        f"Current version of functional profile not found for sample {sample_id}. Skipping."
+                        f"The newest version of functional profile not found for sample {sample_id}. Skipping."
                     )
                 else:
                     raise OneCodexException(
-                        f"Current version of functional profile not found for sample {sample_id}."
+                        f"The newest version of functional profile not found for sample {sample_id}."
                     )
 
         self._cached["functional_profiles"] = newest_profiles
