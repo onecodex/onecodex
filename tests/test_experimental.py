@@ -179,37 +179,39 @@ def test_to_df_for_functional_profiles(ocx_experimental, api_data):
 
 
 def test_filter_functional_runs_to_newest_job(ocx_experimental, raw_api_data, custom_mock_requests):
+    for json_profile in raw_api_data["GET::api/v1_experimental/functional_profiles"]:
+        json_profile["job"]["$ref"] = json_profile["job"]["$ref"].replace("v1/", "v1_experimental/")
+    # Newer run
     raw_api_data["GET::api/v1_experimental/functional_profiles"] += [
         {
             "$uri": "/api/v1_experimental/functional_profiles/eec4ac90d9104d1f",
             "complete": True,
             "created_at": "2023-09-25T17:27:30.622286-07:00",
             "error_msg": "",
-            "job": {"$ref": "/api/v1/jobs/59e7904ea8ed4244"},
+            "job": {"$ref": "/api/v1_experimental/jobs/59e7904ea8ed4244"},
             "sample": {"$ref": "/api/v1/samples/37e5151e7bcb4f87"},
             "success": True,
         }
     ]
-    raw_api_data[
-        "GET::api/v1_experimental/jobs\\?.*where=%7B%22%24uri%22%3A\\+%7B%22%24in%22%3A\\+%5B%22%2Fapi%2Fv1_experimental%2Fjobs%2F59e7904ea8ed4202%22%2C\\+%22%2Fapi%2Fv1_experimental%2Fjobs%2F59e7904ea8ed4244%22%5D%7D%7D&sort=%7B%22created_at%22%3A\\+true%7D"
-    ] = [
-        {
-            "$uri": "/api/v1_experimental/jobs/59e7904ea8ed4244",
-            "analysis_type": "functional",
-            "created_at": "2023-04-28T15:37:40.140791-07:00",
-            "name": "Functional v2",
-            "public": True,
-        },
-        {
-            "$uri": "/api/v1_experimental/jobs/59e7904ea8ed4202",
-            "analysis_type": "functional",
-            "created_at": "2023-04-28T15:27:40.140791-07:00",
-            "name": "Functional v1",
-            "public": True,
-        },
-    ]
+    # Default job
+    raw_api_data["GET::api/v1_experimental/jobs/59e7904ea8ed4202"] = {
+        "$uri": "/api/v1_experimental/jobs/59e7904ea8ed4202",
+        "analysis_type": "functional",
+        "created_at": "2016-05-05T17:27:02.116480+00:00",
+        "name": "Functional v1",
+        "public": True,
+    }
+    # Newer job
+    raw_api_data["GET::api/v1_experimental/jobs/59e7904ea8ed4244"] = {
+        "$uri": "/api/v1_experimental/jobs/59e7904ea8ed4244",
+        "analysis_type": "functional",
+        "created_at": "2023-09-27T17:27:02.116480+00:00",
+        "name": "Functional v2",
+        "public": True,
+    }
+
     with open(
-        "tests/data/api/v1_experimental/functional_profiles/eec4ac90d9104d1e/results/index.json"
+        "tests/data/api/v1_experimental/functional_profiles/bde18eb9407d4c2f/results/index.json"
     ) as fin:
         results = json.load(fin)
     raw_api_data[
@@ -221,5 +223,6 @@ def test_filter_functional_runs_to_newest_job(ocx_experimental, raw_api_data, cu
         samples = [ocx_experimental.Samples.get(sample_id) for sample_id in sample_ids]
         sc = SampleCollection(samples)
         df = sc.to_df(analysis_type="functional")
-        # One of the samples has newer functional profile run than the others
-        assert df.shape == (1, 68)
+        # All samples are included, one with newer version has proper values
+        assert df.shape == (3, 112)
+        assert df.loc["37e5151e7bcb4f87", "PF00005"] == 256.524  # older version has 4919.47
