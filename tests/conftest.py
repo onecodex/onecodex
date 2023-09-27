@@ -288,7 +288,7 @@ API_DATA = {
             "visibility": "public",
         },
     ],
-    "GET::api/v1_experimental/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%2237e5151e7bcb4f87%22%7D.*": [
+    "GET::api/v1_experimental/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%7B%22%24in%22%3A\\+%5B%2237e5151e7bcb4f87%22%5D%7D.*": [
         {
             "$uri": "/api/v1_experimental/functional_profiles/eec4ac90d9104d1e",
             "complete": True,
@@ -299,7 +299,7 @@ API_DATA = {
             "success": True,
         },
     ],
-    "GET::api/v1_experimental/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%2266c1531cb0b244f6%22%7D.*": [
+    "GET::api/v1_experimental/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%7B%22%24in%22%3A\\+%5B%2266c1531cb0b244f6%22%5D%7D.*": [
         {
             "$uri": "/api/v1_experimental/functional_profiles/bde18eb9407d4c2f",
             "complete": True,
@@ -310,7 +310,7 @@ API_DATA = {
             "success": True,
         },
     ],
-    "GET::api/v1_experimental/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%22543c9c046e3e4e09%22%7D.*": [
+    "GET::api/v1_experimental/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%7B%22%24in%22%3A\\+%5B%22543c9c046e3e4e09%22%5D%7D.*": [
         {
             "$uri": "/api/v1_experimental/functional_profiles/31ddae978aff475f",
             "complete": True,
