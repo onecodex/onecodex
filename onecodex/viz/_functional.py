@@ -9,7 +9,7 @@ from onecodex.viz._primitives import prepare_props, sort_helper
 class VizFunctionalHeatmapMixin(object):
     def plot_functional_heatmap(
         self,
-        num_of_functions=10,
+        top_n=10,
         annotation=FunctionalAnnotations.Go,
         metric=None,
         sort_x=None,
@@ -27,7 +27,7 @@ class VizFunctionalHeatmapMixin(object):
 
         Parameters
         ----------
-        num_of_functions : `int`, optional
+        top_n : `int`, optional
             Display the top N most abundant or covered functions in the entire cohort of samples.
         annotation : `FunctionalAnnotations` or `str`, optional
             {'go', 'eggnog', 'ko', 'ec', 'pfam', 'pathways'}
@@ -97,8 +97,8 @@ class VizFunctionalHeatmapMixin(object):
         # Using fast pandas/numpy approach to select top N functions
         agg_row = df.mean()
         agg_row.sort_values(ascending=False, inplace=True)
-        to_keep = agg_row[:num_of_functions]  # Needed to sort y-axis
-        to_drop = agg_row[num_of_functions:]
+        to_keep = agg_row[:top_n]  # Needed to sort y-axis
+        to_drop = agg_row[top_n:]
 
         df.drop(columns=to_drop.index, inplace=True)
 
@@ -178,7 +178,7 @@ class VizFunctionalHeatmapMixin(object):
             **prepare_props(
                 title=title,
                 width=width or (15 * num_of_items),
-                height=height or (15 * num_of_functions),
+                height=height or (15 * top_n),
             )
         )
         if haxis:
