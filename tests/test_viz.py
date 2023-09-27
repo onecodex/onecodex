@@ -830,9 +830,7 @@ def test_plot_functional_heatmap(ocx_experimental, api_data):
     }
 
     # Trying with a different metric
-    chart = samples.plot_functional_heatmap(
-        return_chart=True, top_n=3, annotation="eggnog"
-    )
+    chart = samples.plot_functional_heatmap(return_chart=True, top_n=3, annotation="eggnog")
     assert all(x.startswith("COG") for x in chart.data["function_id"])
 
 
