@@ -33,6 +33,13 @@ class Reference(collections.abc.Mapping):
         if client is not None:
             self._client = client
 
+    @property
+    def id(self):
+        if self._uri is not None:
+            id_ = self._uri[self._uri.rfind("/") + 1:]
+            return id_
+        return None
+
     @classmethod
     def _resolve(self, client, uri):
         return client.fetch(uri, uri_to_instance=False)
@@ -103,13 +110,6 @@ class Resource(Reference):
 
     def __init__(self, uri=None, **kwargs):
         pass  # Must be blank. See __new__()
-
-    @property
-    def id(self):
-        if self._uri is not None:
-            id_ = self._uri[self._uri.rfind("/") + 1:]
-            return id_
-        return None
 
     # TODO cache this property
     @property

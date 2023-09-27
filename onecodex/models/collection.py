@@ -408,6 +408,9 @@ class SampleCollection(ResourceList, AnalysisMixin):
     def _functional_profiles_fetch(self, skip_missing=None):
         """Transform a list of Samples or Classifications into a list of FunctionalProfiles objects.
 
+        The FunctionalProfiles are filtered down to only the ones matching the newest job version
+        among the collection.
+
         Parameters
         ----------
         skip_missing : bool
@@ -417,54 +420,43 @@ class SampleCollection(ResourceList, AnalysisMixin):
         -------
         None, but stores a result in self._cached.
         """
-        from onecodex.models import Classifications, Samples, FunctionalProfiles
+        from onecodex.models import Samples, FunctionalProfiles, Jobs
 
         skip_missing = skip_missing if skip_missing else self._kwargs["skip_missing"]
 
-        functional_profiles = []
-        for obj in self._res_list:
-            if isinstance(obj, Samples):
-                sample_id = obj.id
-            elif isinstance(obj, Classifications):
-                sample_id = obj.sample.id
-            else:
-                raise OneCodexException(
-                    "Objects in SampleCollection must be one of: Classifications, Samples"
-                )
-            functional_profile = FunctionalProfiles.where(sample=sample_id)
-            if len(functional_profile) == 0:
-                if skip_missing:
-                    warnings.warn(f"Functional profile not found for sample {sample_id}. Skipping.")
-                    continue
-                else:
-                    raise OneCodexException(f"Functional profile not found for sample {sample_id}.")
-            elif len(functional_profile) == 1:
-                if not functional_profile[0].success:
-                    if skip_missing:
-                        warnings.warn(
-                            f"Functional profile for sample {sample_id} not successful. Skipping."
-                        )
-                        continue
-                    else:
-                        raise OneCodexException(
-                            f"Functional profile for sample {sample_id} not successful."
-                        )
-                else:
-                    functional_profiles.append(functional_profile[0])
-            else:
-                raise OneCodexException(
-                    f"More than one ({len(functional_profile)}) functional analyses found for sample {sample_id}"
-                )
-        # ensure all the functional profiles are the same job version
-        job_ids = set([obj.job.id for obj in functional_profiles])
-        if len(job_ids) > 1:
-            raise OneCodexException(
-                "FunctionalProfiles contain multiple analysis job versions: {}".format(
-                    ", ".join(job_ids)
-                )
-            )
+        sample_ids = [
+            obj.id if isinstance(obj, Samples) else obj.sample.id for obj in self._res_list
+        ]
+        # Get all Functional Profiles for the current sample collection
+        batch_size = 50
+        profiles = []
+        for i in range(0, len(sample_ids), batch_size):
+            profiles += FunctionalProfiles.where(sample=sample_ids[i : i + batch_size])
+        if not profiles:
+            self._cached["functional_profiles"] = []
+            return
 
-        self._cached["functional_profiles"] = functional_profiles
+        # Determine the newest Functional Analysis job for this sample set
+        job_ids = {fp.job.id for fp in profiles}
+        jobs = Jobs.where(id=sorted(job_ids), sort="created_at")
+        newest_job = jobs[0]
+
+        # Filter down to only newest Functional Profile runs
+        newest_profiles = [fp for fp in profiles if fp.job.id == newest_job.id and fp.success]
+        functional_sample_ids = {fp.sample.id for fp in newest_profiles}
+
+        for sample_id in sample_ids:
+            if sample_id not in functional_sample_ids:
+                if skip_missing:
+                    warnings.warn(
+                        f"Current version of functional profile not found for sample {sample_id}. Skipping."
+                    )
+                else:
+                    raise OneCodexException(
+                        f"Current version of functional profile not found for sample {sample_id}."
+                    )
+
+        self._cached["functional_profiles"] = newest_profiles
 
     @property
     def _functional_profiles(self):

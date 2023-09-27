@@ -1,6 +1,7 @@
 from __future__ import print_function
 from click.testing import CliRunner
 from contextlib import contextmanager
+import copy
 import datetime
 import gzip
 import json
@@ -208,6 +209,15 @@ API_DATA = {
         "name": "One Codex Database (2017)",
         "public": True,
     },
+    "GET::api/v1_experimental/jobs\\?.*where=%7B%22%24uri%22%3A\\+%7B%22%24in%22%3A\\+%5B%22%2Fapi%2Fv1_experimental%2Fjobs%2F59e7904ea8ed4202%22%5D%7D%7D&sort=%7B%22created_at%22%3A\\+true%7D": [
+        {
+            "$uri": "/api/v1_experimental/jobs/59e7904ea8ed4202",
+            "analysis_type": "functional",
+            "created_at": "2023-04-28T15:27:40.140791-07:00",
+            "name": "Functional v1",
+            "public": True,
+        }
+    ],
     "GET::api/v1/projects/4b53797444f846c4": {
         "$uri": "/api/v1/projects/472fc57510e24150",
         "description": None,
@@ -388,6 +398,11 @@ def api_data():
 
 
 @pytest.yield_fixture(scope="function")
+def raw_api_data():
+    yield copy.deepcopy(API_DATA)
+
+
+@pytest.yield_fixture(scope="function")
 def upload_mocks():
     def upload_callback(request):
         # Get and read the streaming iterator so it's empty
@@ -477,6 +492,11 @@ def ocx_experimental():
             cache_schema=False,
             experimental=True,
         )
+
+
+@pytest.fixture(scope="function")
+def custom_mock_requests():
+    yield mock_requests
 
 
 @pytest.fixture(scope="function")
