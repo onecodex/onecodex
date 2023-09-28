@@ -163,12 +163,12 @@ class VizFunctionalHeatmapMixin(object):
             .encode(
                 x=alt.X("Label:N", title=xlabel, sort=sort_x_values),
                 y=alt.Y(y_axis_shorthand, title=ylabel, sort=sort_y_values),
-                color=alt.Color("value:Q", title=metric.name),
+                color=alt.Color("value:Q", title=metric.plot_label),
                 tooltip=[
                     alt.Tooltip("Label:N", title="Label"),
                     alt.Tooltip("function_name:N", title="Function Name"),
                     alt.Tooltip("function_id:N", title="Function ID"),
-                    alt.Tooltip("value:Q", format=".02f", title=metric.name),
+                    alt.Tooltip("value:Q", format=".02f", title=metric.plot_label),
                 ],
                 **column_kwargs,
             )

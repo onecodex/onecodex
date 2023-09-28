@@ -135,6 +135,14 @@ class FunctionalAnnotationsMetric(BaseEnum):
             else [FunctionalAnnotationsMetric.Cpm, FunctionalAnnotationsMetric.Rpk]
         )
 
+    @property
+    def plot_label(self):
+        if self in [FunctionalAnnotationsMetric.Cpm, FunctionalAnnotationsMetric.Rpk]:
+            return self.value.upper()
+
+        parts = self.value.split("_")
+        return " ".join(x.title() for x in parts)
+
 
 class FunctionalLabel(BaseEnum):
     Name = "name"
