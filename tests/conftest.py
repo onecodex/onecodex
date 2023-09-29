@@ -1,6 +1,7 @@
 from __future__ import print_function
 from click.testing import CliRunner
 from contextlib import contextmanager
+import copy
 import datetime
 import gzip
 import json
@@ -208,6 +209,15 @@ API_DATA = {
         "name": "One Codex Database (2017)",
         "public": True,
     },
+    "GET::api/v1_experimental/jobs\\?.*where=%7B%22%24uri%22%3A\\+%7B%22%24in%22%3A\\+%5B%22%2Fapi%2Fv1_experimental%2Fjobs%2F59e7904ea8ed4202%22%5D%7D%7D&sort=%7B%22created_at%22%3A\\+true%7D": [
+        {
+            "$uri": "/api/v1_experimental/jobs/59e7904ea8ed4202",
+            "analysis_type": "functional",
+            "created_at": "2023-04-28T15:27:40.140791-07:00",
+            "name": "Functional v1",
+            "public": True,
+        }
+    ],
     "GET::api/v1/projects/4b53797444f846c4": {
         "$uri": "/api/v1/projects/472fc57510e24150",
         "description": None,
@@ -278,7 +288,7 @@ API_DATA = {
             "visibility": "public",
         },
     ],
-    "GET::api/v1_experimental/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%2237e5151e7bcb4f87%22%7D.*": [
+    "GET::api/v1_experimental/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%7B%22%24in%22%3A\\+%5B%2237e5151e7bcb4f87%22%5D%7D.*": [
         {
             "$uri": "/api/v1_experimental/functional_profiles/eec4ac90d9104d1e",
             "complete": True,
@@ -289,7 +299,7 @@ API_DATA = {
             "success": True,
         },
     ],
-    "GET::api/v1_experimental/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%2266c1531cb0b244f6%22%7D.*": [
+    "GET::api/v1_experimental/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%7B%22%24in%22%3A\\+%5B%2266c1531cb0b244f6%22%5D%7D.*": [
         {
             "$uri": "/api/v1_experimental/functional_profiles/bde18eb9407d4c2f",
             "complete": True,
@@ -300,7 +310,7 @@ API_DATA = {
             "success": True,
         },
     ],
-    "GET::api/v1_experimental/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%22543c9c046e3e4e09%22%7D.*": [
+    "GET::api/v1_experimental/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%7B%22%24in%22%3A\\+%5B%22543c9c046e3e4e09%22%5D%7D.*": [
         {
             "$uri": "/api/v1_experimental/functional_profiles/31ddae978aff475f",
             "complete": True,
@@ -385,6 +395,11 @@ API_DATA.update(SCHEMA_ROUTES)
 def api_data():
     with mock_requests(API_DATA):
         yield
+
+
+@pytest.yield_fixture(scope="function")
+def raw_api_data():
+    yield copy.deepcopy(API_DATA)
 
 
 @pytest.yield_fixture(scope="function")
@@ -477,6 +492,11 @@ def ocx_experimental():
             cache_schema=False,
             experimental=True,
         )
+
+
+@pytest.fixture(scope="function")
+def custom_mock_requests():
+    yield mock_requests
 
 
 @pytest.fixture(scope="function")

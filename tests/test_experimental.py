@@ -1,3 +1,5 @@
+import json
+
 import pandas as pd
 
 import pytest
@@ -162,9 +164,9 @@ def test_to_df_for_functional_profiles(ocx_experimental, api_data):
     assert df.ocx_metric == "cpm"
     assert df.ocx_metadata.shape == (3, 92)
     assert df.index.name == "sample_id"
-    assert list(df.index.values) == sample_ids
-    assert list(df.ocx_metadata["sample_id"]) == sample_ids
-    assert sorted(list(df.ocx_feature_name_map.keys())) == sorted(list(df.columns))
+    assert set(df.index.values) == set(sample_ids)
+    assert set(df.ocx_metadata["sample_id"]) == set(sample_ids)
+    assert set(df.ocx_feature_name_map.keys()) == set(df.columns)
 
     # Functional df doesn't have classification df attributes
     with pytest.raises(AttributeError):
@@ -174,3 +176,53 @@ def test_to_df_for_functional_profiles(ocx_experimental, api_data):
 
     with pytest.raises(ValueError):
         sc.to_df(analysis_type="foo")
+
+
+def test_filter_functional_runs_to_newest_job(ocx_experimental, raw_api_data, custom_mock_requests):
+    for json_profile in raw_api_data["GET::api/v1_experimental/functional_profiles"]:
+        json_profile["job"]["$ref"] = json_profile["job"]["$ref"].replace("v1/", "v1_experimental/")
+    # Newer run
+    raw_api_data["GET::api/v1_experimental/functional_profiles"] += [
+        {
+            "$uri": "/api/v1_experimental/functional_profiles/eec4ac90d9104d1f",
+            "complete": True,
+            "created_at": "2023-09-25T17:27:30.622286-07:00",
+            "error_msg": "",
+            "job": {"$ref": "/api/v1_experimental/jobs/59e7904ea8ed4244"},
+            "sample": {"$ref": "/api/v1/samples/37e5151e7bcb4f87"},
+            "success": True,
+        }
+    ]
+    # Default job
+    raw_api_data["GET::api/v1_experimental/jobs/59e7904ea8ed4202"] = {
+        "$uri": "/api/v1_experimental/jobs/59e7904ea8ed4202",
+        "analysis_type": "functional",
+        "created_at": "2016-05-05T17:27:02.116480+00:00",
+        "name": "Functional v1",
+        "public": True,
+    }
+    # Newer job
+    raw_api_data["GET::api/v1_experimental/jobs/59e7904ea8ed4244"] = {
+        "$uri": "/api/v1_experimental/jobs/59e7904ea8ed4244",
+        "analysis_type": "functional",
+        "created_at": "2023-09-27T17:27:02.116480+00:00",
+        "name": "Functional v2",
+        "public": True,
+    }
+
+    with open(
+        "tests/data/api/v1_experimental/functional_profiles/bde18eb9407d4c2f/results/index.json"
+    ) as fin:
+        results = json.load(fin)
+    raw_api_data[
+        "GET::api/v1_experimental/functional_profiles/eec4ac90d9104d1f/filtered_results\\?functional_group=%22pathways%22&metric=%22coverage%22&taxa_stratified=true"
+    ] = results
+
+    with custom_mock_requests(raw_api_data):
+        sample_ids = ["543c9c046e3e4e09", "66c1531cb0b244f6", "37e5151e7bcb4f87"]
+        samples = [ocx_experimental.Samples.get(sample_id) for sample_id in sample_ids]
+        sc = SampleCollection(samples)
+        df = sc.to_df(analysis_type="functional")
+        # All samples are included, one with newer version has proper values
+        assert df.shape == (3, 112)
+        assert df.loc["37e5151e7bcb4f87", "PF00005"] == 256.524  # older version has 4919.47
