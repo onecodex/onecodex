@@ -120,7 +120,33 @@ class FunctionalAnnotationsMetric(BaseEnum):
     Rpk = "rpk"
     Cpm = "cpm"
     Abundance = "abundance"
+    CompleteAbundance = "complete_abundance"
     Coverage = "coverage"
+
+    @classmethod
+    def metrics_for_annotation(cls, annotation):
+        return (
+            [
+                FunctionalAnnotationsMetric.Abundance,
+                FunctionalAnnotationsMetric.CompleteAbundance,
+                FunctionalAnnotationsMetric.Coverage,
+            ]
+            if annotation == FunctionalAnnotations.Pathways
+            else [FunctionalAnnotationsMetric.Cpm, FunctionalAnnotationsMetric.Rpk]
+        )
+
+    @property
+    def plot_label(self):
+        if self in [FunctionalAnnotationsMetric.Cpm, FunctionalAnnotationsMetric.Rpk]:
+            return self.value.upper()
+
+        parts = self.value.split("_")
+        return " ".join(x.title() for x in parts)
+
+
+class FunctionalLabel(BaseEnum):
+    Name = "name"
+    Id = "id"
 
 
 class Link(BaseEnum):

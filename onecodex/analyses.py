@@ -1,5 +1,5 @@
-import six
 import warnings
+from collections import Counter
 
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.enums import (
@@ -16,6 +16,7 @@ from onecodex.viz import (
     VizMetadataMixin,
     VizDistanceMixin,
     VizBargraphMixin,
+    VizFunctionalHeatmapMixin,
 )
 
 
@@ -28,7 +29,12 @@ def _get_all_nan_classification_ids(df):
 
 
 class AnalysisMixin(
-    VizPCAMixin, VizHeatmapMixin, VizMetadataMixin, VizDistanceMixin, VizBargraphMixin
+    VizPCAMixin,
+    VizHeatmapMixin,
+    VizMetadataMixin,
+    VizDistanceMixin,
+    VizBargraphMixin,
+    VizFunctionalHeatmapMixin,
 ):
     """Contains methods for analyzing Classifications results.
 
@@ -70,7 +76,7 @@ class AnalysisMixin(
             or bool((self._results.sum(axis=1).round(4) == 1.0).all())
         )  # noqa
 
-    def _metadata_fetch(self, metadata_fields, label=None):
+    def _metadata_fetch(self, metadata_fields, label=None, match_taxonomy=True):
         """Fetch and transform given metadata fields from `self.metadata`.
 
         Takes a list of metadata fields, some of which can contain taxon names or taxon IDs, and
@@ -87,6 +93,9 @@ class AnalysisMixin(
 
             If this argument is not given, and "Label" is in `metadata_fields`, "Label" will be set
             to the filename associated with an analysis.
+        match_taxonomy : `bool`, optional
+            Whether the returned metadata should resolve `metadata_fields` against taxonomy
+            if they're not included in sample metadata. Defaults to true.
 
         Notes
         -----
@@ -160,60 +169,13 @@ class AnalysisMixin(
                 if str_f == "Label":
                     magic_metadata[str_f] = self.metadata["filename"]
                     magic_fields[f] = str_f
-
-                    if isinstance(label, six.string_types):
-                        if label in self.metadata.columns:
-                            magic_metadata[str_f] = self.metadata[label].astype(str)
-                        else:
-                            raise OneCodexException(
-                                "Label field {} not found. Choose from: {}".format(
-                                    label, help_metadata
-                                )
-                            )
-                    elif callable(label):
-                        for classification_id, metadata in self.metadata.to_dict(
-                            orient="index"
-                        ).items():
-                            c_id_label = label(metadata)
-
-                            if not isinstance(c_id_label, six.string_types):
-                                raise OneCodexException(
-                                    "Expected string from label function, got: {}".format(
-                                        type(c_id_label).__name__
-                                    )
-                                )
-
-                            magic_metadata.loc[classification_id, "Label"] = c_id_label
-                    elif label is not None:
-                        raise OneCodexException(
-                            "Expected string or callable for label, got: {}".format(
-                                type(label).__name__
-                            )
-                        )
-
-                    # add an incremented number to duplicate labels (e.g., same filename)
-                    duplicate_labels = (
-                        magic_metadata[str_f]
-                        .where(magic_metadata[str_f].duplicated(keep=False))
-                        .dropna()
-                    )
-
-                    if not duplicate_labels.empty:
-                        duplicate_counts = {label: 1 for label in duplicate_labels}
-
-                        for c_id in magic_metadata.index:
-                            label = magic_metadata[str_f][c_id]
-
-                            if duplicate_labels.isin([label]).any():
-                                magic_metadata[str_f][c_id] = "{} ({})".format(
-                                    label, duplicate_counts[label]
-                                )
-                                duplicate_counts[label] += 1
+                    if label is not None:
+                        magic_metadata[str_f] = self._make_labels_by_item_id(self.metadata, label)
                 elif str_f in self.metadata:
                     # exactly matches existing metadata field
                     magic_metadata[f] = self.metadata[str_f]
                     magic_fields[f] = str_f
-                elif str_f in self._results.keys():
+                elif match_taxonomy and str_f in self._results.keys():
                     # is a tax_id
                     tax_name = self.taxonomy["name"][str_f]
 
@@ -223,7 +185,7 @@ class AnalysisMixin(
                     renamed_field = "{} ({})".format(tax_name, str_f)
                     magic_metadata[renamed_field] = df[str_f]
                     magic_fields[f] = renamed_field
-                else:
+                elif match_taxonomy:
                     # try to match it up with a taxon name
                     hits = []
 
@@ -252,6 +214,10 @@ class AnalysisMixin(
                         # matched nothing
                         magic_metadata[f] = None
                         magic_fields[f] = str_f
+                else:
+                    # matched nothing
+                    magic_metadata[f] = None
+                    magic_fields[f] = str_f
 
         return magic_metadata, magic_fields
 
@@ -301,29 +267,38 @@ class AnalysisMixin(
         filler=0,
     ):
         """
-        Return a dataframe of results from a functional analysis.
+        Generate a FunctionalDataFrame associated with functional analysis results.
 
         Parameters
         ----------
         annotation : {onecodex.lib.enum.FunctionalAnnotations, str}, optional
-            Annotation data to return
+            Annotation data to return, defaults to `pathways`
         taxa_stratified : bool, optional
-            Return taxonomically stratified data
+            Return taxonomically stratified data, defaults to `True`
         metric : {onecodex.lib.enum.FunctionalAnnotationsMetric, str}, optional
             Metric values to return
             {'coverage', 'abundance'} for annotation==FunctionalAnnotations.Pathways or
-            {'rpk', 'cpm'} for other annotations
+            {'rpk', 'cpm'} for other annotations, defaults to `coverage`
         fill_missing : bool, optional
             Fill np.nan values
         filler : float, optional
             Value with which to fill np.nans
         """
-        return self._functional_results(
+        from onecodex.dataframes import FunctionalDataFrame
+
+        df, feature_name_map = self._functional_results(
             annotation=annotation,
             taxa_stratified=taxa_stratified,
             metric=metric,
             fill_missing=fill_missing,
             filler=filler,
+        )
+        return FunctionalDataFrame(
+            df,
+            ocx_metadata=self.metadata.copy(),
+            ocx_functional_group=annotation,
+            ocx_metric=metric,
+            ocx_feature_name_map=feature_name_map,
         )
 
     def _to_classification_df(
@@ -513,6 +488,63 @@ class AnalysisMixin(
             curr_tax_id = self.taxonomy["parent_tax_id"][curr_tax_id]
 
         return highest_tax_id
+
+    @staticmethod
+    def _make_labels_by_item_id(metadata, label):
+        """Make/Extract labels from metadata pandas dataframe.
+
+        Parameters
+        ----------
+        metadata : `pandas.DataFrame`
+        label : `str` or `callable`
+
+        Returns
+        -------
+        `dict`
+            Keys are from metadata.index. Values are generated labels.
+        """
+        import pandas as pd
+
+        raw_result = {}
+
+        if isinstance(label, str):
+            if label in metadata.columns:
+                raw_result = dict(metadata[label].astype(str).items())
+            else:
+                raise OneCodexException(
+                    "Label field {} not found. Choose from: {}".format(
+                        label, ", ".join(metadata.keys())
+                    )
+                )
+        elif callable(label):
+            for item_id, item_meta in metadata.to_dict(orient="index").items():
+                item_label = label(item_meta)
+                if not isinstance(item_label, str):
+                    wrong_type = type(item_label).__name__
+                    raise OneCodexException(
+                        "Expected string from label function, got: {}".format(wrong_type)
+                    )
+                raw_result[item_id] = item_label
+
+        elif label is not None:
+            wrong_type = type(label).__name__
+            raise OneCodexException(
+                "Expected string or callable for label, got: {}".format(wrong_type)
+            )
+
+        # add an incremented number to duplicate labels (e.g., same filename)
+        duplicates_counter = Counter(raw_result.values())
+        duplicated_labels = [label for label, n in duplicates_counter.items() if n > 1]
+        indexing = {x: 1 for x in duplicated_labels}
+        result = {}
+        for item_id, label in raw_result.items():
+            if label in indexing:
+                result[item_id] = "{} ({})".format(label, indexing[label])
+                indexing[label] += 1
+            else:
+                result[item_id] = label
+
+        return pd.Series(result)
 
     @staticmethod
     def _make_pretty_metric_name(metric, normalized):

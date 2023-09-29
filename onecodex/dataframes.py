@@ -71,7 +71,7 @@ class ClassificationsDataFrame(pd.DataFrame):
         self.ocx_normalized = ocx_normalized
         self.ocx_all_nan_classification_ids = ocx_all_nan_classification_ids
 
-        pd.DataFrame.__init__(self, data=data, index=index, columns=columns, dtype=dtype, copy=copy)
+        super().__init__(data=data, index=index, columns=columns, dtype=dtype, copy=copy)
 
     @property
     def _constructor(self):
@@ -135,8 +135,8 @@ class ClassificationsSeries(pd.Series):
         self.ocx_metadata = ocx_metadata
         self.ocx_normalized = ocx_normalized
 
-        pd.Series.__init__(
-            self, data=data, index=index, dtype=dtype, name=name, copy=copy, fastpath=fastpath
+        super().__init__(
+            data=data, index=index, dtype=dtype, name=name, copy=copy, fastpath=fastpath
         )
 
     @property
@@ -146,6 +146,86 @@ class ClassificationsSeries(pd.Series):
     @property
     def _constructor_expanddim(self):
         return ClassificationsDataFrame
+
+
+class FunctionalDataFrame(pd.DataFrame):
+    """A DataFrame containing additional One Codex metadata."""
+
+    _metadata = ["ocx_metadata", "ocx_functional_group", "ocx_metric", "ocx_feature_name_map"]
+
+    def __init__(
+        self,
+        data=None,
+        index=None,
+        columns=None,
+        dtype=None,
+        copy=False,
+        ocx_metadata=None,
+        ocx_functional_group=None,
+        ocx_metric=None,
+        ocx_feature_name_map=None,
+    ):
+        self.ocx_metadata = ocx_metadata
+        self.ocx_functional_group = ocx_functional_group
+        self.ocx_metric = ocx_metric
+        self.ocx_feature_name_map = ocx_feature_name_map
+
+        super().__init__(data=data, index=index, columns=columns, dtype=dtype, copy=copy)
+
+    @property
+    def _constructor(self):
+        return FunctionalDataFrame
+
+    @property
+    def _constructor_sliced(self):
+        return FunctionalSeries
+
+
+class FunctionalSeries(pd.Series):
+    """A Series containing additional One Codex metadata.
+
+    A subclassed `pandas.Series` containing additional metadata pertinent to analysis of
+    One Codex Functional Analysis results. See the docstring for `FunctionalDataFrame`.
+    """
+
+    # 'name' is a piece of metadata specified by pd.Series--it's not ours
+    _metadata = [
+        "name",
+        "ocx_metadata",
+        "ocx_functional_group",
+        "ocx_metric",
+        "ocx_feature_name_map",
+    ]
+
+    def __init__(
+        self,
+        data=None,
+        index=None,
+        dtype=None,
+        name=None,
+        copy=False,
+        fastpath=False,
+        ocx_metadata=None,
+        ocx_functional_group=None,
+        ocx_metric=None,
+        ocx_feature_name_map=None,
+    ):
+        self.ocx_metadata = ocx_metadata
+        self.ocx_functional_group = ocx_functional_group
+        self.ocx_metric = ocx_metric
+        self.ocx_feature_name_map = ocx_feature_name_map
+
+        super().__init__(
+            data=data, index=index, dtype=dtype, name=name, copy=copy, fastpath=fastpath
+        )
+
+    @property
+    def _constructor(self):
+        return FunctionalSeries
+
+    @property
+    def _constructor_expanddim(self):
+        return FunctionalDataFrame
 
 
 @pd.api.extensions.register_dataframe_accessor("ocx")
@@ -165,26 +245,33 @@ class OneCodexAccessor(AnalysisMixin):
     """
 
     def __init__(self, pandas_obj):
-        # copy data from the ClassificationsDataFrame to a new instance of AnalysisMethods
         self.metadata = pandas_obj.ocx_metadata
-        self.taxonomy = pandas_obj.ocx_taxonomy
-        self._normalized = pandas_obj.ocx_normalized
-        self._metric = pandas_obj.ocx_metric
-        self._rank = pandas_obj.ocx_rank
         self._results = pandas_obj
-        self._ocx_all_nan_classification_ids = pandas_obj.ocx_all_nan_classification_ids
+        # copy data from the ClassificationsDataFrame to a new instance of AnalysisMethods
+        if isinstance(pandas_obj, ClassificationsDataFrame):
+            self.taxonomy = pandas_obj.ocx_taxonomy
+            self._normalized = pandas_obj.ocx_normalized
+            self._metric = pandas_obj.ocx_metric
+            self._rank = pandas_obj.ocx_rank
 
-        # prune back _taxonomy df to contain only taxa and parents in the ClassificationsDataFrame
-        tree = self.tree_build()
+            self._ocx_all_nan_classification_ids = pandas_obj.ocx_all_nan_classification_ids
 
-        if "classification_id" in self._results.columns and "tax_id" in self._results.columns:
-            tree = self.tree_prune_tax_ids(tree, self._results["tax_id"].drop_duplicates())
+            # prune back _taxonomy df to contain only taxa and parents
+            # in the ClassificationsDataFrame
+            tree = self.tree_build()
 
-            # similarly restrict _metadata df to contain only data relevant to samples in the df
-            self.metadata = self.metadata.loc[self._results["classification_id"].drop_duplicates()]
-        else:
-            tree = self.tree_prune_tax_ids(tree, self._results.columns)
-            self.metadata = self.metadata.loc[self._results.index]
+            if "classification_id" in self._results.columns and "tax_id" in self._results.columns:
+                tree = self.tree_prune_tax_ids(tree, self._results["tax_id"].drop_duplicates())
 
-        tax_ids_to_keep = [x.name for x in tree.traverse()]
-        self.taxonomy = self.taxonomy.loc[tax_ids_to_keep]
+                # similarly restrict _metadata df to contain only data relevant to samples in the df
+                self.metadata = self.metadata.loc[
+                    self._results["classification_id"].drop_duplicates()
+                ]
+            else:
+                tree = self.tree_prune_tax_ids(tree, self._results.columns)
+                self.metadata = self.metadata.loc[self._results.index]
+
+            tax_ids_to_keep = [x.name for x in tree.traverse()]
+            self.taxonomy = self.taxonomy.loc[tax_ids_to_keep]
+        elif isinstance(pandas_obj, FunctionalDataFrame):
+            self.feature_name_map = pandas_obj.ocx_feature_name_map

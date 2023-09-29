@@ -8,14 +8,14 @@ from onecodex.exceptions import OneCodexException, UnboundObject
 
 
 def as_uri(uuid, base_class):
-    return base_class._resource._schema._uri.rstrip("#") + "/" + uuid
+    return base_class._resource._schema["_base_uri"] + "/" + uuid
 
 
 def coerce_search_value(search_value, field_name, base_class):
     from onecodex.models import OneCodexBase  # in here to prevent circular import
 
     if field_name == "$uri":
-        return as_uri(field_name, base_class)
+        return as_uri(search_value, base_class)
     elif isinstance(search_value, OneCodexBase):
         return {"$ref": search_value._resource._uri}
     return search_value

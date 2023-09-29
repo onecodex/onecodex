@@ -218,14 +218,22 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
     def _collate_metadata(self):
         """Transform a list of Samples or Classifications into a `pd.DataFrame` of metadata."""
-
+        from onecodex.models import Classifications
         import pandas as pd
 
         DEFAULT_FIELDS = None
         metadata = []
 
-        for c in self._classifications:
-            m = c.sample.metadata
+        for obj in self._res_list:
+            try:
+                classification_id = (
+                    obj.id if isinstance(obj, Classifications) else obj.primary_classification.id
+                )
+            except AttributeError:
+                classification_id = None
+            sample = obj.sample if isinstance(obj, Classifications) else obj
+
+            m = sample.metadata
 
             if DEFAULT_FIELDS is None:
                 DEFAULT_FIELDS = list(m._resource._schema["properties"].keys())
@@ -233,18 +241,20 @@ class SampleCollection(ResourceList, AnalysisMixin):
                 DEFAULT_FIELDS.remove("sample")
 
             metadatum = {f: getattr(m, f) for f in DEFAULT_FIELDS}
-            metadatum["classification_id"] = c.id
-            metadatum["sample_id"] = m.sample.id
+            metadatum["classification_id"] = classification_id
+            metadatum["sample_id"] = sample.id
             metadatum["metadata_id"] = m.id
-            metadatum["created_at"] = m.sample.created_at
-            metadatum["filename"] = c.sample.filename
-            metadatum["project"] = getattr(c.sample.project, "name", "")
+            metadatum["created_at"] = sample.created_at
+            metadatum["filename"] = sample.filename
+            metadatum["project"] = getattr(sample.project, "name", "")
 
             metadatum.update(m.custom)
             metadata.append(metadatum)
 
         if metadata:
-            metadata = pd.DataFrame(metadata).set_index("classification_id")
+            df = pd.DataFrame(metadata)
+            index = "classification_id" if df["classification_id"].is_unique else "sample_id"
+            metadata = df.set_index(index)
         else:
             metadata = pd.DataFrame(
                 columns=["classification_id", "sample_id", "metadata_id", "created_at"]
@@ -398,6 +408,9 @@ class SampleCollection(ResourceList, AnalysisMixin):
     def _functional_profiles_fetch(self, skip_missing=None):
         """Transform a list of Samples or Classifications into a list of FunctionalProfiles objects.
 
+        Each sample will be mapped to the newest job version which may result in mixing different
+        result versions on the list.
+
         Parameters
         ----------
         skip_missing : bool
@@ -407,54 +420,57 @@ class SampleCollection(ResourceList, AnalysisMixin):
         -------
         None, but stores a result in self._cached.
         """
-        from onecodex.models import Classifications, Samples, FunctionalProfiles
+        from onecodex.models import Samples, FunctionalProfiles
 
         skip_missing = skip_missing if skip_missing else self._kwargs["skip_missing"]
 
-        functional_profiles = []
-        for obj in self._res_list:
-            if isinstance(obj, Samples):
-                sample_id = obj.id
-            elif isinstance(obj, Classifications):
-                sample_id = obj.sample.id
+        sample_ids = [
+            obj.id if isinstance(obj, Samples) else obj.sample.id for obj in self._res_list
+        ]
+        # Get all Functional Profiles for the current sample collection
+        batch_size = 50
+        profiles = []
+        for i in range(0, len(sample_ids), batch_size):
+            profiles += FunctionalProfiles.where(sample=sample_ids[i : i + batch_size])
+        profiles = [fp for fp in profiles if fp.success]
+
+        if not profiles:
+            if skip_missing:
+                warnings.warn("No functional profiles found for sample collection")
+                self._cached["functional_profiles"] = []
+                return
             else:
-                raise OneCodexException(
-                    "Objects in SampleCollection must be one of: Classifications, Samples"
-                )
-            functional_profile = FunctionalProfiles.where(sample=sample_id)
-            if len(functional_profile) == 0:
+                raise OneCodexException("No functional profiles found for sample collection")
+
+        # Determine the newest Functional Analysis version for each sample
+        sample_id_to_profile = {}
+        for profile in profiles:
+            if profile.sample.id in sample_id_to_profile:
+                other = sample_id_to_profile[profile.sample.id]
+                if other.job.created_at < profile.job.created_at or (
+                    other.job.id == profile.job.id and other.created_at < profile.created_at
+                ):
+                    # Replace if either the job version is older or the run is older
+                    sample_id_to_profile[profile.sample.id] = profile
+            else:
+                sample_id_to_profile[profile.sample.id] = profile
+
+        # Issue missing results or mixed versions warnings
+        newest_profiles = list(sample_id_to_profile.values())
+        functional_sample_ids = {fp.sample.id for fp in newest_profiles}
+
+        job_ids = {fp.job.id for fp in newest_profiles}
+        if len(job_ids) > 1:
+            warnings.warn("Be advised: mixing functional profile versions")
+
+        for sample_id in sample_ids:
+            if sample_id not in functional_sample_ids:
                 if skip_missing:
                     warnings.warn(f"Functional profile not found for sample {sample_id}. Skipping.")
-                    continue
                 else:
                     raise OneCodexException(f"Functional profile not found for sample {sample_id}.")
-            elif len(functional_profile) == 1:
-                if not functional_profile[0].success:
-                    if skip_missing:
-                        warnings.warn(
-                            f"Functional profile for sample {sample_id} not successful. Skipping."
-                        )
-                        continue
-                    else:
-                        raise OneCodexException(
-                            f"Functional profile for sample {sample_id} not successful."
-                        )
-                else:
-                    functional_profiles.append(functional_profile[0])
-            else:
-                raise OneCodexException(
-                    f"More than one ({len(functional_profile)}) functional analyses found for sample {sample_id}"
-                )
-        # ensure all the functional profiles are the same job version
-        job_ids = set([obj.job.id for obj in functional_profiles])
-        if len(job_ids) > 1:
-            raise OneCodexException(
-                "FunctionalProfiles contain multiple analysis job versions: {}".format(
-                    ", ".join(job_ids)
-                )
-            )
 
-        self._cached["functional_profiles"] = functional_profiles
+        self._cached["functional_profiles"] = newest_profiles
 
     @property
     def _functional_profiles(self):
@@ -467,7 +483,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         self, annotation, metric, taxa_stratified, fill_missing, filler
     ):
         """
-        Return a dataframe of all functional profile data.
+        Return a dataframe of all functional profile data and feature id to name mapping.
 
         Parameters
         ----------
@@ -491,9 +507,10 @@ class SampleCollection(ResourceList, AnalysisMixin):
         annotation = FunctionalAnnotations(annotation)
         metric = FunctionalAnnotationsMetric(metric)
         if annotation == FunctionalAnnotations.Pathways:
-            if metric.value not in ["coverage", "abundance"]:
+            if metric.value not in ["coverage", "abundance", "complete_abundance"]:
                 raise ValueError(
-                    "If using annotation='pathways', 'metric' must be one of ['coverage', 'abundance']"
+                    "If using annotation='pathways', 'metric' must be one of "
+                    "['coverage', 'abundance', 'complete_abundance']"
                 )
         elif metric.value not in ["cpm", "rpk"]:
             raise ValueError(
@@ -503,19 +520,18 @@ class SampleCollection(ResourceList, AnalysisMixin):
         # iterate over functional profiles, subset data, and store in data dict
         data = {}
         all_features = set()
+        feature_id_to_name = {}
         for profile in self._functional_profiles:
+            sample_id = profile.sample.id
+
             # get table using One Codex API
-            table = profile.table(annotation=annotation, taxa_stratified=taxa_stratified)
-            # filter by indicated metric
-            if not taxa_stratified:
-                table = table[table["metric"] == "total_" + metric.value]
-            else:
-                table = table[table["metric"] == metric.value]
-            # if taxa stratified, concatenate id and taxon_name
-            if taxa_stratified:
-                table["id"] = table["id"] + "_" + table["taxon_name"]
+            table = profile.filtered_table(
+                annotation=annotation, metric=metric, taxa_stratified=taxa_stratified
+            )
+
             # store tables for later retrieval
-            data[profile.id] = dict(zip(table.id, table.value))
+            data[sample_id] = dict(zip(table.id, table.value))
+            feature_id_to_name.update(dict(zip(table.id, table.name)))
             all_features.update(set(table["id"]))
 
         features_to_ix = {}
@@ -526,32 +542,26 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         # initialize an array and fill it
         array = np.full(shape=(len(data), len(features_to_ix)), fill_value=np.nan)
-        profile_ids = []
-        for profile_index, profile_id in enumerate(data):
-            for feature_id in data[profile_id]:
-                array[profile_index, features_to_ix[feature_id]] = data[profile_id][feature_id]
-            profile_ids.append(profile_id)
-        df = pd.DataFrame(
-            array, index=pd.Index(profile_ids, name="functional_profile_id"), columns=feature_list
-        )
+        sample_ids = []
+        for sample_index, sample_id in enumerate(data):
+            for feature_id in data[sample_id]:
+                array[sample_index, features_to_ix[feature_id]] = data[sample_id][feature_id]
+            sample_ids.append(sample_id)
+        df = pd.DataFrame(array, index=pd.Index(sample_ids, name="sample_id"), columns=feature_list)
 
         if fill_missing:
             df.fillna(filler, inplace=True)
-        self._cached["functional_results"] = df
-        self._cached["functional_results_content"] = {
-            "annotation": annotation,
-            "taxa_stratified": taxa_stratified,
-            "metric": metric,
-            "fill_missing": fill_missing,
-            "filler": filler,
-        }
+
+        return df, feature_id_to_name
 
     def _functional_results(self, **kwargs):
-        if "functional_results" not in self._cached:
-            self._collate_functional_results(**kwargs)
-        if kwargs != self._cached["functional_results_content"]:
-            self._collate_functional_results(**kwargs)
-        return self._cached["functional_results"]
+        result_key = "functional_results_" + "_".join([f"{k}={v}" for k, v in kwargs.items()])
+        feature_map_key = "functional_features_" + "_".join([f"{k}={v}" for k, v in kwargs.items()])
+        if result_key not in self._cached or feature_map_key not in self._cached:
+            df, feature_map = self._collate_functional_results(**kwargs)
+            self._cached[result_key] = df
+            self._cached[feature_map_key] = feature_map
+        return self._cached[result_key], self._cached[feature_map_key]
 
     def to_otu(self, biom_id=None):
         """Transform a list of Classifications objects into a `dict` resembling an OTU table.

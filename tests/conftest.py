@@ -1,6 +1,7 @@
 from __future__ import print_function
 from click.testing import CliRunner
 from contextlib import contextmanager
+import copy
 import datetime
 import gzip
 import json
@@ -10,6 +11,7 @@ import re
 import responses
 
 from onecodex import Api
+from onecodex.analyses import FunctionalAnnotations, FunctionalAnnotationsMetric
 
 
 # TODO: Fix a bug wherein this will return all the items to potion
@@ -57,6 +59,22 @@ def update_metadata_callback(req):
     metadata["$uri"] = "/api/v1/metadata/4fe05e748b5a4f0e"
     metadata["sample"] = {"$ref": "/api/v1/samples/761bc54b97f64980"}
     return _make_callback_resp(metadata)
+
+
+def filtered_raw_results(raw_results, annotation, metric, taxa_stratified):
+    metric = "total_" + metric if not taxa_stratified and annotation != "pathways" else metric
+    table = [
+        {
+            "id": elem["id"] + "_" + elem["taxon_name"] if taxa_stratified else elem["id"],
+            "name": elem["name"],
+            "value": elem["value"],
+        }
+        for elem in raw_results["table"]
+        if elem["group_name"] == annotation
+        and elem["metric"] == metric
+        and elem["taxa_stratified"] == taxa_stratified
+    ]
+    return {"table": table, "n_reads": raw_results["n_reads"], "n_mapped": raw_results["n_mapped"]}
 
 
 # All of the mocked API data. Scheme is METHOD:CONTENT_TYPE:URL (content-type is optional) and then
@@ -191,11 +209,36 @@ API_DATA = {
         "name": "One Codex Database (2017)",
         "public": True,
     },
+    "GET::api/v1_experimental/jobs\\?.*where=%7B%22%24uri%22%3A\\+%7B%22%24in%22%3A\\+%5B%22%2Fapi%2Fv1_experimental%2Fjobs%2F59e7904ea8ed4202%22%5D%7D%7D&sort=%7B%22created_at%22%3A\\+true%7D": [
+        {
+            "$uri": "/api/v1_experimental/jobs/59e7904ea8ed4202",
+            "analysis_type": "functional",
+            "created_at": "2023-04-28T15:27:40.140791-07:00",
+            "name": "Functional v1",
+            "public": True,
+        }
+    ],
     "GET::api/v1/projects/4b53797444f846c4": {
         "$uri": "/api/v1/projects/472fc57510e24150",
         "description": None,
         "name": "Test",
         "owner": {"$ref": "/api/v1/users/9923090af03c46ce"},
+        "permissions": [
+            "can_see_files",
+            "can_incur_charges",
+            "can_download_files",
+            "can_edit_metadata",
+            "can_add_files",
+            "can_administer",
+        ],
+        "project_name": "testproj",
+        "public": False,
+    },
+    "GET::api/v1_experimental/projects/4b53797444f846c4": {
+        "$uri": "/api/v1_experimental/projects/472fc57510e24150",
+        "description": None,
+        "name": "Test",
+        "owner": {"$ref": "/api/v1_experimental/users/9923090af03c46ce"},
         "permissions": [
             "can_see_files",
             "can_incur_charges",
@@ -245,7 +288,7 @@ API_DATA = {
             "visibility": "public",
         },
     ],
-    "GET::api/v1_experimental/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%2237e5151e7bcb4f87%22%7D.*": [
+    "GET::api/v1_experimental/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%7B%22%24in%22%3A\\+%5B%2237e5151e7bcb4f87%22%5D%7D.*": [
         {
             "$uri": "/api/v1_experimental/functional_profiles/eec4ac90d9104d1e",
             "complete": True,
@@ -256,7 +299,7 @@ API_DATA = {
             "success": True,
         },
     ],
-    "GET::api/v1_experimental/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%2266c1531cb0b244f6%22%7D.*": [
+    "GET::api/v1_experimental/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%7B%22%24in%22%3A\\+%5B%2266c1531cb0b244f6%22%5D%7D.*": [
         {
             "$uri": "/api/v1_experimental/functional_profiles/bde18eb9407d4c2f",
             "complete": True,
@@ -267,7 +310,7 @@ API_DATA = {
             "success": True,
         },
     ],
-    "GET::api/v1_experimental/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%22543c9c046e3e4e09%22%7D.*": [
+    "GET::api/v1_experimental/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%7B%22%24in%22%3A\\+%5B%22543c9c046e3e4e09%22%5D%7D.*": [
         {
             "$uri": "/api/v1_experimental/functional_profiles/31ddae978aff475f",
             "complete": True,
@@ -279,6 +322,21 @@ API_DATA = {
         },
     ],
 }
+
+for functional_uuid in {"31ddae978aff475f", "bde18eb9407d4c2f", "eec4ac90d9104d1e"}:
+    raw_results = json.load(
+        open(
+            f"tests/data/api/v1_experimental/functional_profiles/{functional_uuid}/results/index.json"
+        )
+    )
+    for annotation in FunctionalAnnotations:
+        for metric in FunctionalAnnotationsMetric.metrics_for_annotation(annotation):
+            API_DATA[
+                f"GET::api/v1_experimental/functional_profiles/{functional_uuid}/filtered_results\\?.*functional_group=%22{annotation}%22\\&metric=%22{metric}%22\\&taxa_stratified=true"
+            ] = filtered_raw_results(raw_results, annotation, metric, True)
+            API_DATA[
+                f"GET::api/v1_experimental/functional_profiles/{functional_uuid}/filtered_results\\?.*functional_group=%22{annotation}%22\\&metric=%22{metric}%22\\&taxa_stratified=false"
+            ] = filtered_raw_results(raw_results, annotation, metric, False)
 
 SCHEMA_ROUTES = {}
 API_DATA_DIR = os.path.join("tests", "data", "api")
@@ -337,6 +395,11 @@ API_DATA.update(SCHEMA_ROUTES)
 def api_data():
     with mock_requests(API_DATA):
         yield
+
+
+@pytest.yield_fixture(scope="function")
+def raw_api_data():
+    yield copy.deepcopy(API_DATA)
 
 
 @pytest.yield_fixture(scope="function")
@@ -429,6 +492,11 @@ def ocx_experimental():
             cache_schema=False,
             experimental=True,
         )
+
+
+@pytest.fixture(scope="function")
+def custom_mock_requests():
+    yield mock_requests
 
 
 @pytest.fixture(scope="function")
