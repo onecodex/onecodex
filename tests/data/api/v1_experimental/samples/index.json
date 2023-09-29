@@ -13,7 +13,7 @@
       "$ref": "/api/v1_experimental/classifications/6579e99943f84ad2"
     },
     "project": {
-      "$ref": "/api/v1/projects/4b53797444f846c4"
+      "$ref": "/api/v1_experimental/projects/4b53797444f846c4"
     },
     "size": 2225829803,
     "tags": [],
@@ -33,7 +33,7 @@
       "$ref": "/api/v1_experimental/classifications/b50c176668234fe7"
     },
     "project": {
-      "$ref": "/api/v1/projects/4b53797444f846c4"
+      "$ref": "/api/v1_experimental/projects/4b53797444f846c4"
     },
     "size": 1187736145,
     "tags": [
@@ -57,7 +57,7 @@
       "$ref": "/api/v1_experimental/classifications/e0422602de41479f"
     },
     "project": {
-      "$ref": "/api/v1/projects/4b53797444f846c4"
+      "$ref": "/api/v1_experimental/projects/4b53797444f846c4"
     },
     "size": 2267482973,
     "tags": [],

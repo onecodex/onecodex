@@ -71,7 +71,7 @@ class ClassificationsDataFrame(pd.DataFrame):
         self.ocx_normalized = ocx_normalized
         self.ocx_all_nan_classification_ids = ocx_all_nan_classification_ids
 
-        pd.DataFrame.__init__(self, data=data, index=index, columns=columns, dtype=dtype, copy=copy)
+        super().__init__(data=data, index=index, columns=columns, dtype=dtype, copy=copy)
 
     @property
     def _constructor(self):
@@ -135,8 +135,8 @@ class ClassificationsSeries(pd.Series):
         self.ocx_metadata = ocx_metadata
         self.ocx_normalized = ocx_normalized
 
-        pd.Series.__init__(
-            self, data=data, index=index, dtype=dtype, name=name, copy=copy, fastpath=fastpath
+        super().__init__(
+            data=data, index=index, dtype=dtype, name=name, copy=copy, fastpath=fastpath
         )
 
     @property
@@ -170,7 +170,7 @@ class FunctionalDataFrame(pd.DataFrame):
         self.ocx_metric = ocx_metric
         self.ocx_feature_name_map = ocx_feature_name_map
 
-        pd.DataFrame.__init__(self, data=data, index=index, columns=columns, dtype=dtype, copy=copy)
+        super().__init__(data=data, index=index, columns=columns, dtype=dtype, copy=copy)
 
     @property
     def _constructor(self):
@@ -215,8 +215,8 @@ class FunctionalSeries(pd.Series):
         self.ocx_metric = ocx_metric
         self.ocx_feature_name_map = ocx_feature_name_map
 
-        pd.Series.__init__(
-            self, data=data, index=index, dtype=dtype, name=name, copy=copy, fastpath=fastpath
+        super().__init__(
+            data=data, index=index, dtype=dtype, name=name, copy=copy, fastpath=fastpath
         )
 
     @property
