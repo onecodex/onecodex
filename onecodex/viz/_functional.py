@@ -31,7 +31,7 @@ class VizFunctionalHeatmapMixin(object):
             Display the top N most abundant or covered functions in the entire cohort of samples.
         annotation : `FunctionalAnnotations` or `str`, optional
             {'go', 'eggnog', 'ko', 'ec', 'pfam', 'pathways'}
-            Grouping (annotation) sub-database used to group gene families by.
+            Annotation sub-database used to group gene families by.
         metric : `FunctionalAnnotationsMetric` or `str`, optional
             {'cpm', 'rpk', 'abundance', 'coverage'}
             Normalization or value to display.
@@ -41,7 +41,7 @@ class VizFunctionalHeatmapMixin(object):
             If pathways are selected for annotation, then available metrics include
                 'abundance' (summed copy numbers of reactions' constituent enzymes)
                 'coverage' (probabilistic measure of a complete metabolic pathway,
-                    where 1 is high confidence of a complete pathway is covered, and 0 is low confidence)
+                    where 1 is high confidence that a complete pathway is covered, and 0 is low confidence)
         sort_x : `list` or `callable`, optional
             Either a list of sorted labels or a function that will be called with a list of x-axis labels
             as the only argument, and must return the same list in a user-specified order.

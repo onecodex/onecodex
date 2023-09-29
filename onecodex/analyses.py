@@ -491,7 +491,7 @@ class AnalysisMixin(
 
     @staticmethod
     def _make_labels_by_item_id(metadata, label):
-        """Make labels from.
+        """Make/Extract labels from metadata pandas dataframe.
 
         Parameters
         ----------
