@@ -408,8 +408,8 @@ class SampleCollection(ResourceList, AnalysisMixin):
     def _functional_profiles_fetch(self, skip_missing=None):
         """Transform a list of Samples or Classifications into a list of FunctionalProfiles objects.
 
-        The FunctionalProfiles are filtered down to only the ones matching the newest job version
-        among the collection.
+        Each sample will be mapped to the newest job version which may result in mixing different
+        result versions on the list.
 
         Parameters
         ----------
