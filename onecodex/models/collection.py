@@ -455,7 +455,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
             else:
                 sample_id_to_profile[profile.sample.id] = profile
 
-        # Filter down to only newest Functional Profile runs
+        # Issue missing results or mixed versions warnings
         newest_profiles = list(sample_id_to_profile.values())
         functional_sample_ids = {fp.sample.id for fp in newest_profiles}
 
