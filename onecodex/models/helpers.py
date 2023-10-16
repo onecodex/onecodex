@@ -173,7 +173,7 @@ class ResourceDownloadMixin(object):
                 total=5,
                 backoff_factor=2,
                 status_forcelist=[404, 429, 500, 502, 503, 504],
-                allowed_methods=False,
+                allowed_methods=None,
             )
             adapter = HTTPAdapter(max_retries=retry_strategy)
             session.mount("http://", adapter)
