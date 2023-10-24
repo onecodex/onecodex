@@ -107,7 +107,7 @@ class Api(object):
 
         # Set backoff / retry strategy for 429s
         retry_strategy = Retry(
-            total=3, backoff_factor=4, method_whitelist=False, status_forcelist=[429, 502, 503]
+            total=3, backoff_factor=4, allowed_methods=False, status_forcelist=[429, 502, 503]
         )
         adapter = HTTPAdapter(max_retries=retry_strategy)
         self._session.mount("http://", adapter)
