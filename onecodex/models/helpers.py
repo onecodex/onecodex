@@ -173,7 +173,7 @@ class ResourceDownloadMixin(object):
                 total=5,
                 backoff_factor=2,
                 status_forcelist=[404, 429, 500, 502, 503, 504],
-                method_whitelist=False,
+                allowed_methods=False,
             )
             adapter = HTTPAdapter(max_retries=retry_strategy)
             session.mount("http://", adapter)
@@ -181,7 +181,7 @@ class ResourceDownloadMixin(object):
 
             resp = session.get(link, stream=True)
 
-            with (open(path, "wb") if path else file_obj) as f_out:
+            with open(path, "wb") if path else file_obj as f_out:
                 if progressbar:
                     progress_label = os.path.basename(path) if path else self.filename
                     with click.progressbar(length=self.size, label=progress_label) as bar:
