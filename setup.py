@@ -69,6 +69,7 @@ setup(
         "pytz>=2014.1",
         "sentry-sdk>=0.10.2",
         "requests>=2.27.1",
+        "urllib3<2",  # https://github.com/GeneralMills/pytrends/issues/591
         "requests_toolbelt>=0.7.0",
         "six>=1.10.0",
         "unidecode>=1.0.23",
