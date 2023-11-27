@@ -541,13 +541,15 @@ class SampleCollection(ResourceList, AnalysisMixin):
             feature_list.append(feature)
 
         # initialize an array and fill it
-        array = np.full(shape=(len(data), len(features_to_ix)), fill_value=np.nan)
+        array = np.full(shape=(len(data), len(features_to_ix)), dtype=float, fill_value=np.nan)
         sample_ids = []
         for sample_index, sample_id in enumerate(data):
             for feature_id in data[sample_id]:
                 array[sample_index, features_to_ix[feature_id]] = data[sample_id][feature_id]
             sample_ids.append(sample_id)
-        df = pd.DataFrame(array, index=pd.Index(sample_ids, name="sample_id"), columns=feature_list)
+        df = pd.DataFrame(
+            array, index=pd.Index(sample_ids, name="sample_id"), columns=feature_list, copy=False
+        )
 
         if fill_missing:
             df.fillna(filler, inplace=True)
