@@ -161,8 +161,8 @@ class VizFunctionalHeatmapMixin(object):
             alt.Chart(df)
             .mark_rect()
             .encode(
-                x=alt.X("Label:N", title=xlabel, sort=sort_x_values),
-                y=alt.Y(y_axis_shorthand, title=ylabel, sort=sort_y_values),
+                x=alt.X("Label:N", axis=alt.Axis(title=xlabel), sort=sort_x_values),
+                y=alt.Y(y_axis_shorthand, axis=alt.Axis(title=ylabel), sort=sort_y_values),
                 color=alt.Color("value:Q", title=metric.plot_label),
                 tooltip=[
                     alt.Tooltip("Label:N", title="Label"),
