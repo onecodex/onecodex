@@ -1,4 +1,5 @@
-import imp
+import importlib.abc
+import importlib.util
 import sys
 
 from onecodex.viz._heatmap import VizHeatmapMixin
@@ -167,32 +168,40 @@ def configure_onecodex_theme(altair_module=None):
 # can slow down the API and CLI. An import hook avoids this performance hit by
 # configuring Altair during deferred import in visualization code.
 #
-# Note: this code is currently Python 2/3 compatible by using the `imp`
-# package, which is deprecated in Python 3. Consider using `importlib` if this
-# subpackage doesn't need to support Python 2.
-#
-# Based on: https://stackoverflow.com/a/60352956/3776794
-class _AltairImportHook(object):
-    def find_module(self, fullname, path=None):
-        if fullname != "altair":
+# Some inspiration taken from:
+# https://github.com/GrahamDumpleton/wrapt/blob/master/src/wrapt/importer.py
+class _AltairFinder(importlib.abc.MetaPathFinder):
+    def __init__(self):
+        self.in_progress = False
+
+    def find_spec(self, fullname, path, target=None):
+        # `importlib.util.find_spec()` searches `sys.meta_path` for a module spec, which includes
+        # `self`. Use `in_progress` flag to avoid infinite recursion.
+        if fullname != "altair" or self.in_progress:
             return None
-        self.module_info = imp.find_module(fullname, path)
-        return self
 
-    def load_module(self, fullname):
-        """Load Altair module and configure its theme and renderer."""
-        previously_loaded = fullname in sys.modules
-        altair = imp.load_module(fullname, *self.module_info)
-
-        if not previously_loaded:
-            self._configure_altair(altair)
-        return altair
-
-    def _configure_altair(self, altair):
-        configure_onecodex_theme(altair)
+        self.in_progress = True
+        try:
+            spec = importlib.util.find_spec(fullname)
+            spec.loader = _AltairLoader(spec.loader)
+            return spec
+        finally:
+            self.in_progress = False
 
 
-sys.meta_path = [_AltairImportHook()] + sys.meta_path
+class _AltairLoader(importlib.abc.Loader):
+    def __init__(self, loader):
+        self.loader = loader
+
+    def create_module(self, spec):
+        return None  # use default module creation semantics
+
+    def exec_module(self, module):
+        self.loader.exec_module(module)
+        configure_onecodex_theme(module)
+
+
+sys.meta_path = [_AltairFinder()] + sys.meta_path
 
 __all__ = [
     "VizPCAMixin",
