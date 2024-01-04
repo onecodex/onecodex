@@ -222,7 +222,9 @@ def test_filter_functional_runs_to_newest_job(ocx_experimental, raw_api_data, cu
         sample_ids = ["543c9c046e3e4e09", "66c1531cb0b244f6", "37e5151e7bcb4f87"]
         samples = [ocx_experimental.Samples.get(sample_id) for sample_id in sample_ids]
         sc = SampleCollection(samples)
-        df = sc.to_df(analysis_type="functional")
+        with pytest.warns(UserWarning, match="mixing functional profile versions"):
+            df = sc.to_df(analysis_type="functional")
+
         # All samples are included, one with newer version has proper values
         assert df.shape == (3, 112)
         assert df.loc["37e5151e7bcb4f87", "PF00005"] == 256.524  # older version has 4919.47

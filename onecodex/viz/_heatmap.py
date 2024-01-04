@@ -196,9 +196,9 @@ class VizHeatmapMixin(object):
             else:
                 if not (
                     pd.api.types.is_bool_dtype(df[magic_fields[haxis]])
-                    or pd.api.types.is_categorical_dtype(df[magic_fields[haxis]])  # noqa
-                    or pd.api.types.is_object_dtype(df[magic_fields[haxis]])  # noqa
-                ):  # noqa
+                    or isinstance(df[magic_fields[haxis]].dtype, pd.CategoricalDtype)
+                    or pd.api.types.is_object_dtype(df[magic_fields[haxis]])
+                ):
                     raise OneCodexException(
                         "Metadata field on horizontal axis can not be numerical"
                     )

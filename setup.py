@@ -37,21 +37,19 @@ TESTING_DEPS = [
     "pdfplumber",
 ]
 ALL_DEPS = [
-    "altair==4.2.2",
+    "altair==4.2.2",  # altair_saver doesn't support altair 5
     "numpy>=1.11.0",
     "pandas>=1.0.3",
     "pillow>=9.0.1",
     "scikit-bio>=0.5.8",
     "scikit-learn>=0.19.0",
     "scipy",
-    "jupyter-client==7.2.0",
+    "jupyter-client==8.6.0",
 ]
 REPORT_DEPS = ALL_DEPS + [
-    "notebook==6.4.10",
-    "nbconvert>=6",
-    # Hardcoding jinja2 version for https://github.com/jupyter/nbconvert/issues/1742
-    "jinja2<=3.1",
-    "WeasyPrint==59.0",
+    "notebook==7.0.6",
+    "nbconvert>=6.4.3",
+    "WeasyPrint==60.1",  # 60.2 truncates y-axis titles
     "altair-saver==0.5.0",
     "selenium<4.3.0",  # see https://github.com/altair-viz/altair_saver/issues/104
 ]

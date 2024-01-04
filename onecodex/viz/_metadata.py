@@ -115,10 +115,10 @@ class VizMetadataMixin(object):
             # we require the vertical axis to be numerical otherwise plots get weird
             if (
                 pd.api.types.is_bool_dtype(vert_df[vert_magic_fields[vaxis]])
-                or pd.api.types.is_categorical_dtype(vert_df[vert_magic_fields[vaxis]])
+                or isinstance(vert_df[vert_magic_fields[vaxis]].dtype, pd.CategoricalDtype)
                 or pd.api.types.is_object_dtype(vert_df[vert_magic_fields[vaxis]])
                 or not pd.api.types.is_numeric_dtype(vert_df[vert_magic_fields[vaxis]])
-            ):  # noqa
+            ):
                 raise OneCodexException("Metadata field on vertical axis must be numerical")
 
             df = pd.concat([df, vert_df], axis=1).dropna(subset=[vert_magic_fields[vaxis]])
@@ -137,9 +137,9 @@ class VizMetadataMixin(object):
                 plot_type = PlotType.BoxPlot
         elif (
             pd.api.types.is_bool_dtype(df[magic_fields[haxis]])
-            or pd.api.types.is_categorical_dtype(df[magic_fields[haxis]])
+            or isinstance(df[magic_fields[haxis]].dtype, pd.CategoricalDtype)
             or pd.api.types.is_object_dtype(df[magic_fields[haxis]])
-        ):  # noqa
+        ):
             df = df.fillna({field: "N/A" for field in df.columns})
 
             if plot_type == PlotType.Auto:
