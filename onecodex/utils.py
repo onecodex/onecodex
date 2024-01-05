@@ -477,8 +477,8 @@ def is_continuous(series):
 
     return not (
         pd.api.types.is_bool_dtype(series)
-        or pd.api.types.is_categorical_dtype(series)  # noqa
-        or pd.api.types.is_object_dtype(series)  # noqa
+        or isinstance(series.dtype, pd.CategoricalDtype)
+        or pd.api.types.is_object_dtype(series)
     )
 
 

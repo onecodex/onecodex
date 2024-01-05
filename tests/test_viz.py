@@ -17,6 +17,7 @@ from onecodex.viz._primitives import (
     get_classification_url,
     get_ncbi_taxonomy_browser_url,
 )
+from onecodex.exceptions import PlottingWarning
 
 
 def test_altair_ocx_theme(ocx, api_data):
@@ -362,16 +363,17 @@ def test_plot_distance_excludes_all_nan_clustering_helper_called_with(ocx, api_d
     with mock.patch(
         "onecodex.viz._distance.VizDistanceMixin._cluster_by_sample"
     ) as cluster_fn, mock.patch("onecodex.viz.dendrogram"), mock.patch("altair.hconcat"):
-        samples.plot_distance()
-        # the cluster function should be called with `exclude_all_nan=True` and
-        # the classification ID of the `all_nan_sample`
-        cluster_fn.assert_called_with(
-            rank=Rank.Auto,
-            metric=BetaDiversityMetric.BrayCurtis,
-            linkage=Linkage.Average,
-            all_nan_classification_ids=[all_nan_sample.primary_classification.id],
-            exclude_all_nan=True,
-        )
+        with pytest.warns(PlottingWarning):
+            samples.plot_distance()
+            # the cluster function should be called with `exclude_all_nan=True` and
+            # the classification ID of the `all_nan_sample`
+            cluster_fn.assert_called_with(
+                rank=Rank.Auto,
+                metric=BetaDiversityMetric.BrayCurtis,
+                linkage=Linkage.Average,
+                all_nan_classification_ids=[all_nan_sample.primary_classification.id],
+                exclude_all_nan=True,
+            )
 
 
 def test_plot_distance_excludes_all_nan_class_id_not_in_chart(ocx, api_data):
@@ -388,11 +390,12 @@ def test_plot_distance_excludes_all_nan_class_id_not_in_chart(ocx, api_data):
     assert len(samples._all_nan_classification_ids) == 1
 
     with mock.patch("altair.hconcat") as mock_hconcat:
-        samples.plot_distance()
-        assert (
-            all_nan_sample.primary_classification.id
-            not in mock_hconcat.call_args[0][1].data["1) Label"].values
-        )
+        with pytest.warns(PlottingWarning):
+            samples.plot_distance()
+            assert (
+                all_nan_sample.primary_classification.id
+                not in mock_hconcat.call_args[0][1].data["1) Label"].values
+            )
 
 
 def test_plot_distance_min_with_abundances(ocx, api_data):

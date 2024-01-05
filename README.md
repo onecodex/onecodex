@@ -272,13 +272,13 @@ We also package custom Jupyter notebook [`nbconvert`](https://nbconvert.readthed
 Our `OneCodexHTMLExporter`:
 
 ```sh
-jupyter nbconvert --execute --to onecodex_html --ExecutePreprocessor.timeout=-1 --output="$ONE_CODEX_REPORT_FILENAME" --output-dir="." notebook_examples/example.ipynb && open example.html
+ONE_CODEX_REPORT_FILENAME=example.html jupyter nbconvert --execute --to onecodex_html --ExecutePreprocessor.timeout=-1 --output="$ONE_CODEX_REPORT_FILENAME" --output-dir="." notebook_examples/example.ipynb && open example.html
 ```
 
 And using the `OneCodexPDFExporter`:
 
 ```sh
-jupyter nbconvert --execute --to onecodex_pdf --ExecutePreprocessor.timeout=-1 --output="$ONE_CODEX_REPORT_FILENAME" --output-dir="." notebook_examples/example.ipynb && open example.pdf
+ONE_CODEX_REPORT_FILENAME=example.pdf jupyter nbconvert --execute --to onecodex_pdf --ExecutePreprocessor.timeout=-1 --output="$ONE_CODEX_REPORT_FILENAME" --output-dir="." notebook_examples/example.ipynb && open example.pdf
 ```
 
 Note these require the installation of several `npm` packages for headless rendering: `npm install vega-lite vega-cli canvas`. See [altair-saver](`https://github.com/altair-viz/altair_saver`) for more details.

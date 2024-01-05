@@ -147,8 +147,8 @@ class AnalysisMixin(
 
                     if not (
                         pd.api.types.is_bool_dtype(self.metadata[field])
-                        or pd.api.types.is_categorical_dtype(self.metadata[field])  # noqa
-                        or pd.api.types.is_object_dtype(self.metadata[field])  # noqa
+                        or isinstance(self.metadata[field].dtype, pd.CategoricalDtype)
+                        or pd.api.types.is_object_dtype(self.metadata[field])
                     ):
                         raise OneCodexException(
                             "When specifying multiple metadata fields, all must be categorical"

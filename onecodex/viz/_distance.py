@@ -387,7 +387,12 @@ class VizDistanceMixin(DistanceMixin):
 
             seed = np.random.RandomState(seed=3)
             mds = manifold.MDS(
-                max_iter=3000, eps=1e-12, random_state=seed, dissimilarity="precomputed", n_jobs=1
+                max_iter=3000,
+                eps=1e-12,
+                random_state=seed,
+                dissimilarity="precomputed",
+                n_jobs=1,
+                normalized_stress="auto",
             )
             pos = mds.fit(dists).embedding_
             plot_data = pd.DataFrame(pos, columns=[x_field, y_field], index=dists.index)
@@ -425,8 +430,8 @@ class VizDistanceMixin(DistanceMixin):
             plot_data.index.names = ["classification_id"]
             x_field, y_field = plot_data.columns.tolist()  # name of first two components
 
-            x_extra_label = "%0.02f%%" % (ord_result.proportion_explained[0] * 100,)
-            y_extra_label = "%0.02f%%" % (ord_result.proportion_explained[1] * 100,)
+            x_extra_label = "%0.02f%%" % (ord_result.proportion_explained.iloc[0] * 100,)
+            y_extra_label = "%0.02f%%" % (ord_result.proportion_explained.iloc[1] * 100,)
         else:
             raise OneCodexException(
                 "MDS method must be one of: {}".format(", ".join(OrdinationMethod.values))
