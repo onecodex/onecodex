@@ -29,6 +29,7 @@ class VizMetadataMixin(object):
         width=200,
         height=400,
         facet_by=None,
+        coerce_haxis_dates=True,
     ):
         """Plot an arbitrary metadata field versus an arbitrary quantity as a boxplot or scatter plot.
 
@@ -74,6 +75,11 @@ class VizMetadataMixin(object):
         facet_by : `string`, optional
             The metadata field used to facet samples by (i.e. to create a separate subplot for each
             group of samples).
+
+        coerce_haxis_dates : `bool`, optional
+            If ``True``, ``haxis`` field name(s) containing the word "date" (after splitting on
+            underscores) will be coerced to datetime dtype. For example, the field "date_collected"
+            will be coerced if ``coerce_haxis_dates`` is ``True``.
 
         Examples
         --------
@@ -129,10 +135,8 @@ class VizMetadataMixin(object):
             if plot_type == PlotType.Auto:
                 plot_type = PlotType.BoxPlot
         elif "date" in magic_fields[haxis].split("_"):
-            df.loc[:, magic_fields[haxis]] = df.loc[:, magic_fields[haxis]].apply(
-                pd.to_datetime, utc=True
-            )
-
+            if coerce_haxis_dates:
+                df[magic_fields[haxis]] = pd.to_datetime(df[magic_fields[haxis]], utc=True)
             if plot_type == PlotType.Auto:
                 plot_type = PlotType.BoxPlot
         elif (
