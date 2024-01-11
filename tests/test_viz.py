@@ -1,12 +1,14 @@
 import math
 import mock
 import pytest
+from datetime import datetime
 
 pytest.importorskip("numpy")  # noqa
 pytest.importorskip("pandas")  # noqa
 
 import altair as alt
 import numpy as np
+import pandas as pd
 
 from onecodex.lib.enums import Metric, AbundanceMetric, Link, Rank, BetaDiversityMetric, Linkage
 from onecodex.exceptions import OneCodexException, PlottingException
@@ -99,6 +101,30 @@ def test_plot_metadata_alpha_diversity_with_nans(ocx, api_data):
     assert len(shannon_result) == 1
     assert math.isclose(shannon_result[0], 5.212043764541939)
     assert chart.mark == "circle"
+
+
+@pytest.mark.parametrize("coerce_haxis_dates", [True, False])
+def test_plot_metadata_haxis_date_coercion(ocx, api_data, coerce_haxis_dates):
+    samples = ocx.Samples.where(project="4b53797444f846c4")
+    samples.metadata["date_collected"] = datetime.now().isoformat()
+    assert samples.metadata["date_collected"].dtype == object
+
+    chart = samples.plot_metadata(
+        vaxis="shannon",
+        haxis="date_collected",
+        return_chart=True,
+        coerce_haxis_dates=coerce_haxis_dates,
+    )
+
+    assert chart.mark.type == "boxplot"
+    assert chart.encoding.x.shorthand == "date_collected"
+    # previous column type coercion would raise a json serialization TypeError
+    assert isinstance(chart.to_dict(), dict)
+
+    if coerce_haxis_dates:
+        assert pd.api.types.is_datetime64_any_dtype(chart.data["date_collected"])
+    else:
+        assert chart.data["date_collected"].dtype == object
 
 
 def test_plot_metadata_exceptions(ocx, api_data):
