@@ -47,7 +47,10 @@ ALL_DEPS = [
     "jupyter-client==8.6.0",
 ]
 REPORT_DEPS = ALL_DEPS + [
-    "notebook==7.0.6",
+    # notebook 7 is a major overhaul based on JupyterLab. It has a new UI and extension system, and
+    # does not (yet) support some extensions we use (e.g. python-markdown in
+    # jupyter_contrib_nbextensions).
+    "notebook==6.4.10",
     "nbconvert>=6.4.3",
     "WeasyPrint==60.1",  # 60.2 truncates y-axis titles
     "altair-saver==0.5.0",
