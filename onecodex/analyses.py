@@ -18,6 +18,7 @@ from onecodex.viz import (
     VizBargraphMixin,
     VizFunctionalHeatmapMixin,
 )
+from onecodex.stats import StatsMixin
 
 
 def _get_all_nan_classification_ids(df):
@@ -35,6 +36,7 @@ class AnalysisMixin(
     VizDistanceMixin,
     VizBargraphMixin,
     VizFunctionalHeatmapMixin,
+    StatsMixin,
 ):
     """Contains methods for analyzing Classifications results.
 
@@ -142,7 +144,7 @@ class AnalysisMixin(
                 for field in f:
                     if field not in self.metadata:
                         raise OneCodexException(
-                            "Metric {} not found. Choose from: {}".format(field, help_metadata)
+                            f"Metadata field {field} not found. Choose from: {help_metadata}"
                         )
 
                     if not (
