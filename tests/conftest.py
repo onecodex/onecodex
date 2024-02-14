@@ -12,6 +12,7 @@ import responses
 
 from onecodex import Api
 from onecodex.analyses import FunctionalAnnotations, FunctionalAnnotationsMetric
+from onecodex.models.collection import SampleCollection
 
 
 # TODO: Fix a bug wherein this will return all the items to potion
@@ -505,6 +506,13 @@ def runner():
         env={"ONE_CODEX_API_BASE": "http://localhost:3000", "ONE_CODEX_NO_TELEMETRY": "True"}
     )
     return runner
+
+
+# SampleCollection fixtures
+@pytest.fixture
+def samples(ocx, api_data) -> SampleCollection:
+    # Project with 3 samples
+    return ocx.Samples.where(project="4b53797444f846c4")
 
 
 # CLI / FILE SYSTEM FIXTURE
