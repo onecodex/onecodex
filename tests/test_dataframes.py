@@ -36,8 +36,7 @@ def test_pandas_subclass():
     assert (new_df.ocx_metadata == inner_df).all().all()
 
 
-def test_pandas_extension(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
+def test_pandas_extension(samples):
     samples._collate_results(metric="readcount_w_children")
     results = samples.to_df()
 

@@ -30,9 +30,7 @@ def test_altair_renderer(ocx, api_data):
     assert alt.renderers.active in {"altair_saver", "html"}
 
 
-def test_plot_metadata(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
-
+def test_plot_metadata(samples):
     chart = samples.plot_metadata(
         vaxis="simpson", title="my title", xlabel="my xlabel", ylabel="my ylabel", return_chart=True
     )
@@ -67,18 +65,14 @@ def test_plot_metadata(ocx, api_data):
     assert chart.mark == "circle"
 
 
-def test_plot_metadata_facet_by_scatter(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
-
+def test_plot_metadata_facet_by_scatter(samples):
     chart = samples.plot_metadata(vaxis="shannon", facet_by="geo_loc_name", return_chart=True)
 
     assert chart.mark == "circle"
     assert chart.encoding.x.axis.title == ""
 
 
-def test_plot_metadata_facet_by_boxplot(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
-
+def test_plot_metadata_facet_by_boxplot(samples):
     chart = samples.plot_metadata(
         vaxis="shannon", haxis="starred", facet_by="geo_loc_name", return_chart=True
     )
@@ -87,9 +81,31 @@ def test_plot_metadata_facet_by_boxplot(ocx, api_data):
     assert chart.encoding.x.axis.title == ""
 
 
-def test_plot_metadata_alpha_diversity_with_nans(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
+def test_plot_metadata_secondary_haxis_scatter(samples):
+    chart = samples.plot_metadata(
+        vaxis="shannon", haxis="geo_loc_name", secondary_haxis="Label", return_chart=True
+    )
 
+    assert chart.mark == "circle"
+    assert chart.encoding.x.axis.title == ""
+    assert not chart.encoding.x.axis.labels
+    assert not chart.encoding.x.axis.ticks
+    assert chart.encoding.x.scale.padding == 1
+
+
+def test_plot_metadata_secondary_haxis_boxplot(samples):
+    chart = samples.plot_metadata(
+        vaxis="shannon", haxis="geo_loc_name", secondary_haxis="starred", return_chart=True
+    )
+
+    assert chart.mark.type == "boxplot"
+    assert chart.encoding.x.axis.title == ""
+    assert not chart.encoding.x.axis.labels
+    assert not chart.encoding.x.axis.ticks
+    assert chart.encoding.x.scale.padding == 1
+
+
+def test_plot_metadata_alpha_diversity_with_nans(samples):
     mock_alpha_div_values = samples.alpha_diversity(metric="shannon")
     mock_alpha_div_values.iat[1, 0] = np.nan
     mock_alpha_div_values.iat[2, 0] = np.nan
@@ -104,8 +120,7 @@ def test_plot_metadata_alpha_diversity_with_nans(ocx, api_data):
 
 
 @pytest.mark.parametrize("coerce_haxis_dates", [True, False])
-def test_plot_metadata_haxis_date_coercion(ocx, api_data, coerce_haxis_dates):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
+def test_plot_metadata_haxis_date_coercion(samples, coerce_haxis_dates):
     samples.metadata["date_collected"] = datetime.now().isoformat()
     assert samples.metadata["date_collected"].dtype == object
 
@@ -127,9 +142,7 @@ def test_plot_metadata_haxis_date_coercion(ocx, api_data, coerce_haxis_dates):
         assert chart.data["date_collected"].dtype == object
 
 
-def test_plot_metadata_exceptions(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
-
+def test_plot_metadata_exceptions(samples):
     # expect error if rank is None, since that could lead to weird results
     with pytest.raises(OneCodexException) as e:
         samples.plot_metadata(vaxis="simpson", rank=None)
@@ -144,10 +157,14 @@ def test_plot_metadata_exceptions(ocx, api_data):
         samples[:0].plot_metadata()
     assert "too few samples" in str(e.value)
 
+    with pytest.raises(OneCodexException, match="one of `facet_by` or `secondary_haxis`"):
+        samples.plot_metadata(vaxis="shannon", facet_by="geo_loc_name", secondary_haxis="wheat")
 
-def test_plot_metadata_group_with_single_value(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
+    with pytest.raises(OneCodexException, match="`haxis` and `secondary_haxis` cannot be the same"):
+        samples.plot_metadata(vaxis="shannon", haxis="wheat", secondary_haxis="wheat")
 
+
+def test_plot_metadata_group_with_single_value(samples):
     chart = samples.plot_metadata(
         plot_type="boxplot",
         haxis=("library_type", "external_sample_id"),
@@ -166,8 +183,7 @@ def test_plot_metadata_group_with_single_value(ocx, api_data):
     assert chart.mark.type == "boxplot"
 
 
-def test_plot_pca(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
+def test_plot_pca(samples):
     samples._collate_results(metric="readcount_w_children")
 
     chart = samples.plot_pca(
@@ -212,8 +228,7 @@ def test_plot_pca(ocx, api_data):
     assert vectors.data["o"].tolist() == [0, 1, 0, 1, 0, 1]
 
 
-def test_plot_pca_color_by_bool_field(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
+def test_plot_pca_color_by_bool_field(samples):
     assert samples.metadata["wheat"].dtype == bool
 
     chart = samples.plot_pca(color="wheat", return_chart=True)
@@ -226,8 +241,7 @@ def test_plot_pca_color_by_bool_field(ocx, api_data):
     assert len(color.scale.range) == 2
 
 
-def test_plot_pca_color_by_field_with_nans(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
+def test_plot_pca_color_by_field_with_nans(samples):
     assert has_missing_values(samples.metadata["name"])
 
     chart = samples.plot_pca(color="name", return_chart=True)
@@ -240,9 +254,7 @@ def test_plot_pca_color_by_field_with_nans(ocx, api_data):
     assert len(color.scale.range) == 1
 
 
-def test_plot_pca_exceptions(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
-
+def test_plot_pca_exceptions(samples):
     # expect error if rank is None, since that could lead to weird results
     with pytest.raises(OneCodexException) as e:
         samples.plot_pca(rank=None)
@@ -259,9 +271,7 @@ def test_plot_pca_exceptions(ocx, api_data):
     assert "too few taxa" in str(e.value)
 
 
-def test_plot_heatmap(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
-
+def test_plot_heatmap(samples):
     chart = samples.plot_heatmap(
         top_n=10, title="my title", xlabel="my xlabel", ylabel="my ylabel", return_chart=True
     )
@@ -281,8 +291,7 @@ def test_plot_heatmap(ocx, api_data):
     assert all(chart.data.groupby("tax_id").max()["Relative Abundance"] > 0.01)
 
 
-def test_plot_heatmap_with_missing_haxis_sample(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
+def test_plot_heatmap_with_missing_haxis_sample(samples):
     samples[2].metadata.custom.pop("eggs")
 
     # Does not raise exception if a sample is missing `haxis` value in custom metadata
@@ -298,11 +307,7 @@ def test_plot_heatmap_with_missing_haxis_sample(ocx, api_data):
         (True),
     ],
 )
-def test_plot_heatmap_plots_all_nan_samples_with_nans(ocx, api_data, is_onecodex_accessor):
-    import numpy as np
-
-    samples = ocx.Samples.where(project="4b53797444f846c4")
-
+def test_plot_heatmap_plots_all_nan_samples_with_nans(samples, is_onecodex_accessor):
     # Set abundances for first sample to be all NaN
     all_nan_sample = samples[0]
     samples._results.loc[all_nan_sample.primary_classification.id] = np.nan
@@ -340,10 +345,7 @@ def test_plot_heatmap_plots_all_nan_samples_with_nans(ocx, api_data, is_onecodex
     assert chart.encoding.x.sort[-1] == all_nan_sample.filename
 
 
-def test_plot_heatmap_with_haxis_two_cluster_groups(ocx, api_data):
-    import numpy as np
-
-    samples = ocx.Samples.where(project="4b53797444f846c4")
+def test_plot_heatmap_with_haxis_two_cluster_groups(ocx, api_data, samples):
     sample1 = ocx.Samples.get("cc18208d98ad48b3")
     sample2 = ocx.Samples.get("5445740666134eee")
     samples.extend([sample1, sample2])
@@ -373,10 +375,7 @@ def test_plot_heatmap_with_haxis_two_cluster_groups(ocx, api_data):
     samples.plot_heatmap(rank="genus", top_n=15, haxis="wheat", return_chart=True)
 
 
-def test_plot_distance_excludes_all_nan_clustering_helper_called_with(ocx, api_data):
-    import numpy as np
-
-    samples = ocx.Samples.where(project="4b53797444f846c4")
+def test_plot_distance_excludes_all_nan_clustering_helper_called_with(ocx, api_data, samples):
     sample1 = ocx.Samples.get("cc18208d98ad48b3")
     sample2 = ocx.Samples.get("5445740666134eee")
     samples.extend([sample1, sample2])
@@ -402,10 +401,7 @@ def test_plot_distance_excludes_all_nan_clustering_helper_called_with(ocx, api_d
             )
 
 
-def test_plot_distance_excludes_all_nan_class_id_not_in_chart(ocx, api_data):
-    import numpy as np
-
-    samples = ocx.Samples.where(project="4b53797444f846c4")
+def test_plot_distance_excludes_all_nan_class_id_not_in_chart(ocx, api_data, samples):
     sample1 = ocx.Samples.get("cc18208d98ad48b3")
     sample2 = ocx.Samples.get("5445740666134eee")
     samples.extend([sample1, sample2])
@@ -442,9 +438,7 @@ def test_plot_distance_min_with_abundances(ocx, api_data):
         assert "There are too few samples for distance matrix plots" in str(e.value)
 
 
-def test_plot_heatmap_exceptions(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
-
+def test_plot_heatmap_exceptions(samples):
     # expect error if rank is None, since that could lead to weird results
     with pytest.raises(OneCodexException) as e:
         samples.plot_heatmap(rank=None)
@@ -466,9 +460,7 @@ def test_plot_heatmap_exceptions(ocx, api_data):
     assert "specify at least one of" in str(e.value)
 
 
-def test_plot_distance(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
-
+def test_plot_distance(samples):
     chart = samples.plot_distance(
         metric="weighted_unifrac",
         xlabel="my xlabel",
@@ -493,9 +485,7 @@ def test_plot_distance(ocx, api_data):
     assert mainplot.data["Distance"].sum() == 3.022956
 
 
-def test_plot_distance_exceptions(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
-
+def test_plot_distance_exceptions(samples):
     # expect error if rank is None, since that could lead to weird results
     with pytest.raises(OneCodexException) as e:
         samples.plot_distance(rank=None)
@@ -525,8 +515,7 @@ def test_plot_distance_exceptions(ocx, api_data):
         ("readcount_w_children", "braycurtis", 0.1735),
     ],
 )
-def test_plot_mds(ocx, api_data, metric, dissimilarity_metric, smacof):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
+def test_plot_mds(samples, metric, dissimilarity_metric, smacof):
     samples._collate_results(metric=metric)
 
     chart = samples.plot_mds(
@@ -552,8 +541,7 @@ def test_plot_mds(ocx, api_data, metric, dissimilarity_metric, smacof):
     assert (chart.data["MDS1"] * chart.data["MDS2"]).sum().round(4) == smacof
 
 
-def test_plot_mds_color_by_bool_field(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
+def test_plot_mds_color_by_bool_field(samples):
     assert samples.metadata["wheat"].dtype == bool
 
     chart = samples.plot_mds(color="wheat", return_chart=True)
@@ -566,8 +554,7 @@ def test_plot_mds_color_by_bool_field(ocx, api_data):
     assert len(color.scale.range) == 2
 
 
-def test_plot_mds_color_by_field_with_nans(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
+def test_plot_mds_color_by_field_with_nans(samples):
     assert has_missing_values(samples.metadata["name"])
 
     chart = samples.plot_mds(color="name", return_chart=True)
@@ -580,9 +567,7 @@ def test_plot_mds_color_by_field_with_nans(ocx, api_data):
     assert len(color.scale.range) == 1
 
 
-def test_plot_pcoa(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
-
+def test_plot_pcoa(samples):
     chart = samples.plot_pcoa(
         metric="weighted_unifrac",
         xlabel="my xlabel",
@@ -594,18 +579,14 @@ def test_plot_pcoa(ocx, api_data):
     assert (chart.data["PC1"] * chart.data["PC2"]).sum().round(6) == 0.0
 
 
-def test_plot_pcoa_exceptions(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
-
+def test_plot_pcoa_exceptions(samples):
     # need at least 3 samples
     with pytest.raises(PlottingException) as e:
         samples[:2].plot_pcoa()
     assert "too few samples" in str(e.value)
 
 
-def test_plot_mds_exceptions(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
-
+def test_plot_mds_exceptions(samples):
     # expect error if rank is None, since that could lead to weird results
     with pytest.raises(OneCodexException) as e:
         samples.plot_mds(rank=None)
@@ -637,8 +618,7 @@ def test_plot_mds_exceptions(ocx, api_data):
         ({"group_by": "foo"}, None, "field foo not found"),
     ],
 )
-def test_plot_bargraph_errors(ocx, api_data, kwargs, metric, msg):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
+def test_plot_bargraph_errors(samples, kwargs, metric, msg):
     if metric:
         samples._collate_results(metric=metric)
 
@@ -646,17 +626,14 @@ def test_plot_bargraph_errors(ocx, api_data, kwargs, metric, msg):
         samples.plot_bargraph(**kwargs)
 
 
-def test_plot_bargraph_too_few_samples(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
-
+def test_plot_bargraph_too_few_samples(samples):
     # need at least 1 sample
     with pytest.raises(PlottingException, match="too few samples"):
         samples[:0].plot_bargraph()
 
 
 @pytest.mark.parametrize("metric", [Metric.Readcount, Metric.ReadcountWChildren])
-def test_plot_bargraph_group_by_counts_already_normalized(ocx, api_data, metric):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
+def test_plot_bargraph_group_by_counts_already_normalized(samples, metric):
     samples._collate_results(metric=metric)
 
     with pytest.raises(OneCodexException, match="`group_by`.*readcounts.*already been normalized"):
@@ -673,8 +650,7 @@ def test_plot_bargraph_group_by_counts_already_normalized(ocx, api_data, metric)
         ("readcount_w_children", "species", "Reads"),
     ],
 )
-def test_plot_bargraph_chart_result(ocx, api_data, metric, rank, label):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
+def test_plot_bargraph_chart_result(samples, metric, rank, label):
     samples._collate_results(metric=metric)
     chart = samples.plot_bargraph(
         rank=rank,
@@ -709,8 +685,7 @@ def test_plot_bargraph_chart_result(ocx, api_data, metric, rank, label):
         (Metric.AbundanceWChildren, {}),
     ],
 )
-def test_plot_bargraph_with_group_by(ocx, api_data, metric, kwargs):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
+def test_plot_bargraph_with_group_by(samples, metric, kwargs):
     samples._collate_results(metric=metric)
     chart = samples.plot_bargraph(group_by="barley", return_chart=True, **kwargs)
 
@@ -724,8 +699,7 @@ def test_plot_bargraph_with_group_by(ocx, api_data, metric, kwargs):
     assert not hasattr(chart.encoding.href, "shorthand")
 
 
-def test_plot_bargraph_include_other_with_empty_samples(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
+def test_plot_bargraph_include_other_with_empty_samples(samples):
     classification_id = samples._results.index[1]
     samples._results.loc[classification_id] = 0.0
 
@@ -743,16 +717,14 @@ def test_plot_bargraph_include_other_with_empty_samples(ocx, api_data):
         (alt.Legend(title="a different title"), "a different title"),
     ],
 )
-def test_plot_bargraph_legend(ocx, api_data, legend, expected_title):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
+def test_plot_bargraph_legend(samples, legend, expected_title):
     samples._collate_results(metric="readcount_w_children")
     chart = samples.plot_bargraph(return_chart=True, legend=legend)
 
     assert chart.encoding.color.legend.title == expected_title
 
 
-def test_plot_bargraph_legend_error(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
+def test_plot_bargraph_legend_error(samples):
     with pytest.raises(TypeError, match="legend.*list"):
         samples.plot_bargraph(legend=[4, 2])
 
@@ -765,9 +737,7 @@ def test_plot_bargraph_legend_error(ocx, api_data):
     "link",
     [Link.Ocx, Link.Ncbi],
 )
-def test_plot_bargraph_and_heatmap_link(ocx, api_data, plot_type, link):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
-
+def test_plot_bargraph_and_heatmap_link(samples, plot_type, link):
     if plot_type == "bargraph":
         chart = samples.plot_bargraph(
             return_chart=True,
@@ -808,10 +778,8 @@ def test_plot_bargraph_and_heatmap_link(ocx, api_data, plot_type, link):
         ("plot_bargraph", {"tooltip": "does_not_exist"}),
     ],
 )
-def test_plotting_missing_fields(ocx, api_data, method, kwargs):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
+def test_plotting_missing_fields(samples, method, kwargs):
     chart = getattr(samples, method)(**kwargs, title="my plot", return_chart=True)
-
     assert chart.title == "my plot"
 
 

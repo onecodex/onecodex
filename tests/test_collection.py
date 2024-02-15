@@ -10,9 +10,7 @@ from onecodex.models.collection import SampleCollection
 from onecodex.exceptions import OneCodexException
 
 
-def test_sample_collection_pandas(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
-
+def test_sample_collection_pandas(samples):
     # manipulations of samples in the collection ought to update the stored dfs
     class_id = samples[2].primary_classification.id
     del samples[2]
@@ -24,9 +22,7 @@ def test_sample_collection_pandas(ocx, api_data):
     assert class_id not in samples.metadata.index
 
 
-def test_collection_constructor(ocx, api_data):
-    samples = ocx.Samples.where(project="45a573fb7833449a")
-
+def test_collection_constructor(samples):
     col = SampleCollection(samples)
     assert col._kwargs["metric"] == "auto"
 
@@ -93,9 +89,7 @@ def test_biom(ocx, api_data):
     assert json.loads(json.dumps(biom)) == biom  # tests json serialization
 
 
-def test_classification_fetch(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
-
+def test_classification_fetch(ocx, samples):
     # should work with a list of classifications as input, not just samples
     samples._oc_model = ocx.Classifications
     samples._res_list = samples._classifications
@@ -115,9 +109,7 @@ def test_classification_fetch(ocx, api_data):
     samples._resource[0].success = True
 
 
-def test_collate_metadata(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
-
+def test_collate_metadata(samples):
     # check contents of metadata df--at least that which can easily be coerced to strings
     metadata = samples.metadata
     string_to_hash = ""
@@ -152,9 +144,7 @@ def test_collate_metadata(ocx, api_data):
         ),
     ],
 )
-def test_collate_results(ocx, api_data, metric, sha):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
-
+def test_collate_results(samples, metric, sha):
     samples._collate_results(metric=metric)
 
     # check contents of results df

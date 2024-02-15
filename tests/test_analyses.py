@@ -8,9 +8,7 @@ from onecodex.exceptions import OneCodexException
 from onecodex.lib.enums import Rank
 
 
-def test_auto_rank(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
-
+def test_auto_rank(samples):
     # auto rank should be species for shotgun data
     samples._collate_results(metric="abundance")
     assert samples._get_auto_rank("auto") == "species"
@@ -29,16 +27,14 @@ def test_auto_rank(ocx, api_data):
     assert results.ocx._get_auto_rank("auto") == "phylum"
 
 
-def test_default_metric(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
+def test_default_metric(samples):
     assert samples._metric == "abundance_w_children"
     assert samples.metric == "Relative Abundance"
 
 
-def test_all_nan_classification_id_property(ocx, api_data):
+def test_all_nan_classification_id_property(samples):
     import numpy as np
 
-    samples = ocx.Samples.where(project="4b53797444f846c4")
     # should be the same when called on `SampleCollection` and on `OneCodexAccessor`
     assert samples._all_nan_classification_ids == []
     assert samples.to_df(fill_missing=False).ocx._all_nan_classification_ids == []
@@ -51,9 +47,7 @@ def test_all_nan_classification_id_property(ocx, api_data):
     assert samples._all_nan_classification_ids == [samples._results.iloc[0].name]
 
 
-def test_guess_normalization(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
-
+def test_guess_normalization(samples):
     norm_results = samples.to_df(normalize=True)
     assert norm_results.ocx._guess_normalized() is True
 
@@ -71,8 +65,7 @@ def test_guess_normalization(ocx, api_data):
     assert unnorm_results.ocx._guess_normalized() is False
 
 
-def test_normalization_with_zero_abundance_samples(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
+def test_normalization_with_zero_abundance_samples(samples):
     samples._collate_results(metric="readcount_w_children")
     samples._results.iloc[:2, :] = 0
     assert not samples._guess_normalized()
@@ -82,17 +75,14 @@ def test_normalization_with_zero_abundance_samples(ocx, api_data):
     assert list(df.sum(axis=1, skipna=False).round(6)) == [0.0, 0.0, 1.0]
 
 
-def test_fill_missing_df(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
+def test_fill_missing_df(samples):
     samples._collate_results(metric="abundance_w_children")
 
     assert samples.to_df(fill_missing=False).isnull().values.any() == True  # noqa
     assert samples.to_df(fill_missing=True).isnull().values.any() == False  # noqa
 
 
-def test_metadata_fetch(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
-
+def test_metadata_fetch(samples):
     samples._collate_results(metric="readcount_w_children")
 
     # tuple with invalid field
@@ -162,9 +152,7 @@ def test_metadata_fetch(ocx, api_data):
     assert "string from label" in str(e.value)
 
 
-def test_results_filtering_rank(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
-
+def test_results_filtering_rank(samples):
     samples._collate_results(metric="readcount_w_children")
 
     tree = samples.tree_build()
@@ -205,9 +193,7 @@ def test_results_filtering_rank(ocx, api_data):
         assert "superkingdom" in str(w[-1].message)
 
 
-def test_results_filtering_other(ocx, api_data):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
-
+def test_results_filtering_other(samples):
     samples._collate_results(metric="readcount_w_children")
 
     # normalize the data
@@ -257,17 +243,14 @@ def test_results_filtering_other(ocx, api_data):
 
 @pytest.mark.parametrize("metric", ["readcount_w_children", "abundance_w_children"])
 @pytest.mark.parametrize("rank", [Rank.Phylum, Rank.Genus])
-def test_to_df_include_taxa_missing_rank(ocx, api_data, metric, rank):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
+def test_to_df_include_taxa_missing_rank(samples, metric, rank):
     samples._collate_results(metric=metric)
-
     df = samples.to_df(rank=rank, include_taxa_missing_rank=True)
     assert f"No {rank.value}" in df.columns
 
 
 @pytest.mark.parametrize("metric", ["readcount", "abundance"])
-def test_to_df_include_taxa_missing_rank_invalid_usage(ocx, api_data, metric):
-    samples = ocx.Samples.where(project="4b53797444f846c4")
+def test_to_df_include_taxa_missing_rank_invalid_usage(samples, metric):
     samples._collate_results(metric=metric)
 
     with pytest.raises(OneCodexException, match="`rank`.*include_taxa_missing_rank"):
