@@ -43,6 +43,7 @@ ALL_DEPS = [
     "pillow>=9.0.1",
     "scikit-bio>=0.5.8",
     "scikit-learn>=0.19.0",
+    "scikit-posthocs",
     "scipy",
     "jupyter-client==8.6.0",
 ]
@@ -61,7 +62,7 @@ setup(
     name="onecodex",
     version=__version__,  # noqa
     packages=find_packages(exclude=["*test*"]),
-    python_requires=">=3.8",
+    python_requires=">=3.9",
     install_requires=[
         "boto3>=1.17.98",
         "click>=8.0",
@@ -99,7 +100,6 @@ setup(
         "Topic :: Internet :: WWW/HTTP",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",

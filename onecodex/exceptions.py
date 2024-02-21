@@ -48,6 +48,18 @@ class PlottingWarning(UserWarning):
     pass
 
 
+class StatsException(OneCodexException):
+    """User-facing error for statistical methods."""
+
+    pass
+
+
+class StatsWarning(UserWarning):
+    """User-facing warning for statistical methods."""
+
+    pass
+
+
 def raise_api_error(resp, state=None):
     """Raise an exception with a pretty message in various states of upload."""
     # TODO: Refactor into an Exception class

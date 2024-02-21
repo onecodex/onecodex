@@ -18,6 +18,7 @@ from onecodex.viz import (
     VizBargraphMixin,
     VizFunctionalHeatmapMixin,
 )
+from onecodex.stats import StatsMixin
 
 
 def _get_all_nan_classification_ids(df):
@@ -35,6 +36,7 @@ class AnalysisMixin(
     VizDistanceMixin,
     VizBargraphMixin,
     VizFunctionalHeatmapMixin,
+    StatsMixin,
 ):
     """Contains methods for analyzing Classifications results.
 
@@ -76,7 +78,9 @@ class AnalysisMixin(
             or bool((self._results.sum(axis=1).round(4) == 1.0).all())
         )  # noqa
 
-    def _metadata_fetch(self, metadata_fields, label=None, match_taxonomy=True):
+    def _metadata_fetch(
+        self, metadata_fields, label=None, match_taxonomy=True, coerce_missing_composite_fields=True
+    ):
         """Fetch and transform given metadata fields from `self.metadata`.
 
         Takes a list of metadata fields, some of which can contain taxon names or taxon IDs, and
@@ -96,6 +100,11 @@ class AnalysisMixin(
         match_taxonomy : `bool`, optional
             Whether the returned metadata should resolve `metadata_fields` against taxonomy
             if they're not included in sample metadata. Defaults to true.
+        coerce_missing_composite_fields : bool, optional
+            If a field in `metadata_fields` is a tuple, by default any missing values will be
+            coerced to strings when creating the composite field. For example, `None` will become
+            `"None"` and `np.nan` will become `"nan"`. If `False`, the composite field will be
+            `np.nan` if any of its elements contain missing data.
 
         Notes
         -----
@@ -121,6 +130,7 @@ class AnalysisMixin(
             'bacteroid' is passed, it will be matched with the Bacteroides genus and renamed to
             'Bacteroides (816)', which includes its taxon ID.
         """
+        import numpy as np
         import pandas as pd
 
         help_metadata = ", ".join(self.metadata.keys())
@@ -140,9 +150,12 @@ class AnalysisMixin(
             if isinstance(f, tuple):
                 # joined categorical metadata
                 for field in f:
+                    if not isinstance(field, str):
+                        raise OneCodexException(f"Metadata field name {field} must be of type str")
+
                     if field not in self.metadata:
                         raise OneCodexException(
-                            "Metric {} not found. Choose from: {}".format(field, help_metadata)
+                            f"Metadata field {field} not found. Choose from: {help_metadata}"
                         )
 
                     if not (
@@ -157,11 +170,30 @@ class AnalysisMixin(
                 # concatenate the columns together with underscores
                 composite_field = "_".join(f)
                 magic_metadata[composite_field] = ""
-                magic_metadata[composite_field] = (
-                    magic_metadata[composite_field]
-                    .str.cat([self.metadata[field].astype(str) for field in f], sep="_")
-                    .str.lstrip("_")
-                )
+                if coerce_missing_composite_fields:
+                    magic_metadata[composite_field] = (
+                        magic_metadata[composite_field]
+                        .str.cat([self.metadata[field].astype(str) for field in f], sep="_")
+                        .str.lstrip("_")
+                    )
+                else:
+                    # https://stackoverflow.com/a/47333556/3776794
+                    magic_metadata[composite_field] = (
+                        magic_metadata[composite_field]
+                        .str.cat(
+                            [
+                                np.where(
+                                    pd.isnull(self.metadata[field]),
+                                    self.metadata[field],
+                                    self.metadata[field].astype(str),
+                                )
+                                for field in f
+                            ],
+                            sep="_",
+                            na_rep=None,
+                        )
+                        .str.lstrip("_")
+                    )
                 magic_fields[f] = composite_field
             else:
                 str_f = str(f)
