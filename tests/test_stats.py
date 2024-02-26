@@ -1,43 +1,83 @@
 import mock
 import pytest
-from contextlib import contextmanager
 
 pytest.importorskip("pandas")  # noqa
 
 import numpy as np
 import pandas as pd
+import skbio
 
 from onecodex.models.collection import SampleCollection
 from onecodex.exceptions import OneCodexException, StatsException, StatsWarning
-from onecodex.lib.enums import AlphaDiversityStatsTest
-from onecodex.stats import AlphaDiversityStatsResults
+from onecodex.lib.enums import AlphaDiversityStatsTest, BetaDiversityStatsTest
+from onecodex.stats import AlphaDiversityStatsResults, PosthocResults
 
 
-@contextmanager
-def does_not_raise():
-    yield
-
-
+@pytest.mark.parametrize("method", ["alpha_diversity_stats", "beta_diversity_stats"])
 @pytest.mark.parametrize("alpha", [-1, 0, 1, 1.1, 2])
-def test_alpha_diversity_stats_invalid_alpha(samples, alpha):
+def test_invalid_alpha(samples, method, alpha):
     with pytest.raises(StatsException, match="`alpha` must be between 0 and 1"):
-        samples.alpha_diversity_stats(group_by="wheat", alpha=alpha)
+        getattr(samples, method)(group_by="wheat", alpha=alpha)
 
 
+@pytest.mark.parametrize("method", ["alpha_diversity_stats", "beta_diversity_stats"])
 @pytest.mark.parametrize("fields", [1, 4.2, False, b"", (42,), [-1.0], ("wheat", 43)])
-def test_alpha_diversity_stats_invalid_metadata_fields(samples, fields):
+def test_invalid_metadata_fields(samples, method, fields):
     with pytest.raises(OneCodexException, match="type str"):
-        samples.alpha_diversity_stats(group_by=fields)
+        getattr(samples, method)(group_by=fields)
 
+
+@pytest.mark.parametrize("method", ["alpha_diversity_stats", "beta_diversity_stats"])
+@pytest.mark.parametrize(
+    "group_by,num_groups", [("col1", 1), (("col1", "col2"), 0), (["col1", "col2"], 0)]
+)
+def test_missing_group_by_data(samples, method, group_by, num_groups):
+    samples.metadata["col1"] = ["a", None, "a"]
+    samples.metadata["col2"] = ["1", "42", np.nan]
+
+    with pytest.warns(StatsWarning), pytest.raises(
+        StatsException, match=f"`group_by` must have at least 2 groups.*found {num_groups}"
+    ):
+        getattr(samples, method)(group_by=group_by)
+
+
+@pytest.mark.parametrize("method", ["alpha_diversity_stats", "beta_diversity_stats"])
+def test_samples_missing_abundances(samples, method):
+    samples.metadata["col"] = ["a", "b", "a"]
+    samples._results[:] = np.nan
+    assert len(samples._classification_ids_without_abundances) == 3
+
+    with pytest.warns(StatsWarning, match="3 samples.*missing abundance"), pytest.raises(
+        StatsException, match="`group_by` must have at least 2 groups.*found 0"
+    ):
+        getattr(samples, method)(group_by="col")
+
+
+@pytest.mark.parametrize("method", ["alpha_diversity_stats", "beta_diversity_stats"])
+@pytest.mark.parametrize(
+    "values,num_groups", [("one_value", 1), (["all", "different", "values"], 0)]
+)
+@pytest.mark.filterwarnings("ignore:.*size < 2.*")
+def test_not_enough_groups(samples, method, values, num_groups):
+    samples.metadata["col"] = values
+
+    with pytest.raises(
+        StatsException, match=f"`group_by` must have at least 2 groups.*found {num_groups}"
+    ):
+        getattr(samples, method)(group_by="col")
+
+
+@pytest.mark.parametrize("paired_by", [1, 4.2, False, b"", (42,), [-1.0], ("wheat", 43)])
+def test_alpha_diversity_stats_invalid_paired_by(samples, paired_by):
     with pytest.raises(OneCodexException, match="type str"):
-        samples.alpha_diversity_stats(group_by="wheat", paired_by=fields)
+        samples.alpha_diversity_stats(group_by="wheat", paired_by=paired_by)
 
 
 def test_alpha_diversity_stats_missing_alpha_diversity_values(samples):
     samples.metadata["col"] = ["a", "b", "a"]
 
     with pytest.warns(StatsWarning), pytest.raises(
-        StatsException, match="`group_by` must have at least two groups.*found 0"
+        StatsException, match="`group_by` must have at least 2 groups.*found 0"
     ):
         with mock.patch.object(
             SampleCollection,
@@ -50,19 +90,6 @@ def test_alpha_diversity_stats_missing_alpha_diversity_values(samples):
 
 
 @pytest.mark.parametrize(
-    "group_by,num_groups", [("col1", 1), (("col1", "col2"), 0), (["col1", "col2"], 0)]
-)
-def test_alpha_diversity_stats_missing_group_by_data(samples, group_by, num_groups):
-    samples.metadata["col1"] = ["a", None, "a"]
-    samples.metadata["col2"] = ["1", "42", np.nan]
-
-    with pytest.warns(StatsWarning), pytest.raises(
-        StatsException, match=f"`group_by` must have at least two groups.*found {num_groups}"
-    ):
-        samples.alpha_diversity_stats(group_by=group_by)
-
-
-@pytest.mark.parametrize(
     "paired_by,num_groups", [("col1", 1), (("col1", "col2"), 0), (["col1", "col2"], 0)]
 )
 def test_alpha_diversity_stats_missing_paired_by_data(samples, paired_by, num_groups):
@@ -71,25 +98,9 @@ def test_alpha_diversity_stats_missing_paired_by_data(samples, paired_by, num_gr
     samples.metadata["col2"] = ["1", "42", np.nan]
 
     with pytest.warns(StatsWarning), pytest.raises(
-        StatsException, match=f"`group_by` must have at least two groups.*found {num_groups}"
+        StatsException, match=f"`group_by` must have at least 2 groups.*found {num_groups}"
     ):
         samples.alpha_diversity_stats(group_by="group", paired_by=paired_by)
-
-
-@pytest.mark.parametrize(
-    "values,expectation,num_groups",
-    [
-        ("one_value", does_not_raise(), 1),
-        (["all", "different", "values"], pytest.warns(StatsWarning), 0),
-    ],
-)
-def test_alpha_diversity_stats_not_enough_groups(samples, values, expectation, num_groups):
-    samples.metadata["col"] = values
-
-    with expectation, pytest.raises(
-        StatsException, match=f"`group_by` must have at least two groups.*found {num_groups}"
-    ):
-        samples.alpha_diversity_stats(group_by="col")
 
 
 @pytest.mark.parametrize(
@@ -144,7 +155,7 @@ def test_wilcoxon_missing_paired_by(samples):
             ["g1", "g2", "g3"],
             ["p1", "p1", "p2"],
             [1, 2, 3],
-            "`group_by` must have exactly two groups",
+            "`group_by` must have exactly 2 groups",
         ),
         # Different group sizes
         (
@@ -192,6 +203,7 @@ def test_wilcoxon(samples):
         test=AlphaDiversityStatsTest.Wilcoxon,
         statistic=1.0,
         pvalue=0.5,
+        sample_size=6,
         group_by_variable="group",
         groups={"g1", "g2"},
         paired_by_variable="pair",
@@ -201,7 +213,7 @@ def test_wilcoxon(samples):
 def test_mannwhitneyu_wrong_number_of_groups(samples):
     df = pd.DataFrame({"group": ["g1", "g2", "g3", "g1", "g2"], "shannon": [1, 2, 3, 4, 5]})
 
-    with pytest.raises(StatsException, match="`group_by` must have exactly two groups"):
+    with pytest.raises(StatsException, match="`group_by` must have exactly 2 groups"):
         samples._mannwhitneyu(df, "shannon", "group")
 
 
@@ -217,6 +229,7 @@ def test_mannwhitneyu(samples):
         test=AlphaDiversityStatsTest.Mannwhitneyu,
         statistic=6.0,
         pvalue=0.2,
+        sample_size=5,
         group_by_variable="group",
         groups={"g1", "g2"},
     )
@@ -233,11 +246,100 @@ def test_kruskal(samples):
     assert results.test == AlphaDiversityStatsTest.Kruskal
     assert results.statistic.round(3) == 3.714
     assert results.pvalue.round(3) == 0.156
+    assert results.sample_size == 6
     assert results.group_by_variable == "group"
     assert results.groups == {"g1", "g2", "g3"}
-    assert results.posthoc_df is None
+    assert results.posthoc is None
 
     results = samples._kruskal(df, "shannon", "group", 0.2)
     labels = pd.Index(["g1", "g2", "g3"])
-    assert (results.posthoc_df.index == labels).all()
-    assert (results.posthoc_df.columns == labels).all()
+    assert (results.posthoc.adjusted_pvalues.index == labels).all()
+    assert (results.posthoc.adjusted_pvalues.columns == labels).all()
+
+
+def test_alpha_diversity_stats_results_posthoc_df_property():
+    results = AlphaDiversityStatsResults(
+        test=AlphaDiversityStatsTest.Mannwhitneyu,
+        statistic=6.0,
+        pvalue=0.2,
+        sample_size=5,
+        group_by_variable="group",
+        groups={"g1", "g2"},
+        posthoc=None,
+    )
+
+    with pytest.warns(DeprecationWarning):
+        assert results.posthoc_df is None
+
+    pvals = pd.DataFrame([[1.0, 0.2], [0.2, 1.0]], index=["g1", "g2"], columns=["g1", "g2"])
+    results = AlphaDiversityStatsResults(
+        test=AlphaDiversityStatsTest.Mannwhitneyu,
+        statistic=6.0,
+        pvalue=0.2,
+        sample_size=5,
+        group_by_variable="group",
+        groups={"g1", "g2"},
+        posthoc=PosthocResults(adjusted_pvalues=pvals),
+    )
+
+    with pytest.warns(DeprecationWarning):
+        assert results.posthoc_df.equals(pvals)
+
+
+def test_permanova(samples):
+    ids = ["id1", "id2", "id3", "id4", "id5", "id6"]
+    dm = skbio.DistanceMatrix(
+        [
+            [0, 1, 20, 42, 2, 3],
+            [1, 0, 38, 24, 4, 5],
+            [20, 38, 0, 1.5, 10, 20],
+            [42, 24, 1.5, 0, 12, 11],
+            [2, 4, 10, 12, 0, 1],
+            [3, 5, 20, 11, 1, 0],
+        ],
+        ids,
+    )
+    df = pd.DataFrame({"group": ["g1", "g1", "g2", "g2", "g3", "g3"]}, index=ids)
+
+    np.random.seed(0)  # deterministic p-values
+    results = samples._permanova(dm, df, "group", 0.05, 999)
+
+    # Results verified manually with `skbio.stats.distance.permanova`
+    assert results.test == BetaDiversityStatsTest.Permanova
+    assert results.statistic.round(3) == 587.588
+    assert results.pvalue.round(3) == 0.06
+    assert results.num_permutations == 999
+    assert results.sample_size == 6
+    assert results.group_by_variable == "group"
+    assert results.groups == {"g1", "g2", "g3"}
+    assert results.posthoc is None
+
+    np.random.seed(0)
+    posthoc = samples._permanova(dm, df, "group", 0.07, 999).posthoc
+    labels = pd.Index(["g1", "g2", "g3"])
+    for attr in "statistics", "pvalues", "adjusted_pvalues":
+        df = getattr(posthoc, attr)
+        assert (df.index == labels).all()
+        assert (df.columns == labels).all()
+
+        data = df.values
+        # Data is symmetric (ignoring the possibly NaN diagonal)
+        upper_triangle_indices = np.triu_indices_from(data, k=1)
+        assert (data[upper_triangle_indices] == data.T[upper_triangle_indices]).all()
+
+        # ...with correct diagonal and upper triangle values
+        if attr == "statistics":
+            assert np.isnan(np.diagonal(data)).all()
+
+            statistics = [1286.385, 26.0, 234.385]
+            assert (np.round(data[upper_triangle_indices], 3) == statistics).all()
+        elif attr == "pvalues":
+            assert (np.diagonal(data) == 1.0).all()
+
+            pvalues = [0.323, 0.354, 0.352]
+            assert (np.round(data[upper_triangle_indices], 3) == pvalues).all()
+        elif attr == "adjusted_pvalues":
+            assert (np.diagonal(data) == 1.0).all()
+
+            adjusted_pvalues = [0.354, 0.354, 0.354]
+            assert (np.round(data[upper_triangle_indices], 3) == adjusted_pvalues).all()

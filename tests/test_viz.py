@@ -327,6 +327,19 @@ def test_plot_pca_color_by_field_with_nans(samples):
     assert_expected_color_scale_range_len(chart, 1)
 
 
+def test_plot_pca_missing_abundances(ocx, api_data, samples):
+    sample1 = ocx.Samples.get("cc18208d98ad48b3")
+    sample2 = ocx.Samples.get("5445740666134eee")
+    samples.extend([sample1, sample2])
+
+    samples._results.loc[samples[1].primary_classification.id] = np.nan
+    samples._results.loc[samples[3].primary_classification.id] = np.nan
+    assert len(samples._classification_ids_without_abundances) == 2
+
+    with pytest.warns(PlottingWarning, match=r"2 sample\(s\) have no abundances calculated"):
+        samples.plot_pca(return_chart=True)
+
+
 def test_plot_pca_exceptions(samples):
     # expect error if rank is None, since that could lead to weird results
     with pytest.raises(OneCodexException) as e:
@@ -654,6 +667,19 @@ def test_plot_mds_color_by_field_with_nans(samples):
     assert_expected_legend_title(chart, "name")
     assert_expected_color_scale_domain_len(chart, 3)
     assert_expected_color_scale_range_len(chart, 1)
+
+
+def test_plot_mds_missing_abundances(ocx, api_data, samples):
+    sample1 = ocx.Samples.get("cc18208d98ad48b3")
+    sample2 = ocx.Samples.get("5445740666134eee")
+    samples.extend([sample1, sample2])
+
+    samples._results.loc[samples[1].primary_classification.id] = np.nan
+    samples._results.loc[samples[3].primary_classification.id] = np.nan
+    assert len(samples._classification_ids_without_abundances) == 2
+
+    with pytest.warns(PlottingWarning, match=r"2 sample\(s\) have no abundances calculated"):
+        samples.plot_mds(return_chart=True)
 
 
 def test_plot_pcoa(samples):
