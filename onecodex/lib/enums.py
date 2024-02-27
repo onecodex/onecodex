@@ -100,6 +100,13 @@ class OrdinationMethod(BaseEnum):
     Smacof = "smacof"
 
 
+class AlphaDiversityStatsTest(BaseEnum):
+    Auto = "auto"
+    Wilcoxon = "wilcoxon"
+    Mannwhitneyu = "mannwhitneyu"
+    Kruskal = "kruskal"
+
+
 class AnalysisType(BaseEnum):
     Classification = "classification"
     Functional = "functional"
