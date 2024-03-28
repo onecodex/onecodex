@@ -41,7 +41,7 @@ ALL_DEPS = [
     "numpy>=1.11.0",
     "pandas>=1.0.3",
     "pillow>=9.0.1",
-    "scikit-bio>=0.5.8",
+    "scikit-bio==0.5.9",
     "scikit-learn>=0.19.0",
     "scikit-posthocs",
     "scipy",
