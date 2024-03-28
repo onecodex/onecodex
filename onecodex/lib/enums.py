@@ -107,6 +107,10 @@ class AlphaDiversityStatsTest(BaseEnum):
     Kruskal = "kruskal"
 
 
+class BetaDiversityStatsTest(BaseEnum):
+    Permanova = "permanova"
+
+
 class AnalysisType(BaseEnum):
     Classification = "classification"
     Functional = "functional"
