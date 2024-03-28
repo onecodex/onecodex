@@ -1,8 +1,9 @@
 from __future__ import print_function
 import datetime
 import io
-import pytest
+import json
 import mock
+import pytest
 import responses
 import sys
 
@@ -289,6 +290,17 @@ def test_metadata_saving(ocx, api_data):
     assert isinstance(metadata1.date_collected, datetime.datetime)
     assert metadata1.description == "my new description -- testing!"
     assert hasattr(metadata1, "sample")  # This will fail because we don't mock it in the return
+
+
+def test_metadata_saving_should_ignore_updated_at_prop(ocx, api_data):
+    m = ocx.Metadata.get("4fe05e748b5a4f0e")
+    m.custom["foobar"] = "baz"
+    m.save()
+    patch_request = api_data.calls[-1].request
+    assert patch_request.method == "PATCH"
+    patch_data = json.loads(patch_request.body)
+    assert "custom" in patch_data
+    assert "updated_at" not in patch_data
 
 
 def test_dir_patching(ocx, api_data):

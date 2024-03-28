@@ -317,6 +317,6 @@ class Metadata(OneCodexBase):
             if "sample" in ref_props or "$uri" in ref_props:  # May not be there if not resolved!
                 ref_props.pop("$uri", None)
                 ref_props.pop("sample", None)
-                self._resource._update(ref_props)
+                self._resource._update(**ref_props)
             else:
                 super(Metadata, self).save()

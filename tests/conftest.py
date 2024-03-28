@@ -37,7 +37,7 @@ def mock_requests(mock_json):
                 rsps.add(
                     method, compiled_url, body=json.dumps(mock_data), content_type=content_type
                 )
-        yield
+        yield rsps
 
 
 def _make_callback_resp(data, status_code=200):
@@ -394,8 +394,8 @@ API_DATA.update(SCHEMA_ROUTES)
 
 @pytest.yield_fixture(scope="function")
 def api_data():
-    with mock_requests(API_DATA):
-        yield
+    with mock_requests(API_DATA) as rsps:
+        yield rsps
 
 
 @pytest.yield_fixture(scope="function")
