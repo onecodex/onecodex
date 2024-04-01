@@ -205,7 +205,7 @@ def test_is_blacklisted_invalid():
 def test_coerce_custom_value_float():
     custom_value = coerce_custom_value("42")
     assert custom_value == 42.0
-    assert type(custom_value) == float
+    assert type(custom_value) is float
 
 
 def test_coerce_custom_value_truthy():

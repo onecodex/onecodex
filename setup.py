@@ -38,13 +38,13 @@ TESTING_DEPS = [
 ]
 ALL_DEPS = [
     "altair==4.2.2",  # altair_saver doesn't support altair 5
-    "numpy>=1.11.0",
+    "numpy>=1.21.6",
     "pandas>=1.0.3",
     "pillow>=9.0.1",
-    "scikit-bio==0.5.9",
+    "scikit-bio==0.6.0",
     "scikit-learn>=0.19.0",
     "scikit-posthocs",
-    "scipy",
+    "scipy>=1.11.0",
     "jupyter-client==8.6.0",
 ]
 REPORT_DEPS = ALL_DEPS + [
@@ -103,6 +103,7 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
     ],
     entry_points={
         "console_scripts": ["onecodex = onecodex.cli:onecodex"],
