@@ -173,7 +173,7 @@ class DistanceMixin(TaxonomyMixin):
                 df,
                 df.index,
                 tree=new_tree,
-                otu_ids=tax_ids,
+                taxa=tax_ids,
                 normalized=True,
             )
         else:
@@ -182,7 +182,7 @@ class DistanceMixin(TaxonomyMixin):
                 df,
                 df.index,
                 tree=new_tree,
-                otu_ids=tax_ids,
+                taxa=tax_ids,
             )
 
     def aitchison_distance(self, rank=Rank.Auto):
