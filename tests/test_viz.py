@@ -765,6 +765,25 @@ def test_plot_bargraph_and_heatmap_link(samples, plot_type, link):
             raise NotImplementedError()
 
 
+def test_plot_bargraph_when_passing_tax_id_as_group_by(samples):
+    samples._collate_results()
+    for i, sample in enumerate(samples):
+        sample.metadata.custom["tax_id"] = f"TAX_{i}"
+    chart = samples.plot_bargraph(group_by="tax_id", return_chart=True)
+    assert "tax_id" in chart.data.columns
+    assert "_tax_id" in chart.data.columns
+
+
+def test_plot_bargraph_when_passing_tax_name_as_group_by(samples):
+    samples._collate_results()
+    for sample in samples:
+        sample.metadata.custom["tax_name"] = "TAX_NAME"
+    chart = samples.plot_bargraph(group_by="tax_name", return_chart=True)
+    assert "tax_name" in chart.data.columns
+    assert "_tax_name" in chart.data.columns
+    assert chart.encoding.tooltip[1].shorthand == "_tax_name"
+
+
 @pytest.mark.parametrize(
     "method,kwargs",
     [
@@ -840,3 +859,17 @@ def test_plot_functional_heatmap_only_max_values(ocx_experimental, api_data):
     values2 = sorted(list(chart2.data["value"]))
 
     assert values1 == values2[len(values2) - 2 :]
+
+
+def test_plot_functional_heatmap_when_metadata_contains_function_id(ocx_experimental, api_data):
+    sample_ids = ["543c9c046e3e4e09", "66c1531cb0b244f6", "37e5151e7bcb4f87"]
+    samples = ocx_experimental.Samples.where(*sample_ids)
+    for sample in samples:
+        sample.metadata.custom["function_id"] = "FUNCTION_ID"
+
+    chart = samples.plot_functional_heatmap(return_chart=True, top_n=3, label="function_id")
+    assert set(chart.data["function_name"]) == {
+        "[MF] single-stranded DNA endodeoxyribonuclease activity",
+        "[CC] phosphopyruvate hydratase complex",
+        "[BP] ribosomal large subunit assembly"
+    }

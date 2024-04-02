@@ -142,3 +142,22 @@ def dendrogram(tree):
     )
 
     return chart
+
+
+def get_unique_column(preferred_name, existing_columns):
+    """Generates a unique column name
+
+    Parameters
+    ----------
+    preferred_name : `str`
+        Starting point. Returns this if it does not collide with `existing_columns`.
+    existing_columns : `list`
+
+    Returns
+    -------
+    `str`
+    """
+    result = preferred_name
+    while result in existing_columns:
+        result = "_" + result
+    return result

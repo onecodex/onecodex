@@ -3,7 +3,11 @@ from onecodex.lib.enums import (
     FunctionalAnnotationsMetric,
     FunctionalLabel,
 )
-from onecodex.viz._primitives import prepare_props, sort_helper
+from onecodex.viz._primitives import (
+    prepare_props,
+    sort_helper,
+    get_unique_column,
+)
 
 
 class VizFunctionalHeatmapMixin(object):
@@ -124,14 +128,19 @@ class VizFunctionalHeatmapMixin(object):
         # Merge with metadata itself
         df = df.join(metadata)
 
+        function_id_column = get_unique_column("function_id", metadata.columns)
+        function_name_column = get_unique_column("function_name", metadata.columns)
+
         # Wide-form data -> Long-form data
         df = df.melt(
             id_vars=list(metadata.columns),
-            var_name="function_id",
+            var_name=function_id_column,
             value_name="value",
         )
         # It is helpful to have function_id and function_name not just one of them
-        df["function_name"] = pd.Series([get_feature_name(x) for x in df["function_id"]])
+        df[function_name_column] = pd.Series(
+            [get_feature_name(x) for x in df[function_id_column]]
+        )
 
         column_kwargs = {}
         if haxis:
@@ -150,10 +159,10 @@ class VizFunctionalHeatmapMixin(object):
             sort_x_values = None
 
         if function_label == FunctionalLabel.Id:
-            y_axis_shorthand = "function_id:N"
+            y_axis_shorthand = f"{function_id_column}:N"
             sort_y_values = [x for x in to_keep.index]
         else:
-            y_axis_shorthand = "function_name:N"
+            y_axis_shorthand = f"{function_name_column}:N"
             sort_y_values = [get_feature_name(x) for x in to_keep.index]
 
         # Altair chart
@@ -166,8 +175,8 @@ class VizFunctionalHeatmapMixin(object):
                 color=alt.Color("value:Q", title=metric.plot_label),
                 tooltip=[
                     alt.Tooltip("Label:N", title="Label"),
-                    alt.Tooltip("function_name:N", title="Function Name"),
-                    alt.Tooltip("function_id:N", title="Function ID"),
+                    alt.Tooltip(f"{function_name_column}:N", title="Function Name"),
+                    alt.Tooltip(f"{function_id_column}:N", title="Function ID"),
                     alt.Tooltip("value:Q", format=".02f", title=metric.plot_label),
                 ],
                 **column_kwargs,

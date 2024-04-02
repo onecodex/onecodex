@@ -6,6 +6,7 @@ from onecodex.viz._primitives import (
     sort_helper,
     get_ncbi_taxonomy_browser_url,
     get_classification_url,
+    get_unique_column,
 )
 
 
@@ -203,18 +204,22 @@ class VizBargraphMixin(object):
             metadata_columns = magic_metadata.columns.tolist()
             tooltip = [magic_fields[f] for f in tooltip]
 
+        id_vars = [df.index.name] + metadata_columns
+        tax_id_column = get_unique_column("tax_id", id_vars)
+        tax_name_column = get_unique_column("tax_name", id_vars)
+
         # should ultimately be Label/`group_by`, tax_name, metric name, then custom fields
-        tooltip.insert(1, "tax_name")
+        tooltip.insert(1, tax_name_column)
         tooltip.insert(2, "{}:Q".format(pretty_metric_name))
 
         df = df.reset_index().melt(
-            id_vars=[df.index.name] + metadata_columns,
-            var_name="tax_id",
+            id_vars=id_vars,
+            var_name=tax_id_column,
             value_name=pretty_metric_name,
         )
 
         # add taxa names
-        df["tax_name"] = df["tax_id"].apply(
+        df[tax_name_column] = df[tax_id_column].apply(
             lambda t: "{} ({})".format(self.taxonomy["name"][t], t)
             if t in self.taxonomy["name"]
             else t
@@ -238,7 +243,7 @@ class VizBargraphMixin(object):
             encode_kwargs["column"] = alt.Column(
                 haxis, header=alt.Header(titleOrient="bottom", labelOrient="bottom")
             )
-        domain = sorted(df["tax_name"].unique())
+        domain = sorted(df[tax_name_column].unique())
         no_level_name = "No {}".format(rank)
         color_range = interleave_palette(set(domain) - {"Other", no_level_name})
         other_color = ["#DCE0E5"]
@@ -258,13 +263,13 @@ class VizBargraphMixin(object):
         if not group_by:
             sort_order = sort_helper(sort_x, df["Label"].tolist())
 
-        df["order"] = df["tax_name"].apply(domain.index)
+        df["order"] = df[tax_name_column].apply(domain.index)
 
         if link == Link.Ocx and not group_by:
             df["url"] = df["classification_id"].apply(get_classification_url)
             encode_kwargs["href"] = "url:N"
         elif link == Link.Ncbi:
-            df["url"] = df["tax_id"].apply(get_ncbi_taxonomy_browser_url)
+            df["url"] = df[tax_id_column].apply(get_ncbi_taxonomy_browser_url)
             encode_kwargs["href"] = "url:N"
 
         y_scale_kwargs = {"zero": True, "nice": False}
@@ -284,7 +289,7 @@ class VizBargraphMixin(object):
                     scale=alt.Scale(**y_scale_kwargs),
                 ),
                 color=alt.Color(
-                    "tax_name",
+                    tax_name_column,
                     legend=legend,
                     sort=domain,
                     scale=alt.Scale(domain=domain, range=color_range),
