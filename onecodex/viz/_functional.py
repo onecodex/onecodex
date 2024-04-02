@@ -138,9 +138,7 @@ class VizFunctionalHeatmapMixin(object):
             value_name="value",
         )
         # It is helpful to have function_id and function_name not just one of them
-        df[function_name_column] = pd.Series(
-            [get_feature_name(x) for x in df[function_id_column]]
-        )
+        df[function_name_column] = pd.Series([get_feature_name(x) for x in df[function_id_column]])
 
         column_kwargs = {}
         if haxis:

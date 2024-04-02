@@ -871,5 +871,5 @@ def test_plot_functional_heatmap_when_metadata_contains_function_id(ocx_experime
     assert set(chart.data["function_name"]) == {
         "[MF] single-stranded DNA endodeoxyribonuclease activity",
         "[CC] phosphopyruvate hydratase complex",
-        "[BP] ribosomal large subunit assembly"
+        "[BP] ribosomal large subunit assembly",
     }

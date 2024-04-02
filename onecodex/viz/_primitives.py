@@ -145,7 +145,7 @@ def dendrogram(tree):
 
 
 def get_unique_column(preferred_name, existing_columns):
-    """Generates a unique column name
+    """Generate a unique column name.
 
     Parameters
     ----------
