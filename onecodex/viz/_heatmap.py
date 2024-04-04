@@ -105,6 +105,11 @@ class VizHeatmapMixin(object):
                 "There are too few samples for heatmap plots after filtering. Please select 2 or "
                 "more samples to plot."
             )
+        elif len(self._results) - len(self._all_nan_classification_ids) <= 0:
+            raise PlottingException(
+                "Abundances are not calculated for any of the selected samples. Please select a "
+                "different metric or a different set of samples to plot."
+            )
 
         if top_n == "auto" and threshold == "auto":
             top_n = 10

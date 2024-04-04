@@ -375,6 +375,14 @@ def test_plot_heatmap_with_haxis_two_cluster_groups(ocx, api_data, samples):
     samples.plot_heatmap(rank="genus", top_n=15, haxis="wheat", return_chart=True)
 
 
+def test_plot_heatmap_all_samples_are_nan(ocx, api_data, samples):
+    samples._results[:] = np.nan
+    assert len(samples._all_nan_classification_ids) == 3
+
+    with pytest.raises(PlottingException, match="Abundances are not calculated for any"):
+        samples.plot_heatmap(top_n=10, return_chart=True)
+
+
 def test_plot_distance_excludes_all_nan_clustering_helper_called_with(ocx, api_data, samples):
     sample1 = ocx.Samples.get("cc18208d98ad48b3")
     sample2 = ocx.Samples.get("5445740666134eee")
