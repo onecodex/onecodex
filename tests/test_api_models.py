@@ -119,6 +119,17 @@ def test_download_with_progressbar(runner, ocx, api_data):
     doc.download(file_obj=file_obj, progressbar=True)
 
 
+def test_download_file_obj(ocx, api_data):
+    file_obj = io.BytesIO()
+    doc = ocx.Documents.get("a4f6727a840a4df0")
+    doc.download(file_obj=file_obj)
+
+    file_obj.seek(0)
+    data = file_obj.read()
+
+    assert data == b'"1234567890"'
+
+
 def test_resourcelist(ocx, api_data):
     sample = ocx.Samples.get("761bc54b97f64980")
     tags1 = onecodex.models.ResourceList(sample.tags._resource, onecodex.models.misc.Tags)

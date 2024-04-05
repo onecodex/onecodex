@@ -181,16 +181,25 @@ class ResourceDownloadMixin(object):
 
             resp = session.get(link, stream=True)
 
-            with open(path, "wb") if path else file_obj as f_out:
-                if progressbar:
-                    progress_label = os.path.basename(path) if path else self.filename
-                    with click.progressbar(length=self.size, label=progress_label) as bar:
-                        for data in resp.iter_content(chunk_size=1024):
-                            bar.update(len(data))
-                            f_out.write(data)
-                else:
+            if path:
+                f_out = open(path, "wb")
+            else:
+                f_out = file_obj
+
+            if progressbar:
+                progress_label = os.path.basename(path) if path else self.filename
+                with click.progressbar(length=self.size, label=progress_label) as bar:
                     for data in resp.iter_content(chunk_size=1024):
+                        bar.update(len(data))
                         f_out.write(data)
+            else:
+                for data in resp.iter_content(chunk_size=1024):
+                    f_out.write(data)
+
+            # do not close the handle if file_obj is used
+            if not file_obj:
+                f_out.close()
+
         except KeyboardInterrupt:
             if path and os.path.exists(path):
                 os.remove(path)
