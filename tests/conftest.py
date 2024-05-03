@@ -142,6 +142,15 @@ API_DATA = {
         "table": [
             {
                 "abundance": None,
+                "name": "root",
+                "parent_tax_id": None,
+                "rank": "no rank",
+                "readcount": 0,
+                "readcount_w_children": 3,
+                "tax_id": "1",
+            },
+            {
+                "abundance": None,
                 "name": "Staphylococcus",
                 "parent_tax_id": "1",
                 "rank": "genus",
@@ -162,6 +171,15 @@ API_DATA = {
     },
     "GET::api/v1/classifications/593601a797914cbf/results": {
         "table": [
+            {
+                "abundance": None,
+                "name": "root",
+                "parent_tax_id": None,
+                "rank": "no rank",
+                "readcount": 0,
+                "readcount_w_children": 3,
+                "tax_id": "1",
+            },
             {
                 "abundance": None,
                 "name": "Staphylococcus",
