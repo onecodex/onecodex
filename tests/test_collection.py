@@ -97,7 +97,10 @@ def test_biom(ocx, api_data):
     assert [len(x) for x in biom["data"]] == [3, 3, 3, 3]
 
     # Format is row_id, sample id (column), count (sparse)
-    assert biom["data"] == [[0, 0, 3], [0, 1, 80], [1, 0, 0], [1, 1, 0]]
+    assert biom["data"][0] == [0, 0, 3]
+    assert biom["data"][1] == [0, 1, 80]
+    assert biom["data"][2] == [1, 0, 0]
+    assert biom["data"][3] == [1, 1, 0]
     assert biom["rows"][0]["id"] == "1078083"
     assert biom["rows"][1]["id"] == "1279"
 
