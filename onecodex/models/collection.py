@@ -616,6 +616,8 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         rows = defaultdict(dict)
 
+        self._collate_results(include_host=True)  # make sure 9606 is in the taxonomy
+
         ordered_column_ids = []
 
         root = self.tree_build()
@@ -659,7 +661,8 @@ class SampleCollection(ResourceList, AnalysisMixin):
         otu["shape"] = [num_rows, num_cols]
         otu["data"] = []
 
-        for row_id, tax_id in enumerate(sorted(rows.keys())):
+        for tax_id in sorted(rows):
+            row_id = len(otu["rows"])
             tax_node = root.find(tax_id)
             lineage = ([tax_node] + tax_node.ancestors())[::-1]
 
@@ -671,8 +674,8 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
             otu["rows"].append({"id": tax_id, "metadata": {"taxonomy": canonical_names}})
 
-            for col_id in ordered_column_ids:
-                counts = rows[tax_id][col_id]
-                otu["data"].append([row_id, col_id, counts])
+            for sample_with_hit in rows[tax_id]:
+                counts = rows[tax_id][sample_with_hit]
+                otu["data"].append([row_id, sample_with_hit, counts])
 
         return otu
