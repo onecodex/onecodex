@@ -618,8 +618,6 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         self._collate_results(include_host=True)  # make sure 9606 is in the taxonomy
 
-        ordered_column_ids = []
-
         root = self.tree_build()
         for classification in self._classifications:
             col_id = len(otu["columns"])  # 0 index
@@ -639,8 +637,6 @@ class SampleCollection(ResourceList, AnalysisMixin):
             otu["columns"].append(columns_entry)
             sample_df = classification.table()
 
-            ordered_column_ids.append(col_id)
-
             for row in sample_df.iterrows():
                 tax_id = row[1]["tax_id"]
                 tax_node = root.find(tax_id)
@@ -651,9 +647,6 @@ class SampleCollection(ResourceList, AnalysisMixin):
                     continue
 
                 rows[tax_id][col_id] = int(row[1][Metric.Readcount])
-
-        # paranoid check that there are no repeated column IDs
-        assert len(set(ordered_column_ids)) == len(ordered_column_ids)
 
         num_rows = len(rows)
         num_cols = len(otu["columns"])
