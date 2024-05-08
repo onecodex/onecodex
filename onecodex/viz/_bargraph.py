@@ -88,6 +88,7 @@ class VizBargraphMixin(object):
 
         >>> plot_bargraph(rank='genus', top_n=10)
         """
+
         # Deferred imports
         import altair as alt
 
@@ -150,8 +151,8 @@ class VizBargraphMixin(object):
             # Replace nans with zeros for samples that have a total abundance of zero.
             df = df.div(df.sum(axis=1), axis=0).fillna(0.0)
 
-        # Keep track of empty rows *before* filtering taxa by threshold/top_n. We'll use this below
-        # to calculate "Other".
+        # Keep track of empty rows *before* filtering taxa by threshold/top_n.
+        # We'll use this below to calculate "Other".
         empty_rows = df[df.sum(axis=1) == 0.0].index
 
         if top_n == "auto" and threshold == "auto":
@@ -169,8 +170,13 @@ class VizBargraphMixin(object):
             df = df.loc[:, df.mean().sort_values(ascending=False).iloc[:top_n].index]
 
         if include_other and normalize:
+            # if there are no abundances in the dataframe, df.apply will yield
+            # a single item that has `None` as its name. Therefore, we must
+            # check if row.name is None AND whether or not the row name is
+            # in empty_rows
             df["Other"] = df.apply(
-                lambda row: 0.0 if row.name in empty_rows else 1 - row.sum(), axis=1
+                lambda row: 0.0 if (row.name is None or row.name in empty_rows) else 1 - row.sum(),
+                axis=1,
             )
 
         if isinstance(legend, str):
