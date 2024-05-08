@@ -383,6 +383,15 @@ def test_plot_heatmap_all_samples_are_nan(ocx, api_data, samples):
         samples.plot_heatmap(top_n=10, return_chart=True)
 
 
+def test_plot_bargraph_no_samples_have_abundances(ocx, api_data, samples):
+    samples._results[:] = np.nan
+    assert len(samples._all_nan_classification_ids) == 3
+
+    chart = samples.plot_bargraph(return_chart=True)
+
+    assert list(chart.data["Relative Abundance"].values) == [0.0, 0.0, 0.0]
+
+
 def test_plot_distance_excludes_all_nan_clustering_helper_called_with(ocx, api_data, samples):
     sample1 = ocx.Samples.get("cc18208d98ad48b3")
     sample2 = ocx.Samples.get("5445740666134eee")

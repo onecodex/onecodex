@@ -170,6 +170,9 @@ class VizBargraphMixin(object):
             df = df.loc[:, df.mean().sort_values(ascending=False).iloc[:top_n].index]
 
         if include_other and normalize:
+            # if there are no abundances in the dataframe, df.apply will yield a single column
+            # that has `None` as its name. Therefore, we must check if column.name is None AND
+            # whether or not the column name is in empty_rows
             df["Other"] = df.apply(
                 lambda row: 0.0 if (row.name is None or row.name in empty_rows) else 1 - row.sum(),
                 axis=1,
