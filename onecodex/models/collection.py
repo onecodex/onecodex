@@ -643,7 +643,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
                 # only keep canonical rows (e.g., don't include things like
                 # "root" in the OTU table)
-                if tax_node.rank not in CANONICAL_RANKS:
+                if tax_node.rank not in include_ranks:
                     continue
 
                 rows[tax_id][col_id] = int(row[1][Metric.Readcount])
