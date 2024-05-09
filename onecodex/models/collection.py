@@ -657,7 +657,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         for tax_id in sorted(rows):
             row_id = len(otu["rows"])
             tax_node = root.find(tax_id)
-            lineage = ([tax_node] + tax_node.ancestors())[::-1]
+            lineage = tax_node.ancestors() + [tax_node]
 
             rank_to_name = {n.rank: n.tax_name for n in lineage}
 
