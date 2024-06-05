@@ -64,16 +64,39 @@ def test_biom(ocx, api_data):
     assert "taxonomy" in biom["rows"][0]["metadata"]
 
     # IDs
+    assert len(biom["columns"]) == 2
+
     assert biom["columns"][0]["id"] == c1.id
     assert biom["columns"][0]["sample_id"] == c1.sample.id
 
     # Reults
-    assert set(row["metadata"]["taxonomy"] for row in biom["rows"]) == {
-        "Staphylococcus sp. HGB0015",
-        "Staphylococcus",
-    }
+    assert len(biom["rows"]) == 2
 
-    # Format is row_id, sample id (column), count
+    assert biom["rows"][0]["metadata"]["taxonomy"] == [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "Staphylococcus",
+        "Staphylococcus sp. HGB0015",
+    ]
+    assert biom["rows"][1]["metadata"]["taxonomy"] == [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "Staphylococcus",
+        "",
+    ]
+
+    # make sure data is the correct shape
+    assert [len(x) for x in biom["data"]] == [3, 3, 3, 3]
+
+    # Format is row_id, sample id (column), count (sparse)
     assert biom["data"][0] == [0, 0, 3]
     assert biom["data"][1] == [0, 1, 80]
     assert biom["data"][2] == [1, 0, 0]

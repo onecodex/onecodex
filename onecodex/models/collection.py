@@ -16,6 +16,17 @@ except ImportError:
 
 from onecodex.models import OneCodexBase, ResourceList
 
+CANONICAL_RANKS = (
+    "superkingdom",
+    "kingdom",
+    "phylum",
+    "class",
+    "order",
+    "family",
+    "genus",
+    "species",
+)
+
 
 class SampleCollection(ResourceList, AnalysisMixin):
     """A collection of `Samples` or `Classifications` objects.
@@ -565,13 +576,18 @@ class SampleCollection(ResourceList, AnalysisMixin):
             self._cached[feature_map_key] = feature_map
         return self._cached[result_key], self._cached[feature_map_key]
 
-    def to_otu(self, biom_id=None):
-        """Transform a list of Classifications objects into a `dict` resembling an OTU table.
+    def to_otu(self, biom_id=None, include_ranks=CANONICAL_RANKS):
+        """
+        Generate a BIOM-formatted data structure.
 
         Parameters
         ----------
         biom_id : string, optional
             Optionally specify an `id` field for the generated v1 BIOM file.
+
+        include_ranks : list
+            A list of ranks to include in the taxonomy/OTU table. Uses
+            onecodex.models.collection.CANONICAL_RANKS by default.
 
         Returns
         -------
@@ -600,7 +616,9 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         rows = defaultdict(dict)
 
-        tax_ids_to_names = {}
+        self._collate_results(include_host=True)  # make sure 9606 is in the taxonomy
+
+        root = self.tree_build()
         for classification in self._classifications:
             col_id = len(otu["columns"])  # 0 index
 
@@ -621,7 +639,13 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
             for row in sample_df.iterrows():
                 tax_id = row[1]["tax_id"]
-                tax_ids_to_names[tax_id] = row[1]["name"]
+                tax_node = root.find(tax_id)
+
+                # only keep canonical rows (e.g., don't include things like
+                # "root" in the OTU table)
+                if tax_node.rank not in include_ranks:
+                    continue
+
                 rows[tax_id][col_id] = int(row[1][Metric.Readcount])
 
         num_rows = len(rows)
@@ -630,15 +654,21 @@ class SampleCollection(ResourceList, AnalysisMixin):
         otu["shape"] = [num_rows, num_cols]
         otu["data"] = []
 
-        for present_taxa in sorted(rows):
-            # add the row entry
+        for tax_id in sorted(rows):
             row_id = len(otu["rows"])
-            otu["rows"].append(
-                {"id": present_taxa, "metadata": {"taxonomy": tax_ids_to_names[present_taxa]}}
-            )
+            tax_node = root.find(tax_id)
+            lineage = tax_node.ancestors() + [tax_node]
 
-            for sample_with_hit in rows[present_taxa]:
-                counts = rows[present_taxa][sample_with_hit]
+            rank_to_name = {n.rank: n.tax_name for n in lineage}
+
+            canonical_names = []
+            for rank in CANONICAL_RANKS:
+                canonical_names.append(rank_to_name.get(rank, ""))
+
+            otu["rows"].append({"id": tax_id, "metadata": {"taxonomy": canonical_names}})
+
+            for sample_with_hit in rows[tax_id]:
+                counts = rows[tax_id][sample_with_hit]
                 otu["data"].append([row_id, sample_with_hit, counts])
 
         return otu
