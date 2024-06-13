@@ -36,9 +36,10 @@ TESTING_DEPS = [
     "pre-commit",
     "pdfplumber",
 ]
+
 ALL_DEPS = [
     "altair==4.2.2",  # altair_saver doesn't support altair 5
-    "numpy>=1.21.6",
+    "numpy>=1.21.6,<2",
     "pandas>=1.0.3",
     "pillow>=9.0.1",
     "scikit-bio==0.6.0",
@@ -47,6 +48,7 @@ ALL_DEPS = [
     "scipy>=1.11.0",
     "jupyter-client==8.6.0",
 ]
+
 REPORT_DEPS = ALL_DEPS + [
     # notebook 7 is a major overhaul based on JupyterLab. It has a new UI and extension system, and
     # does not (yet) support some extensions we use (e.g. python-markdown in
