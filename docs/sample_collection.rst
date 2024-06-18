@@ -16,7 +16,6 @@ visualization and statistics. See the following sections for more information:
 
 - :doc:`Visualization <visualization>`
 - :doc:`Statistics <statistics>`
-- :doc:`Utilities <utilities>`
 - :doc:`Taxonomy <taxonomy>`
 
 .. code-block:: python
