@@ -86,7 +86,7 @@ class VizBargraphMixin(object):
         --------
         Plot a bargraph of the top 10 most abundant genera
 
-        >>> plot_bargraph(rank='genus', top_n=10)
+        >>> samples.plot_bargraph(rank='genus', top_n=10)
         """
 
         # Deferred imports

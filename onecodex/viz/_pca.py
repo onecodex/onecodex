@@ -68,16 +68,16 @@ class VizPCAMixin(object):
         Perform PCA on relative abundances at the species-level and color the resulting points by
         'geo_loc_name', a metadata field representing the geographical origin of each sample.
 
-        >>> plot_pca(rank='species', normalize=True, color='geo_loc_name')
+        >>> samples.plot_pca(rank='species', normalize=True, color='geo_loc_name')
 
         Change the size of each point in the plot based on the abundance of Bacteroides.
 
-        >>> plot_pca(size='Bacteroides')
+        >>> samples.plot_pca(size='Bacteroides')
 
         Display the abundances of Bacteroides, Prevotella, and Bifidobacterium in each sample when
         hovering over points in the plot.
 
-        >>> plot_pca(tooltip=['Bacteroides', 'Prevotella', 'Bifidobacterium'])
+        >>> samples.plot_pca(tooltip=['Bacteroides', 'Prevotella', 'Bifidobacterium'])
         """
         # Deferred imports
         import altair as alt

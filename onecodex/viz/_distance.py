@@ -160,7 +160,7 @@ class VizDistanceMixin(DistanceMixin):
         --------
         Plot the weighted UniFrac distance between all our samples, using counts at the genus level.
 
-        >>> plot_distance(rank='genus', metric='unifrac')
+        >>> samples.plot_distance(rank='genus', metric='unifrac')
         """
         import altair as alt
         import numpy as np
@@ -335,7 +335,7 @@ class VizDistanceMixin(DistanceMixin):
         Scatter plot of weighted UniFrac distance between all our samples, using counts at the genus
         level.
 
-        >>> plot_mds(rank='genus', metric='unifrac')
+        >>> samples.plot_mds(rank='genus', metric='unifrac')
 
         Notes
         -----
