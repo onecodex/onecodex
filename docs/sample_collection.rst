@@ -30,7 +30,7 @@ visualization and statistics. See the following sections for more information:
    type(samples) # SampleCollection
 
 
-A `SampleCollection` can also be created manually from a list of samples:
+A ``SampleCollection`` can also be created manually from a list of samples:
 
 .. code-block:: python
 
