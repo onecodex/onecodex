@@ -157,7 +157,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         --------
         Generate a new collection of Samples that have a specific filename extension:
 
-            new_collection = samples.filter(lambda s: s.filename.endswith('.fastq.gz'))
+        >>> new_collection = samples.filter(lambda s: s.filename.endswith('.fastq.gz'))
         """
         if callable(filter_func):
             return self.__class__([obj for obj in self if filter_func(obj)], **self._kwargs)
