@@ -78,3 +78,12 @@ CLI
 The Python package also comes with a command-line tool which can be used to
 upload samples to One Codex as well as results from the API. See
 :doc:`readme` for more information.
+
+
+See Also
+========
+
+* `Source on GitHub <https://github.com/onecodex/onecodex>`_
+* `Package on PyPI <https://pypi.org/project/onecodex/>`_
+* `One Codex API Documentation <https://developer.onecodex.com>`_
+* `One Codex <https://onecodex.com>`_

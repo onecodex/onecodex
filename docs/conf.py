@@ -32,14 +32,7 @@ import sys
 sys.path.insert(0, os.path.abspath("../"))
 
 
-html_theme_options = {
-    "external_links": [
-        ("Github", "https://github.com/onecodex/onecodex"),
-        ("PyPI", "https://pypi.org/project/onecodex/"),
-        ("API Docs", "https://developer.onecodex.com"),
-        ("One Codex", "https://onecodex.com"),
-    ],
-}
+html_theme_options = {}
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
