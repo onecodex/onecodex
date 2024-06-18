@@ -17,9 +17,8 @@ client, see the :doc:`readme`. You can find the source code on `GitHub
 <https://github.com/onecodex/onecodex>`_.
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 5
    :caption: Contents
-   :titlesonly:
    :hidden:
 
    sample_collection
@@ -28,6 +27,8 @@ client, see the :doc:`readme`. You can find the source code on `GitHub
    Taxonomy <taxonomy>
    Models <models>
    notebooks
+
+   GitHub <https://github.com/onecodex/onecodex>
 
 
 Installation

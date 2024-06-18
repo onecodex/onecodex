@@ -1,14 +1,15 @@
+*************
 Visualization
--------------
+*************
 
 .. admonition:: See Also
    :class: note
 
-   Visualization functions are implemented as part of `SampleCollection`. For
+   Visualization functions are implemented as part of ``SampleCollection``. For
    more information, see :doc:`sample_collection`.
 
 ``plot_bargraph``
------------------
+=================
 
 .. altair-plot::
     :strict:
@@ -26,7 +27,7 @@ Visualization
 
 
 ``plot_distance``
------------------
+=================
 
 .. altair-plot::
     :strict:
@@ -43,12 +44,12 @@ Visualization
 .. automethod:: onecodex.models.collection.SampleCollection.plot_distance
 
 ``plot_functional_heatmap``
----------------------------
+===========================
 
 .. automethod:: onecodex.models.collection.SampleCollection.plot_functional_heatmap
 
 ``plot_heatmap``
-----------------
+================
 
 .. altair-plot::
     :strict:
@@ -65,7 +66,7 @@ Visualization
 .. automethod:: onecodex.models.collection.SampleCollection.plot_heatmap
 
 ``plot_mds``
-------------
+============
 
 .. altair-plot::
     :strict:
@@ -82,13 +83,13 @@ Visualization
 .. automethod:: onecodex.models.collection.SampleCollection.plot_mds
 
 ``plot_metadata``
------------------
+=================
 
 A general plotting tool which can be used to plot boxplots and scatter plots of
-individual abundances or alpha-diversity metrics.
+individual abundances or alpha=diversity metrics.
 
 Alpha Diversity
-^^^^^^^^^^^^^^^
+---------------
 
 .. altair-plot::
     :strict:
@@ -104,7 +105,7 @@ Alpha Diversity
 
 
 2D Abundance Scatterplot
-^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------
 
 .. altair-plot::
     :strict:
@@ -119,7 +120,7 @@ Alpha Diversity
     samples.plot_metadata(return_chart=True, haxis="Bacteroides", vaxis="Firmicutes")
 
 Boxplot
-^^^^^^^
+-------
 
 .. altair-plot::
     :strict:
@@ -136,7 +137,7 @@ Boxplot
 .. automethod:: onecodex.models.collection.SampleCollection.plot_metadata
 
 ``plot_pca``
-------------
+============
 
 .. altair-plot::
     :strict:

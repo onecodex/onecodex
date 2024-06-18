@@ -1,14 +1,15 @@
+****************
 SampleCollection
-----------------
+****************
 
 Data export, analysis and visualization functions are all contained within the
-`SampleCollection` module.
+``SampleCollection`` class.
 
-A `SampleCollection` is returned whenever multiple Samples returned via the One
-Codex API using a model:
+A ``SampleCollection`` is returned whenever multiple Samples returned via the
+One Codex API using a model:
 
-Analysis & Visualization
-^^^^^^^^^^^^^^^^^^^^^^^^
+Usage
+=====
 
 ``SampleCollection`` contains useful tools for data export, analysis,
 visualization and statistics. See the following sections for more information:
@@ -48,16 +49,16 @@ A ``SampleCollection`` can also be created manually from a list of samples:
 
 
 ``filter``
-----------
+==========
 
 .. automethod:: onecodex.models.collection.SampleCollection.filter
 
 ``to_otu``
-----------
+==========
 
 .. automethod:: onecodex.models.collection.SampleCollection.to_otu
 
 ``to_df``
----------
+=========
 
 .. automethod:: onecodex.models.collection.SampleCollection.to_df

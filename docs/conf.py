@@ -1,5 +1,7 @@
-import os
 import datetime
+import os
+import sys
+from onecodex.version import __version__
 
 # Configuration file for the Sphinx documentation builder.
 #
@@ -12,6 +14,8 @@ import datetime
 project = "One Codex"
 copyright = f"{str(datetime.datetime.now().year)}, One Codex"
 author = "One Codex"
+
+version = __version__
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -27,12 +31,10 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "venv"]
 html_logo = "_static/one_codex_logo.png"
 html_theme = "sphinx_rtd_theme"
 
-import sys
 
 sys.path.insert(0, os.path.abspath("../"))
 
-
-html_theme_options = {}
+html_theme_options = {"collapse_navigation": True, "navigation_depth": 2}
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
