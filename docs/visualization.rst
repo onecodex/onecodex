@@ -86,7 +86,7 @@ Visualization
 =================
 
 A general plotting tool which can be used to plot boxplots and scatter plots of
-individual abundances or alpha=diversity metrics.
+individual abundances or alpha-diversity metrics.
 
 Alpha Diversity
 ---------------

@@ -1,7 +1,7 @@
 Notebooks
 ---------
 
-Examples of interative data analysis using the One Codex Python library with
+Examples of interactive data analysis using the One Codex Python library with
 Jupyter Notebook.
 
 Example Notebooks

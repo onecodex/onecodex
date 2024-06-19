@@ -5,8 +5,8 @@ SampleCollection
 Data export, analysis and visualization functions are all contained within the
 ``SampleCollection`` class.
 
-A ``SampleCollection`` is returned whenever multiple Samples returned via the
-One Codex API using a model:
+A ``SampleCollection`` is returned whenever multiple Samples are returned via
+the One Codex API using a model.
 
 Usage
 =====
