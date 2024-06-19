@@ -61,3 +61,13 @@ A ``SampleCollection`` can also be created manually from a list of samples:
 =========
 
 .. automethod:: onecodex.models.collection.SampleCollection.to_df
+
+``_to_classification_df``
+=========================
+
+.. automethod:: onecodex.models.collection.SampleCollection._to_classification_df
+
+``_to_functional_df``
+=====================
+
+.. automethod:: onecodex.models.collection.SampleCollection._to_functional_df
