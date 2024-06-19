@@ -1,0 +1,6 @@
+sphinx
+nbsphinx
+sphinx-rtd-theme
+myst-parser
+sphinxext-altair
+-e .[all,reports]

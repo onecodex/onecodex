@@ -1,6 +1,7 @@
 # One Codex API - Python Client Library and CLI
 
-![test](https://github.com/onecodex/onecodex/workflows/test/badge.svg) ![Black Code Style](https://camo.githubusercontent.com/28a51fe3a2c05048d8ca8ecd039d6b1619037326/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f636f64652532307374796c652d626c61636b2d3030303030302e737667)
+[![test](https://github.com/onecodex/onecodex/actions/workflows/test.yml/badge.svg)](https://github.com/onecodex/onecodex/actions/workflows/test.yml)
+[![pre-commit](https://github.com/onecodex/onecodex/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/onecodex/onecodex/actions/workflows/pre-commit.yml)
 
 Command line interface (CLI) and Python client library for interacting with the One Codex v1 API ([API docs](https://docs.onecodex.com)).
 

@@ -86,7 +86,7 @@ class VizHeatmapMixin(object):
         --------
         Plot a heatmap of the relative abundances of the top 10 most abundant families.
 
-        >>> plot_heatmap(rank='family', top_n=10)
+        >>> samples.plot_heatmap(rank='family', top_n=10)
         """
         # Deferred imports
         import altair as alt
@@ -212,7 +212,6 @@ class VizHeatmapMixin(object):
                 df_sample_cluster[haxis] = self.metadata[haxis]
 
                 for group, group_df in df_sample_cluster.groupby(haxis, dropna=False):
-
                     if group_df.shape[0] <= 3:
                         # we can't cluster
                         labels_in_order.extend(
