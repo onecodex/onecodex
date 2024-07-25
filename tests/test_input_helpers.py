@@ -5,6 +5,7 @@ from onecodex.input_helpers import (
     _find_multilane_groups,
     concatenate_multilane_files,
     auto_detect_pairs,
+    concatenate_ont_groups,
 )
 from tests.conftest import FASTQ_SEQUENCE
 
@@ -111,3 +112,26 @@ def test_concatenate_gzipped_multilane_files(generate_fastq_gz):
     assert len(concatenated) == 1
     with gzip.open(concatenated[0], "r") as fin:
         assert fin.read() == len(files) * FASTQ_SEQUENCE.encode("utf-8")
+
+
+@pytest.mark.parametrize(
+    "files,expected_grouping",
+    [
+        (["test.fq"], ["test.fq"]),
+        (["test_R0.fq", "test_R1.fq"], ["test_R0.fq", "test_R1.fq"]),
+        (["dir_r1_test/test_0.fq", "dir_r1_test/test_1.fq", "dir_r1_test/test_2.fq"], ["test.fq"]),
+        (["test_0.fq", "test_1.fq"], ["test.fq"]),
+        (["test_1_0.fq", "test_1_1.fq", "test_1_2.fq"], ["test_1.fq"]),
+        (
+            ["test_1_0.fq", "test_1_1.fq", "test_1_3.fq"],
+            ["test_1_0.fq", "test_1_1.fq", "test_1_3.fq"],
+        ),
+        (["test_1.fq", "test_2.fq", "other.fq", "test_0.fq"], ["test.fq", "other.fq"]),
+        (["test_1.fq", "test_2.fq"], ["test_1.fq", "test_2.fq"]),
+    ],
+)
+def test_concatenate_ont_groups(generate_fastq, files, expected_grouping):
+    files = [generate_fastq(x) for x in files]
+    pairs = concatenate_ont_groups(files, prompt=False)
+    basenames = _get_basenames(pairs)
+    assert sorted(basenames) == sorted(expected_grouping)

@@ -354,6 +354,82 @@ def test_paired_files_with_forward_and_reverse_args(
     assert result.exit_code != 0
 
 
+@pytest.mark.parametrize(
+    "files,n_samples_uploaded,n_files_uploaded,n_paired_files,n_ont_files",
+    [
+        # 1 files, 1 sample
+        (["test.fq"], 1, 1, 0, 0),
+        # 2 files, 1 sample
+        (["test_1.fq", "test_2.fq"], 1, 2, 2, 0),
+        # 4 files, 4 ONT parts, 1 sample
+        (
+            [
+                "test_S1_0.fastq.gz",
+                "test_S1_1.fastq.gz",
+                "test_S1_2.fastq.gz",
+                "test_S1_3.fastq.gz",
+            ],
+            1,
+            1,
+            0,
+            4,
+        ),
+        # 6 files, 2x3 ONT parts, 2 samples
+        (
+            [
+                "test_S1_0.fastq.gz",
+                "test_S2_0.fastq.gz",
+                "test_S1_1.fastq.gz",
+                "test_S2_1.fastq.gz",
+                "test_S1_2.fastq.gz",
+                "test_S2_2.fastq.gz",
+            ],
+            2,
+            2,
+            0,
+            6,
+        ),
+        (["dir_r1_test/test_0.fq", "dir_r1_test/test_1.fq"], 1, 1, 0, 2),
+        # 3 files, 2 samples
+        (["test_0.fq", "other.fq", "test_1.fq"], 2, 2, 0, 2),
+    ],
+)
+def test_paired_and_ont_files(
+    runner,
+    generate_fastq,
+    mock_file_upload,
+    mock_sample_get,
+    mocked_creds_path,
+    upload_mocks,
+    files,
+    n_samples_uploaded,
+    n_files_uploaded,
+    n_paired_files,
+    n_ont_files,
+):
+    files = [generate_fastq(x) for x in files]
+
+    args = ["--api-key", "01234567890123456789012345678901", "upload"] + files
+    result = runner.invoke(Cli, args, catch_exceptions=False)
+    assert mock_file_upload.call_count == n_files_uploaded
+    assert mock_sample_get.call_count == n_samples_uploaded
+    assert result.exit_code == 0
+
+    paired_files_prompt = "It appears there are {} paired files (of {} total)".format(
+        n_paired_files, len(files)
+    )
+    if n_paired_files > 0:
+        assert paired_files_prompt in result.output
+    else:
+        assert paired_files_prompt not in result.output
+
+    ont_prompt = f"It appears there are {n_ont_files} ONT files (of {len(files)} total)"
+    if n_ont_files > 0:
+        assert ont_prompt in result.output
+    else:
+        assert ont_prompt not in result.output
+
+
 def test_download_samples_without_prompt(runner, api_data, mocked_creds_file):
     with runner.isolated_filesystem():
         result = runner.invoke(Cli, ["download", "samples", "output", "--no-prompt"])

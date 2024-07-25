@@ -32,7 +32,11 @@ from onecodex.utils import (
     run_via_threadpool,
     telemetry,
 )
-from onecodex.input_helpers import auto_detect_pairs, concatenate_multilane_files
+from onecodex.input_helpers import (
+    auto_detect_pairs,
+    concatenate_ont_groups,
+    concatenate_multilane_files,
+)
 from onecodex.version import __version__
 
 
@@ -510,6 +514,9 @@ def upload(
             )
             ctx.exit(1)
 
+        # Detecting ONT groups comes first as otherwise part of ONT group could
+        # be mistaken for a paired file
+        files = concatenate_ont_groups(files, prompt)
         files = auto_detect_pairs(files, prompt)
 
     files = concatenate_multilane_files(files, prompt)

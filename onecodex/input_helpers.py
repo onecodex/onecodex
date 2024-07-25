@@ -3,51 +3,140 @@ import re
 import os
 import shutil
 import tempfile
+import logging
 from collections import defaultdict
+
+# Captures parts before and after ordinal
+# (. or _ followed by num followed by . or _ and non-digits)
+ORDINAL_REV_PATTERN = r"([._])\d([._][\D._]+)$"
+
+# Captures parts before and after paired ordinal (as above, but includes R1, r1, R2, r2)
+PAIRED_ORDINAL_REV_PATTERN = r"([._][Rr])\d+([._][\w.]+)$"
+
+log = logging.getLogger("onecodex")
+
+
+def _replace_filename_ordinal(filename, replacement):
+    """Replace file[_.]num[._] with file[_.]replacement[._]."""
+    replace_pattern = rf"\g<1>{replacement}\g<2>"
+    return re.sub(ORDINAL_REV_PATTERN, replace_pattern, filename)
+
+
+def _replace_paired_filename_ordinal(filename, replacement):
+    """Replace file[_.][Rr]?num[._] with file[_.][Rr]?replacement[._]."""
+    first_pass = _replace_filename_ordinal(filename, replacement)
+    replace_pattern = rf"\g<1>{replacement}\g<2>"
+    return re.sub(PAIRED_ORDINAL_REV_PATTERN, replace_pattern, first_pass)
+
+
+def concatenate_ont_groups(files, prompt):
+    """Concatenate ONT split files and return the group as a single entry on the files list."""
+    single_files = set(files)
+    ont_groups = defaultdict(set)
+    auto_group = True
+
+    for filename in files:
+        ont_zero_filename = _replace_filename_ordinal(filename, "0")
+        if os.path.exists(ont_zero_filename):
+            # strip the ordinal and preceding . or _
+            base_filename = re.sub(r"[._]\d([._][\D._]+)$", r"\1", filename)
+            base_filename = os.path.join(tempfile.gettempdir(), base_filename)
+
+            ont_groups[base_filename].add(filename)
+
+    # filter to groups of at least 2 files
+    ont_groups = {k: v for k, v in ont_groups.items() if len(v) >= 2}
+
+    if prompt and ont_groups:
+        group_list = ""
+        n_grouped_files = 0
+        for base_ont_filename, group in ont_groups.items():
+            n_grouped_files += len(group)
+            group_list += f"\n  {os.path.basename(base_ont_filename)}"
+        answer = click.confirm(
+            "It appears there are {n_grouped_files} ONT files (of {n_files} total):{group_list}\nConcatenate them before upload?".format(
+                n_grouped_files=n_grouped_files,
+                n_files=len(single_files),
+                group_list=group_list,
+            ),
+            default="Y",
+        )
+
+        if not answer:
+            auto_group = False
+
+    if not auto_group:
+        return files
+
+    # Ensure there is no gap in the file sequences
+    for base_ont_filename, files in ont_groups.items():
+        ont_file = next(iter(files))
+        expected_sequence = [_replace_filename_ordinal(ont_file, idx) for idx in range(len(files))]
+        if any(expected_file not in files for expected_file in expected_sequence):
+            # Detected a gap in the ONT file sequence, skipping
+            log.warning(
+                f"Detected a gap in the ONT file sequence for {os.path.basename(base_ont_filename)}, skipping concatenation"
+            )
+            continue
+        with open(base_ont_filename, "wb") as outf:
+            for ont_filename in expected_sequence:
+                with open(ont_filename, "rb") as inf:
+                    shutil.copyfileobj(inf, outf)
+                single_files.remove(ont_filename)
+        single_files.add(base_ont_filename)
+    return list(single_files)
 
 
 def auto_detect_pairs(files, prompt):
-    """Group paired-end files into tuples in the files list.
+    """Group paired-end files in the files list.
 
     Returns the files list with paired-end files represented as tuples on that list.
     If `prompt` is set to True, the user is asked whether this should happen first.
     """
 
-    # "intelligently" find paired files and tuple them
-    paired_files = []
+    # files left ungrouped
     single_files = set(files)
 
-    for filename in files:
-        # convert "read 1" filenames into "read 2" and check that they exist; if they do
-        # upload the files as a pair, autointerleaving them
-        paired_filename = re.sub(r"([._][Rr])1([._][\w.]+)$", r"\g<1>2\g<2>", filename)
-        paired_filename = re.sub(r"([._])1([._][\D._]+)$", r"\g<1>2\g<2>", paired_filename)
+    # "intelligently" grouped paired-end files
+    pairs = []
 
-        # we don't necessary need the R2 to have been passed in; we infer it anyways
-        if paired_filename != filename and os.path.exists(paired_filename):
-            if not prompt and paired_filename not in single_files:
+    for filename in files:
+        if filename not in single_files:
+            # filename may have been already removed as a pair
+            continue
+
+        paired_r1_filename = _replace_paired_filename_ordinal(filename, "1")
+        paired_r2_filename = _replace_paired_filename_ordinal(filename, "2")
+
+        if (
+            paired_r1_filename != paired_r2_filename
+            and os.path.exists(paired_r1_filename)
+            and os.path.exists(paired_r2_filename)
+        ):
+            other_paired_file = (
+                paired_r2_filename if filename == paired_r1_filename else paired_r1_filename
+            )
+            # we don't necessary need the other paired to have been passed in; we infer it anyways
+            if not prompt and other_paired_file not in single_files:
                 # if we're not prompting, don't automatically pull in files
                 # not in the list the user passed in
                 continue
 
-            paired_files.append((filename, paired_filename))
-
-            if paired_filename in single_files:
-                single_files.remove(paired_filename)
-
-            single_files.remove(filename)
+            pairs.append((paired_r1_filename, paired_r2_filename))
+            if paired_r1_filename in single_files:
+                single_files.remove(paired_r1_filename)
+            if paired_r2_filename in single_files:
+                single_files.remove(paired_r2_filename)
 
     auto_pair = True
-
-    if prompt and len(paired_files) > 0:
+    if prompt and pairs:
         pair_list = ""
-        for p in paired_files:
-            pair_list += "\n  {}  &  {}".format(os.path.basename(p[0]), os.path.basename(p[1]))
-
+        for pair in pairs:
+            pair_list += f"\n  {os.path.basename(pair[0])}  &  {os.path.basename(pair[1])}"
         answer = click.confirm(
             "It appears there are {n_paired_files} paired files (of {n_files} total):{pair_list}\nInterleave them after upload?".format(
-                n_paired_files=len(paired_files) * 2,
-                n_files=len(paired_files) * 2 + len(single_files),
+                n_paired_files=len(pairs) * 2,
+                n_files=len(pairs) * 2 + len(single_files),
                 pair_list=pair_list,
             ),
             default="Y",
@@ -57,7 +146,7 @@ def auto_detect_pairs(files, prompt):
             auto_pair = False
 
     if auto_pair:
-        return paired_files + list(single_files)
+        return pairs + list(single_files)
     else:
         return files
 
@@ -74,7 +163,7 @@ def _find_multilane_groups(files):
     This function assumes that the paired-end file tuples on the list are properly matched.
 
     The result is a list of lists, with each nested list representing a single multilane
-    file group concisting of either string filenames (for single read files) or tuples
+    file group consisting of either string filenames (for single read files) or tuples
     (for paired-end reads). The files are in proper order, concatenation-ready.
     """
 
