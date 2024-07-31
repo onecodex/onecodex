@@ -56,6 +56,7 @@ REPORT_DEPS = ALL_DEPS + [
     "notebook==6.4.10",
     "nbconvert>=6.4.3",
     "WeasyPrint==60.1",  # 60.2 truncates y-axis titles
+    "pydyf<0.11.0",  # https://github.com/Kozea/WeasyPrint/issues/2200
     "altair-saver==0.5.0",
     "selenium<4.3.0",  # see https://github.com/altair-viz/altair_saver/issues/104
 ]
