@@ -360,8 +360,20 @@ class VizDistanceMixin(DistanceMixin):
                 "There are too few samples for MDS/PCoA after filtering. Please select 3 or more "
                 "samples to plot."
             )
+        elif len(self._results) - len(self._all_nan_classification_ids) < 3:
+            raise PlottingException(
+                "There are too few samples for MDS/PCoA after filtering out samples with no "
+                "abundances calculated; please select 3 or more samples to plot."
+            )
 
-        dists = self._compute_distance(rank, metric).to_data_frame()
+        dists = self._compute_distance(rank, metric, exclude_all_nan=True).to_data_frame()
+
+        if self._all_nan_classification_ids:
+            warnings.warn(
+                f"{len(self._all_nan_classification_ids)} sample(s) have no abundances calculated "
+                f"and have been omitted from the MDS/PCoA plot.",
+                PlottingWarning,
+            )
 
         # here we figure out what to put in the tooltips and get the appropriate data
         if tooltip:
