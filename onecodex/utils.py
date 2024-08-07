@@ -9,6 +9,9 @@ import re
 import requests
 import sys
 import sentry_sdk
+from contextlib import contextmanager
+import tempfile
+import shutil
 
 try:
     from StringIO import StringIO
@@ -484,3 +487,15 @@ def is_continuous(series):
 
 def has_missing_values(dataframe_or_series):
     return dataframe_or_series.isnull().values.any()
+
+
+@contextmanager
+def use_tempdir():
+    path = tempfile.mkdtemp()
+    try:
+        yield path
+    finally:
+        try:
+            shutil.rmtree(path)
+        except IOError:
+            log.warning(f"Failed to clean up temp dir {path}")

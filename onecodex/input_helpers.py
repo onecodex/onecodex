@@ -2,24 +2,28 @@ import click
 import re
 import os
 import shutil
-import tempfile
 import logging
 from collections import defaultdict
 
 # Captures parts before and after ordinal
 # (. or _ followed by num followed by . or _ and non-digits)
 ORDINAL_REV_PATTERN = r"([._])\d([._][\D._]+)$"
+ORDINAL_MULTI_REV_PATTERN = r"([._])\d+([._][\D._]+)$"
 
 # Captures parts before and after paired ordinal (as above, but includes R1, r1, R2, r2)
-PAIRED_ORDINAL_REV_PATTERN = r"([._][Rr])\d+([._][\w.]+)$"
+PAIRED_ORDINAL_REV_PATTERN = r"([._][Rr])\d([._][\w.]+)$"
 
 log = logging.getLogger("onecodex")
 
 
-def _replace_filename_ordinal(filename, replacement):
-    """Replace file[_.]num[._] with file[_.]replacement[._]."""
+def _replace_filename_ordinal(filename, replacement, multi_digit=False):
+    """Replace file[_.]num[._] with file[_.]replacement[._].
+
+    If `multi_digit` is set to True, num may be a multi digit number
+    """
     replace_pattern = rf"\g<1>{replacement}\g<2>"
-    return re.sub(ORDINAL_REV_PATTERN, replace_pattern, filename)
+    regex = ORDINAL_MULTI_REV_PATTERN if multi_digit else ORDINAL_REV_PATTERN
+    return re.sub(regex, replace_pattern, filename)
 
 
 def _replace_paired_filename_ordinal(filename, replacement):
@@ -29,18 +33,18 @@ def _replace_paired_filename_ordinal(filename, replacement):
     return re.sub(PAIRED_ORDINAL_REV_PATTERN, replace_pattern, first_pass)
 
 
-def concatenate_ont_groups(files, prompt):
+def concatenate_ont_groups(files, prompt, tempdir):
     """Concatenate ONT split files and return the group as a single entry on the files list."""
     single_files = set(files)
     ont_groups = defaultdict(set)
     auto_group = True
 
     for filename in files:
-        ont_zero_filename = _replace_filename_ordinal(filename, "0")
+        ont_zero_filename = _replace_filename_ordinal(filename, "0", multi_digit=True)
         if os.path.exists(ont_zero_filename):
             # strip the ordinal and preceding . or _
-            base_filename = re.sub(r"[._]\d([._][\D._]+)$", r"\1", filename)
-            base_filename = os.path.join(tempfile.gettempdir(), base_filename)
+            base_filename = re.sub(r"[._]\d+([._][\D._]+)$", r"\1", filename)
+            base_filename = os.path.join(tempdir, os.path.basename(base_filename))
 
             ont_groups[base_filename].add(filename)
 
@@ -71,13 +75,24 @@ def concatenate_ont_groups(files, prompt):
     # Ensure there is no gap in the file sequences
     for base_ont_filename, files in ont_groups.items():
         ont_file = next(iter(files))
-        expected_sequence = [_replace_filename_ordinal(ont_file, idx) for idx in range(len(files))]
-        if any(expected_file not in files for expected_file in expected_sequence):
-            # Detected a gap in the ONT file sequence, skipping
-            log.warning(
-                f"Detected a gap in the ONT file sequence for {os.path.basename(base_ont_filename)}, skipping concatenation"
-            )
+        expected_sequence = [
+            _replace_filename_ordinal(ont_file, idx, multi_digit=True) for idx in range(len(files))
+        ]
+        full_sequence = True
+        for expected_file in expected_sequence:
+            if expected_file not in files:
+                log.warning(
+                    "Detected a gap in the ONT file sequence for "
+                    f"{os.path.basename(base_ont_filename)}, missing file:"
+                    f" {os.path.basename(expected_file)}. Skipping concatenation"
+                )
+                full_sequence = False
+                break
+
+        if not full_sequence:
             continue
+
+        log.info(f"Concatenating to {base_ont_filename}")
         with open(base_ont_filename, "wb") as outf:
             for ont_filename in expected_sequence:
                 with open(ont_filename, "rb") as inf:
@@ -237,7 +252,7 @@ def _find_multilane_groups(files):
     return multilane_groups
 
 
-def concatenate_multilane_files(files, prompt):
+def concatenate_multilane_files(files, prompt, tempdir):
     """Concatenate multilane files before uploading.
 
     The files are grouped based on filename. If `prompt` is set to True, the user
@@ -253,7 +268,7 @@ def concatenate_multilane_files(files, prompt):
     def _concatenate_group(group, first_elem):
         """Concatenate all the files on the list and return the target file path."""
         target_file_name = re.sub(pattern_lane_num, r"\1", os.path.basename(first_elem))
-        target_path = os.path.join(tempfile.gettempdir(), target_file_name)
+        target_path = os.path.join(tempdir, os.path.basename(target_file_name))
 
         # Overwriting all files by default
         with open(target_path, "wb") as outf:

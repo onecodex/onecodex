@@ -7,6 +7,7 @@ from onecodex.input_helpers import (
     auto_detect_pairs,
     concatenate_ont_groups,
 )
+from onecodex.utils import use_tempdir
 from tests.conftest import FASTQ_SEQUENCE
 
 
@@ -90,16 +91,17 @@ def test_concatenate_multilane_files(generate_fastq):
     non_multilane = [("Sample3_R1.fq", "Sample3_R2.fq"), "Sample3.fq"]
     files = pairs + singles + non_multilane
 
-    concatenated = concatenate_multilane_files(files, prompt=False)
+    with use_tempdir() as tempdir:
+        concatenated = concatenate_multilane_files(files, prompt=False, tempdir=tempdir)
 
-    basenames = _get_basenames(concatenated)
-    assert basenames == non_multilane + ["Sample2.fq", ("Sample1_R1.fq", "Sample1_R2.fq")]
+        basenames = _get_basenames(concatenated)
+        assert basenames == non_multilane + ["Sample2.fq", ("Sample1_R1.fq", "Sample1_R2.fq")]
 
-    with open(concatenated[len(non_multilane)], "r") as inf:
-        assert inf.read() == len(singles) * FASTQ_SEQUENCE
+        with open(concatenated[len(non_multilane)], "r") as inf:
+            assert inf.read() == len(singles) * FASTQ_SEQUENCE
 
-    with open(concatenated[len(non_multilane) + 1][0], "r") as inf:
-        assert inf.read() == len(pairs) * FASTQ_SEQUENCE
+        with open(concatenated[len(non_multilane) + 1][0], "r") as inf:
+            assert inf.read() == len(pairs) * FASTQ_SEQUENCE
 
 
 def test_concatenate_gzipped_multilane_files(generate_fastq_gz):
@@ -108,10 +110,12 @@ def test_concatenate_gzipped_multilane_files(generate_fastq_gz):
         generate_fastq_gz("Sample2_L002.fq.gz"),
         generate_fastq_gz("Sample2_L003.fq.gz"),
     ]
-    concatenated = concatenate_multilane_files(files, prompt=False)
-    assert len(concatenated) == 1
-    with gzip.open(concatenated[0], "r") as fin:
-        assert fin.read() == len(files) * FASTQ_SEQUENCE.encode("utf-8")
+    with use_tempdir() as tempdir:
+        concatenated = concatenate_multilane_files(files, prompt=False, tempdir=tempdir)
+        assert len(concatenated) == 1
+        with gzip.open(concatenated[0], "r") as fin:
+            assert fin.read() == len(files) * FASTQ_SEQUENCE.encode("utf-8")
+    assert not os.path.exists(concatenated[0])
 
 
 @pytest.mark.parametrize(
@@ -128,10 +132,40 @@ def test_concatenate_gzipped_multilane_files(generate_fastq_gz):
         ),
         (["test_1.fq", "test_2.fq", "other.fq", "test_0.fq"], ["test.fq", "other.fq"]),
         (["test_1.fq", "test_2.fq"], ["test_1.fq", "test_2.fq"]),
+        (
+            [
+                "test_0.fq",
+                "test_1.fq",
+                "test_2.fq",
+                "test_3.fq",
+                "test_4.fq",
+                "test_5.fq",
+                "test_6.fq",
+                "test_7.fq",
+                "test_8.fq",
+                "test_9.fq",
+                "test_10.fq",
+                "test_11.fq",
+            ],
+            ["test.fq"],
+        ),
     ],
 )
 def test_concatenate_ont_groups(generate_fastq, files, expected_grouping):
     files = [generate_fastq(x) for x in files]
-    pairs = concatenate_ont_groups(files, prompt=False)
-    basenames = _get_basenames(pairs)
-    assert sorted(basenames) == sorted(expected_grouping)
+    with use_tempdir() as tempdir:
+        pairs = concatenate_ont_groups(files, prompt=False, tempdir=tempdir)
+        basenames = _get_basenames(pairs)
+        assert sorted(basenames) == sorted(expected_grouping)
+
+
+def test_concatenate_ont_group_inform_about_missing_file(generate_fastq, caplog):
+    filenames = ["test_0.fq", "test_1.fq", "test_3.fq"]
+    files = [generate_fastq(x) for x in filenames]
+    with use_tempdir() as tempdir:
+        pairs = concatenate_ont_groups(files, prompt=False, tempdir=tempdir)
+        assert len(pairs) == len(filenames)
+        assert (
+            "Detected a gap in the ONT file sequence for test.fq, missing file: test_2.fq"
+            in caplog.text
+        )
