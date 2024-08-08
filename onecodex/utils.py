@@ -11,7 +11,6 @@ import sys
 import sentry_sdk
 from contextlib import contextmanager
 import tempfile
-import shutil
 
 try:
     from StringIO import StringIO
@@ -491,11 +490,5 @@ def has_missing_values(dataframe_or_series):
 
 @contextmanager
 def use_tempdir():
-    path = tempfile.mkdtemp()
-    try:
-        yield path
-    finally:
-        try:
-            shutil.rmtree(path)
-        except IOError:
-            log.warning(f"Failed to clean up temp dir {path}")
+    with tempfile.TemporaryDirectory() as tempdir:
+        yield tempdir
