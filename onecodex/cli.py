@@ -31,8 +31,13 @@ from onecodex.utils import (
     pretty_errors,
     run_via_threadpool,
     telemetry,
+    use_tempdir,
 )
-from onecodex.input_helpers import auto_detect_pairs, concatenate_multilane_files
+from onecodex.input_helpers import (
+    auto_detect_pairs,
+    concatenate_ont_groups,
+    concatenate_multilane_files,
+)
 from onecodex.version import __version__
 
 
@@ -489,64 +494,68 @@ def upload(
         click.echo("You must specify both forward and reverse files", err=True)
         ctx.exit(1)
 
-    if forward and reverse:
-        if len(files) > 0:
-            click.echo(
-                "You may not pass a FILES argument when using the "
-                " --forward and --reverse options.",
-                err=True,
-            )
-            ctx.exit(1)
-        files = [(forward, reverse)]
-    elif len(files) == 0:
-        click.echo(ctx.get_help())
-        return
-    else:
-        files_set = set(files)
-        if files_set.symmetric_difference(files):
-            click.echo(
-                "Duplicate filenames detected in command line--please specific each file only once",
-                err=True,
-            )
-            ctx.exit(1)
+    with use_tempdir() as tempdir:
+        if forward and reverse:
+            if len(files) > 0:
+                click.echo(
+                    "You may not pass a FILES argument when using the "
+                    " --forward and --reverse options.",
+                    err=True,
+                )
+                ctx.exit(1)
+            files = [(forward, reverse)]
+        elif len(files) == 0:
+            click.echo(ctx.get_help())
+            return
+        else:
+            files_set = set(files)
+            if files_set.symmetric_difference(files):
+                click.echo(
+                    "Duplicate filenames detected in command line--please specific each file only once",
+                    err=True,
+                )
+                ctx.exit(1)
 
-        files = auto_detect_pairs(files, prompt)
+            # Detecting ONT groups comes first as otherwise part of ONT group could
+            # be mistaken for a paired file
+            files = concatenate_ont_groups(files, prompt, tempdir)
+            files = auto_detect_pairs(files, prompt)
 
-    files = concatenate_multilane_files(files, prompt)
+        files = concatenate_multilane_files(files, prompt, tempdir)
 
-    total_size = sum(
-        [
-            (os.path.getsize(x[0]) + os.path.getsize(x[1]))
-            if isinstance(x, tuple)
-            else os.path.getsize(x)
-            for x in files
-        ]
-    )
-
-    upload_kwargs = {
-        "metadata": appendables["valid_metadata"],
-        "tags": appendables["valid_tags"],
-        "project": project_id,
-        "coerce_ascii": coerce_ascii,
-        "progressbar": progressbar(length=total_size, label="Uploading..."),
-        "sample_id": sample_id,
-        "external_sample_id": external_sample_id,
-    }
-
-    if (sample_id or external_sample_id) and len(files) > 1:
-        click.echo(
-            "Please only specify a single file or pair of files to upload if using `sample_id` or `external_sample_id`",
-            err=True,
+        total_size = sum(
+            [
+                (os.path.getsize(x[0]) + os.path.getsize(x[1]))
+                if isinstance(x, tuple)
+                else os.path.getsize(x)
+                for x in files
+            ]
         )
-        ctx.exit(1)
 
-    run_via_threadpool(
-        ctx.obj["API"].Samples.upload,
-        files,
-        upload_kwargs,
-        max_threads=8 if max_threads > 8 else max_threads,
-        graceful_exit=False,
-    )
+        upload_kwargs = {
+            "metadata": appendables["valid_metadata"],
+            "tags": appendables["valid_tags"],
+            "project": project_id,
+            "coerce_ascii": coerce_ascii,
+            "progressbar": progressbar(length=total_size, label="Uploading..."),
+            "sample_id": sample_id,
+            "external_sample_id": external_sample_id,
+        }
+
+        if (sample_id or external_sample_id) and len(files) > 1:
+            click.echo(
+                "Please only specify a single file or pair of files to upload if using `sample_id` or `external_sample_id`",
+                err=True,
+            )
+            ctx.exit(1)
+
+        run_via_threadpool(
+            ctx.obj["API"].Samples.upload,
+            files,
+            upload_kwargs,
+            max_threads=8 if max_threads > 8 else max_threads,
+            graceful_exit=False,
+        )
 
 
 @onecodex.command("login")
