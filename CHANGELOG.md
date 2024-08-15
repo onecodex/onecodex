@@ -4,6 +4,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.16.0] - 2024-08-15
+
+### Added
+
+- Adds optional `secondary_haxis` parameter to `plot_metadata()`, which can be a field name or tuple of field names, if a second grouping is desired
+- Adds alpha diversity stats tests, which are run via `SampleCollection.alpha_diversity_stats()`
+- Adds support for Python 3.12
+- Adds support for use of `file_obj` parameter with sample download
+- BIOM export now includes canonical taxonomic lineage
+- Adds documentation via GitHub Pages at https://onecodex.github.io/onecodex/
+- Adds support for concatenating ONT files
+
+### Changed
+
+- Adds `scikit-posthocs` dependency
+- Pins `scikit-bio` to 0.6.0
+- Updates minimum required version of scipy to 1.11.0
+- Updates minimum required version of numpy to 1.21.6
+- Pins `pydyf<0.11.0`
+
+### Fixed
+
+- Fixes a bug associated with updating custom metadata on a sample
+- Fixes metadata non-unique column name bug
+- Provides a more useful error message if `plot_heatmap` is called with any samples without abundances calculated
+- Fixes abundance chart for groups of samples where all samples lack abundance estimates
+
+### Removed
+
+- Removes Python 3.8 support
+
 ## [v0.15.1] - 2024-01-12
 
 ### Changed
