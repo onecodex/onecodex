@@ -11,7 +11,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adds optional `secondary_haxis` parameter to `plot_metadata()`, which can be a field name or tuple of field names, if a second grouping is desired
 - Adds alpha diversity stats tests, which are run via `SampleCollection.alpha_diversity_stats()`
 - Adds support for Python 3.12
-- Adds support for use of `file_obj` parameter with sample download
 - BIOM export now includes canonical taxonomic lineage
 - Adds documentation via GitHub Pages at https://onecodex.github.io/onecodex/
 - Adds support for concatenating ONT files
