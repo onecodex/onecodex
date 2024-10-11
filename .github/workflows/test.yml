@@ -90,6 +90,26 @@ jobs:
           name: example reports
           path: test-report-*.pdf
 
+  test-library-import-bare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.12'
+      - name: Install dependencies in a venv
+        run: |
+          python3 -m venv venv
+          . venv/bin/activate
+          pip install -q -U pip
+          pip install --progress-bar=off .
+
+      - name: Test import speeds
+        run: |
+          . venv/bin/activate
+          python -c 'import onecodex; onecodex.Api()'
+
   import-times:
     runs-on: ubuntu-latest
     steps:
