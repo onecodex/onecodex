@@ -105,7 +105,7 @@ jobs:
           pip install -q -U pip
           pip install --progress-bar=off .
 
-      - name: Test import speeds
+      - name: Test initializing Api
         run: |
           . venv/bin/activate
           python -c 'import onecodex; onecodex.Api()'
