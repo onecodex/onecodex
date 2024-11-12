@@ -183,6 +183,9 @@ class _AltairFinder(importlib.abc.MetaPathFinder):
         self.in_progress = True
         try:
             spec = importlib.util.find_spec(fullname)
+            # noop - altair is not installed
+            if spec is None:
+                return None
             spec.loader = _AltairLoader(spec.loader)
             return spec
         finally:
