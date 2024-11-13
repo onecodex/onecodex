@@ -115,7 +115,7 @@ class Api(object):
 
         self._copy_resources()
 
-        # Optionally configure custom One Codex altair theme
+        # Optionally configure custom One Codex altair theme and renderer
         if load_extensions:
             from onecodex.viz import configure_onecodex_theme
 
