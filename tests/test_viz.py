@@ -22,12 +22,41 @@ from onecodex.viz._primitives import (
 from onecodex.exceptions import PlottingWarning
 
 
+def assert_expected_legend_title(chart, title):
+    assert chart.to_dict()["encoding"]["color"]["legend"]["title"] == title
+
+
+def assert_expected_x_axis_title(chart, title):
+    assert chart.to_dict()["encoding"]["x"]["axis"]["title"] == title
+
+
+def assert_expected_y_axis_title(chart, title):
+    assert chart.to_dict()["encoding"]["y"]["axis"]["title"] == title
+
+
+def assert_expected_color_scale_domain_len(chart, length):
+    assert len(chart.to_dict()["encoding"]["color"]["scale"]["domain"]) == length
+
+
+def assert_expected_color_scale_range_len(chart, length):
+    assert len(chart.to_dict()["encoding"]["color"]["scale"]["range"]) == length
+
+
+def assert_x_axis_has_no_labels_or_ticks(chart):
+    assert not chart.to_dict()["encoding"]["x"]["axis"]["labels"]
+    assert not chart.to_dict()["encoding"]["x"]["axis"]["ticks"]
+
+
+def assert_expected_x_scale_padding(chart, padding):
+    assert chart.to_dict()["encoding"]["x"]["scale"]["padding"] == padding
+
+
 def test_altair_ocx_theme(ocx, api_data):
     assert alt.themes.active == "onecodex"
 
 
-def test_altair_renderer(ocx, api_data):
-    assert alt.renderers.active in {"altair_saver", "html"}
+def test_altair_ocx_renderer(ocx, api_data):
+    assert alt.renderers.active == "onecodex"
 
 
 def test_plot_metadata(samples):
@@ -41,8 +70,8 @@ def test_plot_metadata(samples):
     ]
     assert chart.mark == "circle"
     assert chart.title == "my title"
-    assert chart.encoding.x.axis.title == "my xlabel"
-    assert chart.encoding.y.axis.title == "my ylabel"
+    assert_expected_x_axis_title(chart, "my xlabel")
+    assert_expected_y_axis_title(chart, "my ylabel")
 
     # try time, boolean, and numerical types for x-axis
     chart = samples.plot_metadata(haxis="date_sequenced", vaxis="observed_taxa", return_chart=True)
@@ -69,7 +98,7 @@ def test_plot_metadata_facet_by_scatter(samples):
     chart = samples.plot_metadata(vaxis="shannon", facet_by="geo_loc_name", return_chart=True)
 
     assert chart.mark == "circle"
-    assert chart.encoding.x.axis.title == ""
+    assert_expected_x_axis_title(chart, "")
 
 
 def test_plot_metadata_facet_by_boxplot(samples):
@@ -78,7 +107,7 @@ def test_plot_metadata_facet_by_boxplot(samples):
     )
 
     assert chart.mark.type == "boxplot"
-    assert chart.encoding.x.axis.title == ""
+    assert_expected_x_axis_title(chart, "")
 
 
 def test_plot_metadata_secondary_haxis_scatter(samples):
@@ -87,10 +116,9 @@ def test_plot_metadata_secondary_haxis_scatter(samples):
     )
 
     assert chart.mark == "circle"
-    assert chart.encoding.x.axis.title == ""
-    assert not chart.encoding.x.axis.labels
-    assert not chart.encoding.x.axis.ticks
-    assert chart.encoding.x.scale.padding == 1
+    assert_expected_x_axis_title(chart, "")
+    assert_x_axis_has_no_labels_or_ticks(chart)
+    assert_expected_x_scale_padding(chart, 1)
 
 
 def test_plot_metadata_secondary_haxis_boxplot(samples):
@@ -99,10 +127,9 @@ def test_plot_metadata_secondary_haxis_boxplot(samples):
     )
 
     assert chart.mark.type == "boxplot"
-    assert chart.encoding.x.axis.title == ""
-    assert not chart.encoding.x.axis.labels
-    assert not chart.encoding.x.axis.ticks
-    assert chart.encoding.x.scale.padding == 1
+    assert_expected_x_axis_title(chart, "")
+    assert_x_axis_has_no_labels_or_ticks(chart)
+    assert_expected_x_scale_padding(chart, 1)
 
 
 def test_plot_metadata_alpha_diversity_with_nans(samples):
@@ -210,9 +237,9 @@ def test_plot_pca(samples):
     assert mainplot.encoding.color.shorthand == "geo_loc_name"
     assert mainplot.encoding.size.shorthand == "totalige"
     assert mainplot.encoding.x.shorthand == "PC1"
-    assert mainplot.encoding.x.axis.title == "my xlabel"
+    assert_expected_x_axis_title(mainplot, "my xlabel")
     assert mainplot.encoding.y.shorthand == "PC2"
-    assert mainplot.encoding.y.axis.title == "my ylabel"
+    assert_expected_y_axis_title(mainplot, "my ylabel")
     assert sorted([x.shorthand for x in mainplot.encoding.tooltip]) == [
         "Bacteroides (816)",
         "Label",
@@ -232,26 +259,22 @@ def test_plot_pca_color_by_bool_field(samples):
     assert samples.metadata["wheat"].dtype == bool
 
     chart = samples.plot_pca(color="wheat", return_chart=True)
-    color = chart.encoding.color
 
-    assert color.shorthand == "wheat"
-    assert color.legend.title == "wheat"
-    assert color.scale.domain.dtype == object
-    assert len(color.scale.domain) == 3
-    assert len(color.scale.range) == 2
+    assert chart.encoding.color.shorthand == "wheat"
+    assert_expected_legend_title(chart, "wheat")
+    assert_expected_color_scale_domain_len(chart, 3)
+    assert_expected_color_scale_range_len(chart, 2)
 
 
 def test_plot_pca_color_by_field_with_nans(samples):
     assert has_missing_values(samples.metadata["name"])
 
     chart = samples.plot_pca(color="name", return_chart=True)
-    color = chart.encoding.color
 
-    assert color.shorthand == "name"
-    assert color.legend.title == "name"
-    assert color.scale.domain.dtype == object
-    assert len(color.scale.domain) == 3
-    assert len(color.scale.range) == 1
+    assert chart.encoding.color.shorthand == "name"
+    assert_expected_legend_title(chart, "name")
+    assert_expected_color_scale_domain_len(chart, 3)
+    assert_expected_color_scale_range_len(chart, 1)
 
 
 def test_plot_pca_exceptions(samples):
@@ -277,8 +300,8 @@ def test_plot_heatmap(samples):
     )
     assert chart.mark == "rect"
     assert chart.title == "my title"
-    assert chart.encoding.x.axis.title == "my xlabel"
-    assert chart.encoding.y.axis.title == "my ylabel"
+    assert_expected_x_axis_title(chart, "my xlabel")
+    assert_expected_y_axis_title(chart, "my ylabel")
     assert len(chart.data["tax_id"].unique()) == 10
     assert chart.data["Relative Abundance"].sum().round(6) == 1.813541
 
@@ -342,7 +365,7 @@ def test_plot_heatmap_plots_all_nan_samples_with_nans(samples, is_onecodex_acces
     )
 
     # Sample with all NaNs should be at the end
-    assert chart.encoding.x.sort[-1] == all_nan_sample.filename
+    assert chart.to_dict()["encoding"]["x"]["sort"][-1] == all_nan_sample.filename
 
 
 def test_plot_heatmap_with_haxis_two_cluster_groups(ocx, api_data, samples):
@@ -490,8 +513,8 @@ def test_plot_distance(samples):
 
     mainplot = chart.hconcat[1]
     assert mainplot.mark == "rect"
-    assert mainplot.encoding.x.axis.title == "my xlabel"
-    assert mainplot.encoding.y.axis.title == "my ylabel"
+    assert_expected_x_axis_title(mainplot, "my xlabel")
+    assert_expected_y_axis_title(mainplot, "my ylabel")
     assert sorted([x.shorthand for x in mainplot.encoding.tooltip]) == [
         "1) Label",
         "1) vegetables",
@@ -547,9 +570,9 @@ def test_plot_mds(samples, metric, dissimilarity_metric, smacof):
     assert chart.mark.type == "circle"
     assert chart.title == "my title"
     assert chart.encoding.x.shorthand == "PC1"
-    assert chart.encoding.x.axis.title == "my xlabel"
+    assert_expected_x_axis_title(chart, "my xlabel")
     assert chart.encoding.y.shorthand == "PC2"
-    assert chart.encoding.y.axis.title == "my ylabel"
+    assert_expected_y_axis_title(chart, "my ylabel")
     assert (chart.data["PC1"] * chart.data["PC2"]).sum().round(6) == 0.0
 
     chart = samples.plot_mds(
@@ -562,26 +585,22 @@ def test_plot_mds_color_by_bool_field(samples):
     assert samples.metadata["wheat"].dtype == bool
 
     chart = samples.plot_mds(color="wheat", return_chart=True)
-    color = chart.encoding.color
 
-    assert color.shorthand == "wheat"
-    assert color.legend.title == "wheat"
-    assert color.scale.domain.dtype == object
-    assert len(color.scale.domain) == 3
-    assert len(color.scale.range) == 2
+    assert chart.encoding.color.shorthand == "wheat"
+    assert_expected_legend_title(chart, "wheat")
+    assert_expected_color_scale_domain_len(chart, 3)
+    assert_expected_color_scale_range_len(chart, 2)
 
 
 def test_plot_mds_color_by_field_with_nans(samples):
     assert has_missing_values(samples.metadata["name"])
 
     chart = samples.plot_mds(color="name", return_chart=True)
-    color = chart.encoding.color
 
-    assert color.shorthand == "name"
-    assert color.legend.title == "name"
-    assert color.scale.domain.dtype == object
-    assert len(color.scale.domain) == 3
-    assert len(color.scale.range) == 1
+    assert chart.encoding.color.shorthand == "name"
+    assert_expected_legend_title(chart, "name")
+    assert_expected_color_scale_domain_len(chart, 3)
+    assert_expected_color_scale_range_len(chart, 1)
 
 
 def test_plot_pcoa(samples):
@@ -682,10 +701,10 @@ def test_plot_bargraph_chart_result(samples, metric, rank, label):
 
     assert chart.title == "Glorious Bargraph"
     assert chart.encoding.x.shorthand == "Label"
-    assert chart.encoding.x.axis.title == "Exemplary Samples"
+    assert_expected_x_axis_title(chart, "Exemplary Samples")
     assert chart.encoding.y.shorthand == label
-    assert chart.encoding.y.axis.title == "Glorious Abundances"
-    assert chart.encoding.color.legend.title == label
+    assert_expected_y_axis_title(chart, "Glorious Abundances")
+    assert_expected_legend_title(chart, label)
     assert chart.encoding.href.shorthand == "url:N"
 
 
@@ -707,7 +726,7 @@ def test_plot_bargraph_with_group_by(samples, metric, kwargs):
     chart = samples.plot_bargraph(group_by="barley", return_chart=True, **kwargs)
 
     assert chart.encoding.x.shorthand == "barley"
-    assert chart.encoding.x.axis.title == "barley"
+    assert_expected_x_axis_title(chart, "barley")
 
     metric_label = (
         "Mean Relative Abundance:Q" if AbundanceMetric.has_value(metric) else "Mean Reads:Q"
@@ -738,7 +757,7 @@ def test_plot_bargraph_legend(samples, legend, expected_title):
     samples._collate_results(metric="readcount_w_children")
     chart = samples.plot_bargraph(return_chart=True, legend=legend)
 
-    assert chart.encoding.color.legend.title == expected_title
+    assert_expected_legend_title(chart, expected_title)
 
 
 def test_plot_bargraph_legend_error(samples):

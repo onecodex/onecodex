@@ -38,7 +38,7 @@ TESTING_DEPS = [
 ]
 
 ALL_DEPS = [
-    "altair==4.2.2",  # altair_saver doesn't support altair 5
+    "altair==5.4.1",
     "numpy>=1.21.6,<2",
     "pandas>=1.0.3",
     "pillow>=9.0.1",
@@ -46,19 +46,17 @@ ALL_DEPS = [
     "scikit-learn>=0.19.0",
     "scikit-posthocs",
     "scipy>=1.11.0",
-    "jupyter-client==8.6.0",
 ]
 
 REPORT_DEPS = ALL_DEPS + [
     # notebook 7 is a major overhaul based on JupyterLab. It has a new UI and extension system, and
     # does not (yet) support some extensions we use (e.g. python-markdown in
     # jupyter_contrib_nbextensions).
-    "notebook==6.4.10",
+    "notebook==6.5.7",
     "nbconvert>=6.4.3",
     "WeasyPrint==60.1",  # 60.2 truncates y-axis titles
     "pydyf<0.11.0",  # https://github.com/Kozea/WeasyPrint/issues/2200
-    "altair-saver==0.5.0",
-    "selenium<4.3.0",  # see https://github.com/altair-viz/altair_saver/issues/104
+    "vl-convert-python>=1.6.0",
 ]
 
 setup(

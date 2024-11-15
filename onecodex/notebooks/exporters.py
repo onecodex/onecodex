@@ -75,14 +75,7 @@ class OneCodexHTMLExporter(HTMLExporter):
         return super()._template_paths() + [ASSETS_PATH]
 
     def from_notebook_node(self, nb, resources=None, **kw):
-        """Apply nbconvert's HTMLExporter to generate HTML, with slight modifications.
-
-        Notes
-        -----
-        This exporter will only save cells generated with Altair/Vega if they have an SVG image type
-        stored with them. This data is only stored if our fork of `ipyvega` is installed or the onecodex
-        renderer is used--otherwise, they will be low-resolution PNGs, which will not be exported.
-        """
+        """Apply nbconvert's HTMLExporter to generate HTML, with slight modifications."""
         nb = copy.deepcopy(nb)
 
         # setup our dictionary that's accessible from within jinja templates

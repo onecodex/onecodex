@@ -282,4 +282,4 @@ And using the `OneCodexPDFExporter`:
 ONE_CODEX_REPORT_FILENAME=example.pdf jupyter nbconvert --execute --to onecodex_pdf --ExecutePreprocessor.timeout=-1 --output="$ONE_CODEX_REPORT_FILENAME" --output-dir="." notebook_examples/example.ipynb && open example.pdf
 ```
 
-Note these require the installation of several `npm` packages for headless rendering: `npm install vega-lite vega-cli canvas`. See [altair-saver](`https://github.com/altair-viz/altair_saver`) for more details.
+Note that `OneCodexPDFExporter` requires the `vl-convert-python` package to be installed.

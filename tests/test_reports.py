@@ -43,7 +43,7 @@ def test_html_report_generation(capsys, nb, nb_config):
 
     # Check visualization is generated
     assert "vega-embed" in body
-    assert '<div class="vega-visualization"' in body
+    assert '<div id="altair-viz-' in body
 
     # Check no stderr from vega CLI or similar
     assert capsys.readouterr().err == ""

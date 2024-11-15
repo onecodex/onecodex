@@ -96,8 +96,24 @@ def onecodex_theme():
     }
 
 
+def onecodex_renderer(spec: dict, **metadata) -> dict:
+    """Render spec as HTML and optionally SVG if vl-convert is installed."""
+    from altair.vegalite.v5.display import html_renderer, svg_renderer
+
+    bundle = html_renderer(spec, **metadata)
+
+    try:
+        import vl_convert  # noqa
+    except ImportError:
+        pass
+    else:
+        bundle.update(svg_renderer(spec, **metadata))
+
+    return bundle
+
+
 def configure_onecodex_theme(altair_module=None):
-    """Configure One Codex Altair theme."""
+    """Configure One Codex Altair theme and renderer."""
     if altair_module is None:
         try:
             import altair
@@ -109,58 +125,8 @@ def configure_onecodex_theme(altair_module=None):
     altair_module.themes.register("onecodex", onecodex_theme)
     altair_module.themes.enable("onecodex")
 
-    # Render using `altair_saver` if installed (report environment only, requires node deps)
-    if "altair_saver" in altair_module.renderers.names():
-        import functools
-        import shutil
-        import altair_saver.savers._node
-        from altair_saver._utils import check_output_with_stderr
-
-        # Change `npm bin` to `npm root` for compatibility with npm >=9 (also backwards compatible
-        # with npm 8). We are monkeypatching because altair-saver appears to be an unmaintained
-        # project. We are pinned at v0.5.0 so this hack should be safe.
-        #
-        # Function copied and modified from:
-        # https://github.com/altair-viz/altair_saver/blob/v0.5.0/altair_saver/savers/_node.py#L15-L24
-        #
-        # Applied the fix from:
-        # https://github.com/altair-viz/altair_saver/pull/116
-        #
-        # altair-saver is BSD-3-Clause:
-        # https://github.com/altair-viz/altair_saver/blob/v0.5.0/LICENSE
-        #
-        # altair-saver license is included with this software in `licenses/altair-saver.txt`
-        @functools.lru_cache(2)
-        def npm_bin(global_: bool) -> str:
-            """Locate the npm binary directory."""
-            npm = shutil.which("npm")
-            if not npm:
-                raise altair_saver.savers._node.ExecutableNotFound("npm")
-            cmd = [npm, "root"]
-            if global_:
-                cmd.append("--global")
-            return check_output_with_stderr(cmd).decode().strip()
-
-        altair_saver.savers._node.npm_bin = npm_bin
-
-        # Filter out vega-lite warning about boxplots not yet supporting selection (DEV-4237). This
-        # can be removed when vega-lite adds selection support to boxplots:
-        #
-        # - https://github.com/vega/vega-lite/issues/3702
-        # - https://github.com/altair-viz/altair/issues/2232
-        def stderr_filter(line):
-            """Return ``True`` if stderr line should be displayed."""
-            return "Selection not supported for boxplot yet" not in line
-
-        altair_module.renderers.enable(
-            "altair_saver",
-            fmts=["html", "svg"],
-            embed_options=VEGAEMBED_OPTIONS,
-            vega_cli_options=["--loglevel", "error"],
-            stderr_filter=stderr_filter,
-        )
-    else:
-        altair_module.renderers.enable("html", embed_options=VEGAEMBED_OPTIONS)
+    altair_module.renderers.register("onecodex", onecodex_renderer)
+    altair_module.renderers.enable("onecodex", embed_options=VEGAEMBED_OPTIONS)
 
 
 # Define an import hook to configure Altair's theme and renderer the first time
