@@ -42,13 +42,16 @@ def assert_expected_color_scale_range_len(chart, length):
     assert len(chart.to_dict()["encoding"]["color"]["scale"]["range"]) == length
 
 
-def assert_x_axis_has_no_labels_or_ticks(chart):
-    assert not chart.to_dict()["encoding"]["x"]["axis"]["labels"]
-    assert not chart.to_dict()["encoding"]["x"]["axis"]["ticks"]
+def assert_expected_color_field(chart, field):
+    assert chart.to_dict()["encoding"]["color"]["field"] == field
 
 
-def assert_expected_x_scale_padding(chart, padding):
-    assert chart.to_dict()["encoding"]["x"]["scale"]["padding"] == padding
+def assert_expected_x_offset_field(chart, field):
+    assert chart.to_dict()["encoding"]["xOffset"]["field"] == field
+
+
+def assert_expected_column_field(chart, field):
+    assert chart.to_dict()["encoding"]["column"]["field"] == field
 
 
 def test_altair_ocx_theme(ocx, api_data):
@@ -116,20 +119,46 @@ def test_plot_metadata_secondary_haxis_scatter(samples):
     )
 
     assert chart.mark == "circle"
-    assert_expected_x_axis_title(chart, "")
-    assert_x_axis_has_no_labels_or_ticks(chart)
-    assert_expected_x_scale_padding(chart, 1)
+    assert_expected_x_axis_title(chart, "geo_loc_name")
+    assert_expected_color_field(chart, "Label")
+    assert_expected_x_offset_field(chart, "Label")
 
 
 def test_plot_metadata_secondary_haxis_boxplot(samples):
     chart = samples.plot_metadata(
-        vaxis="shannon", haxis="geo_loc_name", secondary_haxis="starred", return_chart=True
+        vaxis="shannon",
+        haxis="geo_loc_name",
+        secondary_haxis="starred",
+        plot_type="boxplot",
+        return_chart=True,
     )
 
     assert chart.mark.type == "boxplot"
+    assert_expected_x_axis_title(chart, "geo_loc_name")
+    assert_expected_color_field(chart, "starred")
+    assert_expected_x_offset_field(chart, "starred")
+
+
+@pytest.mark.parametrize("plot_type", ["scatter", "boxplot"])
+def test_plot_metadata_secondary_haxis_and_facet_by(samples, plot_type):
+    chart = samples.plot_metadata(
+        vaxis="shannon",
+        haxis="geo_loc_name",
+        secondary_haxis="Label",
+        facet_by="starred",
+        plot_type=plot_type,
+        return_chart=True,
+    )
+
+    if plot_type == "scatter":
+        assert chart.mark == "circle"
+    else:
+        assert chart.mark.type == "boxplot"
+
     assert_expected_x_axis_title(chart, "")
-    assert_x_axis_has_no_labels_or_ticks(chart)
-    assert_expected_x_scale_padding(chart, 1)
+    assert_expected_color_field(chart, "Label")
+    assert_expected_x_offset_field(chart, "Label")
+    assert_expected_column_field(chart, "starred")
 
 
 def test_plot_metadata_alpha_diversity_with_nans(samples):
@@ -183,9 +212,6 @@ def test_plot_metadata_exceptions(samples):
     with pytest.raises(PlottingException) as e:
         samples[:0].plot_metadata()
     assert "too few samples" in str(e.value)
-
-    with pytest.raises(OneCodexException, match="one of `facet_by` or `secondary_haxis`"):
-        samples.plot_metadata(vaxis="shannon", facet_by="geo_loc_name", secondary_haxis="wheat")
 
     with pytest.raises(OneCodexException, match="`haxis` and `secondary_haxis` cannot be the same"):
         samples.plot_metadata(vaxis="shannon", haxis="wheat", secondary_haxis="wheat")
