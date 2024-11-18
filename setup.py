@@ -54,8 +54,7 @@ REPORT_DEPS = ALL_DEPS + [
     # jupyter_contrib_nbextensions).
     "notebook==6.5.7",
     "nbconvert>=6.4.3",
-    "WeasyPrint==60.1",  # 60.2 truncates y-axis titles
-    "pydyf<0.11.0",  # https://github.com/Kozea/WeasyPrint/issues/2200
+    "WeasyPrint==63.0",
     "vl-convert-python>=1.6.0",
 ]
 
