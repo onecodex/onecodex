@@ -1,3 +1,5 @@
+from typing import Optional, Literal, Union
+
 from onecodex.lib.enums import AlphaDiversityMetric, Rank, BaseEnum
 from onecodex.exceptions import OneCodexException, PlottingException
 from onecodex.viz._primitives import (
@@ -26,8 +28,8 @@ class VizMetadataMixin(object):
         plot_type=PlotType.Auto,
         label=None,
         sort_x=None,
-        width=200,
-        height=400,
+        width: Optional[Union[int, Literal["container"]]] = 200,
+        height: Optional[Union[int, Literal["container"]]] = 400,
         facet_by=None,
         coerce_haxis_dates=True,
         secondary_haxis=None,
@@ -73,6 +75,14 @@ class VizMetadataMixin(object):
             Either a list of sorted labels or a function that will be called with a list of x-axis labels
             as the only argument, and must return the same list in a user-specified order.
 
+        width : `int` or `str`, optional
+            Sets `altair.Chart.width`. If `"container"`, chart width will respond to the width of
+            the HTML container it is rendered in.
+
+        height : `int` or `str`, optional
+            Sets `altair.Chart.height`. If `"container"`, chart height will respond to the height of
+            the HTML container it is rendered in.
+
         facet_by : `string`, optional
             The metadata field used to facet samples by (i.e. to create a separate subplot for each
             group of samples).
@@ -103,14 +113,6 @@ class VizMetadataMixin(object):
         if not PlotType.has_value(plot_type):
             raise OneCodexException("Plot type must be one of: auto, boxplot, scatter")
 
-        # TODO we're hacking a grouped scatter/boxplot using faceting:
-        # https://stackoverflow.com/a/66877669/3776794
-        #
-        # Altair 5 supports alt.XOffset, which will enable the use of faceting *and* grouping. We
-        # can't upgrade to Altair 5 until we no longer depend on altair_saver.
-        if facet_by and secondary_haxis:
-            raise OneCodexException("Please only specify one of `facet_by` or `secondary_haxis`.")
-
         if haxis == secondary_haxis:
             raise OneCodexException("`haxis` and `secondary_haxis` cannot be the same field(s).")
 
@@ -126,8 +128,6 @@ class VizMetadataMixin(object):
             metadata_fields.append(facet_by)
         if secondary_haxis:
             metadata_fields.append(secondary_haxis)
-            facet_by = haxis
-            haxis = secondary_haxis
 
         df, magic_fields = self._metadata_fetch(metadata_fields, label=label)
 
@@ -200,16 +200,8 @@ class VizMetadataMixin(object):
 
         x_kwargs = {"axis": alt.Axis(title=xlabel)}
         if secondary_haxis:
-            # Part of the hack to make a faceted plot look like a grouped plot is turning off x-axis
-            # labels and ticks because they're redundant with the coloring and tooltip.
-            x_kwargs.update(
-                {
-                    "title": None,
-                    "axis": alt.Axis(title=xlabel, labels=False, ticks=False),
-                    "scale": alt.Scale(padding=1),
-                }
-            )
-            encode_kwargs["color"] = haxis
+            encode_kwargs["xOffset"] = secondary_haxis
+            encode_kwargs["color"] = secondary_haxis
 
         if plot_type == "scatter":
             df = df.reset_index()
@@ -229,16 +221,20 @@ class VizMetadataMixin(object):
             if sort_x:
                 raise OneCodexException("Must not specify sort_x when plot_type is boxplot")
 
-            box_size = 45
-            increment = 5
-            n_boxes = len(df[magic_fields[haxis]].unique())
+            boxplot_kwargs = {"median": {"stroke": "black"}}
+            if not secondary_haxis or width == "container":
+                box_size = 45
+                increment = 5
+                n_boxes = len(df[magic_fields[haxis]].unique())
 
-            if width and width != "container" and (n_boxes * (box_size + increment)) > width:
-                box_size = ((width / n_boxes) // increment) * increment - increment
+                if width and width != "container" and (n_boxes * (box_size + increment)) > width:
+                    box_size = ((width / n_boxes) // increment) * increment - increment
+
+                boxplot_kwargs["size"] = box_size
 
             chart = (
                 alt.Chart(df)
-                .mark_boxplot(size=box_size, median={"stroke": "black"})
+                .mark_boxplot(**boxplot_kwargs)
                 .encode(
                     x=alt.X(magic_fields[haxis], **x_kwargs),
                     y=alt.Y(magic_fields[vaxis], axis=alt.Axis(title=ylabel)),
@@ -246,10 +242,8 @@ class VizMetadataMixin(object):
                 )
             )
 
-        if facet_by:
+        if facet_by and not secondary_haxis:
             chart = chart.resolve_scale(x="independent")
-        if secondary_haxis:
-            chart = chart.configure_facet(spacing=0).configure_view(stroke=None)
 
         chart = chart.properties(**prepare_props(title=title, height=height, width=width))
 
