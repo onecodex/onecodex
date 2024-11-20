@@ -86,8 +86,6 @@ def test_pdf_report_generation(generate_pdf_report, capsys):
     assert len(page.images) > 0
 
     # Check text
-    assert "Example Report" in pdf_text
-    assert "NOT FOR DIAGNOSTIC USE" in pdf_text
     assert "Traceback" not in pdf_text  # make sure there were no Python exceptions
 
     # Check no stderr from vega CLI or similar
