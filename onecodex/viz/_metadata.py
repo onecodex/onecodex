@@ -1,3 +1,5 @@
+from typing import Optional, Literal, Union
+
 from onecodex.lib.enums import AlphaDiversityMetric, Rank, BaseEnum
 from onecodex.exceptions import OneCodexException, PlottingException
 from onecodex.viz._primitives import (
@@ -26,8 +28,8 @@ class VizMetadataMixin(object):
         plot_type=PlotType.Auto,
         label=None,
         sort_x=None,
-        width=200,
-        height=400,
+        width: Optional[Union[int, Literal["container"]]] = 200,
+        height: Optional[Union[int, Literal["container"]]] = 400,
         facet_by=None,
         coerce_haxis_dates=True,
         secondary_haxis=None,
@@ -72,6 +74,14 @@ class VizMetadataMixin(object):
         sort_x : `list` or `callable`, optional
             Either a list of sorted labels or a function that will be called with a list of x-axis labels
             as the only argument, and must return the same list in a user-specified order.
+
+        width : `int` or `str`, optional
+            Sets `altair.Chart.width`. If `"container"`, chart width will respond to the width of
+            the HTML container it is rendered in.
+
+        height : `int` or `str`, optional
+            Sets `altair.Chart.height`. If `"container"`, chart height will respond to the height of
+            the HTML container it is rendered in.
 
         facet_by : `string`, optional
             The metadata field used to facet samples by (i.e. to create a separate subplot for each
