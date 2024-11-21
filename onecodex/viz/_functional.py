@@ -122,8 +122,9 @@ class VizFunctionalHeatmapMixin(object):
             metadata["Label"] = pd.Series(metadata.index, name="Label")
 
         # Fill NA, and None with sample UUIDs
-        metadata["Label"].fillna(dict(zip(metadata.index, metadata.index)), inplace=True)
-        metadata["Label"] = metadata["Label"].astype(str)
+        metadata["Label"] = (
+            metadata["Label"].fillna(dict(zip(metadata.index, metadata.index))).astype(str)
+        )
 
         # Merge with metadata itself
         df = df.join(metadata)

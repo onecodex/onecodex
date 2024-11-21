@@ -38,7 +38,7 @@ class DistanceMixin(TaxonomyMixin):
 
         df = self.to_df(rank=rank, normalize=self._guess_normalized())
 
-        skbio_metric = "observed_otus" if metric == "observed_taxa" else metric
+        skbio_metric = "sobs" if metric == "observed_taxa" else metric
         output = skbio.diversity.alpha_diversity(skbio_metric, df.values, df.index, validate=False)
 
         return pd.DataFrame(output, columns=[metric])
@@ -202,14 +202,14 @@ class DistanceMixin(TaxonomyMixin):
         skbio.stats.distance.DistanceMatrix, a distance matrix.
         """
         import numpy as np
-        from skbio.stats.composition import multiplicative_replacement, clr
+        from skbio.stats.composition import multi_replace, clr
         from sklearn.metrics.pairwise import euclidean_distances
         from skbio.stats.distance import DistanceMatrix
 
         df = self.to_df(
             rank=rank, normalize=self._guess_normalized()
         )  # get a dataframe of abundances
-        df_n0 = multiplicative_replacement(df)  # replace 0s with positive small numbers
+        df_n0 = multi_replace(df)  # replace 0s with positive small numbers
         df_n0_clr = clr(df_n0)  # clr-normalize
         aitchison_array = euclidean_distances(df_n0_clr, df_n0_clr)  # get the euclidean distances
 
