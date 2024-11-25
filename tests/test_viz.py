@@ -217,6 +217,30 @@ def test_plot_metadata_exceptions(samples):
         samples.plot_metadata(vaxis="shannon", haxis="wheat", secondary_haxis="wheat")
 
 
+def test_plot_metadata_all_samples_are_nan(samples):
+    samples._results[:] = np.nan
+    assert len(samples._all_nan_classification_ids) == 3
+
+    # Raises for alpha diversity
+    with pytest.raises(PlottingException, match="Abundances are not calculated for any"):
+        samples.plot_metadata(vaxis="shannon")
+
+    # Does not raise for numeric metadata column
+    chart = samples.plot_metadata(vaxis="totalige", return_chart=True)
+    assert chart.mark == "circle"
+
+
+def test_plot_metadata_filters_nan_samples(samples):
+    samples._results.iloc[0, :] = np.nan
+    samples._results.iloc[1, :] = np.nan
+    assert len(samples._all_nan_classification_ids) == 2
+
+    with pytest.warns(PlottingWarning, match=r"2 sample\(s\) have no abundances calculated"):
+        chart = samples.plot_metadata(vaxis="shannon", return_chart=True)
+
+    assert len(chart["data"]) == 1
+
+
 def test_plot_metadata_group_with_single_value(samples):
     chart = samples.plot_metadata(
         plot_type="boxplot",

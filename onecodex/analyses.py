@@ -1,5 +1,8 @@
+from __future__ import annotations
 import warnings
 from collections import Counter
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.enums import (
@@ -20,6 +23,9 @@ from onecodex.viz import (
 )
 from onecodex.stats import StatsMixin
 
+if TYPE_CHECKING:
+    import pandas as pd
+
 
 def _get_all_nan_classification_ids(df):
     all_nan_classification_ids = []
@@ -27,6 +33,13 @@ def _get_all_nan_classification_ids(df):
         if is_all_nan:
             all_nan_classification_ids.append(class_id)
     return all_nan_classification_ids
+
+
+@dataclass
+class MetadataFetchResults:
+    df: pd.DataFrame  # transformed metadata
+    renamed_fields: dict  # Map of original fields to renamed fields
+    taxonomy_fields: set  # Set of *original* field names that matched taxonomy
 
 
 class AnalysisMixin(
@@ -120,15 +133,20 @@ class AnalysisMixin(
 
         Returns
         -------
-        `pandas.DataFrame`
+        Dataclass with the following attributes:
+
+        `df`: `pandas.DataFrame`
             Columns are renamed (if applicable) metadata fields and rows are `Classifications.id`.
             Elements are transformed values. Not all metadata fields will have been renamed, but will
             be present in the below `dict` nonetheless.
-        `dict`
+        `renamed_fields`: `dict`
             Keys are metadata fields and values are renamed metadata fields. This can be used to map
             metadata fields which were passed to this function, to prettier names. For example, if
             'bacteroid' is passed, it will be matched with the Bacteroides genus and renamed to
             'Bacteroides (816)', which includes its taxon ID.
+        `taxonomy_fields`: `set`
+            Set of *original* field names that matched taxonomy (either by taxon ID or taxon name).
+
         """
         import numpy as np
         import pandas as pd
@@ -145,6 +163,9 @@ class AnalysisMixin(
 
         # if we magically rename fields, keep track
         magic_fields = {}
+
+        # keep track of which fields match taxonomy
+        taxonomy_fields = set()
 
         for f in set([f for f in metadata_fields if f]):
             if isinstance(f, tuple):
@@ -217,6 +238,7 @@ class AnalysisMixin(
                     renamed_field = "{} ({})".format(tax_name, str_f)
                     magic_metadata[renamed_field] = df[str_f]
                     magic_fields[f] = renamed_field
+                    taxonomy_fields.add(f)
                 elif match_taxonomy:
                     # try to match it up with a taxon name
                     hits = []
@@ -242,6 +264,7 @@ class AnalysisMixin(
                         renamed_field = "{} ({})".format(hits[0][1], hits[0][0])
                         magic_metadata[renamed_field] = df[hits[0][0]]
                         magic_fields[f] = renamed_field
+                        taxonomy_fields.add(f)
                     else:
                         # matched nothing
                         magic_metadata[f] = None
@@ -251,7 +274,9 @@ class AnalysisMixin(
                     magic_metadata[f] = None
                     magic_fields[f] = str_f
 
-        return magic_metadata, magic_fields
+        return MetadataFetchResults(
+            df=magic_metadata, renamed_fields=magic_fields, taxonomy_fields=taxonomy_fields
+        )
 
     @property
     def _all_nan_classification_ids(self):

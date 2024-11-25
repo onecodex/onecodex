@@ -190,9 +190,11 @@ class VizDistanceMixin(DistanceMixin):
 
         tooltip.insert(0, "Label")
 
-        magic_metadata, magic_fields = self._metadata_fetch(tooltip, label=label)
-        formatted_fields = []
+        metadata_results = self._metadata_fetch(tooltip, label=label)
+        magic_metadata = metadata_results.df
+        magic_fields = metadata_results.renamed_fields
 
+        formatted_fields = []
         for _, magic_field in magic_fields.items():
             field_group = []
 
@@ -378,7 +380,9 @@ class VizDistanceMixin(DistanceMixin):
         if size and size not in tooltip:
             tooltip.insert(2, size)
 
-        magic_metadata, magic_fields = self._metadata_fetch(tooltip, label=label)
+        metadata_results = self._metadata_fetch(tooltip, label=label)
+        magic_metadata = metadata_results.df
+        magic_fields = metadata_results.renamed_fields
 
         if method == OrdinationMethod.Smacof:
             # adapted from https://scikit-learn.org/stable/auto_examples/manifold/plot_mds.html
