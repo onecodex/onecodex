@@ -361,7 +361,10 @@ class AnalysisMixin(
         remove_zeros : `bool`, optional
             Do not return taxa that have zero abundance in every sample.
         normalize : {'auto', True, False}
-            Convert read counts to relative abundances (each sample sums to 1.0).
+            Convert read counts to relative abundances (each sample sums to 1.0). If data has
+            already been normalized, passing ``normalize=False`` will raise an error. To generate
+            denormalized data, please create a new SampleCollection with ``metric="readcount"`` or
+            ``metric="readcount_w_children"``.
         table_format : {'long', 'wide'}
             If wide, rows are classifications, cols are taxa, elements are counts. If long, rows are
             observations with three cols each: classification_id, tax_id, and count.
@@ -442,7 +445,11 @@ class AnalysisMixin(
 
         # normalize
         if normalize is False and self._guess_normalized():
-            raise OneCodexException("Data has already been normalized and this can not be undone.")
+            raise OneCodexException(
+                f"Data has already been normalized. To generate denormalized data, please create a "
+                f"new SampleCollection with `metric={Metric.Readcount.value!r}` or "
+                f"`metric={Metric.ReadcountWChildren.value!r}`."
+            )
 
         if normalize is True or (normalize == "auto" and rank):
             if not self._guess_normalized():
