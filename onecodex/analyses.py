@@ -37,9 +37,12 @@ def _get_all_nan_classification_ids(df):
 
 @dataclass
 class MetadataFetchResults:
-    df: pd.DataFrame  # transformed metadata
-    renamed_fields: dict  # Map of original fields to renamed fields
-    taxonomy_fields: set  # Set of *original* field names that matched taxonomy
+    # Transformed metadata
+    df: pd.DataFrame
+    # Map of original fields to renamed fields
+    renamed_fields: dict[str | int | tuple[str, ...], str]
+    # Set of *original* fields that matched taxonomy
+    taxonomy_fields: set[str | int | tuple[str, ...]]
 
 
 class AnalysisMixin(
@@ -145,7 +148,7 @@ class AnalysisMixin(
             'bacteroid' is passed, it will be matched with the Bacteroides genus and renamed to
             'Bacteroides (816)', which includes its taxon ID.
         `taxonomy_fields`: `set`
-            Set of *original* field names that matched taxonomy (either by taxon ID or taxon name).
+            Set of *original* fields that matched taxonomy (either by taxon ID or taxon name).
 
         """
         import numpy as np
