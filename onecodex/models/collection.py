@@ -4,7 +4,12 @@ import json
 import warnings
 
 from onecodex.exceptions import OneCodexException
-from onecodex.lib.enums import Metric, FunctionalAnnotations, FunctionalAnnotationsMetric
+from onecodex.lib.enums import (
+    AbundanceMetric,
+    Metric,
+    FunctionalAnnotations,
+    FunctionalAnnotationsMetric,
+)
 
 try:
     from onecodex.analyses import AnalysisMixin
@@ -357,7 +362,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         data = np.zeros((len(self._classifications), len(tax_info.index)), dtype=metric_dtype)
 
-        if metric in [Metric.AbundanceWChildren, Metric.Abundance]:
+        if AbundanceMetric.has_value(metric):
             data.fill(np.nan)
 
         for c_idx, c in enumerate(self._classifications):

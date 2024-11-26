@@ -94,9 +94,11 @@ class StatsMixin:
             metadata_fields.append(paired_by)
 
         # Munge the metadata first in case there's any errors
-        df, magic_fields = self._metadata_fetch(
+        metadata_results = self._metadata_fetch(
             metadata_fields, coerce_missing_composite_fields=False
         )
+        df = metadata_results.df
+        magic_fields = metadata_results.renamed_fields
         group_by_column_name = magic_fields[group_by]
         paired_by_column_name = magic_fields.get(paired_by, None)
 

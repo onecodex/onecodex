@@ -205,7 +205,9 @@ class VizBargraphMixin(object):
 
             # takes metadata columns and returns a dataframe with just those columns
             # renames columns in the case where columns are taxids
-            magic_metadata, magic_fields = self._metadata_fetch(tooltip, label=label)
+            metadata_results = self._metadata_fetch(tooltip, label=label)
+            magic_metadata = metadata_results.df
+            magic_fields = metadata_results.renamed_fields
             df = df.join(magic_metadata)
             metadata_columns = magic_metadata.columns.tolist()
             tooltip = [magic_fields[f] for f in tooltip]

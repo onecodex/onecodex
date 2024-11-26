@@ -1,7 +1,8 @@
+import warnings
 from typing import Optional, Literal, Union
 
 from onecodex.lib.enums import AlphaDiversityMetric, Rank, BaseEnum
-from onecodex.exceptions import OneCodexException, PlottingException
+from onecodex.exceptions import OneCodexException, PlottingException, PlottingWarning
 from onecodex.viz._primitives import (
     prepare_props,
     sort_helper,
@@ -116,7 +117,7 @@ class VizMetadataMixin(object):
         if haxis == secondary_haxis:
             raise OneCodexException("`haxis` and `secondary_haxis` cannot be the same field(s).")
 
-        if len(self._results) < 1:
+        if len(self._results) == 0:
             raise PlottingException(
                 "There are too few samples for metadata plots after filtering. Please select 1 or "
                 "more samples to plot."
@@ -129,15 +130,23 @@ class VizMetadataMixin(object):
         if secondary_haxis:
             metadata_fields.append(secondary_haxis)
 
-        df, magic_fields = self._metadata_fetch(metadata_fields, label=label)
+        metadata_results = self._metadata_fetch(metadata_fields, label=label)
+        df = metadata_results.df
+        magic_fields = metadata_results.renamed_fields
 
+        exclude_classifications_without_abundances = True
         if AlphaDiversityMetric.has_value(vaxis):
             df.loc[:, vaxis] = self.alpha_diversity(vaxis, rank=rank)
             magic_fields[vaxis] = vaxis
             df.dropna(subset=[magic_fields[vaxis]], inplace=True)
         else:
             # if it's not alpha diversity, vertical axis can also be magically mapped
-            vert_df, vert_magic_fields = self._metadata_fetch([vaxis])
+            vert_metadata_results = self._metadata_fetch([vaxis])
+            vert_df = vert_metadata_results.df
+            vert_magic_fields = vert_metadata_results.renamed_fields
+            exclude_classifications_without_abundances = (
+                vaxis in vert_metadata_results.taxonomy_fields
+            )
 
             # we require the vertical axis to be numerical otherwise plots get weird
             if (
@@ -150,6 +159,24 @@ class VizMetadataMixin(object):
 
             df = pd.concat([df, vert_df], axis=1).dropna(subset=[vert_magic_fields[vaxis]])
             magic_fields.update(vert_magic_fields)
+
+        if (
+            exclude_classifications_without_abundances
+            and self._classification_ids_without_abundances
+        ):
+            df = df[~df.index.isin(self._classification_ids_without_abundances)]
+
+            if len(df) == 0:
+                raise PlottingException(
+                    "Abundances are not calculated for any of the selected samples. Please select "
+                    "a different metric or a different set of samples to plot."
+                )
+
+            warnings.warn(
+                f"{len(self._classification_ids_without_abundances)} sample(s) have no abundances "
+                f"calculated and have been omitted from the metadata plot.",
+                PlottingWarning,
+            )
 
         # plots can look different depending on what the horizontal axis contains
         if pd.api.types.is_datetime64_any_dtype(df[magic_fields[haxis]]):
@@ -238,7 +265,7 @@ class VizMetadataMixin(object):
                 .encode(
                     x=alt.X(magic_fields[haxis], **x_kwargs),
                     y=alt.Y(magic_fields[vaxis], axis=alt.Axis(title=ylabel)),
-                    **encode_kwargs
+                    **encode_kwargs,
                 )
             )
 

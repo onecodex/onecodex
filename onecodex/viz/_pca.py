@@ -116,7 +116,9 @@ class VizPCAMixin(object):
         if size and size not in tooltip:
             tooltip.insert(2, size)
 
-        magic_metadata, magic_fields = self._metadata_fetch(tooltip, label=label)
+        metadata_results = self._metadata_fetch(tooltip, label=label)
+        magic_metadata = metadata_results.df
+        magic_fields = metadata_results.renamed_fields
 
         pca = PCA()
         pca_vals = pca.fit(df.values).transform(df.values)

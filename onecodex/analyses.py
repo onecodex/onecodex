@@ -1,5 +1,8 @@
+from __future__ import annotations
 import warnings
 from collections import Counter
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.enums import (
@@ -20,13 +23,26 @@ from onecodex.viz import (
 )
 from onecodex.stats import StatsMixin
 
+if TYPE_CHECKING:
+    import pandas as pd
 
-def _get_all_nan_classification_ids(df):
-    all_nan_classification_ids = []
+
+def _get_classification_ids_without_abundances(df):
+    classification_ids_without_abundances = []
     for class_id, is_all_nan in df.isnull().all(1).items():
         if is_all_nan:
-            all_nan_classification_ids.append(class_id)
-    return all_nan_classification_ids
+            classification_ids_without_abundances.append(class_id)
+    return classification_ids_without_abundances
+
+
+@dataclass
+class MetadataFetchResults:
+    # Transformed metadata
+    df: pd.DataFrame
+    # Map of original fields to renamed fields
+    renamed_fields: dict[str | int | tuple[str, ...], str]
+    # Set of *original* fields that matched taxonomy
+    taxonomy_fields: set[str | int | tuple[str, ...]]
 
 
 class AnalysisMixin(
@@ -80,7 +96,7 @@ class AnalysisMixin(
 
     def _metadata_fetch(
         self, metadata_fields, label=None, match_taxonomy=True, coerce_missing_composite_fields=True
-    ):
+    ) -> MetadataFetchResults:
         """Fetch and transform given metadata fields from `self.metadata`.
 
         Takes a list of metadata fields, some of which can contain taxon names or taxon IDs, and
@@ -120,15 +136,20 @@ class AnalysisMixin(
 
         Returns
         -------
-        `pandas.DataFrame`
+        Dataclass with the following attributes:
+
+        `df`: `pandas.DataFrame`
             Columns are renamed (if applicable) metadata fields and rows are `Classifications.id`.
             Elements are transformed values. Not all metadata fields will have been renamed, but will
             be present in the below `dict` nonetheless.
-        `dict`
+        `renamed_fields`: `dict`
             Keys are metadata fields and values are renamed metadata fields. This can be used to map
             metadata fields which were passed to this function, to prettier names. For example, if
             'bacteroid' is passed, it will be matched with the Bacteroides genus and renamed to
             'Bacteroides (816)', which includes its taxon ID.
+        `taxonomy_fields`: `set`
+            Set of *original* fields that matched taxonomy (either by taxon ID or taxon name).
+
         """
         import numpy as np
         import pandas as pd
@@ -145,6 +166,9 @@ class AnalysisMixin(
 
         # if we magically rename fields, keep track
         magic_fields = {}
+
+        # keep track of which fields match taxonomy
+        taxonomy_fields = set()
 
         for f in set([f for f in metadata_fields if f]):
             if isinstance(f, tuple):
@@ -217,6 +241,7 @@ class AnalysisMixin(
                     renamed_field = "{} ({})".format(tax_name, str_f)
                     magic_metadata[renamed_field] = df[str_f]
                     magic_fields[f] = renamed_field
+                    taxonomy_fields.add(f)
                 elif match_taxonomy:
                     # try to match it up with a taxon name
                     hits = []
@@ -242,6 +267,7 @@ class AnalysisMixin(
                         renamed_field = "{} ({})".format(hits[0][1], hits[0][0])
                         magic_metadata[renamed_field] = df[hits[0][0]]
                         magic_fields[f] = renamed_field
+                        taxonomy_fields.add(f)
                     else:
                         # matched nothing
                         magic_metadata[f] = None
@@ -251,10 +277,12 @@ class AnalysisMixin(
                     magic_metadata[f] = None
                     magic_fields[f] = str_f
 
-        return magic_metadata, magic_fields
+        return MetadataFetchResults(
+            df=magic_metadata, renamed_fields=magic_fields, taxonomy_fields=taxonomy_fields
+        )
 
     @property
-    def _all_nan_classification_ids(self):
+    def _classification_ids_without_abundances(self):
         """
         Provide list of classification ids for which there are no abundances calculated.
 
@@ -265,13 +293,18 @@ class AnalysisMixin(
         """
         from onecodex.dataframes import OneCodexAccessor
 
+        if not AbundanceMetric.has_value(self._metric):
+            return []
+
         if isinstance(self, OneCodexAccessor):
-            if self._ocx_all_nan_classification_ids is None:
+            if self._ocx_classification_ids_without_abundances is None:
                 # We rely on this list for accurate plot data, and it shouldn't ever be None, but if
                 # it is None, we raise an exception to avoid generating misleading plots
-                raise OneCodexException("Unable to fetch list of all_nan_classification_ids")
-            return self._ocx_all_nan_classification_ids
-        return _get_all_nan_classification_ids(self._results)
+                raise OneCodexException(
+                    "Unable to fetch list of classification IDs without abundances"
+                )
+            return self._ocx_classification_ids_without_abundances
+        return _get_classification_ids_without_abundances(self._results)
 
     def to_df(self, analysis_type=AnalysisType.Classification, **kwargs):
         """
@@ -476,7 +509,7 @@ class AnalysisMixin(
             "ocx_metric": self._metric,
             "ocx_taxonomy": self.taxonomy.copy(),
             "ocx_normalized": normalize,
-            "ocx_all_nan_classification_ids": self._all_nan_classification_ids,
+            "ocx_classification_ids_without_abundances": self._classification_ids_without_abundances,
         }
 
         # generate long-format table

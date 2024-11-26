@@ -32,19 +32,19 @@ def test_default_metric(samples):
     assert samples.metric == "Relative Abundance"
 
 
-def test_all_nan_classification_id_property(samples):
+def test_classification_ids_without_abundances_property(samples):
     import numpy as np
 
     # should be the same when called on `SampleCollection` and on `OneCodexAccessor`
-    assert samples._all_nan_classification_ids == []
-    assert samples.to_df(fill_missing=False).ocx._all_nan_classification_ids == []
+    assert samples._classification_ids_without_abundances == []
+    assert samples.to_df(fill_missing=False).ocx._classification_ids_without_abundances == []
 
     samples._results.iloc[0] = np.nan
 
-    assert samples.to_df(fill_missing=False).ocx._all_nan_classification_ids == [
+    assert samples.to_df(fill_missing=False).ocx._classification_ids_without_abundances == [
         samples._results.iloc[0].name
     ]
-    assert samples._all_nan_classification_ids == [samples._results.iloc[0].name]
+    assert samples._classification_ids_without_abundances == [samples._results.iloc[0].name]
 
 
 def test_guess_normalization(samples):
@@ -96,59 +96,75 @@ def test_metadata_fetch(samples):
     assert "must be categorical" in str(e.value)
 
     # proper tuple of categorical metadata fields
-    df, fields = samples._metadata_fetch([("eggs", "vegetables")])
-    assert fields[("eggs", "vegetables")] == "eggs_vegetables"
-    assert df["eggs_vegetables"].tolist() == ["True_True", "True_True", "True_True"]
+    results = samples._metadata_fetch([("eggs", "vegetables")])
+    assert results.renamed_fields[("eggs", "vegetables")] == "eggs_vegetables"
+    assert results.df["eggs_vegetables"].tolist() == ["True_True", "True_True", "True_True"]
+    assert not results.taxonomy_fields
 
     # Label reserved field name
-    df, fields = samples._metadata_fetch(["Label"])
-    assert fields["Label"] == "Label"
-    assert df["Label"].tolist() == ["SRR4408293.fastq", "SRR4305031.fastq", "SRR4408292.fastq"]
+    results = samples._metadata_fetch(["Label"])
+    assert results.renamed_fields["Label"] == "Label"
+    assert results.df["Label"].tolist() == [
+        "SRR4408293.fastq",
+        "SRR4305031.fastq",
+        "SRR4408292.fastq",
+    ]
+    assert not results.taxonomy_fields
 
     # exact match of single metadata field
-    df, fields = samples._metadata_fetch(["totalige"])
-    assert fields["totalige"] == "totalige"
-    assert df["totalige"].tolist() == [62.9, 91.5, 112.0]
+    results = samples._metadata_fetch(["totalige"])
+    assert results.renamed_fields["totalige"] == "totalige"
+    assert results.df["totalige"].tolist() == [62.9, 91.5, 112.0]
+    assert not results.taxonomy_fields
 
     # single metadata field doesn't match anything
-    df, fields = samples._metadata_fetch(["does_not_exist"])
-    assert fields["does_not_exist"] == "does_not_exist"
-    assert df["does_not_exist"].tolist() == [None, None, None]
+    results = samples._metadata_fetch(["does_not_exist"])
+    assert results.renamed_fields["does_not_exist"] == "does_not_exist"
+    assert results.df["does_not_exist"].tolist() == [None, None, None]
+    assert not results.taxonomy_fields
 
     # tax_id coerced to string from integer
-    df, fields = samples._metadata_fetch([1279])
-    assert fields[1279] == "Staphylococcus (1279)"
-    assert df["Staphylococcus (1279)"].round(10).tolist() == [4.0172e-06, 4.89491e-05, 2.0881e-06]
+    results = samples._metadata_fetch([1279])
+    assert results.renamed_fields[1279] == "Staphylococcus (1279)"
+    assert results.df["Staphylococcus (1279)"].round(10).tolist() == [
+        4.0172e-06,
+        4.89491e-05,
+        2.0881e-06,
+    ]
+    assert results.taxonomy_fields == {1279}
 
     # tax_name, should take lowest matching tax_id, be case-insensitive, and report within-rank abundance
-    df, fields = samples._metadata_fetch(["bacteroid"])
-    assert fields["bacteroid"] == "Bacteroidaceae (815)"
-    assert df["Bacteroidaceae (815)"].round(10).tolist() == [
+    results = samples._metadata_fetch(["bacteroid"])
+    assert results.renamed_fields["bacteroid"] == "Bacteroidaceae (815)"
+    assert results.df["Bacteroidaceae (815)"].round(10).tolist() == [
         0.344903898,
         0.1656058794,
         0.7776093433,
     ]
+    assert results.taxonomy_fields == {"bacteroid"}
 
     # label is a metadata field or callable
-    df, fields = samples._metadata_fetch(["Label"], label="eggs")
-    assert df["Label"].tolist() == ["True (1)", "True (2)", "True (3)"]
+    results = samples._metadata_fetch(["Label"], label="eggs")
+    assert results.df["Label"].tolist() == ["True (1)", "True (2)", "True (3)"]
+    assert not results.taxonomy_fields
 
-    df, fields = samples._metadata_fetch(["Label"], label=lambda x: str(x["eggs"]) + "_foo")
-    assert df["Label"].tolist() == ["True_foo (1)", "True_foo (2)", "True_foo (3)"]
+    results = samples._metadata_fetch(["Label"], label=lambda x: str(x["eggs"]) + "_foo")
+    assert results.df["Label"].tolist() == ["True_foo (1)", "True_foo (2)", "True_foo (3)"]
+    assert not results.taxonomy_fields
 
     # label must be a string or callable
     with pytest.raises(OneCodexException) as e:
-        df, fields = samples._metadata_fetch(["Label"], label=False)
+        samples._metadata_fetch(["Label"], label=False)
     assert "string or callable" in str(e.value)
 
     # label is a field not in the table
     with pytest.raises(OneCodexException) as e:
-        df, fields = samples._metadata_fetch(["Label"], label="does_not_exist")
+        samples._metadata_fetch(["Label"], label="does_not_exist")
     assert "not found" in str(e.value)
 
     # label is a callable doesn't return a string
     with pytest.raises(OneCodexException) as e:
-        df, fields = samples._metadata_fetch(["Label"], label=lambda x: False)
+        samples._metadata_fetch(["Label"], label=lambda x: False)
     assert "string from label" in str(e.value)
 
 

@@ -105,7 +105,7 @@ class VizHeatmapMixin(object):
                 "There are too few samples for heatmap plots after filtering. Please select 2 or "
                 "more samples to plot."
             )
-        elif len(self._results) - len(self._all_nan_classification_ids) <= 0:
+        elif len(self._results) - len(self._classification_ids_without_abundances) <= 0:
             raise PlottingException(
                 "Abundances are not calculated for any of the selected samples. Please select a "
                 "different metric or a different set of samples to plot."
@@ -127,7 +127,7 @@ class VizHeatmapMixin(object):
             table_format="long",
             fill_missing=False,
         )
-        all_nan_classification_ids = self._all_nan_classification_ids
+        classification_ids_without_abundances = self._classification_ids_without_abundances
 
         if len(df["tax_id"].unique()) < 2:
             raise PlottingException(
@@ -149,7 +149,9 @@ class VizHeatmapMixin(object):
 
         tooltip.insert(0, "Label")
 
-        magic_metadata, magic_fields = self._metadata_fetch(tooltip, label=label)
+        metadata_results = self._metadata_fetch(tooltip, label=label)
+        magic_metadata = metadata_results.df
+        magic_fields = metadata_results.renamed_fields
         magic_metadata.replace(np.nan, "N/A", inplace=True)
 
         # add columns for prettier display
@@ -192,7 +194,7 @@ class VizHeatmapMixin(object):
             if haxis is None:
                 # cluster samples only once
                 sample_cluster = df_sample_cluster.ocx._cluster_by_sample(
-                    all_nan_classification_ids=all_nan_classification_ids,
+                    classification_ids_without_abundances=classification_ids_without_abundances,
                     rank=rank,
                     metric=metric,
                     linkage=linkage,
@@ -220,7 +222,7 @@ class VizHeatmapMixin(object):
                         continue
 
                     sample_cluster = group_df.drop(columns=[haxis]).ocx._cluster_by_sample(
-                        all_nan_classification_ids=all_nan_classification_ids,
+                        classification_ids_without_abundances=classification_ids_without_abundances,
                         rank=rank,
                         metric=metric,
                         linkage=linkage,
@@ -258,11 +260,12 @@ class VizHeatmapMixin(object):
         # Drop all-NaN rows, convert remaining NaNs to 0s, and concat
         # dropped all-NaN rows to the end
         dropped = []
-        for classification_id in all_nan_classification_ids:
+        for classification_id in classification_ids_without_abundances:
             d = df[(df == classification_id).any(axis=1)]
             if isinstance(self, OneCodexAccessor):
                 # the df of a `OneCodexAccessor` does not have NaNs, and we want to display
-                # all_nan_classification_id columns as white instead of color corresponding to 0
+                # classification_ids_without_abundances columns as white instead of color
+                # corresponding to 0
                 d = d.replace(0.0, np.nan)
             dropped.append(d)
             index = df[(df == classification_id).any(axis=1)].index

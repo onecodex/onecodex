@@ -14,7 +14,7 @@ from onecodex.utils import is_continuous, has_missing_values
 
 
 class VizDistanceMixin(DistanceMixin):
-    def _compute_distance(self, rank, metric, exclude_all_nan=False):
+    def _compute_distance(self, rank, metric, exclude_classifications_without_abundances=False):
         if rank is None:
             raise OneCodexException("Please specify a rank or 'auto' to choose automatically")
 
@@ -38,11 +38,11 @@ class VizDistanceMixin(DistanceMixin):
                 "Metric must be one of: {}".format(", ".join(BetaDiversityMetric.values()))
             )
 
-        if exclude_all_nan:
+        if exclude_classifications_without_abundances:
             ids = [
                 classification_id
                 for classification_id in distances.ids
-                if classification_id not in self._all_nan_classification_ids
+                if classification_id not in self._classification_ids_without_abundances
             ]
             distances = distances.filter(ids)
 
@@ -50,11 +50,11 @@ class VizDistanceMixin(DistanceMixin):
 
     def _cluster_by_sample(
         self,
-        all_nan_classification_ids=None,
+        classification_ids_without_abundances=None,
         rank=Rank.Auto,
         metric=BetaDiversityMetric.BrayCurtis,
         linkage=Linkage.Average,
-        exclude_all_nan=False,
+        exclude_classifications_without_abundances=False,
     ):
         import numpy as np
         from scipy.cluster import hierarchy
@@ -63,10 +63,12 @@ class VizDistanceMixin(DistanceMixin):
 
         df = self._results
 
-        if all_nan_classification_ids:
+        if classification_ids_without_abundances:
             # subset in case we're plotting a facet
-            all_nan_classification_ids = [x for x in all_nan_classification_ids if x in df.index]
-            df = df.drop(all_nan_classification_ids)
+            classification_ids_without_abundances = [
+                x for x in classification_ids_without_abundances if x in df.index
+            ]
+            df = df.drop(classification_ids_without_abundances)
 
         df = df.replace(np.nan, 0)
 
@@ -74,7 +76,11 @@ class VizDistanceMixin(DistanceMixin):
             dist_matrix = euclidean_distances(df).round(6)
         else:
             dist_matrix = (
-                self._compute_distance(rank=rank, metric=metric, exclude_all_nan=exclude_all_nan)
+                self._compute_distance(
+                    rank=rank,
+                    metric=metric,
+                    exclude_classifications_without_abundances=exclude_classifications_without_abundances,
+                )
                 .to_data_frame()
                 .round(6)
             )
@@ -83,8 +89,8 @@ class VizDistanceMixin(DistanceMixin):
         scipy_tree = hierarchy.dendrogram(clustering, no_plot=True)
         ids_in_order = [df.index[int(x)] for x in scipy_tree["ivl"]]
 
-        if all_nan_classification_ids and not exclude_all_nan:
-            ids_in_order.extend(all_nan_classification_ids)
+        if classification_ids_without_abundances and not exclude_classifications_without_abundances:
+            ids_in_order.extend(classification_ids_without_abundances)
 
         return {
             "dist_matrix": dist_matrix,
@@ -172,7 +178,7 @@ class VizDistanceMixin(DistanceMixin):
                 "There are too few samples for distance matrix plots after filtering. Please "
                 "select 2 or more samples to plot."
             )
-        elif len(self._results) - len(self._all_nan_classification_ids) < 2:
+        elif len(self._results) - len(self._classification_ids_without_abundances) < 2:
             raise PlottingException(
                 "There are too few samples for distance matrix plots after filtering out samples "
                 "with no abundances calculated; please select more samples to plot."
@@ -190,9 +196,11 @@ class VizDistanceMixin(DistanceMixin):
 
         tooltip.insert(0, "Label")
 
-        magic_metadata, magic_fields = self._metadata_fetch(tooltip, label=label)
-        formatted_fields = []
+        metadata_results = self._metadata_fetch(tooltip, label=label)
+        magic_metadata = metadata_results.df
+        magic_fields = metadata_results.renamed_fields
 
+        formatted_fields = []
         for _, magic_field in magic_fields.items():
             field_group = []
 
@@ -207,13 +215,13 @@ class VizDistanceMixin(DistanceMixin):
             rank=rank,
             metric=metric,
             linkage=linkage,
-            all_nan_classification_ids=self._all_nan_classification_ids,
-            exclude_all_nan=True,
+            classification_ids_without_abundances=self._classification_ids_without_abundances,
+            exclude_classifications_without_abundances=True,
         )
 
-        if self._all_nan_classification_ids:
+        if self._classification_ids_without_abundances:
             warnings.warn(
-                f"{len(self._all_nan_classification_ids)} sample(s) have no abundances "
+                f"{len(self._classification_ids_without_abundances)} sample(s) have no abundances "
                 "calculated and have been omitted from the distance heatmap.",
                 PlottingWarning,
             )
@@ -378,7 +386,9 @@ class VizDistanceMixin(DistanceMixin):
         if size and size not in tooltip:
             tooltip.insert(2, size)
 
-        magic_metadata, magic_fields = self._metadata_fetch(tooltip, label=label)
+        metadata_results = self._metadata_fetch(tooltip, label=label)
+        magic_metadata = metadata_results.df
+        magic_fields = metadata_results.renamed_fields
 
         if method == OrdinationMethod.Smacof:
             # adapted from https://scikit-learn.org/stable/auto_examples/manifold/plot_mds.html
