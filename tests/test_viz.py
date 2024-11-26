@@ -219,7 +219,7 @@ def test_plot_metadata_exceptions(samples):
 
 def test_plot_metadata_all_samples_are_nan(samples):
     samples._results[:] = np.nan
-    assert len(samples._all_nan_classification_ids) == 3
+    assert len(samples._classification_ids_without_abundances) == 3
 
     # Raises for alpha diversity
     with pytest.raises(PlottingException, match="Abundances are not calculated for any"):
@@ -233,7 +233,7 @@ def test_plot_metadata_all_samples_are_nan(samples):
 def test_plot_metadata_filters_nan_samples(samples):
     samples._results.iloc[0, :] = np.nan
     samples._results.iloc[1, :] = np.nan
-    assert len(samples._all_nan_classification_ids) == 2
+    assert len(samples._classification_ids_without_abundances) == 2
 
     with pytest.warns(PlottingWarning, match=r"2 sample\(s\) have no abundances calculated"):
         chart = samples.plot_metadata(vaxis="shannon", return_chart=True)
@@ -380,13 +380,13 @@ def test_plot_heatmap_with_missing_haxis_sample(samples):
         (True),
     ],
 )
-def test_plot_heatmap_plots_all_nan_samples_with_nans(samples, is_onecodex_accessor):
+def test_plot_heatmap_plots_samples_without_abundances_with_nans(samples, is_onecodex_accessor):
     # Set abundances for first sample to be all NaN
     all_nan_sample = samples[0]
     samples._results.loc[all_nan_sample.primary_classification.id] = np.nan
-    assert len(samples._all_nan_classification_ids) == 1
+    assert len(samples._classification_ids_without_abundances) == 1
 
-    all_nan_classification_id = samples._all_nan_classification_ids[0]
+    all_nan_classification_id = samples._classification_ids_without_abundances[0]
     if is_onecodex_accessor:
         chart = samples.to_df().ocx.plot_heatmap(
             title="my title", xlabel="my xlabel", ylabel="my ylabel", return_chart=True
@@ -427,7 +427,7 @@ def test_plot_heatmap_with_haxis_two_cluster_groups(ocx, api_data, samples):
     # (It should not be in the clustering group)
     all_nan_sample = samples[1]
     samples._results.loc[all_nan_sample.primary_classification.id] = np.nan
-    assert len(samples._all_nan_classification_ids) == 1
+    assert len(samples._classification_ids_without_abundances) == 1
 
     # Make sure we are actually calling _cluster_by_sample
     with mock.patch("onecodex.viz._distance.VizDistanceMixin._cluster_by_sample") as cluster_fn:
@@ -450,7 +450,7 @@ def test_plot_heatmap_with_haxis_two_cluster_groups(ocx, api_data, samples):
 
 def test_plot_heatmap_all_samples_are_nan(ocx, api_data, samples):
     samples._results[:] = np.nan
-    assert len(samples._all_nan_classification_ids) == 3
+    assert len(samples._classification_ids_without_abundances) == 3
 
     with pytest.raises(PlottingException, match="Abundances are not calculated for any"):
         samples.plot_heatmap(top_n=10, return_chart=True)
@@ -458,14 +458,16 @@ def test_plot_heatmap_all_samples_are_nan(ocx, api_data, samples):
 
 def test_plot_bargraph_no_samples_have_abundances(ocx, api_data, samples):
     samples._results[:] = np.nan
-    assert len(samples._all_nan_classification_ids) == 3
+    assert len(samples._classification_ids_without_abundances) == 3
 
     chart = samples.plot_bargraph(return_chart=True)
 
     assert list(chart.data["Relative Abundance"].values) == [0.0, 0.0, 0.0]
 
 
-def test_plot_distance_excludes_all_nan_clustering_helper_called_with(ocx, api_data, samples):
+def test_plot_distance_cluster_by_sample_excludes_classifications_without_abundances(
+    ocx, api_data, samples
+):
     sample1 = ocx.Samples.get("cc18208d98ad48b3")
     sample2 = ocx.Samples.get("5445740666134eee")
     samples.extend([sample1, sample2])
@@ -473,25 +475,26 @@ def test_plot_distance_excludes_all_nan_clustering_helper_called_with(ocx, api_d
     # Set abundances for one sample to be all NaN
     all_nan_sample = samples[1]
     samples._results.loc[all_nan_sample.primary_classification.id] = np.nan
-    assert len(samples._all_nan_classification_ids) == 1
+    assert len(samples._classification_ids_without_abundances) == 1
 
     with mock.patch(
         "onecodex.viz._distance.VizDistanceMixin._cluster_by_sample"
     ) as cluster_fn, mock.patch("onecodex.viz.dendrogram"), mock.patch("altair.hconcat"):
         with pytest.warns(PlottingWarning):
             samples.plot_distance()
-            # the cluster function should be called with `exclude_all_nan=True` and
-            # the classification ID of the `all_nan_sample`
+            # the cluster function should be called with
+            # `exclude_classifications_without_abundances=True` and the classification ID of the
+            # `all_nan_sample`
             cluster_fn.assert_called_with(
                 rank=Rank.Auto,
                 metric=BetaDiversityMetric.BrayCurtis,
                 linkage=Linkage.Average,
-                all_nan_classification_ids=[all_nan_sample.primary_classification.id],
-                exclude_all_nan=True,
+                classification_ids_without_abundances=[all_nan_sample.primary_classification.id],
+                exclude_classifications_without_abundances=True,
             )
 
 
-def test_plot_distance_excludes_all_nan_class_id_not_in_chart(ocx, api_data, samples):
+def test_plot_distance_excludes_classifications_without_abundances(ocx, api_data, samples):
     sample1 = ocx.Samples.get("cc18208d98ad48b3")
     sample2 = ocx.Samples.get("5445740666134eee")
     samples.extend([sample1, sample2])
@@ -499,7 +502,7 @@ def test_plot_distance_excludes_all_nan_class_id_not_in_chart(ocx, api_data, sam
     # Set abundances for one sample to be all NaN
     all_nan_sample = samples[1]
     samples._results.loc[all_nan_sample.primary_classification.id] = np.nan
-    assert len(samples._all_nan_classification_ids) == 1
+    assert len(samples._classification_ids_without_abundances) == 1
 
     with mock.patch("altair.hconcat") as mock_hconcat:
         with pytest.warns(PlottingWarning):
@@ -520,7 +523,7 @@ def test_plot_distance_min_with_abundances(ocx, api_data):
     # Set abundances for both samples to be all NaN
     samples._results.loc[sample1.primary_classification.id] = np.nan
     samples._results.loc[sample2.primary_classification.id] = np.nan
-    assert len(samples._all_nan_classification_ids) == 2
+    assert len(samples._classification_ids_without_abundances) == 2
 
     # We should raise a PlottingException if we don't have >= 2 samples with abundances calculated
     with pytest.raises(PlottingException) as e:

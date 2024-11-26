@@ -117,7 +117,7 @@ class VizMetadataMixin(object):
         if haxis == secondary_haxis:
             raise OneCodexException("`haxis` and `secondary_haxis` cannot be the same field(s).")
 
-        if len(self._results) < 1:
+        if len(self._results) == 0:
             raise PlottingException(
                 "There are too few samples for metadata plots after filtering. Please select 1 or "
                 "more samples to plot."
@@ -134,7 +134,7 @@ class VizMetadataMixin(object):
         df = metadata_results.df
         magic_fields = metadata_results.renamed_fields
 
-        filter_samples_missing_abundances = True
+        exclude_classifications_without_abundances = True
         if AlphaDiversityMetric.has_value(vaxis):
             df.loc[:, vaxis] = self.alpha_diversity(vaxis, rank=rank)
             magic_fields[vaxis] = vaxis
@@ -144,7 +144,9 @@ class VizMetadataMixin(object):
             vert_metadata_results = self._metadata_fetch([vaxis])
             vert_df = vert_metadata_results.df
             vert_magic_fields = vert_metadata_results.renamed_fields
-            filter_samples_missing_abundances = vaxis in vert_metadata_results.taxonomy_fields
+            exclude_classifications_without_abundances = (
+                vaxis in vert_metadata_results.taxonomy_fields
+            )
 
             # we require the vertical axis to be numerical otherwise plots get weird
             if (
@@ -158,18 +160,21 @@ class VizMetadataMixin(object):
             df = pd.concat([df, vert_df], axis=1).dropna(subset=[vert_magic_fields[vaxis]])
             magic_fields.update(vert_magic_fields)
 
-        if filter_samples_missing_abundances and self._all_nan_classification_ids:
-            df = df[~df.index.isin(self._all_nan_classification_ids)]
+        if (
+            exclude_classifications_without_abundances
+            and self._classification_ids_without_abundances
+        ):
+            df = df[~df.index.isin(self._classification_ids_without_abundances)]
 
-            if len(df) < 1:
+            if len(df) == 0:
                 raise PlottingException(
                     "Abundances are not calculated for any of the selected samples. Please select "
                     "a different metric or a different set of samples to plot."
                 )
 
             warnings.warn(
-                f"{len(self._all_nan_classification_ids)} sample(s) have no abundances calculated "
-                "and have been omitted from the metadata plot.",
+                f"{len(self._classification_ids_without_abundances)} sample(s) have no abundances "
+                f"calculated and have been omitted from the metadata plot.",
                 PlottingWarning,
             )
 

@@ -32,19 +32,19 @@ def test_default_metric(samples):
     assert samples.metric == "Relative Abundance"
 
 
-def test_all_nan_classification_id_property(samples):
+def test_classification_ids_without_abundances_property(samples):
     import numpy as np
 
     # should be the same when called on `SampleCollection` and on `OneCodexAccessor`
-    assert samples._all_nan_classification_ids == []
-    assert samples.to_df(fill_missing=False).ocx._all_nan_classification_ids == []
+    assert samples._classification_ids_without_abundances == []
+    assert samples.to_df(fill_missing=False).ocx._classification_ids_without_abundances == []
 
     samples._results.iloc[0] = np.nan
 
-    assert samples.to_df(fill_missing=False).ocx._all_nan_classification_ids == [
+    assert samples.to_df(fill_missing=False).ocx._classification_ids_without_abundances == [
         samples._results.iloc[0].name
     ]
-    assert samples._all_nan_classification_ids == [samples._results.iloc[0].name]
+    assert samples._classification_ids_without_abundances == [samples._results.iloc[0].name]
 
 
 def test_guess_normalization(samples):

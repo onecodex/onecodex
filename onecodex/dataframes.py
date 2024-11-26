@@ -37,7 +37,7 @@ class ClassificationsDataFrame(pd.DataFrame):
     ocx_normalized : `bool`
         Whether the results in this DataFrame were normalized, each sample summing to 1.0.
 
-    ocx_all_nan_classification_ids : `list`
+    ocx_classification_ids_without_abundances : `list`
         List of classification_ids for which no abundances were calculated.
     """
 
@@ -47,7 +47,7 @@ class ClassificationsDataFrame(pd.DataFrame):
         "ocx_taxonomy",
         "ocx_metadata",
         "ocx_normalized",
-        "ocx_all_nan_classification_ids",
+        "ocx_classification_ids_without_abundances",
     ]
 
     def __init__(
@@ -62,14 +62,14 @@ class ClassificationsDataFrame(pd.DataFrame):
         ocx_taxonomy=None,
         ocx_metadata=None,
         ocx_normalized=None,
-        ocx_all_nan_classification_ids=None,
+        ocx_classification_ids_without_abundances=None,
     ):
         self.ocx_rank = ocx_rank
         self.ocx_metric = ocx_metric
         self.ocx_taxonomy = ocx_taxonomy
         self.ocx_metadata = ocx_metadata
         self.ocx_normalized = ocx_normalized
-        self.ocx_all_nan_classification_ids = ocx_all_nan_classification_ids
+        self.ocx_classification_ids_without_abundances = ocx_classification_ids_without_abundances
 
         super().__init__(data=data, index=index, columns=columns, dtype=dtype, copy=copy)
 
@@ -254,7 +254,9 @@ class OneCodexAccessor(AnalysisMixin):
             self._metric = pandas_obj.ocx_metric
             self._rank = pandas_obj.ocx_rank
 
-            self._ocx_all_nan_classification_ids = pandas_obj.ocx_all_nan_classification_ids
+            self._ocx_classification_ids_without_abundances = (
+                pandas_obj.ocx_classification_ids_without_abundances
+            )
 
             # prune back _taxonomy df to contain only taxa and parents
             # in the ClassificationsDataFrame

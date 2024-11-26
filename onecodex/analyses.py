@@ -27,12 +27,12 @@ if TYPE_CHECKING:
     import pandas as pd
 
 
-def _get_all_nan_classification_ids(df):
-    all_nan_classification_ids = []
+def _get_classification_ids_without_abundances(df):
+    classification_ids_without_abundances = []
     for class_id, is_all_nan in df.isnull().all(1).items():
         if is_all_nan:
-            all_nan_classification_ids.append(class_id)
-    return all_nan_classification_ids
+            classification_ids_without_abundances.append(class_id)
+    return classification_ids_without_abundances
 
 
 @dataclass
@@ -96,7 +96,7 @@ class AnalysisMixin(
 
     def _metadata_fetch(
         self, metadata_fields, label=None, match_taxonomy=True, coerce_missing_composite_fields=True
-    ):
+    ) -> MetadataFetchResults:
         """Fetch and transform given metadata fields from `self.metadata`.
 
         Takes a list of metadata fields, some of which can contain taxon names or taxon IDs, and
@@ -282,7 +282,7 @@ class AnalysisMixin(
         )
 
     @property
-    def _all_nan_classification_ids(self):
+    def _classification_ids_without_abundances(self):
         """
         Provide list of classification ids for which there are no abundances calculated.
 
@@ -293,13 +293,18 @@ class AnalysisMixin(
         """
         from onecodex.dataframes import OneCodexAccessor
 
+        if not AbundanceMetric.has_value(self._metric):
+            return []
+
         if isinstance(self, OneCodexAccessor):
-            if self._ocx_all_nan_classification_ids is None:
+            if self._ocx_classification_ids_without_abundances is None:
                 # We rely on this list for accurate plot data, and it shouldn't ever be None, but if
                 # it is None, we raise an exception to avoid generating misleading plots
-                raise OneCodexException("Unable to fetch list of all_nan_classification_ids")
-            return self._ocx_all_nan_classification_ids
-        return _get_all_nan_classification_ids(self._results)
+                raise OneCodexException(
+                    "Unable to fetch list of classification IDs without abundances"
+                )
+            return self._ocx_classification_ids_without_abundances
+        return _get_classification_ids_without_abundances(self._results)
 
     def to_df(self, analysis_type=AnalysisType.Classification, **kwargs):
         """
@@ -497,7 +502,7 @@ class AnalysisMixin(
             "ocx_metric": self._metric,
             "ocx_taxonomy": self.taxonomy.copy(),
             "ocx_normalized": normalize,
-            "ocx_all_nan_classification_ids": self._all_nan_classification_ids,
+            "ocx_classification_ids_without_abundances": self._classification_ids_without_abundances,
         }
 
         # generate long-format table
