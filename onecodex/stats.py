@@ -53,7 +53,8 @@ class StatsMixin:
             groups of unpaired data. `'wilcoxon'` will be chosen if there are two groups and
             `paired_by` is specified. `'kruskal'` will be chosen if there are more than 2 groups.
         metric : {'shannon', 'simpson', 'observed_taxa'}, optional
-            The alpha diversity metric to calculate.
+            The alpha diversity metric to calculate. Note that Shannon diversity is calculated using
+            log base 2 instead of base ``e`` (natural log).
         rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
             Analysis will be restricted to abundances of taxa at the specified level.
         alpha : float, optional
