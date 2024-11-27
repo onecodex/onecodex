@@ -1,10 +1,12 @@
+import warnings
+
 from onecodex.lib.enums import Rank
 from onecodex.viz._primitives import (
     interleave_palette,
     prepare_props,
     get_classification_url,
 )
-from onecodex.exceptions import OneCodexException, PlottingException
+from onecodex.exceptions import OneCodexException, PlottingException, PlottingWarning
 from onecodex.utils import is_continuous, has_missing_values
 
 
@@ -93,6 +95,11 @@ class VizPCAMixin(object):
                 "There are too few samples for PCA after filtering. Please select 3 or more "
                 "samples to plot."
             )
+        elif len(self._results) - len(self._classification_ids_without_abundances) < 3:
+            raise PlottingException(
+                "There are too few samples for PCA after filtering out samples with no "
+                "abundances calculated; please select 3 or more samples to plot."
+            )
 
         df = self.to_df(rank=rank, normalize=normalize)
 
@@ -100,6 +107,16 @@ class VizPCAMixin(object):
             raise PlottingException(
                 "There are too few taxa for PCA after filtering. Please select a rank that "
                 "includes at least 2 taxa."
+            )
+
+        if self._classification_ids_without_abundances:
+            df = df.drop(
+                [id_ for id_ in self._classification_ids_without_abundances if id_ in df.index]
+            )
+            warnings.warn(
+                f"{len(self._classification_ids_without_abundances)} sample(s) have no abundances "
+                f"calculated and have been omitted from the PCA plot.",
+                PlottingWarning,
             )
 
         if tooltip:

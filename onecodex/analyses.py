@@ -194,6 +194,7 @@ class AnalysisMixin(
                 # concatenate the columns together with underscores
                 composite_field = "_".join(f)
                 magic_metadata[composite_field] = ""
+
                 if coerce_missing_composite_fields:
                     magic_metadata[composite_field] = (
                         magic_metadata[composite_field]
@@ -218,6 +219,7 @@ class AnalysisMixin(
                         )
                         .str.lstrip("_")
                     )
+
                 magic_fields[f] = composite_field
             else:
                 str_f = str(f)
