@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.17.0] - 2024-12-03
+
+### Added
+
+- Adds `SampleCollection.beta_diversity_stats()` to test for significant differences between groups of samples based on their beta diversity distances (global and posthoc pairwise PERMANOVA tests are supported)
+- Adds categorical data palette to `onecodex` Altair theme
+- Adds support for passing both `facet_by` *and* `secondary_haxis` to `plot_metadata()`
+- Adds filtering and warning if samples are missing abundances in `plot_metadata()`, `plot_pcoa()`, `plot_mds()`, `plot_pca()`, `alpha_diversity_stats()`, and `beta_diversity_stats()`
+- Adds docs about Shannon diversity being calculated using log base 2 instead of base `e`
+
+### Changed
+
+- Upgrades Altair to 5.4.1 and replaces `altair_saver` with `vl-convert`
+- Upgrades `notebook` to 6.5.7
+- Upgrades `WeasyPrint` to 63.0
+- Removes `node` and `vega` npm dependencies
+- Removes `jupyter-client` dependency
+- Removes `selenium` dependency
+- Removes pinned `pydyf` version
+
+### Fixed
+
+- Fixes `Api()` call when Altair is not installed
+- Fixes scikit-bio and pandas warnings
+- Improves error message and docstring in `SampleCollection.to_df(normalize=False)`
+
+### Deprecated
+
+- Deprecates `AlphaDiversityStatsResults.posthoc_df` in favor of `AlphaDiversityStatsResults.posthoc.adjusted_pvalues`
+
 ## [v0.16.0] - 2024-08-15
 
 ### Added
