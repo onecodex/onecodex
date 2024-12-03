@@ -28,6 +28,11 @@ Statistics
 
 .. automethod:: onecodex.models.collection.SampleCollection.beta_diversity
 
+``beta_diversity_stats``
+========================
+
+.. automethod:: onecodex.models.collection.SampleCollection.beta_diversity_stats
+
 ``unifrac``
 ===========
 
