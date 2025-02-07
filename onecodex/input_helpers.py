@@ -54,7 +54,7 @@ def prompt_user_for_concatenation(ont_groups: dict) -> bool:
     elif answer[0] == "n":
         return False
     elif answer[0] == "c":
-        click.echo("Canceling upload.")
+        click.echo("Upload canceled")
         sys.exit(0)
     elif answer[0] == "d":
         for group_name, group_files in ont_groups.items():
