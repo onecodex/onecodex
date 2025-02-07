@@ -43,7 +43,7 @@ def prompt_user_for_concatenation(ont_groups: dict) -> bool:
     n_files = sum([len(x) for x in ont_groups.values()])
 
     answer = click.prompt(
-        f"It appears there are {len(ont_groups)} of Oxford Nanopore samples split across {n_files} individual files. "
+        f"It appears there are {len(ont_groups)} sample(s) split across {n_files} individual file(s). "
         "\nWould you like to merge files by sample?"
         "\n[Y]es; [n]o; [d]isplay files; [c]ancel",
         type=click.Choice(["Y", "n", "d", "c"]),
@@ -91,7 +91,13 @@ def concatenate_ont_groups(files, prompt, tempdir):
     # filter to groups of at least 1 files
     ont_groups = {k: v for k, v in ont_groups.items()}
 
-    auto_group = prompt_user_for_concatenation(ont_groups)
+    # if there is only one group; do not prompt for concatenation
+    if len(files) == 1 and len(ont_groups) == 1:
+        auto_group = False
+    elif prompt:
+        auto_group = prompt_user_for_concatenation(ont_groups)
+    else:
+        auto_group = True
 
     if not auto_group:
         return files
