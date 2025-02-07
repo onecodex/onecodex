@@ -1,5 +1,6 @@
 import click
 import re
+import sys
 import os
 import shutil
 import logging
@@ -33,6 +34,45 @@ def _replace_paired_filename_ordinal(filename, replacement):
     return re.sub(PAIRED_ORDINAL_REV_PATTERN, replace_pattern, first_pass)
 
 
+def prompt_user_for_concatenation(ont_groups: dict) -> bool:
+    """
+    # TODO: there should be a cancel option here
+    # also, it would be nice to display the files / grups
+    """
+
+    n_files = sum([len(x) for x in ont_groups.values()])
+
+    answer = click.prompt(
+        f"It appears there are {len(ont_groups)} of Oxford Nanopore samples split across {n_files} individual files. "
+        "\nWould you like to merge files by sample?"
+        "\n[Y]es; [n]o; [d]isplay files; [c]ancel",
+        type=click.Choice(["Y", "n", "d", "c"]),
+        default="Y",
+    )
+
+    if answer[0] == "Y":
+        return True
+    elif answer[0] == "n":
+        return False
+    elif answer[0] == "c":
+        click.echo("Canceling upload.")
+        sys.exit(0)
+    elif answer[0] == "d":
+        for group_name, group_files in ont_groups.items():
+            click.echo(f"{os.path.basename(group_name)}")
+            for n, group_file in enumerate(group_files, start=1):
+                if n == len(group_files):
+                    prefix = "└──"
+                else:
+                    prefix = "├──"
+                click.echo(f"{prefix} {group_file}")
+            click.echo()
+        return prompt_user_for_concatenation(ont_groups)
+    else:
+        click.echo(f"Unknown option: {answer}")
+        return prompt_user_for_concatenation(ont_groups)
+
+
 def concatenate_ont_groups(files, prompt, tempdir):
     """Concatenate ONT split files and return the group as a single entry on the files list."""
     single_files = set(files)
@@ -48,26 +88,10 @@ def concatenate_ont_groups(files, prompt, tempdir):
 
             ont_groups[base_filename].add(filename)
 
-    # filter to groups of at least 2 files
-    ont_groups = {k: v for k, v in ont_groups.items() if len(v) >= 2}
+    # filter to groups of at least 1 files
+    ont_groups = {k: v for k, v in ont_groups.items()}
 
-    if prompt and ont_groups:
-        group_list = ""
-        n_grouped_files = 0
-        for base_ont_filename, group in ont_groups.items():
-            n_grouped_files += len(group)
-            group_list += f"\n  {os.path.basename(base_ont_filename)}"
-        answer = click.confirm(
-            "It appears there are {n_grouped_files} ONT files (of {n_files} total):{group_list}\nConcatenate them before upload?".format(
-                n_grouped_files=n_grouped_files,
-                n_files=len(single_files),
-                group_list=group_list,
-            ),
-            default="Y",
-        )
-
-        if not answer:
-            auto_group = False
+    auto_group = prompt_user_for_concatenation(ont_groups)
 
     if not auto_group:
         return files
