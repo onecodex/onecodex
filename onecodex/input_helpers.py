@@ -35,9 +35,7 @@ def _replace_paired_filename_ordinal(filename, replacement):
 
 
 def prompt_user_for_concatenation(ont_groups: dict) -> bool:
-    """
-    Prompt user to determine whether ONT files should be concatenated.
-    """
+    """Prompt user to determine whether ONT files should be concatenated."""
 
     n_files = sum([len(x) for x in ont_groups.values()])
 
@@ -70,6 +68,8 @@ def prompt_user_for_concatenation(ont_groups: dict) -> bool:
     else:
         click.echo(f"Unknown option: {answer}")
         return prompt_user_for_concatenation(ont_groups)
+
+    return False
 
 
 def concatenate_ont_groups(files, prompt, tempdir):
