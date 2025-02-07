@@ -374,6 +374,18 @@ def test_paired_files_with_forward_and_reverse_args(
             0,
             4,
         ),
+        # 3 files, 2 ONT parts, 2 samples
+        (
+            [
+                "test_S1_0.fastq.gz",
+                "test_S1_1.fastq.gz",
+                "test_S2_0.fastq.gz",
+            ],
+            2,
+            2,
+            0,
+            2,
+        ),
         # 6 files, 2x3 ONT parts, 2 samples
         (
             [
@@ -423,7 +435,7 @@ def test_paired_and_ont_files(
     else:
         assert paired_files_prompt not in result.output
 
-    ont_prompt = f"It appears there are {n_ont_files} ONT files (of {len(files)} total)"
+    ont_prompt = f"It appears there are {n_samples_uploaded} sample(s)"
     if n_ont_files > 0:
         assert ont_prompt in result.output
     else:
