@@ -36,8 +36,7 @@ def _replace_paired_filename_ordinal(filename, replacement):
 
 def prompt_user_for_concatenation(ont_groups: dict) -> bool:
     """
-    # TODO: there should be a cancel option here
-    # also, it would be nice to display the files / grups
+    Prompt user to determine whether ONT files should be concatenated.
     """
 
     n_files = sum([len(x) for x in ont_groups.values()])
