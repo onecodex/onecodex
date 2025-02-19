@@ -34,7 +34,7 @@ class AnnotationSets(OneCodexBase, ResourceDownloadMixin):
         """
         return self._download(
             "download_uri",
-            "annotation_set_" + self.id + ".gbk.gz",
+            "annotation_set_" + self.id + ".gbk",
             use_potion_session=False,
             path=path,
             file_obj=file_obj,
