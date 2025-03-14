@@ -28,6 +28,7 @@ class VizPCAMixin(object):
         mark_size=100,
         width=None,
         height=None,
+        match_taxonomy=True,
     ):
         """Perform principal component analysis and plot first two axes.
 
@@ -64,6 +65,9 @@ class VizPCAMixin(object):
             positional argument. The callable function must return a string.
         mark_size: `int`, optional
             The size of the points in the scatter plot.
+        match_taxonomy : `bool`, default=True
+            Whether or not to consider taxonomic names when looking for metadata fields mapped to
+            plot attributes including `tooltip`, `color`, `label`, & `size`
 
         Examples
         --------
@@ -133,7 +137,7 @@ class VizPCAMixin(object):
         if size and size not in tooltip:
             tooltip.insert(2, size)
 
-        metadata_results = self._metadata_fetch(tooltip, label=label)
+        metadata_results = self._metadata_fetch(tooltip, label=label, match_taxonomy=match_taxonomy)
         magic_metadata = metadata_results.df
         magic_fields = metadata_results.renamed_fields
 

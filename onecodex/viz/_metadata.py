@@ -34,6 +34,7 @@ class VizMetadataMixin(object):
         facet_by=None,
         coerce_haxis_dates=True,
         secondary_haxis=None,
+        match_taxonomy=True,
     ):
         """Plot an arbitrary metadata field versus an arbitrary quantity as a boxplot or scatter plot.
 
@@ -99,6 +100,10 @@ class VizMetadataMixin(object):
             The secondary metadata field (or tuple containing multiple categorical fields) to be
             plotted on the horizontal axis.
 
+        match_taxonomy : `bool`, default=True
+            Whether or not to consider taxonomic names when looking for metadata fields mapped to
+            plot attributes including `vaxis`, `haxis`, `secondary_axis`, `facet_by`, & `label`
+
         Examples
         --------
         Generate a boxplot of the abundance of Bacteroides (genus) of samples grouped by whether the
@@ -132,7 +137,9 @@ class VizMetadataMixin(object):
         if secondary_haxis:
             metadata_fields.append(secondary_haxis)
 
-        metadata_results = self._metadata_fetch(metadata_fields, label=label)
+        metadata_results = self._metadata_fetch(
+            metadata_fields, label=label, match_taxonomy=match_taxonomy
+        )
         df = metadata_results.df
         magic_fields = metadata_results.renamed_fields
 
@@ -143,7 +150,7 @@ class VizMetadataMixin(object):
             df.dropna(subset=[magic_fields[vaxis]], inplace=True)
         else:
             # if it's not alpha diversity, vertical axis can also be magically mapped
-            vert_metadata_results = self._metadata_fetch([vaxis])
+            vert_metadata_results = self._metadata_fetch([vaxis], match_taxonomy=match_taxonomy)
             vert_df = vert_metadata_results.df
             vert_magic_fields = vert_metadata_results.renamed_fields
             exclude_classifications_without_abundances = (

@@ -30,6 +30,7 @@ class VizHeatmapMixin(object):
         width=None,
         height=None,
         link=Link.Ocx,
+        match_taxonomy=True,
     ):
         """Plot heatmap of taxa abundance/count data for several samples.
 
@@ -81,6 +82,9 @@ class VizHeatmapMixin(object):
         link : {'ocx', 'ncbi'}, optional
             If `link` is 'ocx', clicking a sample will open its classification results in the One
             Codex app. If `link` is 'ncbi', clicking a taxon will open the NCBI taxonomy browser.
+        match_taxonomy : `bool`, default=True
+            Whether or not to consider taxonomic names when looking for metadata fields mapped to
+            plot attributes including `tooltip`, `label`
 
         Examples
         --------
@@ -149,7 +153,7 @@ class VizHeatmapMixin(object):
 
         tooltip.insert(0, "Label")
 
-        metadata_results = self._metadata_fetch(tooltip, label=label)
+        metadata_results = self._metadata_fetch(tooltip, label=label, match_taxonomy=match_taxonomy)
         magic_metadata = metadata_results.df
         magic_fields = metadata_results.renamed_fields
         magic_metadata.replace(np.nan, "N/A", inplace=True)
