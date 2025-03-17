@@ -341,6 +341,16 @@ def test_plot_match_taxonomy(samples, match_taxonomy):
     )
     assert ("Bacteroides (816)" in chart.data.columns) == match_taxonomy
 
+    chart = samples.plot_mds(
+        tooltip="Bacteroides", match_taxonomy=match_taxonomy, return_chart=True
+    )
+    assert ("Bacteroides (816)" in chart.data.columns) == match_taxonomy
+
+    chart = samples.plot_pcoa(
+        tooltip="Bacteroides", match_taxonomy=match_taxonomy, return_chart=True
+    )
+    assert ("Bacteroides (816)" in chart.data.columns) == match_taxonomy
+
 
 def test_plot_pca_color_by_bool_field(samples):
     assert samples.metadata["wheat"].dtype == bool

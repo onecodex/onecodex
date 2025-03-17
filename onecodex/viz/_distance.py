@@ -307,6 +307,7 @@ class VizDistanceMixin(DistanceMixin):
         mark_size=100,
         width=None,
         height=None,
+        match_taxonomy=True,
     ):
         """Plot beta diversity distance matrix using multidimensional scaling (MDS).
 
@@ -404,7 +405,7 @@ class VizDistanceMixin(DistanceMixin):
         if size and size not in tooltip:
             tooltip.insert(2, size)
 
-        metadata_results = self._metadata_fetch(tooltip, label=label)
+        metadata_results = self._metadata_fetch(tooltip, label=label, match_taxonomy=match_taxonomy)
         magic_metadata = metadata_results.df
         magic_fields = metadata_results.renamed_fields
 
