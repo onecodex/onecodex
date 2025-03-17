@@ -32,7 +32,7 @@ class VizBargraphMixin(object):
         height=None,
         group_by=None,
         link=Link.Ocx,
-        match_taxonomy=False,
+        match_taxonomy=True,
     ):
         """Plot a bargraph of relative abundance of taxa for multiple samples.
 
