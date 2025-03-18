@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.17.1] - 2025-03-18
+
+- Adds `match_taxonomy: bool` argument to plotting functions (`plot_*`) to
+  disable matching taxa when specifying mappings between metadata to plot
+  attributes (e.g., `tooltip`, `color`, `label`, `size`). The default is `True`
+  which matches the previous behavior.
+
 ## [v0.17.0] - 2024-12-03
 
 ### Added
