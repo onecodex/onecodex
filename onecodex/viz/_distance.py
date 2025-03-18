@@ -135,6 +135,7 @@ class VizDistanceMixin(DistanceMixin):
         label=None,
         width=None,
         height=None,
+        match_taxonomy=True,
     ):
         """Plot beta diversity distance matrix as a heatmap and dendrogram.
 
@@ -161,6 +162,9 @@ class VizDistanceMixin(DistanceMixin):
             A metadata field (or function) used to label each analysis. If passing a function, a
             dict containing the metadata for each analysis is passed as the first and only
             positional argument. The callable function must return a string.
+        match_taxonomy : `bool`, default=True
+            Whether or not to consider taxonomic names when looking for metadata fields mapped to
+            plot attributes such as `tooltip`
 
         Examples
         --------
@@ -196,7 +200,7 @@ class VizDistanceMixin(DistanceMixin):
 
         tooltip.insert(0, "Label")
 
-        metadata_results = self._metadata_fetch(tooltip, label=label)
+        metadata_results = self._metadata_fetch(tooltip, label=label, match_taxonomy=match_taxonomy)
         magic_metadata = metadata_results.df
         magic_fields = metadata_results.renamed_fields
 
@@ -303,6 +307,7 @@ class VizDistanceMixin(DistanceMixin):
         mark_size=100,
         width=None,
         height=None,
+        match_taxonomy=True,
     ):
         """Plot beta diversity distance matrix using multidimensional scaling (MDS).
 
@@ -400,7 +405,7 @@ class VizDistanceMixin(DistanceMixin):
         if size and size not in tooltip:
             tooltip.insert(2, size)
 
-        metadata_results = self._metadata_fetch(tooltip, label=label)
+        metadata_results = self._metadata_fetch(tooltip, label=label, match_taxonomy=match_taxonomy)
         magic_metadata = metadata_results.df
         magic_fields = metadata_results.renamed_fields
 

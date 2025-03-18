@@ -305,6 +305,53 @@ def test_plot_pca(samples):
     assert vectors.data["o"].tolist() == [0, 1, 0, 1, 0, 1]
 
 
+@pytest.mark.parametrize("match_taxonomy", [True, False])
+def test_plot_match_taxonomy(samples, match_taxonomy):
+    """
+    Test that arguments that determine plotting parameters based on
+    metadata/taxonomy can be configured to exclude taxonomy
+    """
+    chart = samples.plot_pca(
+        tooltip="Bacteroides", match_taxonomy=match_taxonomy, return_chart=True
+    )
+    assert ("Bacteroides (816)" in chart.data.columns) == match_taxonomy
+
+    chart = samples.plot_heatmap(
+        tooltip="Bacteroides", match_taxonomy=match_taxonomy, return_chart=True
+    )
+    assert ("Bacteroides (816)" in chart.data.columns) == match_taxonomy
+
+    chart = samples.plot_bargraph(
+        tooltip="Bacteroides", match_taxonomy=match_taxonomy, return_chart=True
+    )
+    assert ("Bacteroides (816)" in chart.data.columns) == match_taxonomy
+
+    # returns an HConcatChart
+    chart = samples.plot_distance(
+        tooltip="Bacteroides", match_taxonomy=match_taxonomy, return_chart=True
+    )
+    # `plot_distance` returns an HConcatChart, so a little digging is required
+    assert (
+        "2) Bacteroides (816)" in list(chart._kwds["hconcat"][1].data.columns)
+    ) == match_taxonomy
+
+    # plot_metadata does not have a tooltip argument, so test with haxis instead
+    chart = samples.plot_metadata(
+        haxis="Bacteroides", match_taxonomy=match_taxonomy, return_chart=True
+    )
+    assert ("Bacteroides (816)" in chart.data.columns) == match_taxonomy
+
+    chart = samples.plot_mds(
+        tooltip="Bacteroides", match_taxonomy=match_taxonomy, return_chart=True
+    )
+    assert ("Bacteroides (816)" in chart.data.columns) == match_taxonomy
+
+    chart = samples.plot_pcoa(
+        tooltip="Bacteroides", match_taxonomy=match_taxonomy, return_chart=True
+    )
+    assert ("Bacteroides (816)" in chart.data.columns) == match_taxonomy
+
+
 def test_plot_pca_color_by_bool_field(samples):
     assert samples.metadata["wheat"].dtype == bool
 
@@ -375,6 +422,18 @@ def test_plot_heatmap(samples):
     chart = samples.plot_heatmap(top_n=10, threshold=0.01, return_chart=True)
     assert len(chart.data["tax_id"].unique()) == 10
     assert all(chart.data.groupby("tax_id").max()["Relative Abundance"] > 0.01)
+
+
+def test_plot_heatmap_match_taxonomy(samples):
+    chart = samples.plot_heatmap(
+        top_n=10, tooltip="Bacteroides", match_taxonomy=True, return_chart=True
+    )
+    assert "Bacteroides (816)" in chart.data.columns
+
+    chart = samples.plot_heatmap(
+        top_n=10, tooltip="Bacteroides", match_taxonomy=False, return_chart=True
+    )
+    assert "Bacteroides (816)" not in chart.data.columns
 
 
 def test_plot_heatmap_with_missing_haxis_sample(samples):
@@ -490,9 +549,11 @@ def test_plot_distance_cluster_by_sample_excludes_classifications_without_abunda
     samples._results.loc[all_nan_sample.primary_classification.id] = np.nan
     assert len(samples._classification_ids_without_abundances) == 1
 
-    with mock.patch(
-        "onecodex.viz._distance.VizDistanceMixin._cluster_by_sample"
-    ) as cluster_fn, mock.patch("onecodex.viz.dendrogram"), mock.patch("altair.hconcat"):
+    with (
+        mock.patch("onecodex.viz._distance.VizDistanceMixin._cluster_by_sample") as cluster_fn,
+        mock.patch("onecodex.viz.dendrogram"),
+        mock.patch("altair.hconcat"),
+    ):
         with pytest.warns(PlottingWarning):
             samples.plot_distance()
             # the cluster function should be called with
