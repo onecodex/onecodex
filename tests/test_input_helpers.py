@@ -131,6 +131,10 @@ def test_concatenate_gzipped_multilane_files(generate_fastq_gz):
             ["test_1_0.fq", "test_1_1.fq", "test_1_3.fq"],
         ),
         (["test_1.fq", "test_2.fq", "other.fq", "test_0.fq"], ["test.fq", "other.fq"]),
+        # singleton groups
+        (["test1_0.fq", "test2_0.fq", "test2_1.fq"], ["test1.fq", "test2.fq"]),
+        # just one singleton group -- treat as a normal file
+        (["test1_0.fq"], ["test1_0.fq"]),
         (["test_1.fq", "test_2.fq"], ["test_1.fq", "test_2.fq"]),
         (
             [
