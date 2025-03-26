@@ -69,6 +69,8 @@ def filtered_raw_results(raw_results, annotation, metric, taxa_stratified):
             "id": elem["id"] + "_" + elem["taxon_name"] if taxa_stratified else elem["id"],
             "name": elem["name"],
             "value": elem["value"],
+            "taxon_id": elem["taxon_id"],
+            "taxon_name": elem["taxon_name"],
         }
         for elem in raw_results["table"]
         if elem["group_name"] == annotation

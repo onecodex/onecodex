@@ -51,6 +51,20 @@ def test_functional_profiles_table(ocx_experimental, api_data):
     ]
 
 
+def test_functional_profiles_filtered_table(ocx_experimental, api_data):
+    func_profile = ocx_experimental.FunctionalProfiles.get("31ddae978aff475f")
+    df = func_profile.filtered_table(metric="cpm", annotation="eggnog")
+    assert isinstance(df, pd.DataFrame)
+    assert len(df) == 59
+    assert set(df.columns) == {
+        "id",
+        "name",
+        "taxon_id",
+        "taxon_name",
+        "value",
+    }
+
+
 def test_functional_profiles_results(ocx_experimental, api_data):
     func_profile = ocx_experimental.FunctionalProfiles.get("eec4ac90d9104d1e")
     json_results = func_profile.results()
