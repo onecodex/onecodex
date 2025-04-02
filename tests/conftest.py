@@ -228,9 +228,9 @@ API_DATA = {
         "name": "One Codex Database (2017)",
         "public": True,
     },
-    "GET::api/v1_experimental/jobs\\?.*where=%7B%22%24uri%22%3A\\+%7B%22%24in%22%3A\\+%5B%22%2Fapi%2Fv1_experimental%2Fjobs%2F59e7904ea8ed4202%22%5D%7D%7D&sort=%7B%22created_at%22%3A\\+true%7D": [
+    "GET::api/v1/jobs\\?.*where=%7B%22%24uri%22%3A\\+%7B%22%24in%22%3A\\+%5B%22%2Fapi%2Fv1%2Fjobs%2F59e7904ea8ed4202%22%5D%7D%7D&sort=%7B%22created_at%22%3A\\+true%7D": [
         {
-            "$uri": "/api/v1_experimental/jobs/59e7904ea8ed4202",
+            "$uri": "/api/v1/jobs/59e7904ea8ed4202",
             "analysis_type": "functional",
             "created_at": "2023-04-28T15:27:40.140791-07:00",
             "name": "Functional v1",
@@ -307,36 +307,36 @@ API_DATA = {
             "visibility": "public",
         },
     ],
-    "GET::api/v1_experimental/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%7B%22%24in%22%3A\\+%5B%2237e5151e7bcb4f87%22%5D%7D.*": [
+    "GET::api/v1/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%7B%22%24in%22%3A\\+%5B%2237e5151e7bcb4f87%22%5D%7D.*": [
         {
-            "$uri": "/api/v1_experimental/functional_profiles/eec4ac90d9104d1e",
+            "$uri": "/api/v1/functional_profiles/eec4ac90d9104d1e",
             "complete": True,
             "created_at": "2022-05-25T17:27:30.622286-07:00",
             "error_msg": "",
-            "job": {"$ref": "/api/v1_experimental/jobs/59e7904ea8ed4202"},
-            "sample": {"$ref": "/api/v1_experimental/samples/37e5151e7bcb4f87"},
+            "job": {"$ref": "/api/v1/jobs/59e7904ea8ed4202"},
+            "sample": {"$ref": "/api/v1/samples/37e5151e7bcb4f87"},
             "success": True,
         },
     ],
-    "GET::api/v1_experimental/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%7B%22%24in%22%3A\\+%5B%2266c1531cb0b244f6%22%5D%7D.*": [
+    "GET::api/v1/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%7B%22%24in%22%3A\\+%5B%2266c1531cb0b244f6%22%5D%7D.*": [
         {
-            "$uri": "/api/v1_experimental/functional_profiles/bde18eb9407d4c2f",
+            "$uri": "/api/v1/functional_profiles/bde18eb9407d4c2f",
             "complete": True,
             "created_at": "2022-05-25T17:27:30.622286-07:00",
             "error_msg": "",
-            "job": {"$ref": "/api/v1_experimental/jobs/59e7904ea8ed4202"},
-            "sample": {"$ref": "/api/v1_experimental/samples/66c1531cb0b244f6"},
+            "job": {"$ref": "/api/v1/jobs/59e7904ea8ed4202"},
+            "sample": {"$ref": "/api/v1/samples/66c1531cb0b244f6"},
             "success": True,
         },
     ],
-    "GET::api/v1_experimental/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%7B%22%24in%22%3A\\+%5B%22543c9c046e3e4e09%22%5D%7D.*": [
+    "GET::api/v1/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%7B%22%24in%22%3A\\+%5B%22543c9c046e3e4e09%22%5D%7D.*": [
         {
-            "$uri": "/api/v1_experimental/functional_profiles/31ddae978aff475f",
+            "$uri": "/api/v1/functional_profiles/31ddae978aff475f",
             "complete": True,
             "created_at": "2022-05-25T17:27:30.622286-07:00",
             "error_msg": "",
-            "job": {"$ref": "/api/v1_experimental/jobs/59e7904ea8ed4202"},
-            "sample": {"$ref": "/api/v1_experimental/samples/543c9c046e3e4e09"},
+            "job": {"$ref": "/api/v1/jobs/59e7904ea8ed4202"},
+            "sample": {"$ref": "/api/v1/samples/543c9c046e3e4e09"},
             "success": True,
         },
     ],
@@ -344,17 +344,16 @@ API_DATA = {
 
 for functional_uuid in {"31ddae978aff475f", "bde18eb9407d4c2f", "eec4ac90d9104d1e"}:
     raw_results = json.load(
-        open(
-            f"tests/data/api/v1_experimental/functional_profiles/{functional_uuid}/results/index.json"
-        )
+        open(f"tests/data/api/v1/functional_profiles/{functional_uuid}/results/index.json")
     )
     for annotation in FunctionalAnnotations:
         for metric in FunctionalAnnotationsMetric.metrics_for_annotation(annotation):
+            # TODO: should this go in the JSONs with everything else?
             API_DATA[
-                f"GET::api/v1_experimental/functional_profiles/{functional_uuid}/filtered_results\\?.*functional_group=%22{annotation}%22\\&metric=%22{metric}%22\\&taxa_stratified=true"
+                f"GET::api/v1/functional_profiles/{functional_uuid}/filtered_results\\?.*functional_group=%22{annotation}%22\\&metric=%22{metric}%22\\&taxa_stratified=true"
             ] = filtered_raw_results(raw_results, annotation, metric, True)
             API_DATA[
-                f"GET::api/v1_experimental/functional_profiles/{functional_uuid}/filtered_results\\?.*functional_group=%22{annotation}%22\\&metric=%22{metric}%22\\&taxa_stratified=false"
+                f"GET::api/v1/functional_profiles/{functional_uuid}/filtered_results\\?.*functional_group=%22{annotation}%22\\&metric=%22{metric}%22\\&taxa_stratified=false"
             ] = filtered_raw_results(raw_results, annotation, metric, False)
 
 SCHEMA_ROUTES = {}

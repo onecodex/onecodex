@@ -1,4 +1,5 @@
 from collections import defaultdict, OrderedDict
+from typing import Any
 from datetime import datetime
 import json
 import warnings
@@ -479,12 +480,10 @@ class SampleCollection(ResourceList, AnalysisMixin):
         if len(job_ids) > 1:
             warnings.warn("Be advised: mixing functional profile versions")
 
+        # TODO: use sets
         for sample_id in sample_ids:
             if sample_id not in functional_sample_ids:
-                if skip_missing:
-                    warnings.warn(f"Functional profile not found for sample {sample_id}. Skipping.")
-                else:
-                    raise OneCodexException(f"Functional profile not found for sample {sample_id}.")
+                raise OneCodexException(f"Functional profile not found for sample {sample_id}.")
 
         self._cached["functional_profiles"] = newest_profiles
 
@@ -496,7 +495,12 @@ class SampleCollection(ResourceList, AnalysisMixin):
         return self._cached["functional_profiles"]
 
     def _collate_functional_results(
-        self, annotation, metric, taxa_stratified, fill_missing, filler
+        self,
+        annotation: FunctionalAnnotations,
+        metric: FunctionalAnnotationsMetric,
+        taxa_stratified: bool,
+        fill_missing: bool,
+        filler: Any,
     ):
         """
         Return a dataframe of all functional profile data and feature id to name mapping.
@@ -522,6 +526,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         # validate args
         annotation = FunctionalAnnotations(annotation)
         metric = FunctionalAnnotationsMetric(metric)
+
         if annotation == FunctionalAnnotations.Pathways:
             if metric.value not in ["coverage", "abundance", "complete_abundance"]:
                 raise ValueError(

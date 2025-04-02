@@ -8,6 +8,9 @@
         "alignments": {
             "$ref": "/api/v1/alignments/schema#"
         },
+        "functional_profiles": {
+            "$ref": "/api/v1/functional_profiles/schema#"
+        },
         "analyses": {
             "$ref": "/api/v1/analyses/schema#"
         },

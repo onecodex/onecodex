@@ -1175,7 +1175,6 @@
     ],
     "visibility": "private"
   },
-
   {
     "$uri": "/api/v1/samples/0111111111111110",
     "created_at": "2015-09-25T17:40:13.224821-07:00",
@@ -2028,6 +2027,70 @@
     },
     "project": null,
     "size": 1624017719,
+    "tags": [],
+    "visibility": "public"
+  },
+  {
+    "$uri": "/api/v1/samples/37e5151e7bcb4f87",
+    "created_at": "2017-06-23T23:52:51.201676+00:00",
+    "filename": "SRR4408293.fastq",
+    "metadata": {
+      "$ref": "/api/v1/metadata/6b69295478de4f1f"
+    },
+    "owner": {
+      "$ref": "/api/v1/users/7189f36afe3640ac"
+    },
+    "primary_classification": {
+      "$ref": "/api/v1/classifications/6579e99943f84ad2"
+    },
+    "project": {
+      "$ref": "/api/v1/projects/4b53797444f846c4"
+    },
+    "size": 2225829803,
+    "tags": [],
+    "visibility": "public"
+  },
+  {
+    "$uri": "/api/v1/samples/66c1531cb0b244f6",
+    "created_at": "2017-06-23T23:56:19.556902+00:00",
+    "filename": "SRR4305031.fastq",
+    "metadata": {
+      "$ref": "/api/v1/metadata/6be1bb8849644f7b"
+    },
+    "owner": {
+      "$ref": "/api/v1/users/7189f36afe3640ac"
+    },
+    "primary_classification": {
+      "$ref": "/api/v1/classifications/b50c176668234fe7"
+    },
+    "project": {
+      "$ref": "/api/v1/projects/4b53797444f846c4"
+    },
+    "size": 1187736145,
+    "tags": [
+      {
+        "$ref": "/api/v1/tags/dbcf5b98bca54a16"
+      }
+    ],
+    "visibility": "public"
+  },
+  {
+    "$uri": "/api/v1/samples/543c9c046e3e4e09",
+    "created_at": "2017-06-23T23:59:23.228640+00:00",
+    "filename": "SRR4408292.fastq",
+    "metadata": {
+      "$ref": "/api/v1/metadata/3e7119ee74954abd"
+    },
+    "owner": {
+      "$ref": "/api/v1/users/7189f36afe3640ac"
+    },
+    "primary_classification": {
+      "$ref": "/api/v1/classifications/e0422602de41479f"
+    },
+    "project": {
+      "$ref": "/api/v1/projects/4b53797444f846c4"
+    },
+    "size": 2267482973,
     "tags": [],
     "visibility": "public"
   }

@@ -572,6 +572,7 @@ from onecodex.models.analysis import (  # noqa
     Classifications,
     Alignments,
     Panels,
+    FunctionalProfiles,
 )
 from onecodex.models.collection import SampleCollection  # noqa
 from onecodex.models.misc import Assets, Jobs, Projects, Tags, Users, Documents  # noqa
@@ -583,12 +584,13 @@ __all__ = [
     "Assets",
     "Classifications",
     "Documents",
+    "FunctionalProfiles",
     "Jobs",
     "Metadata",
     "Panels",
     "Projects",
-    "Samples",
     "SampleCollection",
+    "Samples",
     "Tags",
     "Users",
 ]
@@ -597,12 +599,11 @@ __all__ = [
 from onecodex.models.experimental import (  # noqa
     AnnotationSets,
     Assemblies,
-    FunctionalProfiles,
     Genomes,
     Taxa,
 )
 
-__all__.extend(["AnnotationSets", "Assemblies", "FunctionalProfiles", "Genomes", "Taxa"])
+__all__.extend(["AnnotationSets", "Assemblies", "Genomes", "Taxa"])
 
 
 def pretty_print_error(err_json):
