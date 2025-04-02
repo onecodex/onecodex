@@ -2,7 +2,7 @@ from __future__ import annotations
 import warnings
 from collections import Counter
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.enums import (
@@ -327,11 +327,11 @@ class AnalysisMixin(
 
     def _to_functional_df(
         self,
-        annotation=FunctionalAnnotations.Pathways,
-        taxa_stratified=True,
-        metric=FunctionalAnnotationsMetric.Coverage,
-        fill_missing=False,
-        filler=0,
+        annotation: FunctionalAnnotations = FunctionalAnnotations.Pathways,
+        taxa_stratified: bool = True,
+        metric: FunctionalAnnotationsMetric = FunctionalAnnotationsMetric.Coverage,
+        fill_missing: bool = True,
+        filler: Any = 0,
     ):
         """
         Generate a FunctionalDataFrame associated with functional analysis results.
