@@ -127,8 +127,6 @@ class VizFunctionalHeatmapMixin(object):
         )
 
         # Merge with metadata itself
-        # (this isn't going to work because metadata does not have `functional_profile_id`)
-
         sample_id_to_functional_profile_id = {
             fp.sample.id: fp.id for fp in self._functional_profiles
         }

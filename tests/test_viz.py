@@ -1004,7 +1004,6 @@ def test_plot_functional_heatmap(ocx, api_data):
     sample_ids = ["543c9c046e3e4e09", "66c1531cb0b244f6", "37e5151e7bcb4f87"]
     samples = SampleCollection([ocx.Samples.get(x) for x in sample_ids])
 
-    # TODO: is this broken on `master`?
     assert len(samples) == len(sample_ids)
 
     chart = samples.plot_functional_heatmap(return_chart=True, top_n=3)

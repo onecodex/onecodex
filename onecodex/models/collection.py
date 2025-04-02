@@ -480,7 +480,6 @@ class SampleCollection(ResourceList, AnalysisMixin):
         if len(job_ids) > 1:
             warnings.warn("Be advised: mixing functional profile versions")
 
-        # TODO: use sets
         for sample_id in sample_ids:
             if sample_id not in functional_sample_ids:
                 raise OneCodexException(f"Functional profile not found for sample {sample_id}.")
