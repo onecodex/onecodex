@@ -86,7 +86,7 @@ class VizFunctionalHeatmapMixin(object):
         metric = FunctionalAnnotationsMetric(metric)
         function_label = FunctionalLabel(function_label)
 
-        df = self._to_functional_df(
+        df = self.to_functional_df(
             annotation=annotation,
             metric=metric,
             taxa_stratified=False,
