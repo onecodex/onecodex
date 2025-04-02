@@ -127,7 +127,19 @@ class VizFunctionalHeatmapMixin(object):
         )
 
         # Merge with metadata itself
-        df = df.join(metadata)
+        # (this isn't going to work because metadata does not have `functional_profile_id`)
+
+        sample_id_to_functional_profile_id = {
+            fp.sample.id: fp.id for fp in self._functional_profiles
+        }
+
+        metadata["functional_profile_id"] = [
+            sample_id_to_functional_profile_id[sample_id] for sample_id in metadata["sample_id"]
+        ]
+
+        metadata = metadata.set_index("functional_profile_id")
+
+        df = df.join(metadata, validate="one_to_one", how="left")
 
         function_id_column = get_unique_column("function_id", metadata.columns)
         function_name_column = get_unique_column("function_name", metadata.columns)

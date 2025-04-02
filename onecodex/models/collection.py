@@ -542,8 +542,16 @@ class SampleCollection(ResourceList, AnalysisMixin):
         data = {}
         all_features = set()
         feature_id_to_name = {}
+
+        sample_id_to_profile_id = {}
+
         for profile in self._functional_profiles:
             sample_id = profile.sample.id
+
+            if sample_id in sample_id_to_profile_id:
+                raise ValueError(f"More than one functional profile for sample {sample_id}")
+
+            sample_id_to_profile_id[sample_id] = profile.id
 
             # get table using One Codex API
             table = profile.filtered_table(
@@ -568,8 +576,14 @@ class SampleCollection(ResourceList, AnalysisMixin):
             for feature_id in data[sample_id]:
                 array[sample_index, features_to_ix[feature_id]] = data[sample_id][feature_id]
             sample_ids.append(sample_id)
+
+        functional_profile_ids = [sample_id_to_profile_id[sample_id] for sample_id in sample_ids]
+
         df = pd.DataFrame(
-            array, index=pd.Index(sample_ids, name="sample_id"), columns=feature_list, copy=False
+            array,
+            index=pd.Index(functional_profile_ids, name="functional_profile_id"),
+            columns=feature_list,
+            copy=False,
         )
 
         if fill_missing:

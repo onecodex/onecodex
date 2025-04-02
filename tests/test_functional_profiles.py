@@ -88,6 +88,9 @@ def test_collate_functional_results(ocx, api_data):
     df, mapping = sc._functional_results(
         annotation="go", metric="rpk", taxa_stratified=True, fill_missing=False, filler=0
     )
+
+    assert df.index.name == "functional_profile_id"
+
     assert isinstance(df, pd.DataFrame)
     assert df.shape == (3, 39)
     assert len(mapping) == 39
@@ -166,8 +169,7 @@ def test_to_df_for_functional_profiles(ocx, api_data):
     assert df.ocx_functional_group == "eggnog"
     assert df.ocx_metric == "cpm"
     assert df.ocx_metadata.shape == (3, 92)
-    assert df.index.name == "sample_id"
-    assert set(df.index.values) == set(sample_ids)
+    assert df.index.name == "functional_profile_id"
     assert set(df.ocx_metadata["sample_id"]) == set(sample_ids)
     assert set(df.ocx_feature_name_map.keys()) == set(df.columns)
 
@@ -226,4 +228,4 @@ def test_filter_functional_runs_to_newest_job(ocx, raw_api_data, custom_mock_req
 
         # All samples are included, one with newer version has proper values
         assert df.shape == (3, 112)
-        assert df.loc["37e5151e7bcb4f87", "PF00005"] == 256.524  # older version has 4919.47
+        assert df.loc["eec4ac90d9104d1f", "PF00005"] == 256.524  # older version has 4919.47
