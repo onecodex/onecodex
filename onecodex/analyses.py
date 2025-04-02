@@ -319,6 +319,9 @@ class AnalysisMixin(
             The `analysis_type` to aggregate, corresponding to AnalysisJob.analysis_type
         kwargs : dict, optional
              Keyword arguments specific to the `analysis_type`; see each individual function definition
+
+        .. seealso:: to_classification_df
+        .. seealso:: to_functional_df
         """
         generate_df = {
             AnalysisType.Classification: self.to_classification_df,
