@@ -1,3 +1,5 @@
+from typing import Optional
+
 from onecodex.lib.enums import FunctionalAnnotations, FunctionalAnnotationsMetric
 from onecodex.models import OneCodexBase
 
@@ -120,7 +122,7 @@ class FunctionalProfiles(Analyses):
 
     def table(
         self,
-        annotation: FunctionalAnnotations | None = None,
+        annotation: Optional[FunctionalAnnotations] = None,
         taxa_stratified: bool = True,
     ):
         """Return a results table for the functional analysis.
