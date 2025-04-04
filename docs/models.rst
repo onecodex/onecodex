@@ -23,6 +23,13 @@ Models
    :members:
    :show-inheritance:
 
+``FunctionalProfiles``
+======================
+
+.. autoclass:: onecodex.models.misc.FunctionalProfiles
+   :members:
+   :show-inheritance:
+
 ``Panels``
 ==========
 

@@ -1,27 +1,28 @@
 from __future__ import annotations
+
 import warnings
 from collections import Counter
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional, Union, Literal
 
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.enums import (
-    Metric,
     AbundanceMetric,
-    Rank,
     AnalysisType,
     FunctionalAnnotations,
     FunctionalAnnotationsMetric,
-)
-from onecodex.viz import (
-    VizPCAMixin,
-    VizHeatmapMixin,
-    VizMetadataMixin,
-    VizDistanceMixin,
-    VizBargraphMixin,
-    VizFunctionalHeatmapMixin,
+    Metric,
+    Rank,
 )
 from onecodex.stats import StatsMixin
+from onecodex.viz import (
+    VizBargraphMixin,
+    VizDistanceMixin,
+    VizFunctionalHeatmapMixin,
+    VizHeatmapMixin,
+    VizMetadataMixin,
+    VizPCAMixin,
+)
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -318,20 +319,23 @@ class AnalysisMixin(
             The `analysis_type` to aggregate, corresponding to AnalysisJob.analysis_type
         kwargs : dict, optional
              Keyword arguments specific to the `analysis_type`; see each individual function definition
+
+        .. seealso:: to_classification_df
+        .. seealso:: to_functional_df
         """
         generate_df = {
-            AnalysisType.Classification: self._to_classification_df,
-            AnalysisType.Functional: self._to_functional_df,
+            AnalysisType.Classification: self.to_classification_df,
+            AnalysisType.Functional: self.to_functional_df,
         }
         return generate_df[AnalysisType(analysis_type)](**kwargs)
 
-    def _to_functional_df(
+    def to_functional_df(
         self,
-        annotation=FunctionalAnnotations.Pathways,
-        taxa_stratified=True,
-        metric=FunctionalAnnotationsMetric.Coverage,
-        fill_missing=False,
-        filler=0,
+        annotation: FunctionalAnnotations = FunctionalAnnotations.Pathways,
+        taxa_stratified: bool = True,
+        metric: FunctionalAnnotationsMetric = FunctionalAnnotationsMetric.Coverage,
+        fill_missing: bool = True,
+        filler: Any = 0,
     ):
         """
         Generate a FunctionalDataFrame associated with functional analysis results.
@@ -368,17 +372,17 @@ class AnalysisMixin(
             ocx_feature_name_map=feature_name_map,
         )
 
-    def _to_classification_df(
+    def to_classification_df(
         self,
-        rank=Rank.Auto,
-        top_n=None,
-        threshold=None,
-        remove_zeros=True,
-        normalize="auto",
-        table_format="wide",
-        include_taxa_missing_rank=False,
-        fill_missing=True,
-        filler=0,
+        rank: Rank = Rank.Auto,
+        top_n: Optional[int] = None,
+        threshold: Optional[float] = None,
+        remove_zeros: bool = True,
+        normalize: Union[Literal["auto"], bool] = "auto",
+        table_format: Union[Literal["wide"] | Literal["long"]] = "wide",
+        include_taxa_missing_rank: bool = False,
+        fill_missing: bool = True,
+        filler: Any = 0,
     ):
         """Generate a ClassificationsDataFrame, performing any specified transformations.
 

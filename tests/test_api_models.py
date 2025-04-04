@@ -39,6 +39,10 @@ def test_retries_set_on_client_session(api_data):
     assert ocx._session.adapters["https://"].max_retries.allowed_methods is None
 
 
+def test_model_classes(ocx, api_data):
+    assert ocx.FunctionalProfiles
+
+
 def test_sample_int_id(ocx, api_data):
     """
     Ensure that uuids do not get coerced into integers in the off chance that

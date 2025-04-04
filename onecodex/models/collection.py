@@ -1,4 +1,5 @@
 from collections import defaultdict, OrderedDict
+from typing import Any
 from datetime import datetime
 import json
 import warnings
@@ -481,10 +482,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
 
         for sample_id in sample_ids:
             if sample_id not in functional_sample_ids:
-                if skip_missing:
-                    warnings.warn(f"Functional profile not found for sample {sample_id}. Skipping.")
-                else:
-                    raise OneCodexException(f"Functional profile not found for sample {sample_id}.")
+                raise OneCodexException(f"Functional profile not found for sample {sample_id}.")
 
         self._cached["functional_profiles"] = newest_profiles
 
@@ -496,7 +494,12 @@ class SampleCollection(ResourceList, AnalysisMixin):
         return self._cached["functional_profiles"]
 
     def _collate_functional_results(
-        self, annotation, metric, taxa_stratified, fill_missing, filler
+        self,
+        annotation: FunctionalAnnotations,
+        metric: FunctionalAnnotationsMetric,
+        taxa_stratified: bool,
+        fill_missing: bool,
+        filler: Any,
     ):
         """
         Return a dataframe of all functional profile data and feature id to name mapping.
@@ -522,6 +525,7 @@ class SampleCollection(ResourceList, AnalysisMixin):
         # validate args
         annotation = FunctionalAnnotations(annotation)
         metric = FunctionalAnnotationsMetric(metric)
+
         if annotation == FunctionalAnnotations.Pathways:
             if metric.value not in ["coverage", "abundance", "complete_abundance"]:
                 raise ValueError(
@@ -537,8 +541,16 @@ class SampleCollection(ResourceList, AnalysisMixin):
         data = {}
         all_features = set()
         feature_id_to_name = {}
+
+        sample_id_to_profile_id = {}
+
         for profile in self._functional_profiles:
             sample_id = profile.sample.id
+
+            if sample_id in sample_id_to_profile_id:
+                raise ValueError(f"More than one functional profile for sample {sample_id}")
+
+            sample_id_to_profile_id[sample_id] = profile.id
 
             # get table using One Codex API
             table = profile.filtered_table(
@@ -563,8 +575,14 @@ class SampleCollection(ResourceList, AnalysisMixin):
             for feature_id in data[sample_id]:
                 array[sample_index, features_to_ix[feature_id]] = data[sample_id][feature_id]
             sample_ids.append(sample_id)
+
+        functional_profile_ids = [sample_id_to_profile_id[sample_id] for sample_id in sample_ids]
+
         df = pd.DataFrame(
-            array, index=pd.Index(sample_ids, name="sample_id"), columns=feature_list, copy=False
+            array,
+            index=pd.Index(functional_profile_ids, name="functional_profile_id"),
+            columns=feature_list,
+            copy=False,
         )
 
         if fill_missing:
