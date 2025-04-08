@@ -242,6 +242,8 @@ class FunctionalProfiles(Analyses):
                     "id": pd.Series(dtype="str"),
                     "name": pd.Series(dtype="str"),
                     "value": pd.Series(dtype="float"),
+                    "taxon_id": pd.Series(dtype="str"),
+                    "taxon_name": pd.Series(dtype="str"),
                 }
             )
         return pd.DataFrame(result_json["table"])
