@@ -6,13 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v0.18.0] - 2025-04-18
 
+### Added
+
 - Adds `ocx.FunctionalProfiles` to fetch [functional analyses](https://docs.onecodex.com/en/articles/6293070-functional-analysis) results
 - Adds `SampleCollection.to_classification_df()` and
   `SampleCollection.to_functional_df()` methods to return classification or
   functional results as DataFrames
+- Adds option to omit taxonomic labels from plot mappings
+
+### Changed
+
 - Ensures singleton FASTQ filenames follow the same format as chunked uploads
   (Oxford Nanopore)
-- Adds option to omit taxonomic labels from plot mappings
+
+### Fixed
+
 - Fixes issue with `onecodex login` requiring an API key for certain accounts
 
 ## [v0.17.0] - 2024-12-03
