@@ -32,7 +32,13 @@ def fetch_api_key_from_uname(username, password, server_url):
             "csrf_token": csrf,
             "next": "/api/get_token",
         }
-        page = session.post(server_url + "login", data=login_data)
+        page = session.post(
+            server_url + "login",
+            data=login_data,
+            headers={
+                "Referer": server_url + "login",
+            },
+        )
         try:
             key = page.json()["key"]
         except (ValueError, KeyError):  # ValueError includes simplejson.decoder.JSONDecodeError
