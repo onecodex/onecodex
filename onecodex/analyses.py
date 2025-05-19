@@ -236,22 +236,34 @@ class AnalysisMixin(
                     magic_fields[f] = str_f
                 elif match_taxonomy and str_f in self._results.keys():
                     # is a tax_id
-                    tax_name = self.taxonomy["name"][str_f]
+                    rank = self.taxonomy["rank"][str_f]
+                    if Rank.has_value(rank):
+                        tax_name = self.taxonomy["name"][str_f]
 
-                    # report within-rank abundance
-                    df = self.to_df(rank=self.taxonomy["rank"][str_f])
+                        # report within-rank abundance
+                        df = self.to_df(rank=rank)
 
-                    renamed_field = "{} ({})".format(tax_name, str_f)
-                    magic_metadata[renamed_field] = df[str_f]
-                    magic_fields[f] = renamed_field
-                    taxonomy_fields.add(f)
+                        renamed_field = "{} ({})".format(tax_name, str_f)
+                        magic_metadata[renamed_field] = df[str_f]
+                        magic_fields[f] = renamed_field
+                        taxonomy_fields.add(f)
+                    else:
+                        # matched a non-canonical rank
+                        magic_metadata[f] = None
+                        magic_fields[f] = str_f
                 elif match_taxonomy:
                     # try to match it up with a taxon name
                     hits = []
 
                     # don't both searching if the query is really short
                     if len(str_f) > 4:
-                        for tax_id, tax_name in zip(self.taxonomy.index, self.taxonomy["name"]):
+                        for tax_id, rank, tax_name in zip(
+                            self.taxonomy.index, self.taxonomy["rank"], self.taxonomy["name"]
+                        ):
+                            if not Rank.has_value(rank):
+                                # don't match non-canonical ranks
+                                continue
+
                             # if it's an exact match, use that and skip the rest
                             if str_f.lower() == tax_name.lower():
                                 hits = [(tax_id, tax_name)]

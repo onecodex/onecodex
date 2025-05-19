@@ -168,6 +168,23 @@ def test_metadata_fetch(samples):
     assert "string from label" in str(e.value)
 
 
+@pytest.mark.parametrize(
+    "query",
+    [
+        1,  # exact match on tax ID, "no rank" rank
+        "Bifidobacterium longum subsp. longum",  # exact match on taxon name, "subspecies" rank
+        "cellular org",  # partial match on taxon name, "no rank" rank
+    ],
+)
+def test_metadata_fetch_match_taxonomy_non_canonical_rank(samples, query):
+    samples._collate_results(metric="readcount_w_children")
+    results = samples._metadata_fetch([query], match_taxonomy=True)
+
+    assert results.df[query].isnull().all()
+    assert results.renamed_fields == {query: str(query)}
+    assert results.taxonomy_fields == set()
+
+
 def test_results_filtering_rank(samples):
     samples._collate_results(metric="readcount_w_children")
 
