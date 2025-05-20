@@ -23,12 +23,13 @@ def mock_sample_get():
         yield m
 
 
-def test_cli_help(runner):
-    for args in [None, "-h", "--help"]:
-        command = [args] if args is not None else None
-        result = runner.invoke(Cli, command)
-        assert result.exit_code == 0
-        assert "One Codex v1 API command line interface" in result.output
+# Click 8.2.0 changed exit code from 0 to 2 if no arguments are supplied
+@pytest.mark.parametrize("args,exit_codes", [(None, {0, 2}), ("-h", {0}), ("--help", {0})])
+def test_cli_help(runner, args, exit_codes):
+    command = [args] if args is not None else None
+    result = runner.invoke(Cli, command)
+    assert result.exit_code in exit_codes
+    assert "One Codex v1 API command line interface" in result.output
 
 
 def test_version(runner):
