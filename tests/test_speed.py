@@ -19,7 +19,7 @@ from onecodex import Cli
         ("from onecodex import Cli", {"onecodex": 0.25, "onecodex.cli": 0.20}, 0.25),
         ("from onecodex import Api", {"onecodex": 0.25, "onecodex.api": 0.20}, 0.25),
         # Full startup of the CLI (prints help message)
-        ("import onecodex; onecodex.cli.onecodex()", {"onecodex": 0.25}, 0.25),
+        ('import onecodex; onecodex.cli.onecodex(["--help"])', {"onecodex": 0.25}, 0.25),
         # Our slow imports should be lazy and still import fast
         (
             "from onecodex.viz import VizPCAMixin",

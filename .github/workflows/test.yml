@@ -122,7 +122,7 @@ jobs:
         run: |
           . venv/bin/activate
           py.test -v tests/test_speed.py
-          python -X importtime -c 'import onecodex; onecodex.cli.onecodex()' 2> import.log
+          python -X importtime -c 'import onecodex; onecodex.cli.onecodex(["--help"])' 2> import.log
           mkdir tuna && mkdir tuna/static
           tuna -o tuna/ import.log
       - name: Archive tuna videos
