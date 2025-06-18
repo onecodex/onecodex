@@ -39,10 +39,10 @@ TESTING_DEPS = [
 
 ALL_DEPS = [
     "altair==5.5.0",
-    "numpy>=1.21.6,<2",
+    "numpy>=1.21.6,<3",
     "pandas>=1.0.3",
     "pillow>=9.0.1",
-    "scikit-bio==0.6.0",
+    "scikit-bio==0.6.3",
     "scikit-learn>=0.19.0",
     "scikit-posthocs",
     "scipy>=1.11.0",
@@ -104,6 +104,7 @@ setup(
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
     ],
     entry_points={
         "console_scripts": ["onecodex = onecodex.cli:onecodex"],
