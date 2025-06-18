@@ -672,17 +672,18 @@ def test_plot_distance_exceptions(samples):
 
 
 @pytest.mark.parametrize(
-    "metric,dissimilarity_metric,smacof",
+    "metric,dissimilarity_metric,smacofs",
     [
-        ("abundance_w_children", "weighted_unifrac", 0.7595),
-        ("abundance_w_children", "unweighted_unifrac", 0.1734),
-        ("abundance_w_children", "braycurtis", 0.0143),
-        ("readcount_w_children", "weighted_unifrac", 0.4956),
-        ("readcount_w_children", "unweighted_unifrac", 0.3579),
-        ("readcount_w_children", "braycurtis", 0.1735),
+        # Some results differ between sklearn 1.6 and 1.7
+        ("abundance_w_children", "weighted_unifrac", {0.7595}),
+        ("abundance_w_children", "unweighted_unifrac", {0.1734}),
+        ("abundance_w_children", "braycurtis", {0.0143, 0.1284}),
+        ("readcount_w_children", "weighted_unifrac", {0.4956, 0.0918}),
+        ("readcount_w_children", "unweighted_unifrac", {0.3579}),
+        ("readcount_w_children", "braycurtis", {0.1735, 0.0798}),
     ],
 )
-def test_plot_mds(samples, metric, dissimilarity_metric, smacof):
+def test_plot_mds(samples, metric, dissimilarity_metric, smacofs):
     samples._collate_results(metric=metric)
 
     chart = samples.plot_mds(
@@ -705,7 +706,7 @@ def test_plot_mds(samples, metric, dissimilarity_metric, smacof):
     chart = samples.plot_mds(
         method="smacof", rank="species", metric=dissimilarity_metric, return_chart=True
     )
-    assert (chart.data["MDS1"] * chart.data["MDS2"]).sum().round(4) == smacof
+    assert (chart.data["MDS1"] * chart.data["MDS2"]).sum().round(4) in smacofs
 
 
 def test_plot_mds_color_by_bool_field(samples):

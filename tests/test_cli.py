@@ -227,7 +227,7 @@ def test_standard_uploads(
         for f in files:
             args.append(generate_fastq(f))
 
-        result = runner.invoke(Cli, args, catch_exceptions=False)
+        result = runner.invoke(Cli, args, catch_exceptions=False, input="\n")
         assert result.exit_code == 0
         assert "7428cca4a3a04a8e" in caplog.text  # mocked file id
 
@@ -286,7 +286,7 @@ def test_paired_and_multiline_files(
 
     args = ["--api-key", "01234567890123456789012345678901", "upload"] + files
     # check that 2 uploads are kicked off for the pair of files
-    result = runner.invoke(Cli, args, catch_exceptions=False)
+    result = runner.invoke(Cli, args, catch_exceptions=False, input="\n\n\n")
     assert mock_file_upload.call_count == n_files_uploaded
     assert mock_sample_get.call_count == n_samples_uploaded
     assert result.exit_code == 0
@@ -423,7 +423,7 @@ def test_paired_and_ont_files(
     files = [generate_fastq(x) for x in files]
 
     args = ["--api-key", "01234567890123456789012345678901", "upload"] + files
-    result = runner.invoke(Cli, args, catch_exceptions=False)
+    result = runner.invoke(Cli, args, catch_exceptions=False, input="\n\n")
     assert mock_file_upload.call_count == n_files_uploaded
     assert mock_sample_get.call_count == n_samples_uploaded
     assert result.exit_code == 0

@@ -421,6 +421,7 @@ class VizDistanceMixin(DistanceMixin):
                 random_state=seed,
                 dissimilarity="precomputed",
                 n_jobs=1,
+                n_init=4,  # The default changes from 4 to 1 in sklearn 1.9
                 normalized_stress="auto",
             )
             pos = mds.fit(dists).embedding_

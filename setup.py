@@ -38,7 +38,7 @@ TESTING_DEPS = [
 ]
 
 ALL_DEPS = [
-    "altair==5.4.1",
+    "altair==5.5.0",
     "numpy>=1.21.6,<2",
     "pandas>=1.0.3",
     "pillow>=9.0.1",
