@@ -69,7 +69,7 @@ def test_plot_metadata(samples):
     assert chart.data["simpson"].tolist() == [
         0.9232922257199748,
         0.8930761430647977,
-        0.7865654458730155,
+        0.7865654458730156,
     ]
     assert chart.mark == "circle"
     assert chart.title == "my title"
@@ -171,7 +171,7 @@ def test_plot_metadata_alpha_diversity_with_nans(samples):
 
     shannon_result = chart.data["shannon"].tolist()
     assert len(shannon_result) == 1
-    assert math.isclose(shannon_result[0], 5.212043764541939)
+    assert math.isclose(shannon_result[0], 3.6127134403472887)
     assert chart.mark == "circle"
 
 

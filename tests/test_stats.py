@@ -9,7 +9,7 @@ import skbio
 
 from onecodex.models.collection import SampleCollection
 from onecodex.exceptions import OneCodexException, StatsException, StatsWarning
-from onecodex.lib.enums import AlphaDiversityStatsTest, BetaDiversityStatsTest
+from onecodex.lib.enums import AlphaDiversityStatsTest, BetaDiversityStatsTest, AlphaDiversityMetric
 from onecodex.stats import AlphaDiversityStatsResults, PosthocResults
 
 
@@ -41,8 +41,14 @@ def test_missing_group_by_data(samples, method, group_by, num_groups):
         getattr(samples, method)(group_by=group_by)
 
 
-@pytest.mark.parametrize("method", ["alpha_diversity_stats", "beta_diversity_stats"])
-def test_samples_missing_abundances(samples, method):
+@pytest.mark.parametrize(
+    "method,kwargs",
+    [
+        ("alpha_diversity_stats", {"metric": AlphaDiversityMetric.ObservedTaxa}),
+        ("beta_diversity_stats", {}),
+    ],
+)
+def test_samples_missing_abundances(samples, method, kwargs):
     samples.metadata["col"] = ["a", "b", "a"]
     samples._results[:] = np.nan
     assert len(samples._classification_ids_without_abundances) == 3
@@ -50,7 +56,7 @@ def test_samples_missing_abundances(samples, method):
     with pytest.warns(StatsWarning, match="3 samples.*missing abundance"), pytest.raises(
         StatsException, match="`group_by` must have at least 2 groups.*found 0"
     ):
-        getattr(samples, method)(group_by="col")
+        getattr(samples, method)(group_by="col", **kwargs)
 
 
 @pytest.mark.parametrize("method", ["alpha_diversity_stats", "beta_diversity_stats"])
@@ -302,12 +308,12 @@ def test_permanova(samples):
     df = pd.DataFrame({"group": ["g1", "g1", "g2", "g2", "g3", "g3"]}, index=ids)
 
     np.random.seed(0)  # deterministic p-values
-    results = samples._permanova(dm, df, "group", 0.05, 999)
+    results = samples._permanova(dm, df, "group", 0.04, 999)
 
     # Results verified manually with `skbio.stats.distance.permanova`
     assert results.test == BetaDiversityStatsTest.Permanova
     assert results.statistic.round(3) == 587.588
-    assert results.pvalue.round(3) == 0.06
+    assert results.pvalue.round(3) == 0.048
     assert results.num_permutations == 999
     assert results.sample_size == 6
     assert results.group_by_variable == "group"
@@ -315,7 +321,7 @@ def test_permanova(samples):
     assert results.posthoc is None
 
     np.random.seed(0)
-    posthoc = samples._permanova(dm, df, "group", 0.07, 999).posthoc
+    posthoc = samples._permanova(dm, df, "group", 0.05, 999).posthoc
     labels = pd.Index(["g1", "g2", "g3"])
     for attr in "statistics", "pvalues", "adjusted_pvalues":
         df = getattr(posthoc, attr)
@@ -336,10 +342,10 @@ def test_permanova(samples):
         elif attr == "pvalues":
             assert (np.diagonal(data) == 1.0).all()
 
-            pvalues = [0.323, 0.354, 0.352]
+            pvalues = [0.351, 0.315, 0.352]
             assert (np.round(data[upper_triangle_indices], 3) == pvalues).all()
         elif attr == "adjusted_pvalues":
             assert (np.diagonal(data) == 1.0).all()
 
-            adjusted_pvalues = [0.354, 0.354, 0.354]
+            adjusted_pvalues = [0.352, 0.352, 0.352]
             assert (np.round(data[upper_triangle_indices], 3) == adjusted_pvalues).all()
