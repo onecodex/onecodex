@@ -35,7 +35,7 @@ class ResourceList(object):
     _resource : `list`
         A list of potion objects, which are generally stored in `OneCodexBase._resource`.
     oc_model : `OneCodexBase`
-        A class which inherits from `OneCodexBase`, for example, `models.Tags`.
+        A class which inherits from `OneCodexBase` (e.g., Samples, Classifications, Projects).
 
     Notes
     -----
@@ -389,7 +389,10 @@ class OneCodexBase(object):
 
     @classmethod
     def where(cls, *filters, **keyword_filters):
-        """Retrieve objects (Samples, Classifications, etc.) from the One Codex server.
+        """Retrieve objects of this type from the One Codex server.
+
+        This method works for all OneCodex model types including Samples, Classifications,
+        Projects, and Panels.
 
         Parameters
         ----------
@@ -410,8 +413,14 @@ class OneCodexBase(object):
         --------
         You can filter objects that are returned locally using a lambda function:
 
-            # returns only samples with a filename ending in '.gz'
+            # Filter samples by filename
             my_samples = Samples.where(filter=lambda s: s.filename.endswith('.gz'))
+
+            # Filter classifications by completion status
+            completed = Classifications.where(filter=lambda c: c.complete == True)
+
+            # Filter projects by name
+            my_projects = Projects.where(filter=lambda p: 'test' in p.name)
 
         Returns
         -------
@@ -502,6 +511,12 @@ class OneCodexBase(object):
         --------
         >>> api.Samples.get('xxxxxxxxxxxxxxxx')
         <Sample xxxxxxxxxxxxxxxx>
+
+        >>> api.Classifications.get('xxxxxxxxxxxxxxxx')
+        <Classification xxxxxxxxxxxxxxxx>
+
+        >>> api.Projects.get('xxxxxxxxxxxxxxxx')
+        <Project xxxxxxxxxxxxxxxx>
         """
         check_bind(cls)
 
