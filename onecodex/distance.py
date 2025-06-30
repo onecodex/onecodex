@@ -13,7 +13,7 @@ class DistanceMixin(TaxonomyMixin):
         ----------
         metric : {'simpson', 'observed_taxa', 'shannon'}
             The diversity metric to calculate. Note that Shannon diversity is calculated using log
-            base 2 instead of base ``e`` (natural log).
+            base ``e`` (natural log).
         rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
             Analysis will be restricted to abundances of taxa at the specified level.
 

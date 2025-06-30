@@ -10,14 +10,14 @@ from onecodex.lib.enums import BetaDiversityMetric
 
 
 @pytest.mark.parametrize(
-    "metric,value,kwargs",
+    "metric,value",
     [
-        ("simpson", [0.9232922257199748, 0.8930761430647977, 0.7865654458730155], {}),
-        ("observed_taxa", [164.0, 134.0, 103.0], {}),
+        ("simpson", [0.9232922257199748, 0.8930761430647977, 0.7865654458730156]),
+        ("observed_taxa", [164.0, 134.0, 103.0]),
     ],
 )
-def test_alpha_diversity(samples, metric, value, kwargs):
-    divs = samples.alpha_diversity(metric=metric, **kwargs)
+def test_alpha_diversity(samples, metric, value):
+    divs = samples.alpha_diversity(metric=metric)
     assert isinstance(divs, pd.DataFrame)
     assert divs[metric].tolist() == value
 

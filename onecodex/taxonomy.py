@@ -64,7 +64,7 @@ class TaxonomyMixin(object):
             tax_ids_to_keep.extend([x.name for x in tree.find(tax_id).ancestors()])
 
         tree = tree.copy()
-        tree.remove_deleted(lambda n: n.name not in tax_ids_to_keep)
+        tree.remove_by_func(lambda n: n.name not in tax_ids_to_keep)
 
         return tree
 
@@ -104,6 +104,6 @@ class TaxonomyMixin(object):
             else:
                 node._above_rank = False
 
-        tree.remove_deleted(lambda n: not getattr(n, "_above_rank", False))
+        tree.remove_by_func(lambda n: not getattr(n, "_above_rank", False))
 
         return tree

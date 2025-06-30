@@ -52,8 +52,8 @@ class VizMetadataMixin(object):
 
             - A metadata field: the name of a metadata field containing numerical data
             - {'simpson', 'observed_taxa', 'shannon'}: an alpha diversity statistic to calculate for
-              each sample. Note that Shannon diversity is calculated using log base 2 instead of
-              base ``e`` (natural log).
+              each sample. Note that Shannon diversity is calculated using log base ``e`` (natural
+              log).
             - A taxon name: the name of a taxon in the analysis
             - A taxon ID: the ID of a taxon in the analysis
 
