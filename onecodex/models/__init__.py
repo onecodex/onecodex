@@ -35,7 +35,7 @@ class ResourceList(object):
     _resource : `list`
         A list of potion objects, which are generally stored in `OneCodexBase._resource`.
     oc_model : `OneCodexBase`
-        A class which inherits from `OneCodexBase`, for example, `models.Tags`.
+        A class which inherits from `OneCodexBase` (e.g., Samples, Classifications, Projects).
 
     Notes
     -----
@@ -389,7 +389,10 @@ class OneCodexBase(object):
 
     @classmethod
     def where(cls, *filters, **keyword_filters):
-        """Retrieve objects (Samples, Classifications, etc.) from the One Codex server.
+        """Filter model records of this type from the One Codex server.
+
+        This method works for all OneCodex model types including Samples,
+        Classifications, Projects, and Panels.
 
         Parameters
         ----------
@@ -408,10 +411,21 @@ class OneCodexBase(object):
 
         Examples
         --------
-        You can filter objects that are returned locally using a lambda function:
+        You can filter objects that are returned locally using a lambda function
 
-            # returns only samples with a filename ending in '.gz'
+        All models implement the same method. To see a complete list of
+        models which can be retrieved by ID, see the `models page
+        <models.html>`_.
+        ::
+
+            # Filter samples by filename
             my_samples = Samples.where(filter=lambda s: s.filename.endswith('.gz'))
+
+            # Filter classifications by completion status
+            completed = Classifications.where(filter=lambda c: c.complete == True)
+
+            # Filter projects by name
+            my_projects = Projects.where(filter=lambda p: 'test' in p.name)
 
         Returns
         -------
@@ -484,7 +498,7 @@ class OneCodexBase(object):
 
     @classmethod
     def get(cls, uuid):
-        """Retrieve one specific object from the server by its UUID (unique 16-character id).
+        """Retrieve a model record from the server by its UUID (unique 16-character id).
 
         UUIDs are found in the web browser's address bar while viewing analyses and other objects.
 
@@ -493,15 +507,29 @@ class OneCodexBase(object):
         uuid : `str`
             UUID of the object to retrieve.
 
+        Examples
+        --------
+        All models implement the same method. To see a complete list of
+        models which can be retrieved by ID, see the `models page
+        <models.html>`_.
+        ::
+
+            # Fetch a sample by ID
+            >>> api.Sample.get('xxxxxxxxxxxxxxxx')
+            <Sample xxxxxxxxxxxxxxxx>
+
+            # Fetch a classification analysis by ID
+            >>> api.Classifications.get('xxxxxxxxxxxxxxxx')
+            <Classification xxxxxxxxxxxxxxxx>
+
+            # Fetch a project by ID
+            >>> api.Projects.get('xxxxxxxxxxxxxxxx')
+            <Project xxxxxxxxxxxxxxxx>
+
         Returns
         -------
         `OneCodexBase` or `None`
             The object with that UUID or None if no object could be found.
-
-        Examples
-        --------
-        >>> api.Samples.get('xxxxxxxxxxxxxxxx')
-        <Sample xxxxxxxxxxxxxxxx>
         """
         check_bind(cls)
 
