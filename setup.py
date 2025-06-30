@@ -71,7 +71,8 @@ setup(
         "pytz>=2014.1",
         "sentry-sdk>=0.10.2",
         "requests>=2.27.1",
-        "urllib3>=2.5.0,<3",
+        "urllib3<2 ; python_version <= '3.9'",  # Boto does not support urllib3 2 on P3.9
+        "urllib3>=2.5.0,<3 ; python_version > '3.9'",
         "requests_toolbelt>=0.7.0",
         "six>=1.10.0",
         "unidecode>=1.0.23",
