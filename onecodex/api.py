@@ -1,29 +1,59 @@
 from __future__ import print_function
-from datetime import datetime
-import errno
 import filelock
 import json
 import logging
 import os
+import requests
 from requests.adapters import HTTPAdapter
 from requests.auth import HTTPBasicAuth
 from requests.packages.urllib3.util.retry import Retry
 import warnings
 
-from onecodex.exceptions import OneCodexException
 from onecodex.lib.auth import BearerTokenAuth
 from onecodex.utils import collapse_user, init_sentry
-from onecodex.vendored.potion_client import Client as PotionClient
-from onecodex.vendored.potion_client.converter import (
-    PotionJSONSchemaDecoder,
-    PotionJSONDecoder,
-    PotionJSONEncoder,
-)
-from onecodex.vendored.potion_client.utils import upper_camel_case
 from onecodex.version import __version__
 
 
 log = logging.getLogger("onecodex")
+
+
+class HTTPClient:
+    """Simple requests-based HTTP client for API requests."""
+
+    def __init__(self, auth=None, headers=None, timeout=30.0, **kwargs):
+        self.session = requests.Session()
+        if auth:
+            self.session.auth = auth
+        if headers:
+            self.session.headers.update(headers)
+
+        # Set backoff / retry strategy for 429s
+        retry_strategy = Retry(
+            total=3, backoff_factor=4, allowed_methods=None, status_forcelist=[429, 502, 503]
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
+
+    def get(self, url, **kwargs):
+        """Make GET request."""
+        return self.session.get(url, **kwargs)
+
+    def post(self, url, **kwargs):
+        """Make POST request."""
+        return self.session.post(url, **kwargs)
+
+    def put(self, url, **kwargs):
+        """Make PUT request."""
+        return self.session.put(url, **kwargs)
+
+    def delete(self, url, **kwargs):
+        """Make DELETE request."""
+        return self.session.delete(url, **kwargs)
+
+    def request(self, method, url, **kwargs):
+        """Make request with specified method."""
+        return self.session.request(method, url, **kwargs)
 
 
 class Api(object):
@@ -43,6 +73,12 @@ class Api(object):
         load_extensions=True,
         **kwargs,
     ):
+        if cache_schema is False:
+            warnings.warn(
+                "The cache_schema parameter is deprecated and will be removed in a future version.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         if base_url is None:
             base_url = os.environ.get("ONE_CODEX_API_BASE", "https://app.onecodex.com")
             if base_url != "https://app.onecodex.com":
@@ -91,28 +127,15 @@ class Api(object):
             if bearer_token is None:
                 bearer_token = os.environ.get("ONE_CODEX_BEARER_TOKEN")
 
+        auth = None
         if bearer_token:  # prefer bearer token where available
-            self._req_args["auth"] = BearerTokenAuth(bearer_token)
+            auth = BearerTokenAuth(bearer_token)
         elif api_key:
-            self._req_args["auth"] = HTTPBasicAuth(api_key, "")
+            auth = HTTPBasicAuth(api_key, "")
 
-        self._req_args["headers"] = {"X-OneCodex-Client-User-Agent": __version__}
+        headers = {"X-OneCodex-Client-User-Agent": __version__}
 
-        # Create client instance
-        self._client = ExtendedPotionClient(
-            self._base_url, schema_path=self._schema_path, fetch_schema=False, **self._req_args
-        )
-        self._client._fetch_schema(cache_schema=cache_schema)
-        self._session = self._client.session
-
-        # Set backoff / retry strategy for 429s
-        retry_strategy = Retry(
-            total=3, backoff_factor=4, allowed_methods=None, status_forcelist=[429, 502, 503]
-        )
-        adapter = HTTPAdapter(max_retries=retry_strategy)
-        self._session.mount("http://", adapter)
-        self._session.mount("https://", adapter)
-
+        self._http_client = HTTPClient(auth=auth, headers=headers)
         self._copy_resources()
 
         # Optionally configure custom One Codex altair theme and renderer
@@ -160,158 +183,28 @@ class Api(object):
         -------
         `None`
         """
-        from onecodex.models import _model_lookup
+        pass
 
-        if self._schema_path != "/api/v1/schema":
-            new_schema_base = self._schema_path.rstrip("schema")
+    #     from onecodex.models import _model_lookup
 
-            aliased_resources = {}
+    #     if self._schema_path != "/api/v1/schema":
+    #         new_schema_base = self._schema_path.rstrip("schema")
 
-            for resource, oc_cls in _model_lookup.items():
-                aliased_resources[resource.replace("/api/v1/", new_schema_base)] = oc_cls
+    #         aliased_resources = {}
 
-            _model_lookup.update(aliased_resources)
+    #         for resource, oc_cls in _model_lookup.items():
+    #             aliased_resources[resource.replace("/api/v1/", new_schema_base)] = oc_cls
 
-        for resource in self._client._resources:
-            # set the name param, the keys now have / in them
-            potion_resource = self._client._resources[resource]
+    #         _model_lookup.update(aliased_resources)
 
-            try:
-                oc_cls = _model_lookup[resource]
-                oc_cls._api = self
-                oc_cls._resource = potion_resource
-                setattr(self, oc_cls.__name__, oc_cls)
-            except KeyError:  # Ignore resources we don't explicitly model
-                pass
+    #     for resource in self._client._resources:
+    #         # set the name param, the keys now have / in them
+    #         potion_resource = self._client._resources[resource]
 
-
-class ExtendedPotionClient(PotionClient):
-    """Extend PotionClient to support caching API schema."""
-
-    DATE_FORMAT = "%Y-%m-%d %H:%M"
-    SCHEMA_SAVE_DURATION = 1  # day
-
-    def fetch(self, uri, cls=PotionJSONDecoder, **kwargs):
-        if uri in self._cached_schema:
-            return self._cached_schema[uri]
-        return super(ExtendedPotionClient, self).fetch(uri, cls=cls, **kwargs)
-
-    def _fetch_schema(self, cache_schema=True, creds_file=None):
-        self._cached_schema = {}
-
-        creds_file = os.path.expanduser("~/.onecodex") if creds_file is None else creds_file
-        creds = {}
-
-        if not os.path.exists(creds_file):
-            pass
-        elif not os.access(creds_file, os.R_OK):
-            warnings.warn("Check permissions on {}".format(collapse_user(creds_file)))
-        else:
-            try:
-                creds = json.load(open(creds_file, "r"))
-            except ValueError:
-                warnings.warn("Credentials file ({}) is corrupt".format(collapse_user(creds_file)))
-
-        serialized_schema = None
-
-        if cache_schema:
-            # determine if we need to update
-            schema_update_needed = True
-            last_update = creds.get("schema_saved_at")
-
-            if last_update is not None:
-                last_update = datetime.strptime(last_update, self.DATE_FORMAT)
-                time_diff = datetime.now() - last_update
-                schema_update_needed = time_diff.days > self.SCHEMA_SAVE_DURATION
-
-            if not schema_update_needed:
-                # get the schema from the credentials file (as a string)
-                serialized_schema = creds.get("schema")
-
-        if serialized_schema is None:
-            # if the schema wasn't cached or if it was expired, get it anew
-            schema = self.session.get(self._schema_url).json(
-                cls=PotionJSONSchemaDecoder, referrer=self._schema_url, client=self
-            )
-            expanded_schema = self.session.get(self._schema_url + "?expand=all").json()
-
-            if "message" in schema:
-                raise OneCodexException(schema["message"])
-            elif "message" in expanded_schema:
-                raise OneCodexException(expanded_schema["message"])
-
-            # serialize the main schema
-            serialized_schema = {}
-            serialized_schema[self._schema_url] = json.dumps(schema, cls=PotionJSONEncoder)
-
-            # serialize the object schemas
-            for schema_name, schema_ref in schema["properties"].items():
-                cur_schema = expanded_schema["properties"][schema_name]
-                serialized_schema[schema_ref._uri] = json.dumps(cur_schema, cls=PotionJSONEncoder)
-
-        # save schema if we're going to, otherwise delete it from creds file
-        if cache_schema:
-            creds["schema_saved_at"] = datetime.strftime(datetime.now(), self.DATE_FORMAT)
-            creds["schema"] = serialized_schema
-        else:
-            if "schema_saved_at" in creds:
-                del creds["schema_saved_at"]
-            if "schema" in creds:
-                del creds["schema"]
-
-        # always resave the creds (to make sure we're removing or saving the cached schema)
-        try:
-            if creds:
-                json.dump(creds, open(creds_file, "w"))
-            else:
-                os.remove(creds_file)
-        except Exception as e:
-            if e.errno == errno.ENOENT:
-                pass
-            elif e.errno == errno.EACCES:
-                warnings.warn("Check permissions on {}".format(collapse_user(creds_file)))
-            else:
-                raise
-
-        # by the time we get here, we should have loaded the serialized schema from creds_file or
-        # pulled it from the API and serialized it. now, we unserialize it and put it where it
-        # needs to be.
-        base_schema = serialized_schema.pop(self._schema_url, None)
-
-        if base_schema is None:
-            other_schema_url = [ref for ref in serialized_schema if not ref.endswith("#")]
-
-            if len(other_schema_url) == 1:
-                schema_url = other_schema_url[0]
-                base_schema = serialized_schema.pop(schema_url)
-                warnings.warn(
-                    "Using cached schema for {}, which does not match {}".format(
-                        schema_url, self._schema_url
-                    )
-                )
-            else:
-                raise OneCodexException(
-                    "Could not find schema for {} in ~/.onecodex. Please delete this file, "
-                    "re-login and try again, or pass cache_schema=False.".format(self._schema_url)
-                )
-        else:
-            schema_url = self._schema_url
-
-        base_schema = json.loads(
-            base_schema, cls=PotionJSONSchemaDecoder, referrer=schema_url, client=self
-        )
-
-        for name, schema_ref in base_schema["properties"].items():
-            object_schema = json.loads(
-                serialized_schema[schema_ref._uri],
-                cls=PotionJSONSchemaDecoder,
-                referrer=self._schema_url,
-                client=self,
-            )
-
-            object_schema["_base_uri"] = schema_ref._uri.replace("/schema#", "")
-
-            self._cached_schema[schema_ref._uri] = object_schema
-
-            class_name = upper_camel_case(name)
-            setattr(self, class_name, self.resource_factory(name, object_schema))
+    #         try:
+    #             oc_cls = _model_lookup[resource]
+    #             oc_cls._api = self
+    #             oc_cls._resource = potion_resource
+    #             setattr(self, oc_cls.__name__, oc_cls)
+    #         except KeyError:  # Ignore resources we don't explicitly model
+    #             pass
