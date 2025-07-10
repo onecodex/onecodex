@@ -13,4 +13,4 @@ coveragehtml:
 	py.test --cov-report=html --cov=onecodex --ignore tests/test_speed.py --ignore tests/test_reports.py tests/
 
 install:
-	python setup.py install
+	uv sync --all-extras --locked
