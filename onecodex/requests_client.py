@@ -1,21 +1,16 @@
 """
-Modern HTTP client to replace Potion-Client functionality.
-
-This module provides a new HTTP client based on httpx that will replace
-the vendored Potion-Client dependency.
+HTTP client using requests library for backward compatibility with tests.
 """
 
 import json
 import logging
 import os
-import warnings
-from datetime import datetime
 from typing import Any, Dict, List, Optional, Type, TypeVar, Union
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin
 
-import httpx
 import requests
 from requests.adapters import HTTPAdapter
+from requests.auth import HTTPBasicAuth
 from requests.packages.urllib3.util.retry import Retry
 from pydantic import BaseModel
 
@@ -29,7 +24,7 @@ ModelType = TypeVar("ModelType", bound=BaseModel)
 
 
 class OneCodexHTTPClient:
-    """Modern HTTP client for One Codex API."""
+    """HTTP client for One Codex API using requests library."""
 
     def __init__(
         self,
@@ -48,43 +43,36 @@ class OneCodexHTTPClient:
             bearer_token: Bearer token for authentication (preferred over api_key)
             timeout: Request timeout in seconds
             retries: Number of retries for failed requests
-            **kwargs: Additional arguments passed to httpx.Client
         """
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self.retries = retries
 
+        # Create session
+        self.session = requests.Session()
+
         # Set up authentication
-        auth = None
         if bearer_token:
-            # Note: httpx doesn't have a direct equivalent to BearerTokenAuth
-            # We'll handle this in the request headers
-            self._bearer_token = bearer_token
+            self.session.auth = BearerTokenAuth(bearer_token)
         elif api_key:
-            auth = httpx.BasicAuth(username=api_key, password="")
+            self.session.auth = HTTPBasicAuth(api_key, "")
 
         # Set up headers
-        headers = {
-            "X-OneCodex-Client-User-Agent": __version__,
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        }
-
-        if bearer_token:
-            headers["Authorization"] = f"Bearer {bearer_token}"
-
-        # Configure transport with retry (httpx doesn't have built-in retry like requests)
-        transport = httpx.HTTPTransport(retries=retries)
-
-        # Create httpx client
-        self._client = httpx.Client(
-            base_url=self.base_url,
-            auth=auth,
-            headers=headers,
-            timeout=timeout,
-            transport=transport,
-            **kwargs,
+        self.session.headers.update(
+            {
+                "X-OneCodex-Client-User-Agent": __version__,
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            }
         )
+
+        # Configure retry strategy
+        retry_strategy = Retry(
+            total=retries, backoff_factor=4, allowed_methods=None, status_forcelist=[429, 502, 503]
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
 
     def __enter__(self):
         return self
@@ -94,42 +82,40 @@ class OneCodexHTTPClient:
 
     def close(self):
         """Close the HTTP client."""
-        self._client.close()
+        self.session.close()
 
-    def _handle_response(self, response: httpx.Response) -> Dict[str, Any]:
+    def _handle_response(self, response: requests.Response) -> Optional[Dict[str, Any]]:
         """Handle HTTP response and convert to JSON.
 
         Args:
-            response: httpx Response object
+            response: requests Response object
 
         Returns:
-            Parsed JSON response
+            Parsed JSON response or None for 404
 
         Raises:
             OneCodexException: For various API errors
         """
-        try:
-            response.raise_for_status()
-        except httpx.HTTPStatusError as e:
-            if response.status_code == 401:
-                raise PermissionDenied("Authentication failed")
-            elif response.status_code == 403:
-                raise PermissionDenied("Access forbidden")
-            elif response.status_code == 404:
-                return None  # Resource not found
-            elif response.status_code == 400:
-                try:
-                    error_data = response.json()
-                    error_msg = self._format_error_message(error_data)
-                    raise ServerError(error_msg)
-                except (json.JSONDecodeError, KeyError):
-                    raise ServerError("Bad request")
-            elif response.status_code == 409:
-                raise ServerError("Resource conflict")
-            elif response.status_code >= 500:
-                raise ServerError(f"Server error: {response.status_code}")
-            else:
-                raise OneCodexException(f"HTTP {response.status_code}: {response.text}")
+        if response.status_code == 404:
+            return None
+
+        if response.status_code == 401:
+            raise PermissionDenied("Authentication failed")
+        elif response.status_code == 403:
+            raise PermissionDenied("Access forbidden")
+        elif response.status_code == 400:
+            try:
+                error_data = response.json()
+                error_msg = self._format_error_message(error_data)
+                raise ServerError(error_msg)
+            except (json.JSONDecodeError, KeyError):
+                raise ServerError("Bad request")
+        elif response.status_code == 409:
+            raise ServerError("Resource conflict")
+        elif response.status_code >= 500:
+            raise ServerError(f"Server error: {response.status_code}")
+        elif response.status_code >= 400:
+            raise OneCodexException(f"HTTP {response.status_code}: {response.text}")
 
         try:
             return response.json()
@@ -171,7 +157,7 @@ class OneCodexHTTPClient:
             JSON response or None if 404
         """
         url = urljoin(self.base_url + "/", endpoint.lstrip("/"))
-        response = self._client.get(url, params=params)
+        response = self.session.get(url, params=params, timeout=self.timeout)
         return self._handle_response(response)
 
     def post(self, endpoint: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -185,7 +171,7 @@ class OneCodexHTTPClient:
             JSON response
         """
         url = urljoin(self.base_url + "/", endpoint.lstrip("/"))
-        response = self._client.post(url, json=data)
+        response = self.session.post(url, json=data, timeout=self.timeout)
         return self._handle_response(response)
 
     def put(self, endpoint: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -199,7 +185,7 @@ class OneCodexHTTPClient:
             JSON response
         """
         url = urljoin(self.base_url + "/", endpoint.lstrip("/"))
-        response = self._client.put(url, json=data)
+        response = self.session.put(url, json=data, timeout=self.timeout)
         return self._handle_response(response)
 
     def patch(self, endpoint: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -213,7 +199,7 @@ class OneCodexHTTPClient:
             JSON response
         """
         url = urljoin(self.base_url + "/", endpoint.lstrip("/"))
-        response = self._client.patch(url, json=data)
+        response = self.session.patch(url, json=data, timeout=self.timeout)
         return self._handle_response(response)
 
     def delete(self, endpoint: str) -> Optional[Dict[str, Any]]:
@@ -226,7 +212,7 @@ class OneCodexHTTPClient:
             JSON response or None
         """
         url = urljoin(self.base_url + "/", endpoint.lstrip("/"))
-        response = self._client.delete(url)
+        response = self.session.delete(url, timeout=self.timeout)
         return self._handle_response(response)
 
     def paginated_get(
