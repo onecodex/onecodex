@@ -1,0 +1,112 @@
+[build-system]
+requires = ["setuptools>=61.0", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "onecodex"
+dynamic = ["version"]
+description = "One Codex API client and Python library"
+readme = "README.md"
+license = { text = "MIT License" }
+authors = [{ name = "One Codex", email = "opensource@onecodex.com" }]
+keywords = ["One Codex API Client"]
+classifiers = [
+    "Environment :: Console",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Internet :: WWW/HTTP",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+requires-python = ">=3.9"
+dependencies = [
+    "boto3>=1.17.98",
+    "click>=8.0",
+    "jsonschema>=3.0",
+    "python-dateutil>=2.5.3",
+    "pytz>=2014.1",
+    "sentry-sdk>=0.10.2",
+    "requests>=2.27.1",
+    "urllib3<2 ; python_version <= '3.9'",        # Boto does not support urllib3 2 on P3.9
+    "urllib3>=2.5.0,<3 ; python_version > '3.9'",
+    "requests_toolbelt>=0.7.0",
+    "six>=1.10.0",
+    "unidecode>=1.0.23",
+    "filelock>=3.0.12,<4",
+]
+
+[project.optional-dependencies]
+all = [
+    "altair==5.5.0",
+    "numpy>=1.21.6,<3",
+    "pandas>=1.0.3",
+    "pillow>=9.0.1",
+    "scikit-bio==0.6.3",
+    "scikit-learn>=0.19.0",
+    "scikit-posthocs",
+    "scipy>=1.11.0",
+]
+reports = [
+    "altair==5.5.0",
+    "numpy>=1.21.6,<3",
+    "pandas>=1.0.3",
+    "pillow>=9.0.1",
+    "scikit-bio==0.6.3",
+    "scikit-learn>=0.19.0",
+    "scikit-posthocs",
+    "scipy>=1.11.0",
+    # notebook 7 is a major overhaul based on JupyterLab. It has a new UI and extension system, and
+    # does not (yet) support some extensions we use (e.g. python-markdown in
+    # jupyter_contrib_nbextensions).
+    "notebook==6.5.7",
+    "nbconvert>=6.4.3",
+    "WeasyPrint==63.0",
+    "vl-convert-python>=1.6.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/onecodex/onecodex"
+Repository = "https://github.com/onecodex/onecodex"
+
+[project.scripts]
+onecodex = "onecodex.cli:onecodex"
+
+[project.entry-points."nbconvert.exporters"]
+onecodex_pdf = "onecodex.notebooks.exporters:OneCodexPDFExporter"
+onecodex_html = "onecodex.notebooks.exporters:OneCodexHTMLExporter"
+onecodex_doc = "onecodex.notebooks.exporters:OneCodexDocumentExporter"
+
+[tool.setuptools]
+packages = { find = { exclude = ["*test*"] } }
+include-package-data = true
+zip-safe = false
+
+[tool.setuptools.dynamic]
+version = { attr = "onecodex.version.__version__" }
+
+[tool.flake8]
+max-line-length = 100
+ignore = ["E203", "E501", "W503", "E402"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "coverage",
+    "pytest",
+    "pytest-cov",
+    "responses",
+    "testfixtures",
+    "mock",
+    "vega_datasets",
+    "pre-commit",
+    "pdfplumber",
+    "ruff>=0.12.2",
+]
