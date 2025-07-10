@@ -90,12 +90,44 @@ zip-safe = false
 [tool.setuptools.dynamic]
 version = { attr = "onecodex.version.__version__" }
 
-[tool.flake8]
-max-line-length = 100
-ignore = ["E203", "E501", "W503", "E402"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+exclude = [
+    "onecodex/vendored",
+    "tests/api_data",
+    "tests/data",
+    "notebook_examples/*.ipynb",
+]
+
+[tool.ruff.lint]
+# Enable pycodestyle (E, W), Pyflakes (F), pydocstyle (D), and other rules
+select = ["E", "W", "F", "D"]
+ignore = [
+    "E203", # whitespace before ':'
+    "E501", # line too long (handled by line-length)
+    "E402", # module level import not at top of file
+    "D100", # Missing docstring in public module
+    "D101", # Missing docstring in public class
+    "D102", # Missing docstring in public method
+    "D103", # Missing docstring in public function
+    "D104", # Missing docstring in public package
+    "D105", # Missing docstring in magic method
+    "D202", # No blank lines allowed after function docstring
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D"]
 
 [dependency-groups]
 dev = [

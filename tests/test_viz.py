@@ -475,7 +475,7 @@ def test_plot_heatmap_plots_samples_without_abundances_with_nans(samples, is_one
         chart_data[(chart_data == all_nan_classification_id).any(axis=1)]["Relative Abundance"]
         .isnull()
         .all()
-        == True  # noqa
+        == np.True_
     )
     assert (
         chart_data[(chart_data == samples[1].primary_classification.id).any(axis=1)][
@@ -483,7 +483,7 @@ def test_plot_heatmap_plots_samples_without_abundances_with_nans(samples, is_one
         ]
         .isnull()
         .any()
-        == False  # noqa
+        == np.False_
     )
 
     # Sample with all NaNs should be at the end

@@ -291,10 +291,10 @@ def cli(
                 fwd_iter = validating_parser(fastx, **io_kwargs)
                 rev_iter = validating_parser(reverse, **io_kwargs)
 
-            with io.open(filtered_filename, "wb") as out_file, io.open(
-                rev_filtered_filename, "wb"
-            ) as rev_out_file:  # noqa
-
+            with (
+                io.open(filtered_filename, "wb") as out_file,
+                io.open(rev_filtered_filename, "wb") as rev_out_file,
+            ):
                 for idx, (fwd, rev) in enumerate(zip(fwd_iter, rev_iter)):
                     if idx == tsv_row_count:
                         too_many_fastx_records()

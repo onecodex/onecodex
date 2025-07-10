@@ -355,7 +355,7 @@ class bibliography(object):
 
     def _repr_mimebundle_(self, include=None, exclude=None):
         cites = [
-            "<div>" "<h4>References</h4>",
+            "<div><h4>References</h4>",
             '<dl class="bibliography" style="{}">'.format(self.style),
         ]
 

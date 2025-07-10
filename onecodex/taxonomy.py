@@ -32,8 +32,9 @@ class TaxonomyMixin(object):
             except KeyError:
                 if tax_id != "1":
                     warnings.warn(
-                        "tax_id={} has parent_tax_id={} which is not in tree"
-                        "".format(tax_id, nodes[tax_id].parent_tax_id)
+                        "tax_id={} has parent_tax_id={} which is not in tree".format(
+                            tax_id, nodes[tax_id].parent_tax_id
+                        )
                     )
 
                 continue

@@ -187,14 +187,20 @@ export HDF5_DIR=/opt/homebrew/Cellar/hdf5/1.12.1_1/
 uv sync --all-extras --dev --locked
 ```
 
-Test are run via the Makefile. Note this may take awhile at first because of installing dependencies:
+To activate the virtual environment:
+
+```shell
+source .venv/bin/activate
+```
+
+Tests are run via `pytest` while code formatting and linting is done using [`ruff`](https://github.com/astral-sh/ruff):
 
 ```shell
 make lint
 make test
 ```
 
-We use [`pre-commit`](https://pre-commit.com) for automated linting using [`black`](https://github.com/ambv/black), `flake8`, and various whitespace and newline formatters during development.
+We use [`pre-commit`](https://pre-commit.com) for automated linting using [`ruff`](https://github.com/astral-sh/ruff) and various whitespace and newline formatters during development.
 
 ## Writing Unit Tests
 

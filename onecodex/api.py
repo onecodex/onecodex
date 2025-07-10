@@ -41,7 +41,7 @@ class Api(object):
         telemetry=None,
         schema_path="/api/v1/schema",
         load_extensions=True,
-        **kwargs
+        **kwargs,
     ):
         if base_url is None:
             base_url = os.environ.get("ONE_CODEX_API_BASE", "https://app.onecodex.com")
