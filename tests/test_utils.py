@@ -108,9 +108,10 @@ def test_init_sentry(
     if ONE_CODEX_SENTRY_DSN:
         monkeypatch.setenv("ONE_CODEX_SENTRY_DSN", ONE_CODEX_SENTRY_DSN)
 
-    with mock.patch("onecodex.utils._setup_sentry_for_ipython") as _, mock.patch(
-        "sentry_sdk.init"
-    ) as mocked_sentry_init:
+    with (
+        mock.patch("onecodex.utils._setup_sentry_for_ipython") as _,
+        mock.patch("sentry_sdk.init") as mocked_sentry_init,
+    ):
         init_sentry()
         assert mocked_sentry_init.call_count == call_count
         if call_count:

@@ -1,7 +1,7 @@
 set -e
 
-make lint
-make test
+uv run make lint
+uv run make test
 echo "Tests successful. Pushing to PyPI..."
-python setup.py sdist
-twine upload dist/*
+uv build
+uv publish
