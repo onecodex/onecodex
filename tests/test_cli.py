@@ -206,9 +206,11 @@ def test_standard_uploads(
     """Test single and multi file uploads, with and without threads
     (but not files >5GB)
     """
-    with runner.isolated_filesystem(), mock.patch(
-        "onecodex.models.Projects.get", side_effect=lambda _: None
-    ), mock.patch("onecodex.lib.upload._s3_intermediate_upload") as s3_upload_mock:
+    with (
+        runner.isolated_filesystem(),
+        mock.patch("onecodex.models.Projects.get", side_effect=lambda _: None),
+        mock.patch("onecodex.lib.upload._s3_intermediate_upload") as s3_upload_mock,
+    ):
         s3_upload_mock.return_value = {"sample_id": "7428cca4a3a04a8e"}
         args = [
             "--api-key",

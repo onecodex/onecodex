@@ -176,9 +176,10 @@ def test_upload_lots_of_files(files, n_uploads, fxi_calls, fxp_calls):
                 assert passthru.call_count == fxp_calls
 
         # Need to patch from `upload.` instead of `files.` for that test
-        with patch(udo) as upload_document_fileobj, patch(
-            "onecodex.lib.upload.FilePassthru"
-        ) as passthru:
+        with (
+            patch(udo) as upload_document_fileobj,
+            patch("onecodex.lib.upload.FilePassthru") as passthru,
+        ):
             with patch(sz, size_effect=fake_size):
                 files = files[0] if isinstance(files, tuple) else files
                 upload_document(files, FakeDocumentsResource())
@@ -197,9 +198,11 @@ def test_upload_asset():
         n_uploads = 1
         fake_size = 1000
 
-        with patch("onecodex.lib.upload._upload_asset_fileobj") as upload_asset_fileobj, patch(
-            "onecodex.lib.upload.FilePassthru"
-        ) as passthru, patch("os.path.getsize", size_effect=fake_size):
+        with (
+            patch("onecodex.lib.upload._upload_asset_fileobj") as upload_asset_fileobj,
+            patch("onecodex.lib.upload.FilePassthru") as passthru,
+            patch("os.path.getsize", size_effect=fake_size),
+        ):
             upload_asset(file, FakeAssetsResource())
 
             assert upload_asset_fileobj.call_count == n_uploads
@@ -213,9 +216,11 @@ def test_upload_asset_with_name():
         fake_size = 1000
         name = "user-friendly-name"
 
-        with patch("onecodex.lib.upload._upload_asset_fileobj") as upload_asset_fileobj, patch(
-            "onecodex.lib.upload.FilePassthru"
-        ), patch("os.path.getsize", size_effect=fake_size):
+        with (
+            patch("onecodex.lib.upload._upload_asset_fileobj") as upload_asset_fileobj,
+            patch("onecodex.lib.upload.FilePassthru"),
+            patch("os.path.getsize", size_effect=fake_size),
+        ):
             upload_asset(file, FakeAssetsResource(), name=name)
             assert upload_asset_fileobj.call_args[-1] == {"name": name}
 
@@ -321,6 +326,4 @@ def test_boto3_chunksize():
     assert "too large to upload" in str(e.value)
 
     # test file with no known size
-    assert (
-        _choose_boto3_chunksize(open("tests/data/files/test_R1_L001.fq.gz", "r")) == 25 * 1024**2
-    )
+    assert _choose_boto3_chunksize(open("tests/data/files/test_R1_L001.fq.gz", "r")) == 25 * 1024**2

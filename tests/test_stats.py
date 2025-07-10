@@ -35,8 +35,11 @@ def test_missing_group_by_data(samples, method, group_by, num_groups):
     samples.metadata["col1"] = ["a", None, "a"]
     samples.metadata["col2"] = ["1", "42", np.nan]
 
-    with pytest.warns(StatsWarning), pytest.raises(
-        StatsException, match=f"`group_by` must have at least 2 groups.*found {num_groups}"
+    with (
+        pytest.warns(StatsWarning),
+        pytest.raises(
+            StatsException, match=f"`group_by` must have at least 2 groups.*found {num_groups}"
+        ),
     ):
         getattr(samples, method)(group_by=group_by)
 
@@ -53,8 +56,9 @@ def test_samples_missing_abundances(samples, method, kwargs):
     samples._results[:] = np.nan
     assert len(samples._classification_ids_without_abundances) == 3
 
-    with pytest.warns(StatsWarning, match="3 samples.*missing abundance"), pytest.raises(
-        StatsException, match="`group_by` must have at least 2 groups.*found 0"
+    with (
+        pytest.warns(StatsWarning, match="3 samples.*missing abundance"),
+        pytest.raises(StatsException, match="`group_by` must have at least 2 groups.*found 0"),
     ):
         getattr(samples, method)(group_by="col", **kwargs)
 
@@ -82,8 +86,9 @@ def test_alpha_diversity_stats_invalid_paired_by(samples, paired_by):
 def test_alpha_diversity_stats_missing_alpha_diversity_values(samples):
     samples.metadata["col"] = ["a", "b", "a"]
 
-    with pytest.warns(StatsWarning), pytest.raises(
-        StatsException, match="`group_by` must have at least 2 groups.*found 0"
+    with (
+        pytest.warns(StatsWarning),
+        pytest.raises(StatsException, match="`group_by` must have at least 2 groups.*found 0"),
     ):
         with mock.patch.object(
             SampleCollection,
@@ -103,8 +108,11 @@ def test_alpha_diversity_stats_missing_paired_by_data(samples, paired_by, num_gr
     samples.metadata["col1"] = ["a", None, "a"]
     samples.metadata["col2"] = ["1", "42", np.nan]
 
-    with pytest.warns(StatsWarning), pytest.raises(
-        StatsException, match=f"`group_by` must have at least 2 groups.*found {num_groups}"
+    with (
+        pytest.warns(StatsWarning),
+        pytest.raises(
+            StatsException, match=f"`group_by` must have at least 2 groups.*found {num_groups}"
+        ),
     ):
         samples.alpha_diversity_stats(group_by="group", paired_by=paired_by)
 
