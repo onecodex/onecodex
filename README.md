@@ -169,7 +169,7 @@ all_completed_analyses.to_df()    # Returns a pandas dataframe
 
 ## Environment Setup
 
-Before developing, `git` and `python` version >=3.9 are needed. We recommend using [pyenv](https://github.com/yyuu/pyenv) for Python version management.
+Before developing, `git` and `python` version >=3.9 are needed. We recommend using [uv](https://github.com/astral-sh/uv) for Python version management and dependency installation.
 
 To download the client library from GitHub:
 
@@ -178,15 +178,13 @@ git clone https://github.com/onecodex/onecodex.git
 cd onecodex/
 ```
 
-To set up the project, first create a virtual environment and then install dependencies:
+To set up the project, install dependencies using `uv`:
 
 ```shell
 # If you are on a M1 Macbook, run the line below, adjusting the version as needed
 export HDF5_DIR=/opt/homebrew/Cellar/hdf5/1.12.1_1/
 
-virtualenv venv
-source venv/bin/activate
-pip install -e '.[all,testing,reports]'  # -e specifies development mode so that the package doesn't have to be reinstalled after code edits
+uv sync --all-extras --dev --locked
 ```
 
 Test are run via the Makefile. Note this may take awhile at first because of installing dependencies:
