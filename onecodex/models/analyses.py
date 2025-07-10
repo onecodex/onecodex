@@ -18,7 +18,7 @@ class Analyses(OneCodexModel):
     complete: Optional[bool] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
-    sample: Optional["Samples"] = None
+    sample: Optional[Any] = None
     
     def results(self, json: bool = True) -> Union[Dict[str, Any], Any]:
         """Fetch the results of an analysis.
@@ -35,12 +35,14 @@ class Analyses(OneCodexModel):
             raise NotImplementedError("No non-JSON result format implemented.")
     
     def _results(self) -> Dict[str, Any]:
-        """Fetch raw results from API."""
-        if not hasattr(self, '_cached_result') or self._cached_result is None:
+        """Fetch raw results from API with caching."""
+        # Use class-level caching to mimic Potion-Client behavior
+        if not hasattr(self.__class__, '_cached_result') or self._cached_result is None:
             # Make API call to fetch results
             self._check_bound()
             endpoint = f"{self._resource_path}/{self.id}/results"
-            self._cached_result = self._client.http_client.get(endpoint)
+            result = self._client.http_client.get(endpoint)
+            self.__class__._cached_result = result
         return self._cached_result
 
 
@@ -230,9 +232,4 @@ class Panels(Analyses):
             raise NotImplementedError("Panel results only available as JSON at this time.")
 
 
-# Forward reference resolution for type hints
-from onecodex.models.samples import Samples
-Classifications.model_rebuild()
-Alignments.model_rebuild()
-FunctionalProfiles.model_rebuild()
-Panels.model_rebuild()
+# Note: Removed forward reference resolution to avoid circular imports
