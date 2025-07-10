@@ -14,61 +14,50 @@ jobs:
         python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python
-        uses: actions/setup-python@v2
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
         with:
-          python-version: ${{ matrix.python-version }}
+          version: "latest"
+      - name: Set up Python
+        run: uv python install ${{ matrix.python-version }}
       - name: Display Python version
-        run: python -c "import sys; print(sys.version)"
-      - name: Install dependencies in a venv
-        run: |
-          python3 -m venv venv
-          . venv/bin/activate
-          pip install -q -U pip
-          pip install --progress-bar=off .[all,reports,testing]
+        run: uv run python -c "import sys; print(sys.version)"
+      - name: Install dependencies
+        run: uv sync --extra all --extra reports --extra dev
       - name: Run all tests
-        run: |
-          . venv/bin/activate
-          make test
+        run: uv run make test
 
   test-python3-w-simple-json:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python
-        uses: actions/setup-python@v2
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
         with:
-          python-version: '3.13'
-      - name: Install dependencies in a venv
+          version: "latest"
+      - name: Set up Python
+        run: uv python install 3.13
+      - name: Install dependencies
         run: |
-          python3 -m venv venv
-          . venv/bin/activate
-          pip install -q -U pip
-          pip install --progress-bar=off simplejson
-          pip install --progress-bar=off .[all,testing]
+          uv sync --extra all --extra dev
+          uv add simplejson
       - name: Run tests (w/ simplejson)
-        run: |
-          . venv/bin/activate
-          make test
+        run: uv run make test
 
   test-python3-w-altair:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python
-        uses: actions/setup-python@v2
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
         with:
-          python-version: '3.13'
-      - name: Install dependencies in a venv
-        run: |
-          python3 -m venv venv
-          . venv/bin/activate
-          pip install -q -U pip
-          pip install --progress-bar=off .[all,testing,reports]
+          version: "latest"
+      - name: Set up Python
+        run: uv python install 3.13
+      - name: Install dependencies
+        run: uv sync --extra all --extra dev --extra reports
       - name: Run report tests
-        run: |
-          . venv/bin/activate
-          PYDEVD_DISABLE_FILE_VALIDATION=1 py.test tests/test_reports.py -vv
+        run: PYDEVD_DISABLE_FILE_VALIDATION=1 uv run py.test tests/test_reports.py -vv
 
       - uses: nowsprinting/diff-pdf-action@v1
         with:
@@ -87,44 +76,38 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python
-        uses: actions/setup-python@v2
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
         with:
-          python-version: '3.13'
-      - name: Install dependencies in a venv
-        run: |
-          python3 -m venv venv
-          . venv/bin/activate
-          pip install -q -U pip
-          pip install --progress-bar=off .
+          version: "latest"
+      - name: Set up Python
+        run: uv python install 3.13
+      - name: Install dependencies
+        run: uv sync
 
       - name: Test initializing Api
-        run: |
-          . venv/bin/activate
-          python -c 'import onecodex; onecodex.Api()'
+        run: uv run python -c 'import onecodex; onecodex.Api()'
 
   import-times:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python
-        uses: actions/setup-python@v2
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
         with:
-          python-version: '3.13'
-      - name: Install dependencies in a venv
+          version: "latest"
+      - name: Set up Python
+        run: uv python install 3.13
+      - name: Install dependencies
         run: |
-          python3 -m venv venv
-          . venv/bin/activate
-          pip install -q -U pip
-          pip install --progress-bar=off simplejson tuna
-          pip install --progress-bar=off .[all,testing]
+          uv sync --extra all --extra dev
+          uv add simplejson tuna
       - name: Test import speeds
         run: |
-          . venv/bin/activate
-          py.test -v tests/test_speed.py
-          python -X importtime -c 'import onecodex; onecodex.cli.onecodex(["--help"])' 2> import.log
+          uv run py.test -v tests/test_speed.py
+          uv run python -X importtime -c 'import onecodex; onecodex.cli.onecodex(["--help"])' 2> import.log
           mkdir tuna && mkdir tuna/static
-          tuna -o tuna/ import.log
+          uv run tuna -o tuna/ import.log
       - name: Archive tuna videos
         uses: actions/upload-artifact@v4
         if: failure()

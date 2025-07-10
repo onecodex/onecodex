@@ -10,20 +10,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python
-        uses: actions/setup-python@v2
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
         with:
-          python-version: '3.12'
+          version: "latest"
+      - name: Set up Python
+        run: uv python install 3.12
       - name: Display Python version
-        run: python -c "import sys; print(sys.version)"
-      - name: Install dependencies in a venv
-        run: |
-          python3 -m venv venv
-          . venv/bin/activate
-          pip install -q -U pip
-          pip install --progress-bar=off .[all,reports,testing]
+        run: uv run python -c "import sys; print(sys.version)"
+      - name: Install dependencies
+        run: uv sync --extra all --extra reports --extra dev
 
       - name: Lint
-        run: |
-          . venv/bin/activate
-          make lint
+        run: uv run make lint
