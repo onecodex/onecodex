@@ -135,7 +135,7 @@ class Api(object):
 
         headers = {"X-OneCodex-Client-User-Agent": __version__}
 
-        self._http_client = HTTPClient(auth=auth, headers=headers)
+        self._client = HTTPClient(auth=auth, headers=headers)
         self._copy_resources()
 
         # Optionally configure custom One Codex altair theme and renderer
@@ -183,7 +183,15 @@ class Api(object):
         -------
         `None`
         """
-        pass
+        from onecodex.models import pydantic
+
+        for model_name in pydantic.__all__:
+            self._register(getattr(pydantic, model_name))
+
+    def _register(self, model):
+        model._api = self
+        model._client = self._client
+        setattr(self, model.__name__, model)
 
     #     from onecodex.models import _model_lookup
 
