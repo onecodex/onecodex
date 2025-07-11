@@ -27,7 +27,7 @@ class ApiRef(PydanticBaseModel):
     def __repr__(self):
         return f"<ApiRef {self.resource_type}:{self.id}>"
 
-    def resolve(self):
+    def _resolve(self):
         """Resolve this reference to an actual object."""
         # Make API call to resolve
         target_class = self._get_target_class()
@@ -74,64 +74,20 @@ class ApiBaseModel(PydanticBaseModel):
     def __repr__(self):
         return f"<{self.__class__.__name__} {self.id}>"
 
-    def _get_resolved_cache(self):
-        """Get the resolved cache dictionary."""
-        return (
-            object.__getattribute__(self, "_resolved_cache")
-            if hasattr(self, "_resolved_cache")
-            else None
-        )
-
-    def _setup_parent_context(self, obj):
-        """Set up parent context for an object (immediate parent only)."""
-        if isinstance(obj, ApiBaseModel):
-            obj._immediate_parent = self
-
     def _resolve_and_cache(self, api_ref, cache_key):
         """Resolve an ApiRef and cache the result."""
+        if cache_key in self._resolved_cache:
+            return self._resolved_cache[cache_key]
+
         # Check for simple circular reference (a.b.a pattern)
-        target_class = api_ref._get_target_class()
-        if target_class and hasattr(self, "_immediate_parent"):
-            if (
-                isinstance(self._immediate_parent, target_class)
-                and self._immediate_parent.id == api_ref.id
-            ):
-                return self._immediate_parent
+        if hasattr(self, "_immediate_parent") and self._immediate_parent.id == api_ref.id:
+            return self._immediate_parent
 
-        # Make API call to resolve
-        resolved = api_ref.resolve()
-
-        # Set up parent context
-        self._setup_parent_context(resolved)
-
-        # Cache the result
-        if not hasattr(self, "_resolved_cache"):
-            self._resolved_cache = {}
+        # Make API call to resolve, add the parent, cache it
+        resolved = api_ref._resolve()
+        resolved._immediate_parent = self
         self._resolved_cache[cache_key] = resolved
-
         return resolved
-
-    def _process_list(self, name, value):
-        """Process a list that might contain ApiRef objects."""
-        resolved_list = []
-        changed = False
-
-        for item in value:
-            if isinstance(item, ApiRef):
-                cache_key = f"{name}:{item.ref}"
-                resolved_cache = self._get_resolved_cache()
-                if resolved_cache and cache_key in resolved_cache:
-                    resolved_list.append(resolved_cache[cache_key])
-                else:
-                    resolved_list.append(self._resolve_and_cache(item, cache_key))
-                changed = True
-            elif isinstance(item, ApiBaseModel):
-                self._setup_parent_context(item)
-                resolved_list.append(item)
-            else:
-                resolved_list.append(item)
-
-        return resolved_list if changed else value
 
     def __getattribute__(self, name):
         """Automatically resolve ApiRef objects when accessed."""
@@ -146,23 +102,18 @@ class ApiBaseModel(PydanticBaseModel):
         if name not in model_fields:
             return value
 
-        # Handle ApiRef objects
-        if isinstance(value, ApiRef):
-            cache_key = f"{name}:{value.ref}"
-            resolved_cache = self._get_resolved_cache()
-            if resolved_cache and cache_key in resolved_cache:
-                return resolved_cache[cache_key]
-
-            return self._resolve_and_cache(value, cache_key)
-
-        # Handle ApiBaseModel objects (expanded data) - set up parent context
-        elif isinstance(value, ApiBaseModel):
-            self._setup_parent_context(value)
+        # Handle ApiBaseModel objects (`?expand` data) - set up parent context
+        if isinstance(value, ApiBaseModel):
+            value._immediate_parent = self
             return value
 
-        # Handle lists; do we need this? Probably not.
-        elif isinstance(value, list):
-            return self._process_list(name, value)
+        # Handle ApiRef objects
+        if isinstance(value, ApiRef):
+            return self._resolve_and_cache(value, f"{name}:{value.ref}")
+
+        # Handle lists of ApiRef objects
+        if isinstance(value, list) and all(isinstance(item, ApiRef) for item in value):
+            return [self._resolve_and_cache(item, f"{name}:{item.ref}") for item in value]
 
         return value
 
