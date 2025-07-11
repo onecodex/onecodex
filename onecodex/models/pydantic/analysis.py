@@ -1,7 +1,7 @@
-from typing import Optional
+from typing import Optional, Union
 
 
-from onecodex.models.pydantic.base import ApiBaseModel
+from onecodex.models.pydantic.base import ApiBaseModel, ApiRef
 from onecodex.lib.enums import FunctionalAnnotations, FunctionalAnnotationsMetric
 
 from onecodex.models.generated import AnalysisSchema as GeneratedAnalysisSchema
@@ -12,6 +12,9 @@ from onecodex.models.generated import PanelSchema as GeneratedPanelSchema
 
 
 class _AnalysesBase(ApiBaseModel):
+    sample: Union["Samples", ApiRef]  # noqa: F821
+    job: Union["Jobs", ApiRef]  # noqa: F821
+
     def results(self, json=True):
         """Fetch the results of an Analyses resource.
 

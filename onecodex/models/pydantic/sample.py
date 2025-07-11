@@ -1,7 +1,7 @@
-from typing import Optional, List, get_origin, get_args, Union
+from typing import Optional, List, Union
 from datetime import datetime
 
-from onecodex.models.pydantic.base import ApiBaseModel
+from onecodex.models.pydantic.base import ApiBaseModel, ApiRef
 from onecodex.models.pydantic.analysis import Classifications
 
 from onecodex.models.helpers import truncate_string
@@ -15,8 +15,8 @@ from onecodex.models.pydantic.misc import Users, Projects, Tags
 
 
 class MetadataSchema(GeneratedMetadataSchema):
-    # TODO: Auto-resolve this, but handle circular references
-    sample: Union["Samples", dict[str, str]]
+    # Use ApiRef for the circular reference
+    sample: Union["Samples", ApiRef]
 
     @field_validator("platform", "library_type", "sample_type")
     @classmethod
@@ -57,53 +57,15 @@ class Metadata(ApiBaseModel, MetadataSchema):
 class _SampleSchema(GeneratedSampleSchema):
     _resource_path = "/api/v1/samples"
 
-    # TODO: Remap to our classes here vs. Pydantic generated ones
-    owner: Users
-    metadata: Metadata
-    primary_classification: Optional[Classifications] = None
-    project: Optional[Projects] = None
-    tags: List[Tags] = []
+    # Use ApiRef for all reference fields
+    owner: Union[Users, ApiRef]
+    metadata: Union[Metadata, ApiRef]
+    primary_classification: Optional[Union[Classifications, ApiRef]] = None
+    project: Optional[Union[Projects, ApiRef]] = None
+    tags: List[Union[Tags, ApiRef]] = []
 
     created_at: datetime
     updated_at: Optional[datetime] = None
-
-    @classmethod
-    def _resolve_single_ref(cls, value, info):
-        """Resolve a single $ref dict to an object via a GET request."""
-        if isinstance(value, dict) and len(value) == 1 and "$ref" in value:
-            ref_uri = value["$ref"]
-
-            # Get the field annotation
-            field_name = info.field_name
-            field_annotation = cls.model_fields[field_name].annotation
-
-            # Prevent circular references: don't resolve references back to ourself,
-            # but keep it as a raw $ref
-            if info.data["field_uri"] == ref_uri:
-                return value
-
-            if get_origin(field_annotation) is Union:
-                args = get_args(field_annotation)
-                target_class = next(arg for arg in args if arg is not type(None))
-            elif get_origin(field_annotation) is list:
-                target_class = get_args(field_annotation)[0]
-            else:
-                target_class = field_annotation
-
-            ref_id = ref_uri.split("/")[-1]
-            return target_class.get(ref_id)
-        return value
-
-    @field_validator(
-        "owner", "metadata", "primary_classification", "project", "tags", mode="before"
-    )
-    @classmethod
-    def _resolve_ref(cls, v, info):
-        """Resolve $ref fields automatically to objects via a GET request. Prevents circular references to samples."""
-        if isinstance(v, list):
-            return [cls._resolve_single_ref(item, info) for item in v]
-        else:
-            return cls._resolve_single_ref(v, info)
 
     @field_validator("created_at", "updated_at", mode="before")
     @classmethod
@@ -116,19 +78,6 @@ class Samples(ApiBaseModel, _SampleSchema):
         return '<{} {}: "{}">'.format(
             self.__class__.__name__, self.id, truncate_string(self.filename or "(N/A)", 24)
         )
-
-    def model_post_init(self, __context):
-        """Set parent sample reference on metadata after initialization."""
-        super().model_post_init(__context)
-
-        # Set parent reference on metadata to avoid API calls for circular references
-        if hasattr(self, "metadata") and hasattr(self.metadata, "sample"):
-            sample_ref = getattr(self.metadata, "sample")
-            if isinstance(sample_ref, dict) and sample_ref.get("$ref", "").endswith(
-                f"/api/v1/samples/{self.id}"
-            ):
-                # Replace the dict reference with the actual parent object
-                self.metadata.sample = self
 
     @classmethod
     def where(cls, *filters, **keyword_filters):

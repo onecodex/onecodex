@@ -1,5 +1,5 @@
 import warnings
-
+from typing import Union
 
 from onecodex.exceptions import MethodNotSupported
 from onecodex.lib.upload import upload_document
@@ -7,7 +7,7 @@ from onecodex.lib.upload import upload_document
 # from onecodex.lib.upload import upload_asset
 from onecodex.models.helpers import truncate_string, ResourceDownloadMixin
 
-from onecodex.models.pydantic.base import ApiBaseModel
+from onecodex.models.pydantic.base import ApiBaseModel, ApiRef
 from onecodex.models.generated import TagSchema as GeneratedTagSchema
 from onecodex.models.generated import UserSchema as GeneratedUserSchema
 from onecodex.models.generated import ProjectSchema as GeneratedProjectSchema
@@ -57,6 +57,8 @@ class Users(ApiBaseModel, GeneratedUserSchema):
 
 class Projects(ApiBaseModel, GeneratedProjectSchema):
     _resource_path = "/api/v1/projects"
+
+    owner: Union[Users, ApiRef]
 
     @classmethod
     def search_public(cls, *filters, **keyword_filters):
