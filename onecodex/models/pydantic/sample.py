@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, get_origin, get_args, Union
 from datetime import datetime
 
 from onecodex.models.pydantic.base import ApiBaseModel
@@ -52,15 +52,59 @@ class Metadata(ApiBaseModel, MetadataSchema):
 
 
 class _SampleSchema(GeneratedSampleSchema):
+    _resource_path = "/api/v1/samples"
+
     # TODO: Remap to our classes here vs. Pydantic generated ones
     owner: Users
     metadata: Metadata
     primary_classification: Optional[Classifications] = None
     project: Optional[Projects] = None
-    tags: Optional[List[Tags]] = None
+    tags: List[Tags] = []
 
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
+
+    @classmethod
+    def _resolve_single_ref(cls, value, field_annotation):
+        """Resolve a single $ref dict to an object via a GET request."""
+        if isinstance(value, dict) and len(value) == 1 and "$ref" in value:
+            ref_uri = value["$ref"]
+
+            # Prevent circular references: don't resolve references back to samples
+            if cls._resource_path in ref_uri:
+                return value  # Keep as raw $ref dict
+
+            # Handle Optional types (Union[SomeClass, None])
+            if get_origin(field_annotation) is Union:
+                # Get the non-None type from Union
+                args = get_args(field_annotation)
+                target_class = next(arg for arg in args if arg is not type(None))
+            elif get_origin(field_annotation) is list:
+                # Handle List[SomeClass] - get the inner type
+                target_class = get_args(field_annotation)[0]
+            else:
+                target_class = field_annotation
+
+            ref_id = ref_uri.split("/")[-1]
+            return target_class.get(ref_id)
+        return value
+
+    @field_validator(
+        "owner", "metadata", "primary_classification", "project", "tags", mode="before"
+    )
+    @classmethod
+    def _resolve_ref(cls, v, info):
+        """Resolve $ref fields automatically to objects via a GET request. Prevents circular references to samples."""
+        # Get the field annotation
+        field_name = info.field_name
+        field_annotation = cls.model_fields[field_name].annotation
+
+        if isinstance(v, list):
+            # Handle arrays (like tags)
+            return [cls._resolve_single_ref(item, field_annotation) for item in v]
+        else:
+            # Handle single values
+            return cls._resolve_single_ref(v, field_annotation)
 
     @field_validator("created_at", "updated_at", mode="before")
     @classmethod
@@ -69,8 +113,6 @@ class _SampleSchema(GeneratedSampleSchema):
 
 
 class Samples(ApiBaseModel, _SampleSchema):
-    _resource_path = "/api/v1/samples"
-
     def __repr__(self):
         return '<{} {}: "{}">'.format(
             self.__class__.__name__, self.id, truncate_string(self.filename or "(N/A)", 24)
