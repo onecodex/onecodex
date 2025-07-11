@@ -144,7 +144,6 @@ def cli_resource_fetcher(ctx, resource, uris, print_results=True):
         # analyses is passed, want Analyses
         resource_name = resource[0].upper() + resource[1:]
         if len(uris) == 0:
-
             # if non given fetch all
             log.debug("No %s IDs given, fetching all...", resource_name)
             instances = getattr(ctx.obj["API"], resource_name).all()
