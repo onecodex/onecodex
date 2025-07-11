@@ -33,10 +33,10 @@ def test_retries_set_on_client_session(api_data):
         cache_schema=False,
     )
 
-    assert ocx._session.adapters["http://"].max_retries.total == 3
-    assert ocx._session.adapters["http://"].max_retries.allowed_methods is None
-    assert ocx._session.adapters["https://"].max_retries.total == 3
-    assert ocx._session.adapters["https://"].max_retries.allowed_methods is None
+    assert ocx._client.session.adapters["http://"].max_retries.total == 3
+    assert ocx._client.session.adapters["http://"].max_retries.allowed_methods is None
+    assert ocx._client.session.adapters["https://"].max_retries.total == 3
+    assert ocx._client.session.adapters["https://"].max_retries.allowed_methods is None
 
 
 def test_model_classes(ocx, api_data):
