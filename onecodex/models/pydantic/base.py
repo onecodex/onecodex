@@ -1,7 +1,7 @@
 from typing import ClassVar, Optional, List
 
 from pydantic import BaseModel as PydanticBaseModel
-from pydantic import ConfigDict, computed_field, Field, model_validator
+from pydantic import ConfigDict, computed_field, Field
 
 
 class ApiRef(PydanticBaseModel):
@@ -27,6 +27,24 @@ class ApiRef(PydanticBaseModel):
     def __repr__(self):
         return f"<ApiRef {self.resource_type}:{self.id}>"
 
+    def resolve(self):
+        """Resolve this reference to an actual object."""
+        # Make API call to resolve
+        target_class = self._get_target_class()
+        if not target_class:
+            raise ValueError(f"Cannot determine target class for {self.ref}")
+
+        resp = target_class._client.get(
+            f"{target_class._api._base_url}{target_class._resource_path}/{self.id}"
+        )
+        return target_class.model_validate(resp.json())
+
+    def _get_target_class(self):
+        """Determine the target class from the reference URI."""
+        from onecodex.models.pydantic import get_model_class
+
+        return get_model_class(self.ref)
+
 
 class ApiBaseModel(PydanticBaseModel):
     _api: ClassVar[Optional["Api"]] = (  # noqa: F821
@@ -44,6 +62,11 @@ class ApiBaseModel(PydanticBaseModel):
 
     field_uri: str = Field(..., alias="$uri", exclude=True)
 
+    def __init__(self, **data):
+        super().__init__(**data)
+        # Initialize resolved cache
+        self._resolved_cache = {}
+
     @computed_field
     def id(self) -> str:
         return self.field_uri.split("/")[-1]
@@ -51,39 +74,96 @@ class ApiBaseModel(PydanticBaseModel):
     def __repr__(self):
         return f"<{self.__class__.__name__} {self.id}>"
 
-    @model_validator(mode="before")
-    @classmethod
-    def resolve_references(cls, data):
-        """Convert $ref dicts to ApiRef objects."""
-        if not isinstance(data, dict):
-            return data
+    def _get_resolved_cache(self):
+        """Get the resolved cache dictionary."""
+        return (
+            object.__getattribute__(self, "_resolved_cache")
+            if hasattr(self, "_resolved_cache")
+            else None
+        )
 
-        current_uri = data.get("$uri")
-        print(f"PROCESSING {cls.__name__}: {current_uri}")
+    def _setup_parent_context(self, obj):
+        """Set up parent context for an object (immediate parent only)."""
+        if isinstance(obj, ApiBaseModel):
+            obj._immediate_parent = self
 
-        # Process each field that might contain references
-        for field_name, field_value in list(data.items()):
-            if field_name in ("$uri", "created_at", "updated_at"):
-                continue
+    def _resolve_and_cache(self, api_ref, cache_key):
+        """Resolve an ApiRef and cache the result."""
+        # Check for simple circular reference (a.b.a pattern)
+        target_class = api_ref._get_target_class()
+        if target_class and hasattr(self, "_immediate_parent"):
+            if (
+                isinstance(self._immediate_parent, target_class)
+                and self._immediate_parent.id == api_ref.id
+            ):
+                return self._immediate_parent
 
-            data[field_name] = cls._convert_refs_to_objects(field_value)
+        # Make API call to resolve
+        resolved = api_ref.resolve()
 
-        return data
+        # Set up parent context
+        self._setup_parent_context(resolved)
 
-    @classmethod
-    def _convert_refs_to_objects(cls, value):
-        """Convert $ref dicts to ApiRef objects."""
-        if isinstance(value, dict) and len(value) == 1 and "$ref" in value:
-            # Convert single $ref dict to ApiRef object
-            return ApiRef.model_validate(value)
+        # Cache the result
+        if not hasattr(self, "_resolved_cache"):
+            self._resolved_cache = {}
+        self._resolved_cache[cache_key] = resolved
+
+        return resolved
+
+    def _process_list(self, name, value):
+        """Process a list that might contain ApiRef objects."""
+        resolved_list = []
+        changed = False
+
+        for item in value:
+            if isinstance(item, ApiRef):
+                cache_key = f"{name}:{item.ref}"
+                resolved_cache = self._get_resolved_cache()
+                if resolved_cache and cache_key in resolved_cache:
+                    resolved_list.append(resolved_cache[cache_key])
+                else:
+                    resolved_list.append(self._resolve_and_cache(item, cache_key))
+                changed = True
+            elif isinstance(item, ApiBaseModel):
+                self._setup_parent_context(item)
+                resolved_list.append(item)
+            else:
+                resolved_list.append(item)
+
+        return resolved_list if changed else value
+
+    def __getattribute__(self, name):
+        """Automatically resolve ApiRef objects when accessed."""
+        value = super().__getattribute__(name)
+
+        # Only process field attributes - use object.__getattribute__ to avoid recursion
+        try:
+            model_fields = object.__getattribute__(self, "model_fields")
+        except AttributeError:
+            return value
+
+        if name not in model_fields:
+            return value
+
+        # Handle ApiRef objects
+        if isinstance(value, ApiRef):
+            cache_key = f"{name}:{value.ref}"
+            resolved_cache = self._get_resolved_cache()
+            if resolved_cache and cache_key in resolved_cache:
+                return resolved_cache[cache_key]
+
+            return self._resolve_and_cache(value, cache_key)
+
+        # Handle ApiBaseModel objects (expanded data) - set up parent context
+        elif isinstance(value, ApiBaseModel):
+            self._setup_parent_context(value)
+            return value
+
+        # Handle lists; do we need this? Probably not.
         elif isinstance(value, list):
-            # Convert any $ref dicts in lists to ApiRef objects
-            return [
-                ApiRef.model_validate(item)
-                if isinstance(item, dict) and len(item) == 1 and "$ref" in item
-                else item
-                for item in value
-            ]
+            return self._process_list(name, value)
+
         return value
 
     @classmethod
