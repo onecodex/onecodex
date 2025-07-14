@@ -183,10 +183,12 @@ class Api(object):
         -------
         `None`
         """
-        from onecodex.models import pydantic
+        from onecodex import models
+        from onecodex.models.base import ApiBaseModel
 
-        for model_name in pydantic.__all__:
-            self._register(getattr(pydantic, model_name))
+        for model_name in models.__all__:
+            if isinstance(getattr(models, model_name), ApiBaseModel):
+                self._register(getattr(models, model_name))
 
     def _register(self, model):
         model._api = self

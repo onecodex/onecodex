@@ -1,12 +1,19 @@
-from typing import Optional
+from typing import Optional, Union
 
+
+from onecodex.models.base import ApiBaseModel, ApiRef
 from onecodex.lib.enums import FunctionalAnnotations, FunctionalAnnotationsMetric
-from onecodex.models import OneCodexBase
+
+from onecodex.models.generated import AnalysisSchema as GeneratedAnalysisSchema
+from onecodex.models.generated import AlignmentSchema as GeneratedAlignmentSchema
+from onecodex.models.generated import ClassificationSchema as GeneratedClassificationSchema
+from onecodex.models.generated import FunctionalRunSchema as FunctionalRunSchema
+from onecodex.models.generated import PanelSchema as GeneratedPanelSchema
 
 
-class Analyses(OneCodexBase):
-    _resource_path = "/api/v1/analyses"
-    _cached_result = None
+class _AnalysesBase(ApiBaseModel):
+    sample: Union["Samples", ApiRef]  # noqa: F821
+    job: Union["Jobs", ApiRef]  # noqa: F821
 
     def results(self, json=True):
         """Fetch the results of an Analyses resource.
@@ -27,6 +34,7 @@ class Analyses(OneCodexBase):
             raise NotImplementedError("No non-JSON result format implemented.")
 
     def _results(self):
+        # FIXME: Remove `_resource` references
         try:
             if not getattr(self._resource, "_cached_result", None):
                 self._resource._cached_result = self._resource.results()
@@ -35,11 +43,16 @@ class Analyses(OneCodexBase):
             raise NotImplementedError(".results() not implemented for this Analyses resource.")
 
 
-class Alignments(Analyses):
+class Analyses(_AnalysesBase, GeneratedAnalysisSchema):
+    _resource_path = "/api/v1/analyses"
+    _cached_result = None
+
+
+class Alignments(_AnalysesBase, GeneratedAlignmentSchema):
     _resource_path = "/api/v1/alignments"
 
 
-class Classifications(Analyses):
+class Classifications(_AnalysesBase, GeneratedClassificationSchema):
     _resource_path = "/api/v1/classifications"
     _cached_table = None
 
@@ -62,6 +75,7 @@ class Classifications(Analyses):
             return self._table()
 
     def _readlevel(self):
+        # FIXME: Remove _resource reference
         return self._resource.readlevel()
 
     def _table(self):
@@ -86,10 +100,11 @@ class Classifications(Analyses):
         from onecodex.models.collection import SampleCollection
 
         wrapped = super(Classifications, cls).where(*filters, **keyword_filters)
+        # FIXME: Remove _resource reference
         return SampleCollection([w._resource for w in wrapped], Classifications)
 
 
-class FunctionalProfiles(Analyses):
+class FunctionalProfiles(_AnalysesBase, FunctionalRunSchema):
     _resource_path = "/api/v1/functional_profiles"
 
     def _filtered_results(
@@ -98,6 +113,7 @@ class FunctionalProfiles(Analyses):
         metric: FunctionalAnnotationsMetric,
         taxa_stratified: bool,
     ):
+        # FIXME: Remove _resource reference
         return self._resource.filtered_results(
             functional_group=annotation, metric=metric, taxa_stratified=taxa_stratified
         )
@@ -216,7 +232,7 @@ class FunctionalProfiles(Analyses):
         return pd.DataFrame(result_json["table"])
 
 
-class Panels(Analyses):
+class Panels(_AnalysesBase, GeneratedPanelSchema):
     _resource_path = "/api/v1/panels"
 
     def results(self, json=True):

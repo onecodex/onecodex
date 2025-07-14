@@ -41,7 +41,7 @@ class ApiRef(PydanticBaseModel):
 
     def _get_target_class(self):
         """Determine the target class from the reference URI."""
-        from onecodex.models.pydantic import get_model_class
+        from onecodex.models import get_model_class
 
         return get_model_class(self.ref)
 

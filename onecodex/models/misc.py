@@ -1,27 +1,40 @@
 import warnings
+from typing import Optional, Union
 
-from onecodex.exceptions import OneCodexException, MethodNotSupported
-from onecodex.lib.upload import upload_document, upload_asset
-from onecodex.models import OneCodexBase
+from onecodex.exceptions import MethodNotSupported
+from onecodex.lib.upload import upload_document
+
+# from onecodex.lib.upload import upload_asset
 from onecodex.models.helpers import truncate_string, ResourceDownloadMixin
 
+from onecodex.models.pydantic.base import ApiBaseModel, ApiRef
+from onecodex.models.generated import TagSchema as GeneratedTagSchema
+from onecodex.models.generated import UserSchema as GeneratedUserSchema
+from onecodex.models.generated import ProjectSchema as GeneratedProjectSchema
+from onecodex.models.generated import JobSchema as GeneratedJobSchema
+from onecodex.models.generated import DocumentSchema as GeneratedDocumentSchema
+# from onecodex.models.generated import AssetSchema as GeneratedAssetSchema
 
-class Tags(OneCodexBase):
+
+class Tags(ApiBaseModel, GeneratedTagSchema):
     _resource_path = "/api/v1/tags"
 
-    def __init__(self, _resource=None, name=None, sample=None):
-        if name:
-            # try to lookup Tags with a where call using kwargs
-            results = self.where(name=name)
+    # TODO: Implement this logic
+    # def __init__(self, _resource=None, name=None, sample=None):
+    #     if name:
+    #         # try to lookup Tags with a where call using kwargs
+    #         results = self.where(name=name)
 
-            if len(results) == 0:
-                super(Tags, self).__init__(name=name, sample=sample)
-            elif len(results) == 1:
-                self._resource = results[0]._resource
-            elif len(results) > 1:
-                raise OneCodexException("Multiple matches found for given criteria")
-        else:
-            super(Tags, self).__init__(_resource=_resource)
+    #         if len(results) == 0:
+    #             super(Tags, self).__init__(name=name, sample=sample)
+    #         elif len(results) == 1:
+    #             # FIXME: Remove _resource reference
+    #             self._resource = results[0]._resource
+    #         elif len(results) > 1:
+    #             raise OneCodexException("Multiple matches found for given criteria")
+    #     else:
+    #         # FIXME: Remove _resource reference
+    #         super(Tags, self).__init__(_resource=_resource)
 
     def __repr__(self):
         return '<{} {}: "{}">'.format(
@@ -38,12 +51,14 @@ class Tags(OneCodexBase):
         )
 
 
-class Users(OneCodexBase):
+class Users(ApiBaseModel, GeneratedUserSchema):
     _resource_path = "/api/v1/users"
 
 
-class Projects(OneCodexBase):
+class Projects(ApiBaseModel, GeneratedProjectSchema):
     _resource_path = "/api/v1/projects"
+
+    owner: Union[Users, ApiRef]
 
     @classmethod
     def search_public(cls, *filters, **keyword_filters):
@@ -53,12 +68,13 @@ class Projects(OneCodexBase):
         return cls.where(*filters, **keyword_filters)
 
 
-class Jobs(OneCodexBase):
+class Jobs(ApiBaseModel, GeneratedJobSchema):
     _resource_path = "/api/v1/jobs"
 
 
-class Documents(OneCodexBase, ResourceDownloadMixin):
+class Documents(ApiBaseModel, GeneratedDocumentSchema, ResourceDownloadMixin):
     _resource_path = "/api/v1/documents"
+    size: Optional[int] = None
 
     @classmethod
     def upload(cls, file_path, progressbar=None):
@@ -80,26 +96,27 @@ class Documents(OneCodexBase, ResourceDownloadMixin):
         return cls.get(doc_id)
 
 
-class Assets(OneCodexBase, ResourceDownloadMixin):
-    _resource_path = "/api/v1_experimental/assets"
+# Not supported in OpenAPI yet...
+# class Assets(ApiBaseModel, GeneratedAssetSchema, ResourceDownloadMixin):
+#     _resource_path = "/api/v1_experimental/assets"
 
-    @classmethod
-    def upload(cls, file_path, progressbar=None, name=None):
-        """Upload a file to an asset.
+#     @classmethod
+#     def upload(cls, file_path, progressbar=None, name=None):
+#         """Upload a file to an asset.
 
-        Parameters
-        ----------
-        file_path : `string`
-            A path to a file on the system.
-        progressbar : `click.progressbar`, optional
-            If passed, display a progress bar using Click.
-        name : `string`, optional
-            If passed, name is sent with upload request and is associated with asset.
+#         Parameters
+#         ----------
+#         file_path : `string`
+#             A path to a file on the system.
+#         progressbar : `click.progressbar`, optional
+#             If passed, display a progress bar using Click.
+#         name : `string`, optional
+#             If passed, name is sent with upload request and is associated with asset.
 
-        Returns
-        -------
-        An `Assets` object upon successful upload. None if the upload failed.
-        """
-        asset_id = upload_asset(file_path, cls._resource, progressbar=progressbar, name=name)
+#         Returns
+#         -------
+#         An `Assets` object upon successful upload. None if the upload failed.
+#         """
+#         asset_id = upload_asset(file_path, cls._resource, progressbar=progressbar, name=name)
 
-        return cls.get(asset_id)
+#         return cls.get(asset_id)
