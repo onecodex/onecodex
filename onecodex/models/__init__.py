@@ -5,6 +5,7 @@ from onecodex.models.analysis import (
     FunctionalProfiles,
     Panels,
 )
+from onecodex.models.resource_list import ResourceList
 from onecodex.models.sample import Metadata, Samples
 from onecodex.models.misc import Users, Projects, Tags, Jobs, Documents
 
@@ -68,6 +69,7 @@ __all__ = [
     "Analyses",
     "Jobs",
     "Documents",
+    "ResourceList",
     "register_model",
     "get_model_class",
 ]

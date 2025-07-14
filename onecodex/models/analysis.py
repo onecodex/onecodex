@@ -1,7 +1,7 @@
 from typing import Optional, Union
 
 
-from onecodex.models.base import ApiBaseModel, ApiRef
+from onecodex.models.base import OneCodexBase, ApiRef
 from onecodex.lib.enums import FunctionalAnnotations, FunctionalAnnotationsMetric
 
 from onecodex.models.generated import AnalysisSchema as GeneratedAnalysisSchema
@@ -11,7 +11,7 @@ from onecodex.models.generated import FunctionalRunSchema as FunctionalRunSchema
 from onecodex.models.generated import PanelSchema as GeneratedPanelSchema
 
 
-class _AnalysesBase(ApiBaseModel):
+class _AnalysesBase(OneCodexBase):
     sample: Union["Samples", ApiRef]  # noqa: F821
     job: Union["Jobs", ApiRef]  # noqa: F821
 

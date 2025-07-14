@@ -1,7 +1,16 @@
+import inspect
+
 from typing import ClassVar, Optional, List
+from pprint import pformat
+from html import escape
 
 from pydantic import BaseModel as PydanticBaseModel
 from pydantic import ConfigDict, computed_field, Field
+
+from onecodex.exceptions import MethodNotSupported
+
+
+_EXCLUDE_PYDANTIC_CALLABLES = {"model_post_init"}
 
 
 class ApiRef(PydanticBaseModel):
@@ -46,12 +55,13 @@ class ApiRef(PydanticBaseModel):
         return get_model_class(self.ref)
 
 
-class ApiBaseModel(PydanticBaseModel):
+class OneCodexBase(PydanticBaseModel):
     _api: ClassVar[Optional["Api"]] = (  # noqa: F821
         None  # Forward reference to avoid circular imports
     )
     _client: ClassVar[Optional["HTTPClient"]] = None  # noqa: F821
     _resource_path: ClassVar[str]  # Default resource path, subclasses override
+    _patch_model: ClassVar[Optional["OneCodexBase"]] = None
 
     model_config = ConfigDict(
         # populate_by_name=True,
@@ -73,6 +83,67 @@ class ApiBaseModel(PydanticBaseModel):
 
     def __repr__(self):
         return f"<{self.__class__.__name__} {self.id}>"
+
+    def _repr_html_(self):
+        return """<table>
+        <thead>
+            <tr>
+                <th colspan="2"><code>{cls}({id})</code></th>
+            </tr>
+        </thead>
+        <tbody>{properties}</tbody>
+        </table>""".format(
+            cls=self.__class__.__name__,
+            id=escape(repr(self.id)),
+            properties="\n".join(
+                "<tr><td>{}</td><td><code>{}</code></td>".format(escape(k), escape(pformat(v)))
+                for k, v in self._properties.items()
+                if not k.startswith("$")
+            ),
+        )
+
+    def __dir__(self):
+        fields = list(self.model_fields.keys()) + list(self.model_computed_fields.keys())
+
+        # Get the MRO and find where to stop
+        mro = inspect.getmro(self.__class__)
+
+        # Find OneCodexBase in the MRO
+        try:
+            onecodex_base_index = mro.index(OneCodexBase)
+            relevant_classes = mro[: onecodex_base_index + 1]
+        except ValueError:
+            relevant_classes = [self.__class__]
+
+        methods = set()
+        is_instance = self != self.__class__
+
+        for cls in relevant_classes:
+            for name in dir(cls):
+                if not name.startswith("_") and name not in _EXCLUDE_PYDANTIC_CALLABLES:
+                    attr = getattr(cls, name, None)
+                    if callable(attr):
+                        # Check if it's a classmethod by looking at __self__
+                        is_classmethod = hasattr(attr, "__self__") and attr.__self__ is cls
+
+                        # Skip classmethods if we're on an instance
+                        if is_instance and is_classmethod:
+                            continue
+
+                        # Only include if method is defined in this class
+                        if name in cls.__dict__:
+                            methods.add(name)
+
+        return fields + sorted(methods)
+
+    def __setattr__(self, key, value):
+        # Note: I'm not sure this is *really* desirable behavior, but this preserves backwards compatibility for <=0.18.0.
+        #       Consider deprecating and removing this behavior and only validating on save.
+        if key in self.model_fields and (
+            self._patch_model is None or key not in self._patch_model.model_fields
+        ):
+            raise MethodNotSupported(f"Cannot set attribute {key} on {self.__class__.__name__}")
+        super().__setattr__(key, value)
 
     def _resolve_and_cache(self, api_ref, cache_key):
         """Resolve an ApiRef and cache the result."""
@@ -102,8 +173,8 @@ class ApiBaseModel(PydanticBaseModel):
         if name not in model_fields:
             return value
 
-        # Handle ApiBaseModel objects (`?expand` data) - set up parent context
-        if isinstance(value, ApiBaseModel):
+        # Handle OneCodexBase objects (`?expand` data) - set up parent context
+        if isinstance(value, OneCodexBase):
             value._immediate_parent = self
             return value
 
@@ -118,27 +189,31 @@ class ApiBaseModel(PydanticBaseModel):
         return value
 
     @classmethod
-    def all(cls) -> List["ApiBaseModel"]:
-        raise NotImplementedError("Subclasses must implement this method")
+    def all(cls) -> List["OneCodexBase"]:
+        raise MethodNotSupported("Subclasses must implement this method")
 
     @classmethod
-    def get(cls, id: str) -> "ApiBaseModel":
+    def get(cls, id: str) -> "OneCodexBase":
         resp = cls._client.get(f"{cls._api._base_url}{cls._resource_path}/{id}?expand=all")
         return cls.model_validate(resp.json())
 
     @classmethod
-    def where(cls, **kwargs) -> List["ApiBaseModel"]:
-        raise NotImplementedError("Subclasses must implement this method")
+    def where(cls, **kwargs) -> List["OneCodexBase"]:
+        raise MethodNotSupported("Subclasses must implement this method")
 
     @classmethod
     def create(cls, **kwargs):
-        raise NotImplementedError("Subclasses must implement this method")
+        raise MethodNotSupported("Subclasses must implement this method")
 
-    def update(self, id: str, **kwargs):
-        raise NotImplementedError("Subclasses must implement this method")
+    def update(self, **kwargs):
+        raise MethodNotSupported("Subclasses must implement this method")
 
-    def delete(self, id: str):
-        raise NotImplementedError("Subclasses must implement this method")
+    def delete(self):
+        raise MethodNotSupported("Subclasses must implement this method")
 
     def save(self):
-        raise NotImplementedError("Subclasses must implement this method")
+        raise MethodNotSupported("Subclasses must implement this method")
+
+
+class OneCodexBase(OneCodexBase):
+    pass

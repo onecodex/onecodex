@@ -7,7 +7,7 @@ from onecodex.lib.upload import upload_document
 # from onecodex.lib.upload import upload_asset
 from onecodex.models.helpers import truncate_string, ResourceDownloadMixin
 
-from onecodex.models.pydantic.base import ApiBaseModel, ApiRef
+from onecodex.models.base import OneCodexBase, ApiRef
 from onecodex.models.generated import TagSchema as GeneratedTagSchema
 from onecodex.models.generated import UserSchema as GeneratedUserSchema
 from onecodex.models.generated import ProjectSchema as GeneratedProjectSchema
@@ -16,7 +16,7 @@ from onecodex.models.generated import DocumentSchema as GeneratedDocumentSchema
 # from onecodex.models.generated import AssetSchema as GeneratedAssetSchema
 
 
-class Tags(ApiBaseModel, GeneratedTagSchema):
+class Tags(OneCodexBase, GeneratedTagSchema):
     _resource_path = "/api/v1/tags"
 
     # TODO: Implement this logic
@@ -51,14 +51,17 @@ class Tags(ApiBaseModel, GeneratedTagSchema):
         )
 
 
-class Users(ApiBaseModel, GeneratedUserSchema):
+class Users(OneCodexBase, GeneratedUserSchema):
     _resource_path = "/api/v1/users"
 
 
-class Projects(ApiBaseModel, GeneratedProjectSchema):
+class Projects(OneCodexBase, GeneratedProjectSchema):
     _resource_path = "/api/v1/projects"
 
     owner: Union[Users, ApiRef]
+
+    def delete(self):
+        self._client.delete(f"{self._api._base_url}{self.field_uri}")
 
     @classmethod
     def search_public(cls, *filters, **keyword_filters):
@@ -68,13 +71,16 @@ class Projects(ApiBaseModel, GeneratedProjectSchema):
         return cls.where(*filters, **keyword_filters)
 
 
-class Jobs(ApiBaseModel, GeneratedJobSchema):
+class Jobs(OneCodexBase, GeneratedJobSchema):
     _resource_path = "/api/v1/jobs"
 
 
-class Documents(ApiBaseModel, GeneratedDocumentSchema, ResourceDownloadMixin):
+class Documents(OneCodexBase, GeneratedDocumentSchema, ResourceDownloadMixin):
     _resource_path = "/api/v1/documents"
     size: Optional[int] = None
+
+    def delete(self):
+        self._client.delete(f"{self._api._base_url}{self.field_uri}")
 
     @classmethod
     def upload(cls, file_path, progressbar=None):
@@ -97,7 +103,7 @@ class Documents(ApiBaseModel, GeneratedDocumentSchema, ResourceDownloadMixin):
 
 
 # Not supported in OpenAPI yet...
-# class Assets(ApiBaseModel, GeneratedAssetSchema, ResourceDownloadMixin):
+# class Assets(OneCodexBase, GeneratedAssetSchema, ResourceDownloadMixin):
 #     _resource_path = "/api/v1_experimental/assets"
 
 #     @classmethod

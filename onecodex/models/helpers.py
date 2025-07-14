@@ -1,10 +1,9 @@
 import click
-import inspect
 import os
 import os.path
 import requests
 
-from onecodex.exceptions import OneCodexException, UnboundObject
+from onecodex.exceptions import OneCodexException
 
 
 def as_uri(uuid, base_class):
@@ -19,12 +18,6 @@ def coerce_search_value(search_value, field_name, base_class):
     elif isinstance(search_value, OneCodexBase):
         return {"$ref": search_value._resource._uri}
     return search_value
-
-
-def check_bind(self_or_cls):
-    if not hasattr(self_or_cls, "_resource"):
-        name = "class" if inspect.isclass(self_or_cls) else "instance"
-        raise UnboundObject("This {} is not associated with an API binding.".format(name))
 
 
 def generate_potion_sort_clause(sort_items, sort_schema):

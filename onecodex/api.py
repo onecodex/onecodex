@@ -66,16 +66,15 @@ class Api(object):
         self,
         api_key=None,
         bearer_token=None,
-        cache_schema=True,
         base_url=None,
         telemetry=None,
         schema_path="/api/v1/schema",
         load_extensions=True,
         **kwargs,
     ):
-        if cache_schema is False:
+        if kwargs.get("experimental") is True:
             warnings.warn(
-                "The cache_schema parameter is deprecated and will be removed in a future version.",
+                "Experimental mode is deprecated and does not work in this version. Please use <0.18.0.",
                 DeprecationWarning,
                 stacklevel=2,
             )
@@ -83,14 +82,6 @@ class Api(object):
             base_url = os.environ.get("ONE_CODEX_API_BASE", "https://app.onecodex.com")
             if base_url != "https://app.onecodex.com":
                 warnings.warn("Using base API URL: {}".format(base_url))
-
-        if kwargs.get("experimental", False):
-            warnings.warn(
-                "Experimental API mode enabled. Features of the experimental API are subject to "
-                "change without notice and should not be relied upon in a production environment."
-            )
-            schema_path = "/api/v1_experimental/schema"
-            cache_schema = False
 
         self._req_args = {}
         self._base_url = base_url
@@ -184,10 +175,10 @@ class Api(object):
         `None`
         """
         from onecodex import models
-        from onecodex.models.base import ApiBaseModel
+        from onecodex.models.base import OneCodexBase
 
         for model_name in models.__all__:
-            if isinstance(getattr(models, model_name), ApiBaseModel):
+            if issubclass(getattr(models, model_name), OneCodexBase):
                 self._register(getattr(models, model_name))
 
     def _register(self, model):

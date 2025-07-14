@@ -20,7 +20,8 @@ except ImportError:
         pass
 
 
-from onecodex.models import OneCodexBase, ResourceList
+from onecodex.models.base import OneCodexBase
+from onecodex.models.resource_list import ResourceList
 
 CANONICAL_RANKS = (
     "superkingdom",

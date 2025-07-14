@@ -2,16 +2,18 @@ from typing import Optional, List, Union
 from datetime import datetime
 
 from onecodex.models.helpers import ResourceDownloadMixin
-from onecodex.models.base import ApiBaseModel, ApiRef
+from onecodex.models.base import OneCodexBase, ApiRef
 from onecodex.models.analysis import Classifications
 
 from onecodex.models.helpers import truncate_string
 from onecodex.models.generated import SampleSchema as GeneratedSampleSchema
-
+from onecodex.models.generated import SampleUpdateSchema as GeneratedSampleUpdateSchema
 
 from pydantic import field_validator
 
 from onecodex.models.generated import MetadataSchema as GeneratedMetadataSchema
+from onecodex.models.generated import MetadataPatchSchema as GeneratedMetadataPatchSchema
+from onecodex.models.resource_list import ResourceList
 from onecodex.models.misc import Users, Projects, Tags
 
 
@@ -27,8 +29,9 @@ class MetadataSchema(GeneratedMetadataSchema):
         return str(v.value) if hasattr(v, "value") else v
 
 
-class Metadata(ApiBaseModel, MetadataSchema):
+class Metadata(OneCodexBase, MetadataSchema):
     _resource_path = "/api/v1/metadata"
+    _patch_model = GeneratedMetadataPatchSchema
 
     def save(self):
         # TODO: Implement any custom logic required for metadata
@@ -73,12 +76,21 @@ class _SampleSchema(GeneratedSampleSchema):
     def validate_datetime(cls, v):
         return datetime.fromisoformat(v)
 
+    @field_validator("tags", mode="after")
+    def validate_tags(cls, v):
+        return ResourceList([x._resolve() for x in v], Tags)
 
-class Samples(ApiBaseModel, _SampleSchema, ResourceDownloadMixin):
+
+class Samples(OneCodexBase, _SampleSchema, ResourceDownloadMixin):
+    _patch_model = GeneratedSampleUpdateSchema
+
     def __repr__(self):
         return '<{} {}: "{}">'.format(
             self.__class__.__name__, self.id, truncate_string(self.filename or "(N/A)", 24)
         )
+
+    def delete(self):
+        self._client.delete(f"{self._api._base_url}{self.field_uri}")
 
     @classmethod
     def where(cls, *filters, **keyword_filters):
