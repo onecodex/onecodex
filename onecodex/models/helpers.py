@@ -118,7 +118,7 @@ class ResourceDownloadMixin(object):
         """
         return self._download(
             "download_uri",
-            self.filename,
+            _filename=self.filename,
             use_potion_session=False,
             path=path,
             file_obj=file_obj,
@@ -137,34 +137,27 @@ class ResourceDownloadMixin(object):
         from requests.adapters import HTTPAdapter
         from requests.packages.urllib3.util.retry import Retry
 
-        if hasattr(self._resource, "visibility") and self._resource.visibility == "awaiting data":
+        if hasattr(self, "visibility") and self.visibility == "awaiting data":
             raise OneCodexException("Sample has not finished processing. Please try again later.")
 
         if path and file_obj:
             raise OneCodexException("Please specify only one of: path, file_obj")
 
         try:
-            method_to_call = getattr(self._resource, _resource_method)
-            download_link_info = method_to_call()
+            if path is None and file_obj is None and _filename is None:
+                raise OneCodexException("Please specify `path`, `file_obj`, or `_filename`.")
 
             if path is None and file_obj is None:
-                if _filename is None:
-                    if "save_as_filename" not in download_link_info:
-                        raise OneCodexException(
-                            "Please specify `path`, `file_obj`, or `_filename`."
-                        )
-                    _filename = download_link_info["save_as_filename"]
                 path = os.path.join(os.getcwd(), _filename)
 
             if path and os.path.exists(path):
                 raise OneCodexException("{} already exists. Will not overwrite.".format(path))
 
-            if use_potion_session:
-                session = self._resource._client.session
-            else:
-                session = requests.Session()
-
-            link = download_link_info["download_uri"]
+            download_link_info = self._client.post(
+                f"{self._api._base_url}{self.field_uri}/download_uri"
+            )
+            download_link_info.raise_for_status()
+            link = download_link_info.json()["download_uri"]
 
             # Retry up to 5 times with backoff timing of 2s, 4s, 8s, 16s, and 32s (applies to all
             # HTTP methods). 404 is included for cases where the file is being asynchronously
@@ -176,9 +169,9 @@ class ResourceDownloadMixin(object):
                 allowed_methods=None,
             )
             adapter = HTTPAdapter(max_retries=retry_strategy)
+            session = self._client.session
             session.mount("http://", adapter)
             session.mount("https://", adapter)
-
             resp = session.get(link, stream=True)
 
             if path:

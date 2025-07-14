@@ -1,6 +1,7 @@
 from typing import Optional, List, Union
 from datetime import datetime
 
+from onecodex.models.helpers import ResourceDownloadMixin
 from onecodex.models.pydantic.base import ApiBaseModel, ApiRef
 from onecodex.models.pydantic.analysis import Classifications
 
@@ -73,7 +74,7 @@ class _SampleSchema(GeneratedSampleSchema):
         return datetime.fromisoformat(v)
 
 
-class Samples(ApiBaseModel, _SampleSchema):
+class Samples(ApiBaseModel, _SampleSchema, ResourceDownloadMixin):
     def __repr__(self):
         return '<{} {}: "{}">'.format(
             self.__class__.__name__, self.id, truncate_string(self.filename or "(N/A)", 24)

@@ -1,5 +1,5 @@
 import warnings
-from typing import Union
+from typing import Optional, Union
 
 from onecodex.exceptions import MethodNotSupported
 from onecodex.lib.upload import upload_document
@@ -74,6 +74,7 @@ class Jobs(ApiBaseModel, GeneratedJobSchema):
 
 class Documents(ApiBaseModel, GeneratedDocumentSchema, ResourceDownloadMixin):
     _resource_path = "/api/v1/documents"
+    size: Optional[int] = None
 
     @classmethod
     def upload(cls, file_path, progressbar=None):
