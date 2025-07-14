@@ -409,18 +409,18 @@ for api_version in os.listdir(API_DATA_DIR):
 API_DATA.update(SCHEMA_ROUTES)
 
 
-@pytest.yield_fixture(scope="function")
+@pytest.fixture(scope="function")
 def api_data():
     with mock_requests(API_DATA) as rsps:
         yield rsps
 
 
-@pytest.yield_fixture(scope="function")
+@pytest.fixture(scope="function")
 def raw_api_data():
     yield copy.deepcopy(API_DATA)
 
 
-@pytest.yield_fixture(scope="function")
+@pytest.fixture(scope="function")
 def upload_mocks():
     def upload_callback(request):
         # Get and read the streaming iterator so it's empty
@@ -483,7 +483,7 @@ def upload_mocks():
 
 
 # API FIXTURES
-@pytest.yield_fixture(scope="session")
+@pytest.fixture(scope="session")
 def ocx_schemas():
     with mock_requests(SCHEMA_ROUTES):
         yield
@@ -503,7 +503,10 @@ def ocx():
 @pytest.fixture(scope="function")
 def ocx_experimental():
     """Instantiated API client with experimental mode enabled"""
-    with mock_requests(SCHEMA_ROUTES):
+    with (
+        mock_requests(SCHEMA_ROUTES),
+        pytest.warns(UserWarning, match="Experimental API mode enabled"),
+    ):
         return Api(
             api_key="1eab4217d30d42849dbde0cd1bb94e39",
             base_url="http://localhost:3000",

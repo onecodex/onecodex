@@ -4,7 +4,6 @@ import json
 import pytest
 
 pytest.importorskip("pandas")  # noqa
-import warnings
 
 from onecodex.models.collection import SampleCollection
 from onecodex.exceptions import OneCodexException
@@ -120,12 +119,10 @@ def test_classification_fetch(ocx, samples):
     samples._classification_fetch()
 
     # should issue a warning if a classification did not succeed
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(UserWarning, match="not successful"):
         samples._resource[0].success = False
         samples._update()
         samples._classification_fetch()
-        assert len(w) == 1
-        assert "not successful" in str(w[-1].message)
 
     # be sure to change success back to True, or other tests will ignore this classification
     # result--the resource object persists for the session!

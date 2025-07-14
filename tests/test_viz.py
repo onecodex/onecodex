@@ -55,7 +55,7 @@ def assert_expected_column_field(chart, field):
 
 
 def test_altair_ocx_theme(ocx, api_data):
-    assert alt.themes.active == "onecodex"
+    assert alt.theme.active == "onecodex"
 
 
 def test_altair_ocx_renderer(ocx, api_data):

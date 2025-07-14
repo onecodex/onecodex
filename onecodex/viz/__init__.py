@@ -82,38 +82,42 @@ VEGAEMBED_OPTIONS = {
 
 
 def onecodex_theme():
+    import altair as alt
+
     onecodex_palette = ["#ffffcc", "#c7e9b4", "#7fcdbb", "#41b6c4", "#2c7fb8", "#264153"]
 
     font_family = "Fira Sans, Helvetica"
 
-    return {
-        "config": {
-            "range": {
-                "heatmap": list(reversed(onecodex_palette)),
-                "category": DEFAULT_PALETTES["ocx_categorical"],
-                "ramp": list(reversed(onecodex_palette)),
-            },
-            "area": {"fill": OCX_DARK_GREEN},
-            "bar": {"fill": OCX_DARK_GREEN},
-            "mark": {"color": OCX_DARK_GREEN},
-            "axis": {
-                "labelFont": font_family,
-                "labelFontSize": 12,
-                "titleFont": font_family,
-                "titleFontSize": 12,
-                "grid": False,
-            },
-            "legend": {
-                "labelFont": font_family,
-                "labelFontSize": 12,
-                "titleFont": font_family,
-                "titleFontSize": 12,
-            },
-            "title": {"font": font_family},
-            "view": {"width": 400, "height": 400, "strokeWidth": 0},
-            "background": "white",
+    return alt.theme.ThemeConfig(
+        {
+            "config": {
+                "range": {
+                    "heatmap": list(reversed(onecodex_palette)),
+                    "category": DEFAULT_PALETTES["ocx_categorical"],
+                    "ramp": list(reversed(onecodex_palette)),
+                },
+                "area": {"fill": OCX_DARK_GREEN},
+                "bar": {"fill": OCX_DARK_GREEN},
+                "mark": {"color": OCX_DARK_GREEN},
+                "axis": {
+                    "labelFont": font_family,
+                    "labelFontSize": 12,
+                    "titleFont": font_family,
+                    "titleFontSize": 12,
+                    "grid": False,
+                },
+                "legend": {
+                    "labelFont": font_family,
+                    "labelFontSize": 12,
+                    "titleFont": font_family,
+                    "titleFontSize": 12,
+                },
+                "title": {"font": font_family},
+                "view": {"width": 400, "height": 400, "strokeWidth": 0},
+                "background": "white",
+            }
         }
-    }
+    )
 
 
 def onecodex_renderer(spec: dict, **metadata) -> dict:
@@ -142,8 +146,7 @@ def configure_onecodex_theme(altair_module=None):
         except ImportError:
             return  # noop
 
-    altair_module.themes.register("onecodex", onecodex_theme)
-    altair_module.themes.enable("onecodex")
+    altair_module.theme.register("onecodex", enable=True)(onecodex_theme)
 
     altair_module.renderers.register("onecodex", onecodex_renderer)
     altair_module.renderers.enable("onecodex", embed_options=VEGAEMBED_OPTIONS)
