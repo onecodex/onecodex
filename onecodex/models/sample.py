@@ -1,11 +1,23 @@
+from typing import Optional, List, Union
+from datetime import datetime
+
 from requests.exceptions import HTTPError
-from six import string_types
-import warnings
 
 from onecodex.exceptions import OneCodexException
-from onecodex.lib.upload import upload_sequence, preupload_sample
-from onecodex.models import OneCodexBase, Projects, Tags
-from onecodex.models.helpers import truncate_string, ResourceDownloadMixin
+from onecodex.models.helpers import ResourceDownloadMixin
+from onecodex.models.base import OneCodexBase, ApiRef
+from onecodex.models.analysis import Classifications
+
+from onecodex.models.helpers import truncate_string
+from onecodex.models.generated import SampleSchema as GeneratedSampleSchema
+from onecodex.models.generated import SampleUpdateSchema as GeneratedSampleUpdateSchema
+from onecodex.lib.upload import upload_sequence
+
+from pydantic import field_validator, ConfigDict
+
+from onecodex.models.generated import MetadataSchema as GeneratedMetadataSchema
+from onecodex.models.generated import MetadataPatchSchema as GeneratedMetadataPatchSchema
+from onecodex.models.misc import Users, Projects, Tags
 
 
 def get_project(project):
@@ -38,8 +50,69 @@ def get_project(project):
     return project
 
 
-class Samples(OneCodexBase, ResourceDownloadMixin):
+class MetadataSchema(GeneratedMetadataSchema):
+    # Use ApiRef for the circular reference
+    sample: Union["Samples", ApiRef]
+    updated_at: Optional[datetime] = None
+    date_collected: Optional[datetime] = None
+    date_sequenced: Optional[datetime] = None
+
+    @field_validator("platform", "library_type", "sample_type")
+    @classmethod
+    def convert_enum_to_str(cls, v):
+        if v is None:
+            return v
+        return str(v.value) if hasattr(v, "value") else v
+
+
+class _MetadataPatchSchema(GeneratedMetadataPatchSchema):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    date_collected: Optional[datetime] = None
+    date_sequenced: Optional[datetime] = None
+
+
+class Metadata(OneCodexBase, MetadataSchema):
+    _resource_path = "/api/v1/metadata"
+    _allowed_methods = {
+        "update": _MetadataPatchSchema,
+    }
+
+
+class _SampleSchema(GeneratedSampleSchema):
     _resource_path = "/api/v1/samples"
+
+    # Use ApiRef for all reference fields
+    owner: Union[Users, ApiRef]
+    metadata: Union[Metadata, ApiRef]
+    primary_classification: Optional[Union[Classifications, ApiRef]] = None
+    project: Optional[Union[Projects, ApiRef]] = None
+    tags: List[Union[Tags, ApiRef]] = []
+
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    visibility: str
+
+    @field_validator("created_at", "updated_at", mode="before")
+    @classmethod
+    def validate_datetime(cls, v):
+        return datetime.fromisoformat(v)
+
+
+class _SampleUpdateSchema(GeneratedSampleUpdateSchema):
+    model_config = ConfigDict(
+        extra="ignore",
+    )
+    visibility: Optional[str] = None
+
+
+class Samples(OneCodexBase, _SampleSchema, ResourceDownloadMixin):
+    _allowed_methods = {
+        "delete": None,
+        "update": _SampleUpdateSchema,
+        "instances_public": None,
+    }
 
     def __repr__(self):
         return '<{} {}: "{}">'.format(
@@ -93,69 +166,35 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
             tags = [tags]
 
         new_tags = []
-
         for t in tags:
             if isinstance(t, Tags):
                 new_tags.append(t)
+                continue
+
+            if len(t) == 16:
+                new_tag = Tags.get(t)
             else:
-                # is it a uuid?
-                if len(t) == 16:
-                    tag_obj = Tags.get(t)
-
-                    if tag_obj is not None:
-                        new_tags.append(tag_obj)
-                        continue
-
-                # is it a name?
-                tag_obj = Tags.where(name=t)
-
-                if len(tag_obj) == 1:
-                    new_tags.append(tag_obj[0])
-                    continue
-                elif len(tag_obj) > 1:
+                where_tags = Tags.where(name=t)
+                if len(where_tags) == 1:
+                    new_tag = where_tags[0]
+                elif len(where_tags) > 1:
                     raise OneCodexException("Multiple tags matched query: {}".format(t))
-
-                raise OneCodexException("Unknown tag specified: {}".format(t))
+                else:
+                    raise OneCodexException("Unknown tag specified: {}".format(t))
+            new_tags.append(new_tag)
 
         if new_tags:
-            keyword_filters["tags"] = new_tags
+            keyword_filters["tags"] = {"$containsall": new_tags}
 
         # we can only search metadata on our own samples currently
         # FIXME: we need to add `instances_public` and `instances_project` metadata routes to
         # mirror the ones on the samples
-        md_search_keywords = {}
+        md_search_keywords = {
+            k: v
+            for k, v in keyword_filters.items()
+            if k in Metadata.model_fields and k not in Samples.model_fields
+        }
         if not public and not organization:
-            md_schema = next(
-                link
-                for link in Metadata._resource._schema["links"]
-                if link["rel"] == instances_route
-            )
-
-            md_where_schema = md_schema["schema"]["properties"]["where"]["properties"]
-
-            for keyword in list(keyword_filters):
-                # skip out on $uri to prevent duplicate field searches and the others to
-                # simplify the checking below
-                if keyword in ["$uri", "sort", "_instances"]:
-                    continue
-                elif keyword in md_where_schema:
-                    md_search_keywords[keyword] = keyword_filters.pop(keyword)
-
-            # TODO: should one be able to sort on metadata? here and on the merged list?
-            # md_sort_schema = md_schema['schema']['properties']['sort']['properties']
-            # # pull out any metadata sort parameters
-            # sort = keyword_filters.get('sort', [])
-            # if not isinstance(sort, list):
-            #     sort = [sort]
-            # passthrough_sort = []
-            # for keyword in sort:
-            #     if keyword in md_sort_schema:
-            #         # TODO: set up sort for metadata
-            #         pass
-            #     else:
-            #         passthrough_sort.append(keyword)
-            # keyword_filters['sort'] = passthrough_sort
-
             if md_search_keywords:
                 metadata_samples = [md.sample for md in Metadata.where(**md_search_keywords)]
 
@@ -178,25 +217,18 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
             # case that no filters/keyword_filters are specified, this is identical to Samples.all()
             samples = super(Samples, cls).where(*filters, **keyword_filters)
 
-        return SampleCollection([s._resource for s in samples[: keyword_filters["limit"]]], Samples)
-
-    @classmethod
-    def search_public(cls, *filters, **keyword_filters):
-        warnings.warn("Now supported via `where(..., public=True)`", DeprecationWarning)
-        keyword_filters["public"] = True
-        return cls.where(*filters, **keyword_filters)
+        return SampleCollection([s for s in samples[: keyword_filters["limit"]]], Samples)
 
     def save(self):
         """Send changes on this Samples object to the One Codex server.
 
         Changes to the metadata object and tags list are passed as well.
         """
-        # any newly-created tags should be associated with this sample and saved
+        # TODO: Add a test for this
         if self.tags:
             for tag in self.tags:
                 if tag.id is None:
-                    tag._resource.__dict__["_Reference__properties"]["sample"] = self._resource
-                    tag._resource.save()
+                    tag.save()
 
         if self.project and not isinstance(self.project, Projects):
             try:
@@ -204,6 +236,7 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
             except OneCodexException as e:
                 raise OneCodexException("Error saving sample: {}".format(e))
 
+        # FIXME: PATCH HERE
         super(Samples, self).save()
 
         if self.metadata is not None:
@@ -223,11 +256,18 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
         project : `string`, optional
             UUID of project to associate this sample with.
         """
-        res = cls._resource
         project = get_project(project)
 
-        sample_id = preupload_sample(res, metadata, tags, project)
-        return cls.get(sample_id)
+        resp = cls._client.post(
+            f"{cls._api._base_url}{cls._resource_path}/preupload",
+            json={
+                "metadata": metadata,
+                "tags": tags,
+                "project": {"$ref": project.field_uri} if project else None,
+            },
+        )
+        resp.raise_for_status()
+        return resp.json()["sample_id"]
 
     @classmethod
     def upload(
@@ -269,7 +309,7 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
         -------
         A `Samples` object upon successful upload. None if the upload failed.
         """
-        if not isinstance(files, string_types) and not isinstance(files, tuple):
+        if not isinstance(files, str) and not isinstance(files, tuple):
             raise OneCodexException(
                 "Please pass a string or tuple or forward and reverse filepaths."
             )
@@ -278,10 +318,9 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
             raise OneCodexException("Only pass sample_id OR external_sample_id, not both.")
 
         project = get_project(project)
-
         sample_id = upload_sequence(
             files,
-            cls._resource,
+            cls,
             metadata=metadata,
             tags=tags,
             project=project,
@@ -292,31 +331,3 @@ class Samples(OneCodexBase, ResourceDownloadMixin):
         )
 
         return cls.get(sample_id)
-
-    def __hash__(self):
-        return hash(self.id)
-
-
-class Metadata(OneCodexBase):
-    _resource_path = "/api/v1/metadata"
-
-    def save(self):
-        if self.id is None:
-            super(Metadata, self).save()  # Create
-        else:  # Update
-            # Hack: Sample is read and create-only
-            # but Potion will try to update since it's not marked
-            # readOnly in the schema; we also make sure
-            # the linked metadata object is resolved since
-            # we auto-save it alongside the sample
-            if self._resource._uri and self._resource._status is None:
-                assert isinstance(self._resource._properties, dict)
-
-            # Then eject samplea and uri as needed
-            ref_props = self._resource._properties
-            if "sample" in ref_props or "$uri" in ref_props:  # May not be there if not resolved!
-                ref_props.pop("$uri", None)
-                ref_props.pop("sample", None)
-                self._resource._update(**ref_props)
-            else:
-                super(Metadata, self).save()

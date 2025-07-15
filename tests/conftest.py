@@ -212,7 +212,22 @@ API_DATA = {
     "GET::api/v1/classifications/0f4ee4ecb3a3412f/readlevel": {
         "url": "https://s3.aws.com/bucket/test_single_filtering_001.fastq.gz.results.tsv.gz"
     },
-    "PATCH::api/v1/samples/761bc54b97f64980": {},
+    "PATCH::api/v1/samples/761bc54b97f64980": {
+        "created_at": "2015-09-25T17:40:13.224821-07:00",
+        "$uri": "/api/v1/samples/761bc54b97f64980",
+        "filename": "SRR2352223.fastq.gz",
+        "metadata": {"$ref": "/api/v1/metadata/4fe05e748b5a4f0e"},
+        "owner": {"$ref": "/api/v1/users/4ada56103d9a48b8"},
+        "primary_classification": {"$ref": "/api/v1/classifications/935c2a3611944e39"},
+        "project": None,
+        "size": 302369471,
+        "tags": [
+            {"$ref": "/api/v1/tags/5c1e9e41043e4435"},
+            {"$ref": "/api/v1/tags/fb8e3b693c874f9e"},
+            {"$ref": "/api/v1/tags/ff4e81909a4348d9"},
+        ],
+        "visibility": "private",
+    },
     "PATCH::api/v1/metadata/4fe05e748b5a4f0e": update_metadata_callback,
     "POST::api/v1/samples/.*/download_uri": {
         "download_uri": "http://localhost:3000/mock/download/url"
@@ -447,6 +462,7 @@ def upload_mocks():
             ],
             "visibility": "private",
         },
+        "POST::api/v1/samples/preupload": {"sample_id": "7428cca4a3a04a8e"},
         "POST::api/v1/samples/confirm_upload": "",
         "POST::api/v1/samples/init_multipart_upload": {
             "callback_url": "/api/import_file_from_s3",

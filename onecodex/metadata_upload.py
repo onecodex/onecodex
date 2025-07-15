@@ -1,6 +1,10 @@
 import re
 
+import pydantic
+
 from onecodex.exceptions import ValidationError
+from onecodex.models.sample import _MetadataPatchSchema
+from onecodex.models.misc import Tags
 
 
 def validate_appendables(appendables, api):
@@ -16,43 +20,42 @@ def validate_tags(appendables, api):
         return
 
     tag_array = appendables["tags"]
-    for tag in tag_array:
-        name_property = api.Tags._resource._schema["properties"]["name"]
-        if len(tag) > name_property.get("maxLength", 1000):
-            raise ValidationError("{} is too long".format(tag))
-
-        appendables["valid_tags"].append({"name": tag})
+    try:
+        validated_tags = [Tags.model_validate({"name": t}) for t in tag_array]
+        appendables["valid_tags"] = [{"name": t.name} for t in validated_tags]
+    except pydantic.ValidationError as e:
+        raise ValidationError(f"Invalid tag: {e}")
 
 
 def validate_metadata(appendables, api):
     if "metadata" not in appendables:
         return
 
-    schema_props = metadata_properties(api)
     for key, value in appendables["metadata"].items():
         if is_blacklisted(key):
             raise ValidationError("{} cannot be manually updated".format(key))
 
-        if key in schema_props.keys():
-            settable_value = validate_metadata_against_schema(schema_props, key, value)
+        if key in _MetadataPatchSchema.model_fields:
+            settable_value = validate_metadata_against_schema(key, value)
             appendables["valid_metadata"][key] = settable_value
         else:
             coerced_value = coerce_custom_value(value)
             appendables["valid_metadata"]["custom"][key] = coerced_value
 
 
-def validate_metadata_against_schema(schema_props, key, value):
-    schema_rules = schema_props[key]
-    if "enum" in schema_rules:
-        return validate_enum(value, schema_rules)
-    elif "number" in schema_rules["type"]:
-        return validate_number(value, schema_rules)
-    elif "boolean" in schema_rules["type"]:
-        return validate_boolean(value)
-    elif "format" in schema_rules and "date-time" in schema_rules["format"]:
-        return validate_datetime(value)
-    else:
-        return value
+def validate_metadata_against_schema(key, value):
+    try:
+        value = getattr(_MetadataPatchSchema.model_validate({key: value}), key)
+    except pydantic.ValidationError as exc_info:
+        # Get all Pydantic validation errors for the given key
+        msg = []
+        for error in exc_info.errors():
+            if error["loc"][0] == key:
+                msg.append(error["msg"])
+
+        msg = ", ".join(msg) if len(msg) > 0 else str(exc_info)
+        raise ValidationError(f"Invalid metadata: {msg}")
+    return value
 
 
 def validate_enum(value, schema_rules):
@@ -142,7 +145,3 @@ def is_iso_8601_compliant(value):
         r"^(?P<full>((?P<year>\d{4})([/-]?(?P<mon>(0[1-9])|(1[012]))([/-]?(?P<mday>(0[1-9])|([12]\d)|(3[01])))?)?(?:T(?P<hour>([01][0-9])|(?:2[0123]))(\:?(?P<min>[0-5][0-9])(\:?(?P<sec>[0-5][0-9]([\,\.]\d{1,10})?))?)?(?:Z|([\-+](?:([01][0-9])|(?:2[0123]))(\:?(?:[0-5][0-9]))?))?)?))$"
     )
     return iso8601.match(value)
-
-
-def metadata_properties(api):
-    return api.Metadata._resource._schema["properties"]

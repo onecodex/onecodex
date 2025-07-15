@@ -12,6 +12,8 @@ import sentry_sdk
 from contextlib import contextmanager
 import tempfile
 
+from pydantic_core import to_jsonable_python
+
 try:
     from StringIO import StringIO
 except ImportError:
@@ -22,7 +24,7 @@ try:
 except ImportError:
     from urllib.parse import urlparse
 
-from onecodex.vendored.potion_client.converter import PotionJSONEncoder
+
 from onecodex.exceptions import OneCodexException, UploadException
 from onecodex.version import __version__
 
@@ -112,9 +114,22 @@ def valid_api_key(ctx, param, value):
 
 def pprint(j, no_pretty):
     """Print as formatted JSON."""
+    # TODO: This is gross, but a simple way to get serialization of `SampleCollection` working
+    from onecodex.models.collection import SampleCollection
+
+    def fallback(unknown_obj):
+        if isinstance(unknown_obj, SampleCollection):
+            return unknown_obj._res_list
+        raise ValueError(f"Cannot serialize {type(unknown_obj)}")
+
     if not no_pretty:
         click.echo(
-            json.dumps(j, cls=PotionJSONEncoder, sort_keys=True, indent=4, separators=(",", ": "))
+            json.dumps(
+                to_jsonable_python(j, fallback=fallback),
+                sort_keys=True,
+                indent=4,
+                separators=(",", ": "),
+            )
         )
     else:
         click.echo(j)
@@ -148,7 +163,7 @@ def cli_resource_fetcher(ctx, resource, uris, print_results=True):
             log.debug("No %s IDs given, fetching all...", resource_name)
             instances = getattr(ctx.obj["API"], resource_name).all()
             log.debug("Fetched %i %ss", len(instances), resource)
-            objs_to_return = [x._resource._properties for x in instances]
+            objs_to_return = instances  # = [x.__dict__ for x in instances]
         else:
             uris = list(set(uris))
             log.debug("Fetching %s: %s", resource_name, ",".join(uris))
@@ -158,7 +173,7 @@ def cli_resource_fetcher(ctx, resource, uris, print_results=True):
                 try:
                     instance = getattr(ctx.obj["API"], resource_name).get(uri)
                     if instance is not None:
-                        instances.append(instance._resource._properties)
+                        instances.append(instance.__dict__)
                     else:
                         log.error(
                             "Could not find {} {} (404 status code)".format(resource_name, uri)
