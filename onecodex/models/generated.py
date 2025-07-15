@@ -256,16 +256,16 @@ class FunctionalRunSchema(BaseModel):
         title="$Uri",
     )
     complete: Optional[bool] = Field(False, title="Complete")
-    cost: Optional[CostSchema] = Field(..., description="ExcludeFromOpenAPI")
+    # cost: Optional[CostSchema] = Field(..., description="ExcludeFromOpenAPI")
     created_at: str = Field(
         ...,
         description="Timestamp for when the object was created on the One Codex platform, encoded as a [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) timestamp.",
         title="Created At",
     )
-    dependencies: List[Dependency] = Field(
-        ..., description="ExcludeFromOpenAPI", title="Dependencies"
-    )
-    draft: bool = Field(..., description="ExcludeFromOpenAPI", title="Draft")
+    # dependencies: List[Dependency] = Field(
+    #     ..., description="ExcludeFromOpenAPI", title="Dependencies"
+    # )
+    # draft: bool = Field(..., description="ExcludeFromOpenAPI", title="Draft")
     error_msg: Optional[ErrorMsg] = Field(
         None,
         description="The error message from the analysis, if it failed.",
@@ -344,11 +344,11 @@ class JobSchema(BaseModel):
         description="Timestamp for when the object was created on the One Codex platform, encoded as a [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) timestamp.",
         title="Created At",
     )
-    job_args_schema: Dict[str, Any] = Field(
-        ...,
-        description="The JSON schema for the arguments taken by the job (can be an empty object, i.e., `{}`).",
-        title="Job Args Schema",
-    )
+    # job_args_schema: Dict[str, Any] = Field(
+    #     ...,
+    #     description="The JSON schema for the arguments taken by the job (can be an empty object, i.e., `{}`).",
+    #     title="Job Args Schema",
+    # )
     name: str = Field(
         ...,
         description="The name of the job (this is displayed in the dropdown on the analysis page of the One Codex web application).",
@@ -375,16 +375,16 @@ class PanelSchema(BaseModel):
         title="$Uri",
     )
     complete: Optional[bool] = Field(False, title="Complete")
-    cost: Optional[CostSchema] = Field(..., description="ExcludeFromOpenAPI")
+    # cost: Optional[CostSchema] = Field(..., description="ExcludeFromOpenAPI")
     created_at: str = Field(
         ...,
         description="Timestamp for when the object was created on the One Codex platform, encoded as a [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) timestamp.",
         title="Created At",
     )
-    dependencies: List[Dependency] = Field(
-        ..., description="ExcludeFromOpenAPI", title="Dependencies"
-    )
-    draft: bool = Field(..., description="ExcludeFromOpenAPI", title="Draft")
+    # dependencies: List[Dependency] = Field(
+    #     ..., description="ExcludeFromOpenAPI", title="Dependencies"
+    # )
+    # draft: bool = Field(..., description="ExcludeFromOpenAPI", title="Draft")
     error_msg: Optional[ErrorMsg] = Field(
         None,
         description="The error message from the analysis, if it failed.",
@@ -994,18 +994,18 @@ class AnalysisSchema(BaseModel):
         pattern="^/api/v1/analyses/[a-f0-9]{16}$",
         title="$Uri",
     )
-    analysis_type: str = Field(..., title="Analysis Type")
+    # analysis_type: str = Field(..., title="Analysis Type")
     complete: Optional[bool] = Field(False, title="Complete")
-    cost: Optional[CostSchema] = Field(..., description="ExcludeFromOpenAPI")
+    # cost: Optional[CostSchema] = Field(..., description="ExcludeFromOpenAPI")
     created_at: str = Field(
         ...,
         description="Timestamp for when the object was created on the One Codex platform, encoded as a [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) timestamp.",
         title="Created At",
     )
-    dependencies: List[Dependency] = Field(
-        ..., description="ExcludeFromOpenAPI", title="Dependencies"
-    )
-    draft: bool = Field(..., description="ExcludeFromOpenAPI", title="Draft")
+    # dependencies: List[Dependency] = Field(
+    #     ..., description="ExcludeFromOpenAPI", title="Dependencies"
+    # )
+    # draft: bool = Field(..., description="ExcludeFromOpenAPI", title="Draft")
     error_msg: Optional[ErrorMsg] = Field(
         None,
         description="The error message from the analysis, if it failed.",
@@ -1055,16 +1055,16 @@ class ClassificationSchema(BaseModel):
         title="$Uri",
     )
     complete: Optional[bool] = Field(False, title="Complete")
-    cost: Optional[CostSchema] = Field(..., description="ExcludeFromOpenAPI")
+    # cost: Optional[CostSchema] = Field(..., description="ExcludeFromOpenAPI")
     created_at: str = Field(
         ...,
         description="Timestamp for when the object was created on the One Codex platform, encoded as a [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) timestamp.",
         title="Created At",
     )
-    dependencies: List[Dependency] = Field(
-        ..., description="ExcludeFromOpenAPI", title="Dependencies"
-    )
-    draft: bool = Field(..., description="ExcludeFromOpenAPI", title="Draft")
+    # dependencies: List[Dependency] = Field(
+    #     ..., description="ExcludeFromOpenAPI", title="Dependencies"
+    # )
+    # draft: bool = Field(..., description="ExcludeFromOpenAPI", title="Draft")
     error_msg: Optional[ErrorMsg] = Field(
         None,
         description="The error message from the analysis, if it failed.",
@@ -1240,18 +1240,22 @@ class MetadataPatchSchema(BaseModel):
     library_type: Optional[SequencingLibraryType] = Field(
         None, description="An enum with the sample library type."
     )
-    location_lat: Optional[LocationLat] = Field(
+    location_lat: Optional[float] = Field(
         None,
         description="The latitude `(-90.0-90.0)` of the sample location. By convention, we recommend using this for the location in which the physical specimen was collected.",
         title="Location Lat",
+        ge=-90.0,
+        le=90.0,
     )
-    location_lon: Optional[LocationLon] = Field(
+    location_lon: Optional[float] = Field(
         None,
         description="The longitude `(-180.0-180.0)` of the sample location.",
         title="Location Lon",
+        ge=-180.0,
+        le=180.0,
     )
     location_string: Optional[LocationString] = Field(None, title="Location String")
-    name: Optional[Name] = Field(None, title="Name")
+    name: Optional[str] = Field(None, title="Name")
     platform: Optional[SequencingPlatform] = Field(
         None, description="An enum with the name of the sequencing platform."
     )
@@ -1459,12 +1463,12 @@ class SampleSchema(BaseModel):
     size: Optional[int] = Field(
         None, description="The size of the uploaded file in bytes.", title="Size"
     )
-    status: UserFacingDataStatus = Field(..., description="The status of the sample.")
-    tags: Optional[List[Tag]] = Field(
-        [],
-        description="An (optionally empty) array of references to Tags describing the sample. Tags are an additional unstructured organizational tool that complement Projects and Metadata records.",
-        title="Tags",
-    )
+    status: Optional[UserFacingDataStatus] = Field(None, description="The status of the sample.")
+    # tags: Optional[List[Tag]] = Field(
+    #     [],
+    #     description="An (optionally empty) array of references to Tags describing the sample. Tags are an additional unstructured organizational tool that complement Projects and Metadata records.",
+    #     title="Tags",
+    # )
     updated_at: Optional[str] = Field(
         None,
         description="Timestamp for when the object was last updated on the One Codex platform, encoded as a [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) timestamp.",
