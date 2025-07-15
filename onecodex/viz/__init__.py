@@ -142,8 +142,7 @@ def configure_onecodex_theme(altair_module=None):
         except ImportError:
             return  # noop
 
-    altair_module.themes.register("onecodex", onecodex_theme)
-    altair_module.themes.enable("onecodex")
+    altair_module.theme.register("onecodex", enable=True)(onecodex_theme)
 
     altair_module.renderers.register("onecodex", onecodex_renderer)
     altair_module.renderers.enable("onecodex", embed_options=VEGAEMBED_OPTIONS)

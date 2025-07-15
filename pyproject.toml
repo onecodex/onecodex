@@ -31,7 +31,7 @@ dependencies = [
     "jsonschema>=3.0",
     "python-dateutil>=2.5.3",
     "pytz>=2014.1",
-    "sentry-sdk>=0.10.2",
+    "sentry-sdk>=0.10.2,<3",
     "requests>=2.27.1",
     "urllib3<2 ; python_version <= '3.9'",        # Boto does not support urllib3 2 on P3.9
     "urllib3>=2.5.0,<3 ; python_version > '3.9'",
@@ -93,6 +93,15 @@ version = { attr = "onecodex.version.__version__" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+filterwarnings = [
+    'error',
+    'ignore::ResourceWarning',  # Unclosed files, etc.
+    'ignore:Using base API URL:UserWarning',  # Happens all over the tests because we use something other than app.onecodex.com
+    'ignore:sentry_sdk.configure_scope:DeprecationWarning',  # We support Sentry v1 and v2, ignore warnings about v3
+    'ignore:.*platformdirs.*:DeprecationWarning:jupyter_client.connect',
+    'ignore:Parsing dates:DeprecationWarning:jupyter_client.jsonutil',
+    'ignore:datetime.datetime.utcnow:DeprecationWarning:jupyter_client.session',
+]
 
 [tool.ruff]
 line-length = 100

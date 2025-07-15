@@ -273,7 +273,7 @@ def test_model_updates(ocx, api_data):
     # No update resource
     analysis = sample.primary_classification
     with pytest.raises(MethodNotSupported):
-        analysis.created_at = datetime.datetime.utcnow()
+        analysis.created_at = datetime.datetime.now(datetime.timezone.utc)
 
 
 def test_sample_saving(ocx, api_data):

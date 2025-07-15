@@ -122,7 +122,6 @@ class ClassificationsSeries(pd.Series):
         dtype=None,
         name=None,
         copy=False,
-        fastpath=False,
         ocx_rank=None,
         ocx_metric=None,
         ocx_taxonomy=None,
@@ -135,9 +134,7 @@ class ClassificationsSeries(pd.Series):
         self.ocx_metadata = ocx_metadata
         self.ocx_normalized = ocx_normalized
 
-        super().__init__(
-            data=data, index=index, dtype=dtype, name=name, copy=copy, fastpath=fastpath
-        )
+        super().__init__(data=data, index=index, dtype=dtype, name=name, copy=copy)
 
     @property
     def _constructor(self):
@@ -204,7 +201,6 @@ class FunctionalSeries(pd.Series):
         dtype=None,
         name=None,
         copy=False,
-        fastpath=False,
         ocx_metadata=None,
         ocx_functional_group=None,
         ocx_metric=None,
@@ -215,9 +211,7 @@ class FunctionalSeries(pd.Series):
         self.ocx_metric = ocx_metric
         self.ocx_feature_name_map = ocx_feature_name_map
 
-        super().__init__(
-            data=data, index=index, dtype=dtype, name=name, copy=copy, fastpath=fastpath
-        )
+        super().__init__(data=data, index=index, dtype=dtype, name=name, copy=copy)
 
     @property
     def _constructor(self):
