@@ -1,7 +1,6 @@
 from __future__ import print_function
 import click
 import copy
-import dateutil
 from functools import partial
 import logging
 import os
@@ -109,7 +108,6 @@ def documents():
 @login_required
 def documents_list(ctx, json):
     docs_list = cli_resource_fetcher(ctx, "documents", [], print_results=json)
-
     if json:
         return
 
@@ -140,19 +138,20 @@ def documents_list(ctx, json):
         docs_list = sorted(
             docs_list,
             reverse=True,
-            key=lambda x: time.mktime(dateutil.parser.parse(x["created_at"]).timetuple()),
+            key=lambda x: time.mktime(x.created_at.timetuple()),
         )
+        # breakpoint()
 
         for doc in docs_list:
-            fname = doc["filename"]
-            owner = doc["uploader"].email
+            fname = doc.filename
+            owner = doc.uploader.email
             table.append(
                 [
-                    doc["$uri"].split("/")[-1],
+                    doc.field_uri.split("/")[-1],
                     fname if len(fname) <= 32 else fname[:29] + "...",
                     owner if len(owner) <= 23 else owner[:20] + "...",
-                    _size_formatter(doc["size"]) if doc["size"] else "N/A",
-                    dateutil.parser.parse(doc["created_at"]).strftime("%Y-%m-%d"),
+                    _size_formatter(doc.size) if doc.size else "N/A",
+                    doc.created_at.strftime("%Y-%m-%d"),
                 ]
             )
 
@@ -572,7 +571,9 @@ def login(ctx):
 
         # TODO: This should be protected or built in as a first class resource
         # with, e.g., connection error catching (it's not part of our formally documeted API at the moment)
-        if ocx._client.Account.instances()["email"] != email:
+        resp = ocx._client.get(f"{ocx._base_url}/api/v1/account")
+        resp.raise_for_status()
+        if resp.json()["email"] != email:
             click.echo("Your login credentials do not match the provided email!", err=True)
             _remove_creds()
             ctx.exit(1)

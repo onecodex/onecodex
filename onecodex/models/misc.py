@@ -1,27 +1,26 @@
 import warnings
+from typing import List, Optional, Union
 
-from onecodex.exceptions import OneCodexException, MethodNotSupported
-from onecodex.lib.upload import upload_document, upload_asset
-from onecodex.models import OneCodexBase
+from pydantic import Field
+
+from onecodex.exceptions import MethodNotSupported
+from onecodex.lib.upload import upload_document
+
+# from onecodex.lib.upload import upload_asset
 from onecodex.models.helpers import truncate_string, ResourceDownloadMixin
 
+from onecodex.models.base import OneCodexBase, ApiRef
+from onecodex.models.schemas.misc import TagSchema
+from onecodex.models.schemas.misc import UserSchema
+from onecodex.models.schemas.misc import ProjectSchema
+from onecodex.models.schemas.misc import JobSchema
+from onecodex.models.schemas.misc import DocumentSchema
+# from onecodex.models.schemas.misc import AssetSchema
 
-class Tags(OneCodexBase):
+
+class Tags(OneCodexBase, TagSchema):
     _resource_path = "/api/v1/tags"
-
-    def __init__(self, _resource=None, name=None, sample=None):
-        if name:
-            # try to lookup Tags with a where call using kwargs
-            results = self.where(name=name)
-
-            if len(results) == 0:
-                super(Tags, self).__init__(name=name, sample=sample)
-            elif len(results) == 1:
-                self._resource = results[0]._resource
-            elif len(results) > 1:
-                raise OneCodexException("Multiple matches found for given criteria")
-        else:
-            super(Tags, self).__init__(_resource=_resource)
+    field_uri: Optional[str] = Field(None, alias="$uri")
 
     def __repr__(self):
         return '<{} {}: "{}">'.format(
@@ -38,12 +37,18 @@ class Tags(OneCodexBase):
         )
 
 
-class Users(OneCodexBase):
+class Users(OneCodexBase, UserSchema):
     _resource_path = "/api/v1/users"
 
 
-class Projects(OneCodexBase):
+class Projects(OneCodexBase, ProjectSchema):
     _resource_path = "/api/v1/projects"
+    _allowed_methods = {
+        "delete": None,
+        "instances_public": None,
+    }
+
+    owner: Union[Users, ApiRef]
 
     @classmethod
     def search_public(cls, *filters, **keyword_filters):
@@ -53,12 +58,18 @@ class Projects(OneCodexBase):
         return cls.where(*filters, **keyword_filters)
 
 
-class Jobs(OneCodexBase):
+class Jobs(OneCodexBase, JobSchema):
     _resource_path = "/api/v1/jobs"
 
 
-class Documents(OneCodexBase, ResourceDownloadMixin):
+class Documents(OneCodexBase, DocumentSchema, ResourceDownloadMixin):
     _resource_path = "/api/v1/documents"
+    _allowed_methods = {
+        "delete": None,
+    }
+    uploader: Union[Users, ApiRef]
+    downloaders: List[Union[Users, ApiRef]] = []
+    size: Optional[int] = None
 
     @classmethod
     def upload(cls, file_path, progressbar=None):
@@ -76,30 +87,30 @@ class Documents(OneCodexBase, ResourceDownloadMixin):
         A `Documents` object upon successful upload. None if the upload failed.
         """
         doc_id = upload_document(file_path, cls._resource, progressbar=progressbar)
-
         return cls.get(doc_id)
 
 
-class Assets(OneCodexBase, ResourceDownloadMixin):
-    _resource_path = "/api/v1_experimental/assets"
-
-    @classmethod
-    def upload(cls, file_path, progressbar=None, name=None):
-        """Upload a file to an asset.
-
-        Parameters
-        ----------
-        file_path : `string`
-            A path to a file on the system.
-        progressbar : `click.progressbar`, optional
-            If passed, display a progress bar using Click.
-        name : `string`, optional
-            If passed, name is sent with upload request and is associated with asset.
-
-        Returns
-        -------
-        An `Assets` object upon successful upload. None if the upload failed.
-        """
-        asset_id = upload_asset(file_path, cls._resource, progressbar=progressbar, name=name)
-
-        return cls.get(asset_id)
+# Not supported in OpenAPI yet...
+# class Assets(OneCodexBase, AssetSchema, ResourceDownloadMixin):
+#     _resource_path = "/api/v1_experimental/assets"
+#
+#     @classmethod
+#     def upload(cls, file_path, progressbar=None, name=None):
+#         """Upload a file to an asset.
+#
+#         Parameters
+#         ----------
+#         file_path : `string`
+#             A path to a file on the system.
+#         progressbar : `click.progressbar`, optional
+#             If passed, display a progress bar using Click.
+#         name : `string`, optional
+#             If passed, name is sent with upload request and is associated with asset.
+#
+#         Returns
+#         -------
+#         An `Assets` object upon successful upload. None if the upload failed.
+#         """
+#         asset_id = upload_asset(file_path, cls._resource, progressbar=progressbar, name=name)
+#
+#         return cls.get(asset_id)

@@ -33,10 +33,10 @@ def test_retries_set_on_client_session(api_data):
         cache_schema=False,
     )
 
-    assert ocx._session.adapters["http://"].max_retries.total == 3
-    assert ocx._session.adapters["http://"].max_retries.allowed_methods is None
-    assert ocx._session.adapters["https://"].max_retries.total == 3
-    assert ocx._session.adapters["https://"].max_retries.allowed_methods is None
+    assert ocx._client.session.adapters["http://"].max_retries.total == 3
+    assert ocx._client.session.adapters["http://"].max_retries.allowed_methods is None
+    assert ocx._client.session.adapters["https://"].max_retries.total == 3
+    assert ocx._client.session.adapters["https://"].max_retries.allowed_methods is None
 
 
 def test_model_classes(ocx, api_data):
@@ -134,20 +134,21 @@ def test_download_file_obj(ocx, api_data):
     assert data == b'"1234567890"'
 
 
+@pytest.mark.xfail(reason="We no longer use ResourceList except for SampleCollection")
 def test_resourcelist(ocx, api_data):
     sample = ocx.Samples.get("761bc54b97f64980")
-    tags1 = onecodex.models.ResourceList(sample.tags._resource, onecodex.models.misc.Tags)
+    tags1 = onecodex.models.collection.ResourceList(sample.tags, onecodex.models.misc.Tags)
 
-    assert isinstance(sample.tags, onecodex.models.ResourceList)
+    # assert isinstance(sample.tags, onecodex.models.ResourceList)
     assert sample.tags == tags1
 
     # test manipulation of tags lists
     tag_to_pop = sample.tags[-1]
     popped_tag = sample.tags.pop()
-    assert id(tag_to_pop._resource) == id(popped_tag._resource)
+    assert id(tag_to_pop) == id(popped_tag)
 
     sample.tags.insert(0, popped_tag)
-    assert id(sample.tags[0]._resource) == id(popped_tag._resource)
+    assert id(sample.tags[0]) == id(popped_tag)
     assert sample.tags.index(popped_tag) == 0
 
     assert sample.tags.count(popped_tag) == 1
@@ -161,18 +162,14 @@ def test_resourcelist(ocx, api_data):
 
     # we can set tags list in-place
     sample.tags[0] = popped_tag
-    assert id(sample.tags[0]._resource) == id(popped_tag._resource)
+    assert id(sample.tags[0]) == id(popped_tag)
 
     # changes in one instance of a ResourceList affect other instances
     assert id(tags1) != id(sample.tags)
-    assert id(tags1._resource) == id(sample.tags._resource)
+    assert len(tags1) == len(sample.tags)
 
-    # TODO: these tests shouldn't fail, but we're leaving this bug here for now due to conversations
-    # with @boydgreenfield on 1/10/2019
-    # assert len(tags1) == len(sample.tags)
-
-    # for i in range(len(tags1)):
-    #     assert tags1[i] == sample.tags[i]
+    for i in range(len(tags1)):
+        assert tags1[i] == sample.tags[i]
 
     # can't mix types in a ResourceList
     with pytest.raises(ValueError) as e:
@@ -222,9 +219,9 @@ def test_samplecollection(ocx, api_data):
         )
     assert "but not both" in str(e.value)
 
-    # and not using unwrapped potion resources
+    # Passing in a non-Sample should fail
     with pytest.raises(OneCodexException) as e:
-        onecodex.models.SampleCollection([s._resource for s in all_samples[:7]])
+        onecodex.models.SampleCollection([True] + [s for s in all_samples[:7]])
     assert "can only contain" in str(e.value)
 
     # test filtering of Samples in a collection
@@ -334,7 +331,10 @@ def test_dir_patching(ocx, api_data):
     }
     for prop in props:
         assert prop in dir(sample)
-    assert len(sample.__dict__) == 1  # I'm not sure we *want* this...
+
+    # # I'm not sure we *want* this...
+    # assert len(sample.__dict__) == 1
+    # assert "_resolved_cache" not in sample.__dict__
 
 
 def test_classification_methods(ocx, api_data):
@@ -395,6 +395,7 @@ def test_where_clauses(ocx, api_data, where_args, where_kwargs, queries):
     assert len([x for x in counts if x == len(queries)]) == 1
 
 
+@pytest.mark.xfail(reason="`search_public` is removed in this code, no longer warns")
 def test_public_search(ocx, api_data):
     with pytest.warns(DeprecationWarning):
         samples = ocx.Samples.search_public(filename="tmp.fa")
@@ -413,6 +414,7 @@ def test_public_project(ocx, api_data):
         projs = ocx.Projects.search_public(name="One Codex Project")
         assert len(projs) == 0
     projs = ocx.Projects.where(name="One Codex Project", public=True)
+    # FIXME: This seems... silly?
     assert len(projs) == 0
 
 
@@ -472,3 +474,13 @@ def test_jobs(ocx, api_data):
 
     jobs = ocx.Jobs.where(public=True)
     assert len(jobs) == 24
+
+
+def test_sample_preupload(ocx, upload_mocks, api_data):
+    projects = ocx.Projects.where(project_name="One Codex Project")
+    sample_id = ocx.Samples.preupload(
+        metadata={"foo": "bar"}, tags=[{"name": "test"}], project=projects[0]
+    )
+    assert sample_id is not None
+    assert isinstance(sample_id, str)
+    assert len(sample_id) == 16

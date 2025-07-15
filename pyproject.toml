@@ -95,9 +95,9 @@ version = { attr = "onecodex.version.__version__" }
 testpaths = ["tests"]
 filterwarnings = [
     'error',
-    'ignore::ResourceWarning',  # Unclosed files, etc.
-    'ignore:Using base API URL:UserWarning',  # Happens all over the tests because we use something other than app.onecodex.com
-    'ignore:sentry_sdk.configure_scope:DeprecationWarning',  # We support Sentry v1 and v2, ignore warnings about v3
+    'ignore::ResourceWarning',                                                   # Unclosed files, etc.
+    'ignore:Using base API URL:UserWarning',                                     # Happens all over the tests because we use something other than app.onecodex.com
+    'ignore:sentry_sdk.configure_scope:DeprecationWarning',                      # We support Sentry v1 and v2, ignore warnings about v3
     'ignore:.*platformdirs.*:DeprecationWarning:jupyter_client.connect',
     'ignore:Parsing dates:DeprecationWarning:jupyter_client.jsonutil',
     'ignore:datetime.datetime.utcnow:DeprecationWarning:jupyter_client.session',
@@ -105,12 +105,7 @@ filterwarnings = [
 
 [tool.ruff]
 line-length = 100
-exclude = [
-    "onecodex/vendored",
-    "tests/api_data",
-    "tests/data",
-    "notebook_examples/*.ipynb",
-]
+exclude = ["tests/api_data", "tests/data", "notebook_examples/*.ipynb"]
 
 [tool.ruff.lint]
 # Enable pycodestyle (E, W), Pyflakes (F), pydocstyle (D), and other rules
@@ -150,4 +145,5 @@ dev = [
     "pre-commit",
     "pdfplumber",
     "ruff>=0.12.2",
+    "datamodel-code-generator>=0.31.2",
 ]

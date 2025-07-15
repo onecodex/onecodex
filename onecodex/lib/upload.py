@@ -113,30 +113,6 @@ def _get_init_multipart_upload_payload(
     return upload_args
 
 
-def preupload_sample(samples_resource, metadata=None, tags=None, project=None):
-    """Make preupload request to the One Codex API and return the sample id.
-
-    Parameters
-    ----------
-    metadata : `dict`, optional
-    tags : `list`, optional
-    project : `string`, optional
-        UUID of project to associate this sample with.
-
-    Returns
-    -------
-    `dict`
-        Contains 'sample_id' field.
-    """
-    upload_args = build_upload_dict(metadata, tags, project)
-    try:
-        res = samples_resource.preupload(upload_args)
-    except requests.exceptions.HTTPError as e:
-        raise_api_error(e.response, state="init_preupload")
-
-    return res["sample_id"]
-
-
 def upload_sequence(
     file,
     samples_resource,
@@ -155,7 +131,7 @@ def upload_sequence(
     file : `str` | `tuple(str, str)`
         A single file path or a tuple of paths for paired ends
     samples_resource : `onecodex.models.Samples`
-        Wrapped potion-client object exposing `init_upload` and `confirm_upload` methods.
+        Instantiated `Samples` model object.
     metadata : `dict`, optional
     tags : `list`, optional
     project : `string`, optional
@@ -200,7 +176,12 @@ def upload_sequence(
         )
 
         try:
-            fields = samples_resource.init_multipart_upload(payload)
+            resp = samples_resource._client.post(
+                f"{samples_resource._api._base_url}{samples_resource._resource_path}/init_multipart_upload",
+                json=payload,
+            )
+            resp.raise_for_status()
+            fields = resp.json()
         except requests.exceptions.HTTPError as e:
             raise_api_error(e.response, state="init")
 
@@ -216,7 +197,11 @@ def upload_sequence(
             log.info(f"Canceled upload for {filename} as sample {fields['sample_id']}")
 
             try:
-                samples_resource.cancel_upload({"sample_id": fields["sample_id"]})
+                resp = samples_resource._client.post(
+                    f"{samples_resource._api._base_url}{samples_resource._resource_path}/cancel_upload",
+                    json={"sample_id": fields["sample_id"]},
+                )
+                resp.raise_for_status()
             except requests.exceptions.HTTPError as e:
                 # onecodex #298: it's possible to have this trigger after an upload has
                 # already succeeded. try to catch that instead of blowing up
@@ -260,7 +245,7 @@ def _upload_sequence_fileobj(file_obj, file_name, fields, samples_resource, call
     fields : `dict`
         The fields boto will need to have to upload to S3
     samples_resource : `onecodex.models.Samples`
-        Wrapped potion-client object exposing `init_upload` and `confirm_upload` routes to mainline.
+        Instantiated `Samples` model object.
 
     Raises
     ------
@@ -276,7 +261,7 @@ def _upload_sequence_fileobj(file_obj, file_name, fields, samples_resource, call
         file_name,
         fields,
         samples_resource._client.session,
-        samples_resource._client._root_url + fields["callback_url"]
+        samples_resource._api._base_url + fields["callback_url"]
         if callback
         else None,  # full callback url
     )
@@ -350,7 +335,11 @@ def _upload_document_fileobj(file_obj, file_name, documents_resource):
     `string` id of newly uploaded document.
     """
     try:
-        fields = documents_resource.init_multipart_upload()
+        resp = documents_resource._client.post(
+            f"{documents_resource._api._base_url}{documents_resource._resource_path}/init_multipart_upload"
+        )
+        resp.raise_for_status()
+        fields = resp.json()
     except requests.exceptions.HTTPError as e:
         raise_api_error(e.response, state="init")
     except requests.exceptions.ConnectionError:
@@ -361,7 +350,7 @@ def _upload_document_fileobj(file_obj, file_name, documents_resource):
         file_name,
         fields,
         documents_resource._client.session,
-        documents_resource._client._root_url + fields["callback_url"],  # full callback url
+        documents_resource._api._base_url + fields["callback_url"],  # full callback url
     )
 
     msg = f"{file_name}: finished"
@@ -409,7 +398,7 @@ def _upload_asset_fileobj(file_obj, file_name, assets_resource, name=None):
         file_name,
         fields,
         assets_resource._client.session,
-        assets_resource._client._root_url + fields["callback_url"],  # full callback url
+        assets_resource._api._base_url + fields["callback_url"],  # full callback url
         name=name,
     )
 

@@ -1,12 +1,24 @@
-from typing import Optional
+from typing import Optional, Union, Dict
+import json
 
+from onecodex.models.base import OneCodexBase, ApiRef
 from onecodex.lib.enums import FunctionalAnnotations, FunctionalAnnotationsMetric
-from onecodex.models import OneCodexBase
+
+from onecodex.models.schemas.analysis import AnalysisSchema
+from onecodex.models.schemas.analysis import AlignmentSchema
+from onecodex.models.schemas.analysis import ClassificationSchema
+from onecodex.models.schemas.analysis import FunctionalRunSchema
+from onecodex.models.schemas.analysis import PanelSchema
 
 
-class Analyses(OneCodexBase):
-    _resource_path = "/api/v1/analyses"
-    _cached_result = None
+class _AnalysesBase(OneCodexBase):
+    _allowed_methods = {
+        "instances_public": None,
+    }
+    _cached_result: Dict = {}
+    sample: Union["Samples", ApiRef]  # noqa: F821
+    job: Union["Jobs", ApiRef]  # noqa: F821
+    error_msg: Optional[str] = None
 
     def results(self, json=True):
         """Fetch the results of an Analyses resource.
@@ -27,19 +39,24 @@ class Analyses(OneCodexBase):
             raise NotImplementedError("No non-JSON result format implemented.")
 
     def _results(self):
-        try:
-            if not getattr(self._resource, "_cached_result", None):
-                self._resource._cached_result = self._resource.results()
-            return self._resource._cached_result
-        except AttributeError:
-            raise NotImplementedError(".results() not implemented for this Analyses resource.")
+        if getattr(self, "_cached_result", None):
+            return self._cached_result
+
+        resp = self._client.get(f"{self._api._base_url}{self.field_uri}/results")
+        self._cached_result = resp.json()
+        return self._cached_result
 
 
-class Alignments(Analyses):
+class Analyses(_AnalysesBase, AnalysisSchema):
+    _resource_path = "/api/v1/analyses"
+    _cached_result = None
+
+
+class Alignments(_AnalysesBase, AlignmentSchema):
     _resource_path = "/api/v1/alignments"
 
 
-class Classifications(Analyses):
+class Classifications(_AnalysesBase, ClassificationSchema):
     _resource_path = "/api/v1/classifications"
     _cached_table = None
 
@@ -62,7 +79,8 @@ class Classifications(Analyses):
             return self._table()
 
     def _readlevel(self):
-        return self._resource.readlevel()
+        resp = self._client.get(f"{self._api._base_url}{self.field_uri}/readlevel")
+        return resp.json()
 
     def _table(self):
         import pandas as pd
@@ -85,11 +103,11 @@ class Classifications(Analyses):
     def where(cls, *filters, **keyword_filters):
         from onecodex.models.collection import SampleCollection
 
-        wrapped = super(Classifications, cls).where(*filters, **keyword_filters)
-        return SampleCollection([w._resource for w in wrapped], Classifications)
+        classifications = super(Classifications, cls).where(*filters, **keyword_filters)
+        return SampleCollection(classifications, Classifications)
 
 
-class FunctionalProfiles(Analyses):
+class FunctionalProfiles(_AnalysesBase, FunctionalRunSchema):
     _resource_path = "/api/v1/functional_profiles"
 
     def _filtered_results(
@@ -98,9 +116,15 @@ class FunctionalProfiles(Analyses):
         metric: FunctionalAnnotationsMetric,
         taxa_stratified: bool,
     ):
-        return self._resource.filtered_results(
-            functional_group=annotation, metric=metric, taxa_stratified=taxa_stratified
+        resp = self._client.get(
+            f"{self._api._base_url}{self.field_uri}/filtered_results",
+            params={
+                "functional_group": json.dumps(annotation),
+                "metric": json.dumps(metric),
+                "taxa_stratified": json.dumps(taxa_stratified),
+            },
         )
+        return resp.json()
 
     def results(self, json: bool = True):
         """Return the complete results table for a functional analysis.
@@ -216,7 +240,7 @@ class FunctionalProfiles(Analyses):
         return pd.DataFrame(result_json["table"])
 
 
-class Panels(Analyses):
+class Panels(_AnalysesBase, PanelSchema):
     _resource_path = "/api/v1/panels"
 
     def results(self, json=True):
