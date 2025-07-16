@@ -43,7 +43,8 @@ class JobSchema(URIModel):
     name: str = Field(
         description="The name of the job (this is displayed in the dropdown on the analysis page of the One Codex web application)."
     )
-    job_args_schema: dict[str, Any] = Field(
+    job_args_schema: Optional[dict[str, Any]] = Field(
+        None,
         description="The JSON schema for the arguments taken by the job (can be an empty object, i.e., `{}`).",
     )
     analysis_type: str = Field(

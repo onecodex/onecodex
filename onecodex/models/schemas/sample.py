@@ -46,7 +46,8 @@ class SampleSchema(URIModel):
         [],
         description="An (optionally empty) array of references to Tags describing the sample. Tags are an additional unstructured organizational tool that complement Projects and Metadata records.",
     )
-    status: UserFacingDataStatus = Field(
+    status: Optional[UserFacingDataStatus] = Field(
+        None,
         description="The status of the sample.",
     )
     visibility: ApiV1Visibility = Field(
@@ -59,7 +60,7 @@ class SampleUpdateSchema(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     project: Optional[Union["ProjectSchema", ApiRef]] = None  # noqa: F821
-    tags: Union[List["TagSchema"], List[ApiRef]] = []  # noqa: F821
+    tags: Optional[Union[List["TagSchema"], List[ApiRef]]] = None  # noqa: F821
     visibility: ApiV1Visibility = Field(
         # default=ApiV1Visibility.Private,
         default="private",

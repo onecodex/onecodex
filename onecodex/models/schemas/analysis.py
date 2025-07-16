@@ -11,7 +11,7 @@ class AnalysisSchema(URIModel):
     model_config = ConfigDict(extra="ignore")
 
     created_at: RFC3339Datetime
-    analysis_type: str
+    analysis_type: Optional[str] = None
     complete: bool = False
     error_msg: Optional[str] = Field(
         default=None,
