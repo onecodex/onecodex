@@ -21,7 +21,6 @@ except ImportError:
         pass
 
 
-from onecodex.models.base import OneCodexBase
 from onecodex.models.sample import Samples
 from onecodex.models.analysis import Classifications
 
@@ -37,19 +36,99 @@ CANONICAL_RANKS = (
 )
 
 
-# TODO: Consider merging this into SampleCollection directly
-class ResourceList(MutableSequence):
-    def __init__(self, _res_list, oc_model, kwargs):
-        if not issubclass(oc_model, OneCodexBase):
-            raise ValueError(
-                "Expected object of type '{}', got '{}'".format(
-                    OneCodexBase.__name__, oc_model.__name__
-                )
+class SampleCollection(AnalysisMixin, MutableSequence):
+    """A collection of `Samples` or `Classifications` objects.
+
+    Includes lots of methods for analysis of classifications results.
+
+    Notes
+    -----
+    Inherits from `ResourceList` to provide a list-like API, and `AnalysisMixin` to provide relevant
+    analysis methods.
+    """
+
+    def __init__(self, *args, **kwargs):
+        """Instantiate a new SampleCollection containing `Samples` or `Classifications` objects.
+
+        Parameters
+        ----------
+        objects : list
+            A list of `onecodex.models.Samples` or `onecodex.models.Classifications` objects
+            which will be processed into a `SampleCollection`
+
+        skip_missing : bool, optional
+            If an analysis was not successful, exclude it, warn, and keep going
+
+        metric : {'readcount_w_children', 'readcount', 'abundance'}, optional
+            Which metric to use for the abundance/count of a particular taxon in a sample.
+
+            - 'readcount_w_children': total reads of this taxon and all its descendants
+            - 'readcount': total reads of this taxon
+            - 'abundance': genome size-normalized relative abundances, from shotgun sequencing
+
+        include_host : bool, optional
+            If True, keep (rather than drop) count/abundance data for host taxa
+
+        Examples
+        --------
+        Given a list of Samples, create a new SampleCollection using abundances:
+
+            samples = [sample1, sample2, sample3]
+            collection = SampleCollection(samples, metric='abundance')
+
+        Notes
+        -----
+        To provide access to the list-like API of `ResourceList`, must also accept a list of
+        unwrapped potion resources and a One Codex model.
+        """
+
+        if "field" in kwargs and "metric" in kwargs:
+            raise OneCodexException(
+                "Cannot provide both `field` and `metric`. `field` has been deprecated in favor of "
+                "`metric`."
+            )
+        if "field" in kwargs:
+            warnings.warn(
+                "The `field` parameter has been renamed to `metric`. Passing `field` to a "
+                "SampleCollection is deprecated and will be removed in a future release.",
+                DeprecationWarning,
+            )
+            kwargs["metric"] = kwargs.pop("field")
+
+        self._kwargs = kwargs
+        include_host = kwargs.get("include_host", False)
+        metric = kwargs.get("metric", "auto")
+        job = kwargs.get("job", None)
+        skip_missing = kwargs.get("skip_missing", True)
+        objects = [*args[0]]
+        _optional_model = args[1] if len(args) > 1 else None  # For backwards compatibility
+
+        if not all(
+            [isinstance(obj, Samples) or isinstance(obj, Classifications) for obj in objects]
+        ):
+            raise OneCodexException(
+                "SampleCollection can only contain One Codex Samples or Classifications objects"
             )
 
-        self._oc_model = oc_model
-        self._kwargs = kwargs
-        self._res_list = _res_list
+        # are they all the same model?
+        object_classes = [type(obj) for obj in objects]
+
+        if len(set(object_classes)) > 1:
+            raise OneCodexException(
+                "SampleCollection can contain Samples or Classifications, but not both"
+            )
+
+        model = objects[0].__class__ if len(objects) > 0 else Samples
+
+        self._kwargs = {
+            "skip_missing": skip_missing,
+            "metric": metric,
+            "include_host": include_host,
+            "job": job,
+        }
+        self._cached = {}
+        self._oc_model = model
+        self._res_list = objects
 
     def _check_valid_resource(self, other, check_for_dupes=True):
         if not isinstance(other, list):
@@ -163,96 +242,6 @@ class ResourceList(MutableSequence):
 
     def remove(self, x):
         del self._res_list[self.index(x)]
-
-
-class SampleCollection(AnalysisMixin, ResourceList):
-    """A collection of `Samples` or `Classifications` objects.
-
-    Includes lots of methods for analysis of classifications results.
-
-    Notes
-    -----
-    Inherits from `ResourceList` to provide a list-like API, and `AnalysisMixin` to provide relevant
-    analysis methods.
-    """
-
-    def __init__(self, *args, **kwargs):
-        """Instantiate a new SampleCollection containing `Samples` or `Classifications` objects.
-
-        Parameters
-        ----------
-        objects : list
-            A list of `onecodex.models.Samples` or `onecodex.models.Classifications` objects
-            which will be processed into a `SampleCollection`
-
-        skip_missing : bool, optional
-            If an analysis was not successful, exclude it, warn, and keep going
-
-        metric : {'readcount_w_children', 'readcount', 'abundance'}, optional
-            Which metric to use for the abundance/count of a particular taxon in a sample.
-
-            - 'readcount_w_children': total reads of this taxon and all its descendants
-            - 'readcount': total reads of this taxon
-            - 'abundance': genome size-normalized relative abundances, from shotgun sequencing
-
-        include_host : bool, optional
-            If True, keep (rather than drop) count/abundance data for host taxa
-
-        Examples
-        --------
-        Given a list of Samples, create a new SampleCollection using abundances:
-
-            samples = [sample1, sample2, sample3]
-            collection = SampleCollection(samples, metric='abundance')
-
-        Notes
-        -----
-        To provide access to the list-like API of `ResourceList`, must also accept a list of
-        unwrapped potion resources and a One Codex model.
-        """
-        if "field" in kwargs and "metric" in kwargs:
-            raise OneCodexException(
-                "Cannot provide both `field` and `metric`. `field` has been deprecated in favor of "
-                "`metric`."
-            )
-        if "field" in kwargs:
-            warnings.warn(
-                "The `field` parameter has been renamed to `metric`. Passing `field` to a "
-                "SampleCollection is deprecated and will be removed in a future release.",
-                DeprecationWarning,
-            )
-            kwargs["metric"] = kwargs.pop("field")
-
-        self._sample_collection_constructor(*args, **kwargs)
-
-    def _sample_collection_constructor(
-        self, objects, skip_missing=True, metric="auto", include_host=False, job=None
-    ):
-        if not all(
-            [isinstance(obj, Samples) or isinstance(obj, Classifications) for obj in objects]
-        ):
-            raise OneCodexException(
-                "SampleCollection can only contain One Codex Samples or Classifications objects"
-            )
-
-        # are they all the same model?
-        object_classes = [type(obj) for obj in objects]
-
-        if len(set(object_classes)) > 1:
-            raise OneCodexException(
-                "SampleCollection can contain Samples or Classifications, but not both"
-            )
-
-        model = objects[0].__class__ if len(objects) > 0 else Samples
-
-        self._kwargs = {
-            "skip_missing": skip_missing,
-            "metric": metric,
-            "include_host": include_host,
-            "job": job,
-        }
-        self._cached = {}
-        super(SampleCollection, self).__init__(objects, model, self._kwargs)
 
     def filter(self, filter_func):
         """Return a new `SampleCollection` containing only samples meeting the filter criteria.
