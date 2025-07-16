@@ -356,7 +356,6 @@ for functional_uuid in {"31ddae978aff475f", "bde18eb9407d4c2f", "eec4ac90d9104d1
                 f"GET::api/v1/functional_profiles/{functional_uuid}/filtered_results\\?.*functional_group=%22{annotation}%22\\&metric=%22{metric}%22\\&taxa_stratified=false"
             ] = filtered_raw_results(raw_results, annotation, metric, False)
 
-SCHEMA_ROUTES = {}
 API_DATA_DIR = os.path.join("tests", "data", "api")
 
 for api_version in os.listdir(API_DATA_DIR):
@@ -364,49 +363,30 @@ for api_version in os.listdir(API_DATA_DIR):
 
     for resource_name in os.listdir(api_root):
         resource_root = os.path.join(api_root, resource_name)
-
-        if resource_name == "schema":
-            for filename in os.listdir(resource_root):
-                if not filename.endswith(".json"):
+        for dirpath, _, filenames in os.walk(resource_root):
+            for filename in filenames:
+                if filename not in {"index.json", "index.json.gz"}:
                     continue
 
-                if filename == "index.json":
-                    resource_uri = f"GET::api/{api_version}/schema$"
-                elif filename == "index_all.json":
-                    resource_uri = f"GET::api/{api_version}/schema\\?expand=all"
+                filepath = os.path.join(dirpath, filename)
+                if filepath.endswith(".json.gz"):
+                    resource = json.load(gzip.open(filepath))
                 else:
-                    resource_name = filename.replace(".json", "")
-                    resource_uri = f"GET::api/{api_version}/{resource_name}/schema"
+                    resource = json.load(open(filepath))
 
-                SCHEMA_ROUTES[resource_uri] = json.load(open(os.path.join(resource_root, filename)))
-        else:
-            for dirpath, _, filenames in os.walk(resource_root):
-                for filename in filenames:
-                    if filename not in {"index.json", "index.json.gz"}:
-                        continue
+                # Remove tests/data/ from path and normalize path separator to "/" for the API
+                # route.
+                api_route = "/".join(dirpath.split(os.sep)[2:])
+                resource_uri = f"GET::{api_route}"
+                API_DATA[resource_uri] = resource
 
-                    filepath = os.path.join(dirpath, filename)
-                    if filepath.endswith(".json.gz"):
-                        resource = json.load(gzip.open(filepath))
-                    else:
-                        resource = json.load(open(filepath))
-
-                    # Remove tests/data/ from path and normalize path separator to "/" for the API
-                    # route.
-                    api_route = "/".join(dirpath.split(os.sep)[2:])
-                    resource_uri = f"GET::{api_route}"
-                    API_DATA[resource_uri] = resource
-
-                    # If we're processing a resource's instance listing
-                    # (e.g. api/v1/classifications), auto-mock each instance too
-                    # (e.g. api/v1/classifications/<uuid>)
-                    if dirpath == resource_root and isinstance(resource, list):
-                        for instance in resource:
-                            instance_uri = f"GET::{instance['$uri'].lstrip('/')}"
-                            API_DATA[instance_uri] = instance
-
-
-API_DATA.update(SCHEMA_ROUTES)
+                # If we're processing a resource's instance listing
+                # (e.g. api/v1/classifications), auto-mock each instance too
+                # (e.g. api/v1/classifications/<uuid>)
+                if dirpath == resource_root and isinstance(resource, list):
+                    for instance in resource:
+                        instance_uri = f"GET::{instance['$uri'].lstrip('/')}"
+                        API_DATA[instance_uri] = instance
 
 
 @pytest.fixture(scope="function")
@@ -477,42 +457,18 @@ def upload_mocks():
             }
         ],
     }
-    json_data.update(SCHEMA_ROUTES)
     with mock_requests(json_data):
         yield
 
 
 # API FIXTURES
-@pytest.fixture(scope="session")
-def ocx_schemas():
-    with mock_requests(SCHEMA_ROUTES):
-        yield
-
-
 @pytest.fixture(scope="function")
 def ocx():
     """Instantiated API client"""
-    with mock_requests(SCHEMA_ROUTES):
-        return Api(
-            api_key="1eab4217d30d42849dbde0cd1bb94e39",
-            base_url="http://localhost:3000",
-            cache_schema=False,
-        )
-
-
-@pytest.fixture(scope="function")
-def ocx_experimental():
-    """Instantiated API client with experimental mode enabled"""
-    with (
-        mock_requests(SCHEMA_ROUTES),
-        pytest.warns(UserWarning, match="Experimental API mode enabled"),
-    ):
-        return Api(
-            api_key="1eab4217d30d42849dbde0cd1bb94e39",
-            base_url="http://localhost:3000",
-            cache_schema=False,
-            experimental=True,
-        )
+    return Api(
+        api_key="1eab4217d30d42849dbde0cd1bb94e39",
+        base_url="http://localhost:3000",
+    )
 
 
 @pytest.fixture(scope="function")
