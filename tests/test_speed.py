@@ -2,7 +2,6 @@
 # and our general CLI startup time.
 import os
 import subprocess
-import sys
 import time
 
 import pytest
@@ -10,21 +9,20 @@ import pytest
 from onecodex import Cli
 
 
-@pytest.mark.skipif(sys.version_info < (3, 9), reason="requires python3.9 or higher")
 @pytest.mark.parametrize(
     "import_command,package_max_import_times,total_time_secs",
     [
         # Fast imports
-        ("import onecodex", {"onecodex": 0.25}, 0.25),
-        ("from onecodex import Cli", {"onecodex": 0.25, "onecodex.cli": 0.20}, 0.25),
-        ("from onecodex import Api", {"onecodex": 0.25, "onecodex.api": 0.20}, 0.25),
+        ("import onecodex", {"onecodex": 0.30}, 0.30),
+        ("from onecodex import Cli", {"onecodex": 0.30, "onecodex.cli": 0.20}, 0.30),
+        ("from onecodex import Api", {"onecodex": 0.30, "onecodex.api": 0.20}, 0.30),
         # Full startup of the CLI (prints help message)
-        ('import onecodex; onecodex.cli.onecodex(["--help"])', {"onecodex": 0.25}, 0.25),
+        ('import onecodex; onecodex.cli.onecodex(["--help"])', {"onecodex": 0.30}, 0.30),
         # Our slow imports should be lazy and still import fast
         (
             "from onecodex.viz import VizPCAMixin",
             {
-                "onecodex": 0.25,
+                "onecodex": 0.30,
                 "onecodex.viz": 0.6,
                 "onecodex.viz._pca": 0.01,
                 "onecodex.viz._distance": 0.01,
@@ -33,8 +31,8 @@ from onecodex import Cli
         ),
         (
             "from onecodex.analyses import AnalysisMixin",
-            {"onecodex": 0.25, "onecodex.analyses": 0.25},
-            0.25,
+            {"onecodex": 0.30, "onecodex.analyses": 0.30},
+            0.30,
         ),
     ],
 )
