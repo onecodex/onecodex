@@ -21,6 +21,7 @@ def sample_response_data():
             "tags": [],
             "visibility": "private",
             "size": 1000,
+            "status": "available",
         }
     }
 
@@ -46,6 +47,7 @@ def detailed_sample_data():
             "tags": [],
             "visibility": "private",
             "size": 1000,
+            "status": "available",
         }
     }
 
@@ -119,6 +121,7 @@ def test_apiref_circular_resolution_detection(ocx, custom_mock_requests):
             "tags": [],
             "visibility": "private",
             "size": 1000,
+            "status": "available",
         },
         "GET::api/v1/metadata/dd0aa4fdd11541d1": {
             "$uri": "/api/v1/metadata/dd0aa4fdd11541d1",

@@ -43,7 +43,7 @@ class SampleSchema(URIModel):
         description="The size of the uploaded file in bytes.",
     )
     tags: List[Union["TagSchema", ApiRef]] = Field(  # noqa: F821
-        [],
+        default_factory=list,
         description="An (optionally empty) array of references to Tags describing the sample. Tags are an additional unstructured organizational tool that complement Projects and Metadata records.",
     )
     status: UserFacingDataStatus = Field(
@@ -59,7 +59,7 @@ class SampleUpdateSchema(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     project: Optional[Union["ProjectSchema", ApiRef]] = None  # noqa: F821
-    tags: Union[List["TagSchema"], List[ApiRef]] = []  # noqa: F821
+    tags: Union[List["TagSchema"], List[ApiRef]] = Field(default_factory=list)  # noqa: F821
     visibility: ApiV1Visibility = Field(
         # default=ApiV1Visibility.Private,
         default="private",

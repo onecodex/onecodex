@@ -6,12 +6,11 @@ from onecodex.models.schemas.base import URIModel
 from onecodex.models.schemas.types import RFC3339Datetime
 
 
-class AnalysisSchema(URIModel):
+class BaseAnalysisSchema(URIModel):
     # Do not load `draft`, `dependencies`, and `cost` fields
     model_config = ConfigDict(extra="ignore")
 
     created_at: RFC3339Datetime
-    analysis_type: str
     complete: bool = False
     error_msg: Optional[str] = Field(
         default=None,
@@ -31,17 +30,21 @@ class AnalysisSchema(URIModel):
     success: bool = False
 
 
-class AlignmentSchema(AnalysisSchema):
-    analysis_type: str = Field(default="alignment", exclude=True)
+class AnalysisSchema(BaseAnalysisSchema):
+    analysis_type: str
 
 
-class ClassificationSchema(AnalysisSchema):
-    analysis_type: str = Field(default="classification", exclude=True)
+class AlignmentSchema(BaseAnalysisSchema):
+    pass
 
 
-class FunctionalRunSchema(AnalysisSchema):
-    analysis_type: str = Field(default="functional", exclude=True)
+class ClassificationSchema(BaseAnalysisSchema):
+    pass
 
 
-class PanelSchema(AnalysisSchema):
-    analysis_type: str = Field(default="panel", exclude=True)
+class FunctionalRunSchema(BaseAnalysisSchema):
+    pass
+
+
+class PanelSchema(BaseAnalysisSchema):
+    pass

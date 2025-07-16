@@ -101,6 +101,7 @@ API_DATA = {
                 {"$ref": "/api/v1/tags/ff4e81909a4348d9"},
             ],
             "visibility": "private",
+            "status": "available",
         }
     ],
     "GET::api/v1/projects/public": {},
@@ -134,6 +135,7 @@ API_DATA = {
                     {"$ref": "/api/v1/tags/1638c7a570214fda"},
                 ],
                 "visibility": "public",
+                "status": "available",
             },
             "success": True,
         }
@@ -227,6 +229,7 @@ API_DATA = {
             {"$ref": "/api/v1/tags/ff4e81909a4348d9"},
         ],
         "visibility": "private",
+        "status": "available",
     },
     "PATCH::api/v1/metadata/4fe05e748b5a4f0e": update_metadata_callback,
     "POST::api/v1/samples/.*/download_uri": {
@@ -296,6 +299,7 @@ API_DATA = {
             "size": 2225829803,
             "tags": [],
             "visibility": "public",
+            "status": "available",
         },
         {
             "$uri": "/api/v1/samples/1640864a28bf44ba",
@@ -308,6 +312,7 @@ API_DATA = {
             "size": 1187736145,
             "tags": [{"$ref": "/api/v1/tags/dbcf5b98bca54a16"}],
             "visibility": "public",
+            "status": "available",
         },
         {
             "$uri": "/api/v1/samples/03242c0ab87048e1",
@@ -320,6 +325,7 @@ API_DATA = {
             "size": 2267482973,
             "tags": [],
             "visibility": "public",
+            "status": "available",
         },
     ],
     "GET::api/v1/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%7B%22%24in%22%3A\\+%5B%2237e5151e7bcb4f87%22%5D%7D.*": [
@@ -441,6 +447,7 @@ def upload_mocks():
                 {"$ref": "/api/v1/tags/ff4e81909a4348d9"},
             ],
             "visibility": "private",
+            "status": "available",
         },
         "POST::api/v1/samples/preupload": {"sample_id": "7428cca4a3a04a8e"},
         "POST::api/v1/samples/confirm_upload": "",
