@@ -84,7 +84,7 @@ def test_documents_table(runner, api_data, mocked_creds_file):
     assert "OneCodexTakeHome" in result.stdout
 
     result = runner.invoke(Cli, ["documents", "list", "--json"])
-    assert len(result.stdout.split("\n")) == 309
+    assert len(result.stdout.split("\n")) == 258  # shorter because we ignore extra fields
     assert "OneCodexTakeHome" in result.stdout
 
 
