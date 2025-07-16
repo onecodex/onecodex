@@ -5,7 +5,6 @@ import json
 import mock
 import pytest
 import responses
-import sys
 
 try:
     from urllib.parse import unquote_plus  # Py3
@@ -132,56 +131,6 @@ def test_download_file_obj(ocx, api_data):
     data = file_obj.read()
 
     assert data == b'"1234567890"'
-
-
-@pytest.mark.xfail(reason="We no longer use ResourceList except for SampleCollection")
-def test_resourcelist(ocx, api_data):
-    sample = ocx.Samples.get("761bc54b97f64980")
-    tags1 = onecodex.models.collection.ResourceList(sample.tags, onecodex.models.misc.Tags)
-
-    # assert isinstance(sample.tags, onecodex.models.ResourceList)
-    assert sample.tags == tags1
-
-    # test manipulation of tags lists
-    tag_to_pop = sample.tags[-1]
-    popped_tag = sample.tags.pop()
-    assert id(tag_to_pop) == id(popped_tag)
-
-    sample.tags.insert(0, popped_tag)
-    assert id(sample.tags[0]) == id(popped_tag)
-    assert sample.tags.index(popped_tag) == 0
-
-    assert sample.tags.count(popped_tag) == 1
-    sample.tags.remove(popped_tag)
-    assert sample.tags.count(popped_tag) == 0
-
-    with pytest.raises(ValueError):
-        sample.tags.remove(popped_tag)
-    with pytest.raises(ValueError):
-        sample.tags.index(popped_tag)
-
-    # we can set tags list in-place
-    sample.tags[0] = popped_tag
-    assert id(sample.tags[0]) == id(popped_tag)
-
-    # changes in one instance of a ResourceList affect other instances
-    assert id(tags1) != id(sample.tags)
-    assert len(tags1) == len(sample.tags)
-
-    for i in range(len(tags1)):
-        assert tags1[i] == sample.tags[i]
-
-    # can't mix types in a ResourceList
-    with pytest.raises(ValueError) as e:
-        tags1.append(sample)
-    assert "object of type" in str(e.value)
-
-    if sys.version_info.major < 3:
-        with pytest.raises(AttributeError):
-            tags1.clear()
-    else:
-        tags1.clear()
-        assert len(tags1) == 0
 
 
 def test_samplecollection(ocx, api_data):
@@ -393,15 +342,6 @@ def test_where_clauses(ocx, api_data, where_args, where_kwargs, queries):
 
     # the correct queries must both appear together in only one request to pass this test
     assert len([x for x in counts if x == len(queries)]) == 1
-
-
-@pytest.mark.xfail(reason="`search_public` is removed in this code, no longer warns")
-def test_public_search(ocx, api_data):
-    with pytest.warns(DeprecationWarning):
-        samples = ocx.Samples.search_public(filename="tmp.fa")
-        assert len(samples) == 0
-    samples = ocx.Samples.where(filename="tmp.fa", public=True)
-    assert len(samples) == 0
 
 
 def test_where_organization(ocx, api_data):
