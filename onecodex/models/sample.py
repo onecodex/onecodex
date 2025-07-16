@@ -9,14 +9,16 @@ from onecodex.models.base import OneCodexBase, ApiRef
 from onecodex.models.analysis import Classifications
 
 from onecodex.models.helpers import truncate_string
-from onecodex.models.generated import SampleSchema as GeneratedSampleSchema
-from onecodex.models.generated import SampleUpdateSchema as GeneratedSampleUpdateSchema
+from onecodex.models.schemas import (
+    SampleSchema,
+    SampleUpdateSchema,
+    MetadataSchema,
+    MetadataPatchSchema,
+)
 from onecodex.lib.upload import upload_sequence
 
-from pydantic import field_validator, ConfigDict
+from pydantic import field_validator
 
-from onecodex.models.generated import MetadataSchema as GeneratedMetadataSchema
-from onecodex.models.generated import MetadataPatchSchema as GeneratedMetadataPatchSchema
 from onecodex.models.misc import Users, Projects, Tags
 
 
@@ -50,7 +52,7 @@ def get_project(project):
     return project
 
 
-class MetadataSchema(GeneratedMetadataSchema):
+class MetadataSchema(MetadataSchema):
     # Use ApiRef for the circular reference
     sample: Union["Samples", ApiRef]
     updated_at: Optional[datetime] = None
@@ -65,22 +67,14 @@ class MetadataSchema(GeneratedMetadataSchema):
         return str(v.value) if hasattr(v, "value") else v
 
 
-class _MetadataPatchSchema(GeneratedMetadataPatchSchema):
-    model_config = ConfigDict(
-        extra="ignore",
-    )
-    date_collected: Optional[datetime] = None
-    date_sequenced: Optional[datetime] = None
-
-
 class Metadata(OneCodexBase, MetadataSchema):
     _resource_path = "/api/v1/metadata"
     _allowed_methods = {
-        "update": _MetadataPatchSchema,
+        "update": MetadataPatchSchema,
     }
 
 
-class _SampleSchema(GeneratedSampleSchema):
+class _SampleSchema(SampleSchema):
     _resource_path = "/api/v1/samples"
 
     # Use ApiRef for all reference fields
@@ -100,17 +94,10 @@ class _SampleSchema(GeneratedSampleSchema):
         return datetime.fromisoformat(v)
 
 
-class _SampleUpdateSchema(GeneratedSampleUpdateSchema):
-    model_config = ConfigDict(
-        extra="ignore",
-    )
-    visibility: Optional[str] = None
-
-
 class Samples(OneCodexBase, _SampleSchema, ResourceDownloadMixin):
     _allowed_methods = {
         "delete": None,
-        "update": _SampleUpdateSchema,
+        "update": SampleUpdateSchema,
         "instances_public": None,
     }
 

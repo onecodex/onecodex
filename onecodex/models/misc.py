@@ -10,15 +10,15 @@ from onecodex.lib.upload import upload_document
 from onecodex.models.helpers import truncate_string, ResourceDownloadMixin
 
 from onecodex.models.base import OneCodexBase, ApiRef
-from onecodex.models.generated import TagSchema as GeneratedTagSchema
-from onecodex.models.generated import UserSchema as GeneratedUserSchema
-from onecodex.models.generated import ProjectSchema as GeneratedProjectSchema
-from onecodex.models.generated import JobSchema as GeneratedJobSchema
-from onecodex.models.generated import DocumentSchema as GeneratedDocumentSchema
-# from onecodex.models.generated import AssetSchema as GeneratedAssetSchema
+from onecodex.models.schemas.misc import TagSchema
+from onecodex.models.schemas.misc import UserSchema
+from onecodex.models.schemas.misc import ProjectSchema
+from onecodex.models.schemas.misc import JobSchema
+from onecodex.models.schemas.misc import DocumentSchema
+# from onecodex.models.schemas.misc import AssetSchema
 
 
-class Tags(OneCodexBase, GeneratedTagSchema):
+class Tags(OneCodexBase, TagSchema):
     _resource_path = "/api/v1/tags"
     field_uri: Optional[str] = Field(None, alias="$uri")
 
@@ -37,11 +37,11 @@ class Tags(OneCodexBase, GeneratedTagSchema):
         )
 
 
-class Users(OneCodexBase, GeneratedUserSchema):
+class Users(OneCodexBase, UserSchema):
     _resource_path = "/api/v1/users"
 
 
-class Projects(OneCodexBase, GeneratedProjectSchema):
+class Projects(OneCodexBase, ProjectSchema):
     _resource_path = "/api/v1/projects"
     _allowed_methods = {
         "delete": None,
@@ -58,11 +58,11 @@ class Projects(OneCodexBase, GeneratedProjectSchema):
         return cls.where(*filters, **keyword_filters)
 
 
-class Jobs(OneCodexBase, GeneratedJobSchema):
+class Jobs(OneCodexBase, JobSchema):
     _resource_path = "/api/v1/jobs"
 
 
-class Documents(OneCodexBase, GeneratedDocumentSchema, ResourceDownloadMixin):
+class Documents(OneCodexBase, DocumentSchema, ResourceDownloadMixin):
     _resource_path = "/api/v1/documents"
     _allowed_methods = {
         "delete": None,
@@ -91,7 +91,7 @@ class Documents(OneCodexBase, GeneratedDocumentSchema, ResourceDownloadMixin):
 
 
 # Not supported in OpenAPI yet...
-# class Assets(OneCodexBase, GeneratedAssetSchema, ResourceDownloadMixin):
+# class Assets(OneCodexBase, AssetSchema, ResourceDownloadMixin):
 #     _resource_path = "/api/v1_experimental/assets"
 #
 #     @classmethod

@@ -1,7 +1,7 @@
 import pydantic
 
 from onecodex.exceptions import ValidationError
-from onecodex.models.sample import _MetadataPatchSchema
+from onecodex.models.schemas.sample import MetadataPatchSchema
 from onecodex.models.misc import Tags
 
 
@@ -33,7 +33,7 @@ def validate_metadata(appendables, api):
         if is_blacklisted(key):
             raise ValidationError("{} cannot be manually updated".format(key))
 
-        if key in _MetadataPatchSchema.model_fields:
+        if key in MetadataPatchSchema.model_fields:
             settable_value = validate_metadata_against_schema(key, value)
             appendables["valid_metadata"][key] = settable_value
         else:
@@ -43,7 +43,7 @@ def validate_metadata(appendables, api):
 
 def validate_metadata_against_schema(key, value):
     try:
-        value = getattr(_MetadataPatchSchema.model_validate({key: value}), key)
+        value = getattr(MetadataPatchSchema.model_validate({key: value}), key)
     except pydantic.ValidationError as exc_info:
         # Get all Pydantic validation errors for the given key
         msg = []

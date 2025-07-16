@@ -4,11 +4,11 @@ import json
 from onecodex.models.base import OneCodexBase, ApiRef
 from onecodex.lib.enums import FunctionalAnnotations, FunctionalAnnotationsMetric
 
-from onecodex.models.generated import AnalysisSchema as GeneratedAnalysisSchema
-from onecodex.models.generated import AlignmentSchema as GeneratedAlignmentSchema
-from onecodex.models.generated import ClassificationSchema as GeneratedClassificationSchema
-from onecodex.models.generated import FunctionalRunSchema as FunctionalRunSchema
-from onecodex.models.generated import PanelSchema as GeneratedPanelSchema
+from onecodex.models.schemas.analysis import AnalysisSchema
+from onecodex.models.schemas.analysis import AlignmentSchema
+from onecodex.models.schemas.analysis import ClassificationSchema
+from onecodex.models.schemas.analysis import FunctionalRunSchema
+from onecodex.models.schemas.analysis import PanelSchema
 
 
 class _AnalysesBase(OneCodexBase):
@@ -47,16 +47,16 @@ class _AnalysesBase(OneCodexBase):
         return self._cached_result
 
 
-class Analyses(_AnalysesBase, GeneratedAnalysisSchema):
+class Analyses(_AnalysesBase, AnalysisSchema):
     _resource_path = "/api/v1/analyses"
     _cached_result = None
 
 
-class Alignments(_AnalysesBase, GeneratedAlignmentSchema):
+class Alignments(_AnalysesBase, AlignmentSchema):
     _resource_path = "/api/v1/alignments"
 
 
-class Classifications(_AnalysesBase, GeneratedClassificationSchema):
+class Classifications(_AnalysesBase, ClassificationSchema):
     _resource_path = "/api/v1/classifications"
     _cached_table = None
 
@@ -240,7 +240,7 @@ class FunctionalProfiles(_AnalysesBase, FunctionalRunSchema):
         return pd.DataFrame(result_json["table"])
 
 
-class Panels(_AnalysesBase, GeneratedPanelSchema):
+class Panels(_AnalysesBase, PanelSchema):
     _resource_path = "/api/v1/panels"
 
     def results(self, json=True):
