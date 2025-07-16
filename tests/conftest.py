@@ -11,7 +11,7 @@ import re
 import responses
 
 from onecodex import Api
-from onecodex.analyses import FunctionalAnnotations, FunctionalAnnotationsMetric
+from onecodex.lib.enums import FunctionalAnnotations, FunctionalAnnotationsMetric
 from onecodex.models.collection import SampleCollection
 
 
@@ -371,10 +371,10 @@ for functional_uuid in {"31ddae978aff475f", "bde18eb9407d4c2f", "eec4ac90d9104d1
         for metric in FunctionalAnnotationsMetric.metrics_for_annotation(annotation):
             # TODO: should this go in the JSONs with everything else?
             API_DATA[
-                f"GET::api/v1/functional_profiles/{functional_uuid}/filtered_results\\?.*functional_group=%22{annotation}%22\\&metric=%22{metric}%22\\&taxa_stratified=true"
+                f"GET::api/v1/functional_profiles/{functional_uuid}/filtered_results\\?.*functional_group={annotation}.*&.*metric={metric}.*&.*taxa_stratified=True"
             ] = filtered_raw_results(raw_results, annotation, metric, True)
             API_DATA[
-                f"GET::api/v1/functional_profiles/{functional_uuid}/filtered_results\\?.*functional_group=%22{annotation}%22\\&metric=%22{metric}%22\\&taxa_stratified=false"
+                f"GET::api/v1/functional_profiles/{functional_uuid}/filtered_results\\?.*functional_group={annotation}.*&.*metric={metric}.*&.*taxa_stratified=False"
             ] = filtered_raw_results(raw_results, annotation, metric, False)
 
 API_DATA_DIR = os.path.join("tests", "data", "api")

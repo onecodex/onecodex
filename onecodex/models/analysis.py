@@ -1,6 +1,6 @@
 from typing import Optional, Union, Dict
-import json
 
+from onecodex.exceptions import OneCodexException
 from onecodex.models.base import OneCodexBase, ApiRef
 from onecodex.lib.enums import FunctionalAnnotations, FunctionalAnnotationsMetric
 
@@ -119,11 +119,13 @@ class FunctionalProfiles(_AnalysesBase, FunctionalRunSchema):
         resp = self._client.get(
             f"{self._api._base_url}{self.field_uri}/filtered_results",
             params={
-                "functional_group": json.dumps(annotation),
-                "metric": json.dumps(metric),
-                "taxa_stratified": json.dumps(taxa_stratified),
+                "functional_group": annotation,
+                "metric": metric,
+                "taxa_stratified": taxa_stratified,
             },
         )
+        if resp.status_code != 200:
+            raise OneCodexException(resp.json()["message"])
         return resp.json()
 
     def results(self, json: bool = True):
