@@ -90,15 +90,21 @@ class OneCodexBase(PydanticBaseModel):
 
     field_uri: str = Field(..., alias="$uri")
 
-    def __init__(self, **data):
-        super().__init__(**data)
-        self._resolved_cache = {}
-
     @property
     def id(self) -> Optional[str]:
         if self.field_uri is None:
             return None
         return self.field_uri.split("/")[-1]
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        self._resolved_cache = {}
+
+    @classmethod
+    def _convert_id_to_uri(cls, uuid):
+        if not uuid.startswith(cls._resource_path):
+            uuid = "{}/{}".format(cls._resource_path, uuid)
+        return uuid
 
     def __repr__(self):
         return f"<{self.__class__.__name__} {self.id}>"

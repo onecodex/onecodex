@@ -2,6 +2,7 @@ import click
 import os
 import os.path
 import requests
+import copy
 
 from onecodex.exceptions import OneCodexException
 
@@ -140,10 +141,11 @@ class ResourceDownloadMixin(object):
             download_link_info.raise_for_status()
             link = download_link_info.json()["download_uri"]
 
-            # TODO: Do we want to define these here or just all the way up in the HTTPClient?
+            # Create a new session with custom retries for downloads.
             # Retry up to 5 times with backoff timing of 2s, 4s, 8s, 16s, and 32s (applies to all
             # HTTP methods). 404 is included for cases where the file is being asynchronously
             # uploaded to S3 and is expected to be available soon.
+            session = copy.deepcopy(self._client.session)
             retry_strategy = Retry(
                 total=5,
                 backoff_factor=2,
@@ -152,8 +154,6 @@ class ResourceDownloadMixin(object):
             )
             adapter = HTTPAdapter(max_retries=retry_strategy)
 
-            # TODO: Should this copy the session? I think this mayb otherwise persist these retries.
-            session = self._client.session
             session.mount("http://", adapter)
             session.mount("https://", adapter)
             resp = session.get(link, stream=True)

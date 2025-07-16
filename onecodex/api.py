@@ -20,7 +20,7 @@ log = logging.getLogger("onecodex")
 class HTTPClient:
     """Simple requests-based HTTP client for API requests."""
 
-    def __init__(self, auth=None, headers=None, timeout=30.0, **kwargs):
+    def __init__(self, auth=None, headers=None):
         self.session = requests.Session()
         if auth:
             self.session.auth = auth
@@ -37,23 +37,23 @@ class HTTPClient:
 
     def get(self, url, **kwargs):
         """Make GET request."""
-        return self.session.get(url, **kwargs)
+        return self.request("GET", url, **kwargs)
 
     def post(self, url, **kwargs):
         """Make POST request."""
-        return self.session.post(url, **kwargs)
+        return self.request("POST", url, **kwargs)
 
     def patch(self, url, **kwargs):
         """Make PATCH request."""
-        return self.session.patch(url, **kwargs)
+        return self.request("PATCH", url, **kwargs)
 
     def put(self, url, **kwargs):
         """Make PUT request."""
-        return self.session.put(url, **kwargs)
+        return self.request("PUT", url, **kwargs)
 
     def delete(self, url, **kwargs):
         """Make DELETE request."""
-        return self.session.delete(url, **kwargs)
+        return self.request("DELETE", url, **kwargs)
 
     def request(self, method, url, **kwargs):
         """Make request with specified method."""
@@ -78,7 +78,7 @@ class Api(object):
     ):
         if kwargs.get("experimental") is True:
             warnings.warn(
-                "Experimental mode is deprecated and does not work in this version. Please use <0.18.0.",
+                "Experimental mode is deprecated and does not work in this version. Please use <=0.18.0.",
                 DeprecationWarning,
                 stacklevel=2,
             )
