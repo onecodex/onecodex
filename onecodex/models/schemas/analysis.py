@@ -25,8 +25,6 @@ class AnalysisSchema(URIModel):
         default={},
         description="The arguments passed into this analysis (can be `null`).",
     )
-    # Note: `sample_rel` is only available on BaseSampleAnalysis, not BaseAnalysisRun.
-    #       In practice, this should always be a sample for the analysis types currently exposed via `AnalysisSchemaBase`.
     sample: Union["SampleSchema", ApiRef] = Field(  # noqa: F821
         description='A reference to the sample underlying the analysis, e.g., `{"$ref": "/api/v1/sample/0ee172af60e84f61"}`.',
     )

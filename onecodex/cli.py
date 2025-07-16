@@ -1,7 +1,6 @@
 from __future__ import print_function
 import click
 import copy
-import dateutil
 from functools import partial
 import logging
 import os
@@ -139,7 +138,7 @@ def documents_list(ctx, json):
         docs_list = sorted(
             docs_list,
             reverse=True,
-            key=lambda x: time.mktime(dateutil.parser.parse(x.created_at).timetuple()),
+            key=lambda x: time.mktime(x.created_at.timetuple()),
         )
         # breakpoint()
 
@@ -152,7 +151,7 @@ def documents_list(ctx, json):
                     fname if len(fname) <= 32 else fname[:29] + "...",
                     owner if len(owner) <= 23 else owner[:20] + "...",
                     _size_formatter(doc.size) if doc.size else "N/A",
-                    dateutil.parser.parse(doc.created_at).strftime("%Y-%m-%d"),
+                    doc.created_at.strftime("%Y-%m-%d"),
                 ]
             )
 

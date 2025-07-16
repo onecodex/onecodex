@@ -34,9 +34,6 @@ class SampleSchema(URIModel):
             description="A reference to a Classification for the sample. This will typically be the [One Codex Database](https://docs.onecodex.com/en/articles/3761205-one-codex-database) or [Targeted Loci Database](https://docs.onecodex.com/en/articles/3754219-targeted-loci-database) results as appropriate. Note that samples will not have a `primary_classification` while they are still importing or being uploaded.",
         )
     )
-    # Note: We always want to *serialize* from the ORM as `FilteredProjectField`,
-    #       *but* we re-use these field types for ?where parsing, which occurs before we have queried the
-    #       object from the ORM so also need to allow `ProjectRef`. Preserve the order of this union! (checked for in `test_v1_project_masking`)
     project: Optional[Union["ProjectSchema", ApiRef]] = Field(  # noqa: F821
         None,
         description="The project the sample belongs to (optional).",
