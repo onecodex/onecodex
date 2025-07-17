@@ -228,9 +228,11 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
         return cls.where(sort=sort, limit=limit)
 
     @classmethod
-    def get(cls, id: str) -> "OneCodexBase":
+    def get(cls, id: str) -> Optional["OneCodexBase"]:
         resp = cls._client.get(f"{cls._api._base_url}{cls._resource_path}/{id}?expand=all")
-        return cls.model_validate(resp.json())
+        if resp.status_code == 200:
+            return cls.model_validate(resp.json())
+        return None
 
     @classmethod
     def where(cls, *filters, **keyword_filters) -> List["OneCodexBase"]:

@@ -471,3 +471,16 @@ def test_sample_pagination(ocx, custom_mock_requests):
             samples = ocx.Samples.all()
             assert len(samples) == 77
             assert len(responses.calls) == 8
+
+
+def test_invalid_sample(ocx, custom_mock_requests):
+    def not_found_callback(request):
+        return (404, {}, "")
+
+    mock_data = {
+        "GET::api/v1/samples/invalid_sample_id": not_found_callback,
+    }
+
+    with custom_mock_requests(mock_data):
+        sample = ocx.Samples.get("invalid_sample_id")
+        assert sample is None
