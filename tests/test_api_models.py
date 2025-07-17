@@ -5,16 +5,12 @@ import json
 import mock
 import pytest
 import responses
-import sys
 
-try:
-    from urllib.parse import unquote_plus  # Py3
-except ImportError:
-    from urllib import unquote_plus
-
+from urllib.parse import parse_qs, urlparse, unquote_plus
 import onecodex
 from onecodex import Api
 from onecodex.exceptions import MethodNotSupported, OneCodexException
+from onecodex.models.schemas.sample import SampleUpdateSchema
 
 
 def test_api_creation(api_data):
@@ -33,10 +29,10 @@ def test_retries_set_on_client_session(api_data):
         cache_schema=False,
     )
 
-    assert ocx._session.adapters["http://"].max_retries.total == 3
-    assert ocx._session.adapters["http://"].max_retries.allowed_methods is None
-    assert ocx._session.adapters["https://"].max_retries.total == 3
-    assert ocx._session.adapters["https://"].max_retries.allowed_methods is None
+    assert ocx._client.session.adapters["http://"].max_retries.total == 3
+    assert ocx._client.session.adapters["http://"].max_retries.allowed_methods is None
+    assert ocx._client.session.adapters["https://"].max_retries.total == 3
+    assert ocx._client.session.adapters["https://"].max_retries.allowed_methods is None
 
 
 def test_model_classes(ocx, api_data):
@@ -134,59 +130,6 @@ def test_download_file_obj(ocx, api_data):
     assert data == b'"1234567890"'
 
 
-def test_resourcelist(ocx, api_data):
-    sample = ocx.Samples.get("761bc54b97f64980")
-    tags1 = onecodex.models.ResourceList(sample.tags._resource, onecodex.models.misc.Tags)
-
-    assert isinstance(sample.tags, onecodex.models.ResourceList)
-    assert sample.tags == tags1
-
-    # test manipulation of tags lists
-    tag_to_pop = sample.tags[-1]
-    popped_tag = sample.tags.pop()
-    assert id(tag_to_pop._resource) == id(popped_tag._resource)
-
-    sample.tags.insert(0, popped_tag)
-    assert id(sample.tags[0]._resource) == id(popped_tag._resource)
-    assert sample.tags.index(popped_tag) == 0
-
-    assert sample.tags.count(popped_tag) == 1
-    sample.tags.remove(popped_tag)
-    assert sample.tags.count(popped_tag) == 0
-
-    with pytest.raises(ValueError):
-        sample.tags.remove(popped_tag)
-    with pytest.raises(ValueError):
-        sample.tags.index(popped_tag)
-
-    # we can set tags list in-place
-    sample.tags[0] = popped_tag
-    assert id(sample.tags[0]._resource) == id(popped_tag._resource)
-
-    # changes in one instance of a ResourceList affect other instances
-    assert id(tags1) != id(sample.tags)
-    assert id(tags1._resource) == id(sample.tags._resource)
-
-    # TODO: these tests shouldn't fail, but we're leaving this bug here for now due to conversations
-    # with @boydgreenfield on 1/10/2019
-    # assert len(tags1) == len(sample.tags)
-
-    # for i in range(len(tags1)):
-    #     assert tags1[i] == sample.tags[i]
-
-    # can't mix types in a ResourceList
-    with pytest.raises(ValueError) as e:
-        tags1.append(sample)
-    assert "object of type" in str(e.value)
-
-    if sys.version_info.major < 3:
-        with pytest.raises(AttributeError):
-            tags1.clear()
-    else:
-        tags1.clear()
-        assert len(tags1) == 0
-
-
 def test_samplecollection(ocx, api_data):
     all_samples = ocx.Samples.where()
     samples = all_samples[:3]
@@ -222,9 +165,9 @@ def test_samplecollection(ocx, api_data):
         )
     assert "but not both" in str(e.value)
 
-    # and not using unwrapped potion resources
+    # Passing in a non-Sample should fail
     with pytest.raises(OneCodexException) as e:
-        onecodex.models.SampleCollection([s._resource for s in all_samples[:7]])
+        onecodex.models.SampleCollection([True] + [s for s in all_samples[:7]])
     assert "can only contain" in str(e.value)
 
     # test filtering of Samples in a collection
@@ -334,7 +277,10 @@ def test_dir_patching(ocx, api_data):
     }
     for prop in props:
         assert prop in dir(sample)
-    assert len(sample.__dict__) == 1  # I'm not sure we *want* this...
+
+    # # I'm not sure we *want* this...
+    # assert len(sample.__dict__) == 1
+    # assert "_resolved_cache" not in sample.__dict__
 
 
 def test_classification_methods(ocx, api_data):
@@ -395,14 +341,6 @@ def test_where_clauses(ocx, api_data, where_args, where_kwargs, queries):
     assert len([x for x in counts if x == len(queries)]) == 1
 
 
-def test_public_search(ocx, api_data):
-    with pytest.warns(DeprecationWarning):
-        samples = ocx.Samples.search_public(filename="tmp.fa")
-        assert len(samples) == 0
-    samples = ocx.Samples.where(filename="tmp.fa", public=True)
-    assert len(samples) == 0
-
-
 def test_where_organization(ocx, api_data):
     samples = ocx.Samples.where(organization=True)
     assert len(samples) == 1
@@ -413,6 +351,7 @@ def test_public_project(ocx, api_data):
         projs = ocx.Projects.search_public(name="One Codex Project")
         assert len(projs) == 0
     projs = ocx.Projects.where(name="One Codex Project", public=True)
+    # FIXME: This seems... silly?
     assert len(projs) == 0
 
 
@@ -472,3 +411,92 @@ def test_jobs(ocx, api_data):
 
     jobs = ocx.Jobs.where(public=True)
     assert len(jobs) == 24
+
+
+def test_sample_preupload(ocx, upload_mocks, api_data):
+    projects = ocx.Projects.where(project_name="One Codex Project")
+    sample_id = ocx.Samples.preupload(
+        metadata={"foo": "bar"}, tags=[{"name": "test"}], project=projects[0]
+    )
+    assert sample_id is not None
+    assert isinstance(sample_id, str)
+    assert len(sample_id) == 16
+
+
+def test_sample_pagination_with_limit(ocx, api_data):
+    samples = ocx.Samples.where(limit=1)
+    assert len(samples) == 1
+    assert samples[0].id == "7428cca4a3a04a8e"
+
+    samples = ocx.Samples.where(limit=2)
+    assert len(samples) == 2
+    assert samples[1].id == "014deb3cfcd94630"
+
+    samples = ocx.Samples.all()
+    assert len(samples) == 77
+
+
+def test_sample_pagination(ocx, custom_mock_requests):
+    # Create a callback that respects per_page parameter
+    # Load full sample data
+    with open("tests/data/api/v1/samples/index.json", "r") as f:
+        all_samples = json.load(f)
+
+    def paginated_samples_callback(request):
+        # Parse query parameters
+
+        parsed_url = urlparse(request.url)
+        params = parse_qs(parsed_url.query)
+
+        # Get per_page from params, default to 200
+        page = int(params.get("page", [0])[0])
+        per_page = int(params.get("per_page", [200])[0])
+
+        # Return only per_page samples
+        start_idx = (page - 1) * per_page
+        end_idx = page * per_page
+        paginated_samples = all_samples[start_idx:end_idx]
+        total_samples = len(all_samples)
+
+        # Build response headers
+        headers = {"Content-Type": "application/json", "X-Total-Count": str(total_samples)}
+        return (200, headers, json.dumps(paginated_samples))
+
+    # Create custom mock data that uses our callback for the samples endpoint
+    mock_data = {
+        "GET::api/v1/samples": paginated_samples_callback,
+    }
+
+    with custom_mock_requests(mock_data):
+        with mock.patch("onecodex.models.base.DEFAULT_PAGE_SIZE", 10):
+            samples = ocx.Samples.all()
+            assert len(samples) == 77
+            assert len(responses.calls) == 8
+
+
+def test_invalid_sample(ocx, custom_mock_requests):
+    def not_found_callback(request):
+        return (404, {}, "")
+
+    mock_data = {
+        "GET::api/v1/samples/invalid_sample_id": not_found_callback,
+    }
+
+    with custom_mock_requests(mock_data):
+        sample = ocx.Samples.get("invalid_sample_id")
+        assert sample is None
+
+
+def test_sample_updates(ocx, api_data):
+    project = ocx.Projects.get("4b53797444f846c4")
+
+    patch = SampleUpdateSchema.model_validate(
+        {"visibility": "public", "project": project.model_dump(), "extra": "should_be_ignored"}
+    )
+
+    # Project should be converted to an API reference
+    assert patch.model_dump(by_alias=True) == {
+        "visibility": "public",
+        "tags": [],
+        "project": {"$ref": "/api/v1/projects/4b53797444f846c4"},
+    }

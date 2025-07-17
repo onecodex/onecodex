@@ -11,7 +11,7 @@ import re
 import responses
 
 from onecodex import Api
-from onecodex.analyses import FunctionalAnnotations, FunctionalAnnotationsMetric
+from onecodex.lib.enums import FunctionalAnnotations, FunctionalAnnotationsMetric
 from onecodex.models.collection import SampleCollection
 
 
@@ -101,6 +101,7 @@ API_DATA = {
                 {"$ref": "/api/v1/tags/ff4e81909a4348d9"},
             ],
             "visibility": "private",
+            "status": "available",
         }
     ],
     "GET::api/v1/projects/public": {},
@@ -134,6 +135,7 @@ API_DATA = {
                     {"$ref": "/api/v1/tags/1638c7a570214fda"},
                 ],
                 "visibility": "public",
+                "status": "available",
             },
             "success": True,
         }
@@ -212,7 +214,23 @@ API_DATA = {
     "GET::api/v1/classifications/0f4ee4ecb3a3412f/readlevel": {
         "url": "https://s3.aws.com/bucket/test_single_filtering_001.fastq.gz.results.tsv.gz"
     },
-    "PATCH::api/v1/samples/761bc54b97f64980": {},
+    "PATCH::api/v1/samples/761bc54b97f64980": {
+        "created_at": "2015-09-25T17:40:13.224821-07:00",
+        "$uri": "/api/v1/samples/761bc54b97f64980",
+        "filename": "SRR2352223.fastq.gz",
+        "metadata": {"$ref": "/api/v1/metadata/4fe05e748b5a4f0e"},
+        "owner": {"$ref": "/api/v1/users/4ada56103d9a48b8"},
+        "primary_classification": {"$ref": "/api/v1/classifications/935c2a3611944e39"},
+        "project": None,
+        "size": 302369471,
+        "tags": [
+            {"$ref": "/api/v1/tags/5c1e9e41043e4435"},
+            {"$ref": "/api/v1/tags/fb8e3b693c874f9e"},
+            {"$ref": "/api/v1/tags/ff4e81909a4348d9"},
+        ],
+        "visibility": "private",
+        "status": "available",
+    },
     "PATCH::api/v1/metadata/4fe05e748b5a4f0e": update_metadata_callback,
     "POST::api/v1/samples/.*/download_uri": {
         "download_uri": "http://localhost:3000/mock/download/url"
@@ -238,26 +256,10 @@ API_DATA = {
         }
     ],
     "GET::api/v1/projects/4b53797444f846c4": {
-        "$uri": "/api/v1/projects/472fc57510e24150",
+        "$uri": "/api/v1/projects/4b53797444f846c4",
         "description": None,
         "name": "Test",
         "owner": {"$ref": "/api/v1/users/9923090af03c46ce"},
-        "permissions": [
-            "can_see_files",
-            "can_incur_charges",
-            "can_download_files",
-            "can_edit_metadata",
-            "can_add_files",
-            "can_administer",
-        ],
-        "project_name": "testproj",
-        "public": False,
-    },
-    "GET::api/v1_experimental/projects/4b53797444f846c4": {
-        "$uri": "/api/v1_experimental/projects/472fc57510e24150",
-        "description": None,
-        "name": "Test",
-        "owner": {"$ref": "/api/v1_experimental/users/9923090af03c46ce"},
         "permissions": [
             "can_see_files",
             "can_incur_charges",
@@ -281,6 +283,7 @@ API_DATA = {
             "size": 2225829803,
             "tags": [],
             "visibility": "public",
+            "status": "available",
         },
         {
             "$uri": "/api/v1/samples/1640864a28bf44ba",
@@ -293,6 +296,7 @@ API_DATA = {
             "size": 1187736145,
             "tags": [{"$ref": "/api/v1/tags/dbcf5b98bca54a16"}],
             "visibility": "public",
+            "status": "available",
         },
         {
             "$uri": "/api/v1/samples/03242c0ab87048e1",
@@ -305,6 +309,7 @@ API_DATA = {
             "size": 2267482973,
             "tags": [],
             "visibility": "public",
+            "status": "available",
         },
     ],
     "GET::api/v1/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%7B%22%24in%22%3A\\+%5B%2237e5151e7bcb4f87%22%5D%7D.*": [
@@ -350,13 +355,12 @@ for functional_uuid in {"31ddae978aff475f", "bde18eb9407d4c2f", "eec4ac90d9104d1
         for metric in FunctionalAnnotationsMetric.metrics_for_annotation(annotation):
             # TODO: should this go in the JSONs with everything else?
             API_DATA[
-                f"GET::api/v1/functional_profiles/{functional_uuid}/filtered_results\\?.*functional_group=%22{annotation}%22\\&metric=%22{metric}%22\\&taxa_stratified=true"
+                f"GET::api/v1/functional_profiles/{functional_uuid}/filtered_results\\?.*functional_group={annotation}.*&.*metric={metric}.*&.*taxa_stratified=True"
             ] = filtered_raw_results(raw_results, annotation, metric, True)
             API_DATA[
-                f"GET::api/v1/functional_profiles/{functional_uuid}/filtered_results\\?.*functional_group=%22{annotation}%22\\&metric=%22{metric}%22\\&taxa_stratified=false"
+                f"GET::api/v1/functional_profiles/{functional_uuid}/filtered_results\\?.*functional_group={annotation}.*&.*metric={metric}.*&.*taxa_stratified=False"
             ] = filtered_raw_results(raw_results, annotation, metric, False)
 
-SCHEMA_ROUTES = {}
 API_DATA_DIR = os.path.join("tests", "data", "api")
 
 for api_version in os.listdir(API_DATA_DIR):
@@ -364,49 +368,30 @@ for api_version in os.listdir(API_DATA_DIR):
 
     for resource_name in os.listdir(api_root):
         resource_root = os.path.join(api_root, resource_name)
-
-        if resource_name == "schema":
-            for filename in os.listdir(resource_root):
-                if not filename.endswith(".json"):
+        for dirpath, _, filenames in os.walk(resource_root):
+            for filename in filenames:
+                if filename not in {"index.json", "index.json.gz"}:
                     continue
 
-                if filename == "index.json":
-                    resource_uri = f"GET::api/{api_version}/schema$"
-                elif filename == "index_all.json":
-                    resource_uri = f"GET::api/{api_version}/schema\\?expand=all"
+                filepath = os.path.join(dirpath, filename)
+                if filepath.endswith(".json.gz"):
+                    resource = json.load(gzip.open(filepath))
                 else:
-                    resource_name = filename.replace(".json", "")
-                    resource_uri = f"GET::api/{api_version}/{resource_name}/schema"
+                    resource = json.load(open(filepath))
 
-                SCHEMA_ROUTES[resource_uri] = json.load(open(os.path.join(resource_root, filename)))
-        else:
-            for dirpath, _, filenames in os.walk(resource_root):
-                for filename in filenames:
-                    if filename not in {"index.json", "index.json.gz"}:
-                        continue
+                # Remove tests/data/ from path and normalize path separator to "/" for the API
+                # route.
+                api_route = "/".join(dirpath.split(os.sep)[2:])
+                resource_uri = f"GET::{api_route}"
+                API_DATA[resource_uri] = resource
 
-                    filepath = os.path.join(dirpath, filename)
-                    if filepath.endswith(".json.gz"):
-                        resource = json.load(gzip.open(filepath))
-                    else:
-                        resource = json.load(open(filepath))
-
-                    # Remove tests/data/ from path and normalize path separator to "/" for the API
-                    # route.
-                    api_route = "/".join(dirpath.split(os.sep)[2:])
-                    resource_uri = f"GET::{api_route}"
-                    API_DATA[resource_uri] = resource
-
-                    # If we're processing a resource's instance listing
-                    # (e.g. api/v1/classifications), auto-mock each instance too
-                    # (e.g. api/v1/classifications/<uuid>)
-                    if dirpath == resource_root and isinstance(resource, list):
-                        for instance in resource:
-                            instance_uri = f"GET::{instance['$uri'].lstrip('/')}"
-                            API_DATA[instance_uri] = instance
-
-
-API_DATA.update(SCHEMA_ROUTES)
+                # If we're processing a resource's instance listing
+                # (e.g. api/v1/classifications), auto-mock each instance too
+                # (e.g. api/v1/classifications/<uuid>)
+                if dirpath == resource_root and isinstance(resource, list):
+                    for instance in resource:
+                        instance_uri = f"GET::{instance['$uri'].lstrip('/')}"
+                        API_DATA[instance_uri] = instance
 
 
 @pytest.fixture(scope="function")
@@ -446,7 +431,9 @@ def upload_mocks():
                 {"$ref": "/api/v1/tags/ff4e81909a4348d9"},
             ],
             "visibility": "private",
+            "status": "available",
         },
+        "POST::api/v1/samples/preupload": {"sample_id": "7428cca4a3a04a8e"},
         "POST::api/v1/samples/confirm_upload": "",
         "POST::api/v1/samples/init_multipart_upload": {
             "callback_url": "/api/import_file_from_s3",
@@ -477,42 +464,18 @@ def upload_mocks():
             }
         ],
     }
-    json_data.update(SCHEMA_ROUTES)
     with mock_requests(json_data):
         yield
 
 
 # API FIXTURES
-@pytest.fixture(scope="session")
-def ocx_schemas():
-    with mock_requests(SCHEMA_ROUTES):
-        yield
-
-
 @pytest.fixture(scope="function")
 def ocx():
     """Instantiated API client"""
-    with mock_requests(SCHEMA_ROUTES):
-        return Api(
-            api_key="1eab4217d30d42849dbde0cd1bb94e39",
-            base_url="http://localhost:3000",
-            cache_schema=False,
-        )
-
-
-@pytest.fixture(scope="function")
-def ocx_experimental():
-    """Instantiated API client with experimental mode enabled"""
-    with (
-        mock_requests(SCHEMA_ROUTES),
-        pytest.warns(UserWarning, match="Experimental API mode enabled"),
-    ):
-        return Api(
-            api_key="1eab4217d30d42849dbde0cd1bb94e39",
-            base_url="http://localhost:3000",
-            cache_schema=False,
-            experimental=True,
-        )
+    return Api(
+        api_key="1eab4217d30d42849dbde0cd1bb94e39",
+        base_url="http://localhost:3000",
+    )
 
 
 @pytest.fixture(scope="function")

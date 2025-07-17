@@ -40,8 +40,8 @@ def test_collection_constructor(samples):
 
 @pytest.mark.filterwarnings("ignore:.*multiple analysis types.*")
 def test_biom(ocx, api_data):
-    c1 = ocx.Classifications.get("45a573fb7833449a")._resource
-    c2 = ocx.Classifications.get("593601a797914cbf")._resource
+    c1 = ocx.Classifications.get("45a573fb7833449a")
+    c2 = ocx.Classifications.get("593601a797914cbf")
     biom = SampleCollection([c1, c2], ocx.Classifications).to_otu()
     assert set(biom.keys()) == {
         "columns",
@@ -115,18 +115,13 @@ def test_classification_fetch(ocx, samples):
     # should work with a list of classifications as input, not just samples
     samples._oc_model = ocx.Classifications
     samples._res_list = samples._classifications
-    samples._resource = [x._resource for x in samples._classifications]
     samples._classification_fetch()
 
     # should issue a warning if a classification did not succeed
+    object.__setattr__(samples._res_list[0], "success", False)
+    samples._cached = {}
     with pytest.warns(UserWarning, match="not successful"):
-        samples._resource[0].success = False
-        samples._update()
         samples._classification_fetch()
-
-    # be sure to change success back to True, or other tests will ignore this classification
-    # result--the resource object persists for the session!
-    samples._resource[0].success = True
 
 
 def test_collate_metadata(samples):
