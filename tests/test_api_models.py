@@ -6,11 +6,7 @@ import mock
 import pytest
 import responses
 
-try:
-    from urllib.parse import unquote_plus  # Py3
-except ImportError:
-    from urllib import unquote_plus
-
+from urllib.parse import parse_qs, urlparse, unquote_plus
 import onecodex
 from onecodex import Api
 from onecodex.exceptions import MethodNotSupported, OneCodexException
@@ -424,3 +420,54 @@ def test_sample_preupload(ocx, upload_mocks, api_data):
     assert sample_id is not None
     assert isinstance(sample_id, str)
     assert len(sample_id) == 16
+
+
+def test_sample_pagination_with_limit(ocx, api_data):
+    samples = ocx.Samples.where(limit=1)
+    assert len(samples) == 1
+    assert samples[0].id == "7428cca4a3a04a8e"
+
+    samples = ocx.Samples.where(limit=2)
+    assert len(samples) == 2
+    assert samples[1].id == "014deb3cfcd94630"
+
+    samples = ocx.Samples.all()
+    assert len(samples) == 77
+
+
+def test_sample_pagination(ocx, custom_mock_requests):
+    # Create a callback that respects per_page parameter
+    # Load full sample data
+    with open("tests/data/api/v1/samples/index.json", "r") as f:
+        all_samples = json.load(f)
+
+    def paginated_samples_callback(request):
+        # Parse query parameters
+
+        parsed_url = urlparse(request.url)
+        params = parse_qs(parsed_url.query)
+
+        # Get per_page from params, default to 200
+        page = int(params.get("page", [0])[0])
+        per_page = int(params.get("per_page", [200])[0])
+
+        # Return only per_page samples
+        start_idx = (page - 1) * per_page
+        end_idx = page * per_page
+        paginated_samples = all_samples[start_idx:end_idx]
+        total_samples = len(all_samples)
+
+        # Build response headers
+        headers = {"Content-Type": "application/json", "X-Total-Count": str(total_samples)}
+        return (200, headers, json.dumps(paginated_samples))
+
+    # Create custom mock data that uses our callback for the samples endpoint
+    mock_data = {
+        "GET::api/v1/samples": paginated_samples_callback,
+    }
+
+    with custom_mock_requests(mock_data):
+        with mock.patch("onecodex.models.base.DEFAULT_PAGE_SIZE", 10):
+            samples = ocx.Samples.all()
+            assert len(samples) == 77
+            assert len(responses.calls) == 8

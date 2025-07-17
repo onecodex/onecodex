@@ -320,6 +320,7 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
         # n (and not instantiate all the available which is what would happen if we just sliced)
         instances = []
 
+        page = 1
         while True:
             # TODO: This feels like a hack and should be moved up into the model/allowed_methods attribute
             instances_suffix = ""
@@ -333,15 +334,18 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
                 params={
                     "where": json.dumps(where),
                     "sort": json.dumps(sort),
+                    "page": page,
                     "per_page": DEFAULT_PAGE_SIZE,
                     "expand": "all",
                 },
             )
             instances.extend([cls.model_validate(r) for r in resp.json()])
-            if limit is not None and len(instances) >= limit:
+            n_instances = len(instances)
+            if limit is not None and n_instances >= limit:
                 break
-            if resp.links.get("next") is None:
+            if n_instances >= int(resp.headers.get("X-Total-Count", 0)):
                 break
+            page += 1
 
         # finally, apply local filtering function on objects before returning
         if filter_func:
