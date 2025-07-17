@@ -61,7 +61,6 @@ class SampleUpdateSchema(BaseModel):
     project: Optional[ApiRef] = None  # noqa: F821
     tags: List[ApiRef] = Field(default_factory=list)  # noqa: F821
     visibility: ApiV1Visibility = Field(
-        # default=ApiV1Visibility.Private,
         default="private",
         description="The visibility of the sample (affects who can view the sample and its analyses).",
     )

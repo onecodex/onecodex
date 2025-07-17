@@ -56,7 +56,6 @@ def test_sample_metadata_sample_no_additional_requests(
     ocx, custom_mock_requests, sample_response_data
 ):
     """Test that getting a sample with expand=all doesn't trigger additional requests."""
-    # sample = ocx.Samples.get("0ee172af60e84f61")
     with custom_mock_requests(sample_response_data):
         sample = ocx.Samples.get("0ee172af60e84f61")
 

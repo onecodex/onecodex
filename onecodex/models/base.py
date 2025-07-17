@@ -17,7 +17,7 @@ from onecodex.models.helpers import (
 )
 
 
-# TODO: Unclear why this is necessary, but it is. See if we can remove.
+# This Pydantic magic callable needs to be removed
 _EXCLUDE_PYDANTIC_CALLABLES = {"model_post_init"}
 
 DEFAULT_PAGE_SIZE = 200

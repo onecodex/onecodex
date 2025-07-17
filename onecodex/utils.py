@@ -163,7 +163,7 @@ def cli_resource_fetcher(ctx, resource, uris, print_results=True):
             log.debug("No %s IDs given, fetching all...", resource_name)
             instances = getattr(ctx.obj["API"], resource_name).all()
             log.debug("Fetched %i %ss", len(instances), resource)
-            objs_to_return = instances  # = [x.__dict__ for x in instances]
+            objs_to_return = instances
         else:
             uris = list(set(uris))
             log.debug("Fetching %s: %s", resource_name, ",".join(uris))
