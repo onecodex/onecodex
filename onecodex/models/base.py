@@ -51,10 +51,10 @@ class ApiRef(PydanticBaseModel):
         parts = self.ref.split("/")
         if len(parts) >= 4 and parts[1] == "api" and parts[2] == "v1":
             return parts[3]
-        return "unknown"
+        raise OneCodexException(f"Unexpected reference with no resource type: {self.ref}")
 
     def __repr__(self):
-        return f"<ApiRef {self.resource_type}:{self.id}>"
+        return f"{self.resource_type.title()}('{self.id}')"
 
     def _resolve(self):
         """Resolve this reference to an actual object."""
@@ -72,7 +72,10 @@ class ApiRef(PydanticBaseModel):
         """Determine the target class from the reference URI."""
         from onecodex.models import get_model_class
 
-        return get_model_class(self.ref)
+        if not hasattr(self, "_target_class"):
+            self._target_class = get_model_class(self.ref)
+
+        return self._target_class
 
 
 def _get_dir_fields(
@@ -127,8 +130,6 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
         arbitrary_types_allowed=True,
     )
 
-    field_uri: str = Field(..., alias="$uri")
-
     @property
     def id(self) -> Optional[str]:
         if self.field_uri is None:
@@ -149,21 +150,30 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
         return f"<{self.__class__.__name__} {self.id}>"
 
     def _repr_html_(self):
+        fields = []
+        for k, v in self.__class__.model_fields.items():
+            # For backwards compatibility, exclude `field_uri` manually from rich printing
+            if k == "field_uri":
+                continue
+            if v.exclude:
+                continue
+            fields.append(
+                "<tr><td>{}</td><td><code>{}</code></td>".format(
+                    escape(k), escape(pformat(self.__dict__[k]))
+                )
+            )
+        fields = "\n".join(fields)
         return """<table>
         <thead>
             <tr>
                 <th colspan="2"><code>{cls}({id})</code></th>
             </tr>
         </thead>
-        <tbody>{properties}</tbody>
+        <tbody>{fields}</tbody>
         </table>""".format(
             cls=self.__class__.__name__,
             id=escape(repr(self.id)),
-            properties="\n".join(
-                "<tr><td>{}</td><td><code>{}</code></td>".format(escape(k), escape(pformat(v)))
-                for k, v in self._properties.items()
-                if not k.startswith("$")
-            ),
+            fields=fields,
         )
 
     def __dir__(self):
