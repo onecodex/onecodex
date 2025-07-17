@@ -1,5 +1,6 @@
 import re
 import requests
+import requests.auth
 
 
 class BearerTokenAuth(requests.auth.AuthBase):

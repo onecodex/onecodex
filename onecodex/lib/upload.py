@@ -447,11 +447,11 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url, 
     -------
     `dict` : JSON results from internal confirm import callback URL
     """
-    import boto3
+    from boto3.session import Session
     from boto3.s3.transfer import TransferConfig
     from boto3.exceptions import S3UploadFailedError
 
-    boto3_session = boto3.session.Session()
+    boto3_session = Session()
 
     # actually do the upload
     client = boto3_session.client(
