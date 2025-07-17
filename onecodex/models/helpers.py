@@ -2,6 +2,7 @@ import click
 import os
 import os.path
 import requests
+import requests.exceptions
 import copy
 
 from onecodex.exceptions import OneCodexException
@@ -117,7 +118,7 @@ class ResourceDownloadMixin(object):
         progressbar=False,
     ):
         from requests.adapters import HTTPAdapter
-        from requests.packages.urllib3.util.retry import Retry
+        from urllib3.util.retry import Retry
 
         if hasattr(self, "visibility") and self.visibility == "awaiting data":
             raise OneCodexException("Sample has not finished processing. Please try again later.")

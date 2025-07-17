@@ -5,6 +5,7 @@ import copy
 import logging
 import math
 import requests
+import requests.exceptions
 import six
 
 from onecodex.exceptions import OneCodexException, raise_connectivity_error, raise_api_error
@@ -39,6 +40,7 @@ def _choose_boto3_chunksize(file_obj):
     if file_obj_size:
         allowed_chunk_sizes = [size * 1024**2 for size in range(10, 110, 10)]
 
+        chunk_size = allowed_chunk_sizes[-1]  # Default to largest chunk size
         for chunk_size in allowed_chunk_sizes:
             if math.ceil(file_obj_size / chunk_size) < 10000:
                 break

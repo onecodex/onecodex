@@ -7,6 +7,7 @@ import os
 import platform
 import re
 import requests
+import requests.exceptions
 import sys
 import sentry_sdk
 from contextlib import contextmanager
@@ -14,15 +15,7 @@ import tempfile
 
 from pydantic_core import to_jsonable_python
 
-try:
-    from StringIO import StringIO
-except ImportError:
-    from io import StringIO  # noqa
-
-try:
-    from urlparse import urlparse
-except ImportError:
-    from urllib.parse import urlparse
+from urllib.parse import urlparse
 
 
 from onecodex.exceptions import OneCodexException, UploadException
