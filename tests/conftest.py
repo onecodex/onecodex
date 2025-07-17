@@ -256,26 +256,10 @@ API_DATA = {
         }
     ],
     "GET::api/v1/projects/4b53797444f846c4": {
-        "$uri": "/api/v1/projects/472fc57510e24150",
+        "$uri": "/api/v1/projects/4b53797444f846c4",
         "description": None,
         "name": "Test",
         "owner": {"$ref": "/api/v1/users/9923090af03c46ce"},
-        "permissions": [
-            "can_see_files",
-            "can_incur_charges",
-            "can_download_files",
-            "can_edit_metadata",
-            "can_add_files",
-            "can_administer",
-        ],
-        "project_name": "testproj",
-        "public": False,
-    },
-    "GET::api/v1_experimental/projects/4b53797444f846c4": {
-        "$uri": "/api/v1_experimental/projects/472fc57510e24150",
-        "description": None,
-        "name": "Test",
-        "owner": {"$ref": "/api/v1_experimental/users/9923090af03c46ce"},
         "permissions": [
             "can_see_files",
             "can_incur_charges",

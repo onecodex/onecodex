@@ -10,6 +10,7 @@ from urllib.parse import parse_qs, urlparse, unquote_plus
 import onecodex
 from onecodex import Api
 from onecodex.exceptions import MethodNotSupported, OneCodexException
+from onecodex.models.schemas.sample import SampleUpdateSchema
 
 
 def test_api_creation(api_data):
@@ -484,3 +485,18 @@ def test_invalid_sample(ocx, custom_mock_requests):
     with custom_mock_requests(mock_data):
         sample = ocx.Samples.get("invalid_sample_id")
         assert sample is None
+
+
+def test_sample_updates(ocx, api_data):
+    project = ocx.Projects.get("4b53797444f846c4")
+
+    patch = SampleUpdateSchema.model_validate(
+        {"visibility": "public", "project": project.model_dump(), "extra": "should_be_ignored"}
+    )
+
+    # Project should be converted to an API reference
+    assert patch.model_dump(by_alias=True) == {
+        "visibility": "public",
+        "tags": [],
+        "project": {"$ref": "/api/v1/projects/4b53797444f846c4"},
+    }

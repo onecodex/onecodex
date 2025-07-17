@@ -58,8 +58,8 @@ class SampleSchema(URIModel):
 class SampleUpdateSchema(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    project: Optional[Union["ProjectSchema", ApiRef]] = None  # noqa: F821
-    tags: Union[List["TagSchema"], List[ApiRef]] = Field(default_factory=list)  # noqa: F821
+    project: Optional[ApiRef] = None  # noqa: F821
+    tags: List[ApiRef] = Field(default_factory=list)  # noqa: F821
     visibility: ApiV1Visibility = Field(
         # default=ApiV1Visibility.Private,
         default="private",

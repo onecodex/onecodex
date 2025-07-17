@@ -7,7 +7,7 @@ from pprint import pformat
 from html import escape
 
 from pydantic import BaseModel as PydanticBaseModel
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, model_validator
 from pydantic._internal._model_construction import ModelMetaclass
 
 from onecodex.exceptions import MethodNotSupported, OneCodexException
@@ -35,6 +35,16 @@ class ApiRef(PydanticBaseModel):
     model_config = ConfigDict(populate_by_alias=True, extra="forbid")
 
     ref: str = Field(..., alias="$ref")
+
+    @model_validator(mode="before")
+    @classmethod
+    def validate_ref(cls, data):
+        # Special case wherein we autoconvert another model to a $ref and ignore the other fields
+        if "$uri" in data and "$ref" not in data:
+            return {"$ref": data["$uri"]}
+        if "field_uri" in data and "$ref" not in data:
+            return {"$ref": data["field_uri"]}
+        return data
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -380,17 +390,17 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
         if "update" not in self._allowed_methods:
             raise MethodNotSupported("Cannot update {self.__class__.__name__} objects")
         if not kwargs:
+            # TODO: Consider using `pydantic_changedetect` to only send the fields that have changed
             kwargs = self.model_dump(exclude_unset=True, by_alias=True)
-
-        # noop if no changes
-        if not kwargs:
-            return self
 
         patch_set = self._allowed_methods["update"].model_validate(kwargs)
         resp = self._client.patch(
             f"{self._api._base_url}{self._resource_path}/{self.id}",
-            data=patch_set.model_dump_json(),
+            json=patch_set.model_dump(exclude_unset=True, by_alias=True),
         )
+        # TODO: Nicely format Pydantic error messages here
+        if resp.status_code >= 400:
+            raise OneCodexException(resp.json().get("message", f"Unknown error updating {self}"))
         updated_data = resp.json()
         copied_cache = self._resolved_cache.copy()
         self = self.__class__.model_validate(updated_data)
