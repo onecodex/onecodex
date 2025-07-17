@@ -80,7 +80,7 @@ def _login(server, creds_file=None, api_key=None, silent=False):
 
                 try:
                     json.dump(creds, open(creds_file, "w"))
-                except Exception as e:
+                except OSError as e:
                     if e.errno == errno.EACCES:
                         click.echo(
                             "Please check the permissions on {}".format(collapse_user(creds_file)),
@@ -128,7 +128,7 @@ def _login(server, creds_file=None, api_key=None, silent=False):
     with filelock.FileLock("{}.lock".format(creds_file)):
         try:
             json.dump(creds, open(creds_file, "w"))
-        except Exception as e:
+        except OSError as e:
             if e.errno == errno.EACCES:
                 click.echo("Please check the permissions on {}".format(creds_file), err=True)
                 sys.exit(1)
@@ -147,7 +147,7 @@ def _remove_creds(creds_file=None):
 
     try:
         os.remove(creds_file)
-    except Exception as e:
+    except OSError as e:
         if e.errno == errno.ENOENT:
             return False
         elif e.errno == errno.EACCES:

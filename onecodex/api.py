@@ -6,7 +6,7 @@ import os
 import requests
 from requests.adapters import HTTPAdapter
 from requests.auth import HTTPBasicAuth
-from requests.packages.urllib3.util.retry import Retry
+from urllib3.util.retry import Retry
 import warnings
 
 from onecodex.lib.auth import BearerTokenAuth

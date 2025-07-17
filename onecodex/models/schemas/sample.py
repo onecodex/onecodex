@@ -1,16 +1,30 @@
-from typing import Any, Optional, List, Union
+from typing import Any, Optional, List, Union, Literal
 from pydantic import Field, ConfigDict, BaseModel
 
 from onecodex.models.base import ApiRef
 from onecodex.models.schemas.base import URIModel
 from onecodex.models.schemas.types import RFC3339Datetime
 
-# FIXME: Make these literals or enums
-SequencingPlatform = str
-SequencingSampleType = str
-SequencingLibraryType = str
-UserFacingDataStatus = str
-ApiV1Visibility = str
+# Sequencing platform literals based on supported platforms
+SequencingPlatform = Literal[
+    "454 sequencing",
+    "Illumina",
+    "Illumina HiSeq",
+    "Illumina MiSeq",
+    "Illumina NovaSeq 6000",
+]
+
+# Sample type literals
+SequencingSampleType = Literal["Metagenomic"]
+
+# Library type literals
+SequencingLibraryType = Literal["WGS"]
+
+# User-facing data status literals
+UserFacingDataStatus = Literal["available", "awaiting data"]
+
+# API visibility literals
+ApiV1Visibility = Literal["private", "public", "shared", "importing"]
 
 
 class SampleSchema(URIModel):

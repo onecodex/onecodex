@@ -343,9 +343,9 @@ class AnalysisMixin(
 
     def to_functional_df(
         self,
-        annotation: FunctionalAnnotations = FunctionalAnnotations.Pathways,
+        annotation: Union[FunctionalAnnotations, str] = FunctionalAnnotations.Pathways,
         taxa_stratified: bool = True,
-        metric: FunctionalAnnotationsMetric = FunctionalAnnotationsMetric.Coverage,
+        metric: Union[FunctionalAnnotationsMetric, str] = FunctionalAnnotationsMetric.Coverage,
         fill_missing: bool = True,
         filler: Any = 0,
     ):
@@ -386,12 +386,12 @@ class AnalysisMixin(
 
     def to_classification_df(
         self,
-        rank: Rank = Rank.Auto,
+        rank: Union[Rank, str] = Rank.Auto,
         top_n: Optional[int] = None,
         threshold: Optional[float] = None,
         remove_zeros: bool = True,
         normalize: Union[Literal["auto"], bool] = "auto",
-        table_format: Union[Literal["wide"] | Literal["long"]] = "wide",
+        table_format: Union[Literal["wide"], Literal["long"]] = "wide",
         include_taxa_missing_rank: bool = False,
         fill_missing: bool = True,
         filler: Any = 0,
