@@ -19,9 +19,9 @@ class TaxonomyMixin(object):
 
         for tax_id in self.taxonomy.index:
             node = TreeNode(name=tax_id, length=1)
-            node.tax_name = self.taxonomy["name"][tax_id]
-            node.rank = self.taxonomy["rank"][tax_id]
-            node.parent_tax_id = self.taxonomy["parent_tax_id"][tax_id]
+            node.tax_name = self.taxonomy["name"][tax_id]  # type: ignore[attr-defined]
+            node.rank = self.taxonomy["rank"][tax_id]  # type: ignore[attr-defined]
+            node.parent_tax_id = self.taxonomy["parent_tax_id"][tax_id]  # type: ignore[attr-defined]
 
             nodes[tax_id] = node
 

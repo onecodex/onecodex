@@ -1,9 +1,13 @@
-from typing import Any, Optional, List, Union, Literal
+from typing import Any, Optional, List, Union, Literal, TYPE_CHECKING
 from pydantic import Field, ConfigDict, BaseModel
 
 from onecodex.models.base import ApiRef
 from onecodex.models.schemas.base import URIModel
 from onecodex.models.schemas.types import RFC3339Datetime
+
+if TYPE_CHECKING:
+    from onecodex.models.schemas.misc import UserSchema, ProjectSchema, TagSchema
+    from onecodex.models.schemas.analysis import ClassificationSchema
 
 # Sequencing platform literals based on supported platforms
 SequencingPlatform = Literal[
