@@ -227,8 +227,8 @@ def upload_sequence(
             sample_id = _upload_sequence_fileobj(
                 fobj.r1,
                 fobj.r1.filename,
-                fields,
-                samples_resource,  # type: ignore[possibly-unbound]
+                fields,  # type: ignore[possibly-unbound]
+                samples_resource,
             )
         else:
             sample_id = _upload_sequence_fileobj(fobj, fobj.filename, fields, samples_resource)  # type: ignore[possibly-unbound]
