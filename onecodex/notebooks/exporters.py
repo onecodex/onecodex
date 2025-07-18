@@ -58,7 +58,7 @@ class OneCodexHTMLExporter(HTMLExporter):
         # see https://jupyter-contrib-nbextensions.readthedocs.io/en/latest/nbextensions/python-
         # markdown/readme.html
         try:
-            from jupyter_contrib_nbextensions.nbconvert_support import (  # noqa
+            from jupyter_contrib_nbextensions.nbconvert_support import (  # type: ignore[import-not-found]  # noqa
                 PyMarkdownPreprocessor,
             )
 

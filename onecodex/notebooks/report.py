@@ -318,7 +318,7 @@ class reference(object):
                     ref_label = label
 
                 self.ref_list[ref_label] = (self.ref_num, text)
-                ipy.meta["references"] = self.ref_list
+                ipy.meta["references"] = self.ref_list  # type: ignore[possibly-unbound]
 
         elif label:
             if label not in self.ref_list.keys():
@@ -357,7 +357,7 @@ class bibliography(object):
         except (NameError, AttributeError):
             raise OneCodexException("Must be run from within IPython")
 
-        self.ref_list = ref_list
+        self.ref_list = ref_list  # type: ignore[possibly-unbound]
 
     def display(self):
         from IPython.display import display
