@@ -233,7 +233,7 @@ def collapse_user(fp):
 
 
 def _setup_sentry_for_ipython():
-    from IPython import get_ipython
+    from IPython import get_ipython  # type: ignore[unresolved-import]  # Optional dependency
 
     ip = get_ipython()
 

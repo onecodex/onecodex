@@ -36,7 +36,7 @@ CANONICAL_RANKS = (
 )
 
 
-class SampleCollection(AnalysisMixin, MutableSequence):
+class SampleCollection(AnalysisMixin, MutableSequence):  # type: ignore[unsupported-base]
     """A collection of `Samples` or `Classifications` objects.
 
     Includes lots of methods for analysis of classifications results.

@@ -4,11 +4,11 @@ import copy
 import datetime
 from io import BytesIO
 import json
-from nbconvert.exporters.html import HTMLExporter
-from nbconvert.preprocessors import Preprocessor
+from nbconvert.exporters.html import HTMLExporter  # type: ignore[unresolved-import]  # Optional dependency
+from nbconvert.preprocessors import Preprocessor  # type: ignore[unresolved-import]  # Optional dependency
 import os
 import pytz
-from traitlets import default
+from traitlets import default  # type: ignore[unresolved-import]  # Optional dependency
 
 from onecodex.exceptions import UploadException
 from onecodex.notebooks import report
@@ -168,7 +168,7 @@ class OneCodexPDFExporter(OneCodexHTMLExporter):
 
     def from_notebook_node(self, nb, resources=None, **kw):
         """Take output of OneCodexHTMLExporter and run Weasyprint to get a PDF."""
-        from weasyprint import HTML, CSS
+        from weasyprint import HTML, CSS  # type: ignore[unresolved-import]  # Optional dependency
 
         nb = copy.deepcopy(nb)
 

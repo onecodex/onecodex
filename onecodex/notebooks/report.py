@@ -1,7 +1,7 @@
 import datetime
 
 try:
-    from IPython import get_ipython
+    from IPython import get_ipython  # type: ignore[unresolved-import]  # Optional dependency
 except ImportError:
     get_ipython = None
 
@@ -25,7 +25,7 @@ class set_style(object):
         self.style = style
 
     def display(self):
-        from IPython.display import display
+        from IPython.display import display  # type: ignore[unresolved-import]  # Optional dependency
 
         display(self)
 
@@ -51,7 +51,7 @@ class set_center_header(object):
         self.style = "" if style is None else style
 
     def display(self):
-        from IPython.display import display
+        from IPython.display import display  # type: ignore[unresolved-import]  # Optional dependency
 
         display(self)
 
@@ -86,7 +86,7 @@ class set_date(object):
             pass
 
     def display(self):
-        from IPython.display import display
+        from IPython.display import display  # type: ignore[unresolved-import]  # Optional dependency
 
         display(self)
 
@@ -113,7 +113,7 @@ class title(object):
         self.style = "" if style is None else style
 
     def display(self):
-        from IPython.display import display
+        from IPython.display import display  # type: ignore[unresolved-import]  # Optional dependency
 
         display(self)
 
@@ -148,7 +148,7 @@ class set_logo(object):
             raise OneCodexException("position must be one of: left, right, center")
 
     def display(self):
-        from IPython.display import display
+        from IPython.display import display  # type: ignore[unresolved-import]  # Optional dependency
 
         display(self)
 
@@ -205,7 +205,7 @@ class legend(object):
             self.fignum = fignum
 
     def display(self):
-        from IPython.display import display
+        from IPython.display import display  # type: ignore[unresolved-import]  # Optional dependency
 
         display(self)
 
@@ -327,7 +327,7 @@ class reference(object):
             self.ref_num = self.ref_list[label][0]
 
     def display(self):
-        from IPython.display import display
+        from IPython.display import display  # type: ignore[unresolved-import]  # Optional dependency
 
         display(self)
 
@@ -360,7 +360,7 @@ class bibliography(object):
         self.ref_list = ref_list  # type: ignore[possibly-unbound]
 
     def display(self):
-        from IPython.display import display
+        from IPython.display import display  # type: ignore[unresolved-import]  # Optional dependency
 
         display(self)
 
@@ -384,7 +384,7 @@ class page_break(object):
     """Inserts a page break."""
 
     def display(self):
-        from IPython.display import display
+        from IPython.display import display  # type: ignore[unresolved-import]  # Optional dependency
 
         display(self)
 
@@ -451,7 +451,7 @@ class cover_sheet(object):
         self.proj_date = proj_date  # type: ignore[possibly-unbound]
 
     def display(self):
-        from IPython.display import display
+        from IPython.display import display  # type: ignore[unresolved-import]  # Optional dependency
 
         display(self)
 
