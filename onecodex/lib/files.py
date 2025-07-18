@@ -16,11 +16,7 @@ def _check_for_ascii_filename(filename, coerce_ascii):
     If it isn't, convert it to ASCII & return it if the ascii flag
     has been set otherwise raise an exception.
     """
-    try:
-        # python2
-        ascii_fname = unidecode(unicode(filename))
-    except NameError:
-        ascii_fname = unidecode(filename)
+    ascii_fname = unidecode(filename)
 
     if filename != ascii_fname:
         if coerce_ascii:

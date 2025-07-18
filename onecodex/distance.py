@@ -164,7 +164,7 @@ class DistanceMixin(TaxonomyMixin):
         from skbio.tree import TreeNode
 
         new_tree = TreeNode(name="fake root")
-        new_tree.rank = "no rank"
+        new_tree.rank = "no rank"  # type: ignore[attr-defined]
         new_tree.append(tree)
 
         # then finally run the calculation and return

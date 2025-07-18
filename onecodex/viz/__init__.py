@@ -123,7 +123,7 @@ def onecodex_renderer(spec: dict, **metadata) -> dict:
     bundle = html_renderer(spec, **metadata)
 
     try:
-        import vl_convert  # noqa
+        import vl_convert  # type: ignore[unresolved-import]  # Optional dependency  # noqa
     except ImportError:
         pass
     else:

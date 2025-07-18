@@ -5,6 +5,7 @@ import copy
 import logging
 import math
 import requests
+import requests.exceptions
 import six
 
 from onecodex.exceptions import OneCodexException, raise_connectivity_error, raise_api_error
@@ -39,6 +40,7 @@ def _choose_boto3_chunksize(file_obj):
     if file_obj_size:
         allowed_chunk_sizes = [size * 1024**2 for size in range(10, 110, 10)]
 
+        chunk_size = allowed_chunk_sizes[-1]  # Default to largest chunk size
         for chunk_size in allowed_chunk_sizes:
             if math.ceil(file_obj_size / chunk_size) < 10000:
                 break
@@ -217,16 +219,19 @@ def upload_sequence(
         if is_paired:
             # 2 files to upload
             # The backend will check for the r1 file in the callback so we upload r2 first
-            fields_pe = copy.deepcopy(fields)
+            fields_pe = copy.deepcopy(fields)  # type: ignore[possibly-unbound]
             fields_pe["file_id"] = fields_pe["paired_end_file_id"]
             _upload_sequence_fileobj(
                 fobj.r2, fobj.r2.filename, fields_pe, samples_resource, callback=False
             )
             sample_id = _upload_sequence_fileobj(
-                fobj.r1, fobj.r1.filename, fields, samples_resource
+                fobj.r1,
+                fobj.r1.filename,
+                fields,  # type: ignore[possibly-unbound]
+                samples_resource,
             )
         else:
-            sample_id = _upload_sequence_fileobj(fobj, fobj.filename, fields, samples_resource)
+            sample_id = _upload_sequence_fileobj(fobj, fobj.filename, fields, samples_resource)  # type: ignore[possibly-unbound]
 
         atexit.unregister(cancel_atexit)
         return sample_id
@@ -348,9 +353,9 @@ def _upload_document_fileobj(file_obj, file_name, documents_resource):
     s3_upload = _s3_intermediate_upload(
         file_obj,
         file_name,
-        fields,
+        fields,  # type: ignore[possibly-unbound]
         documents_resource._client.session,
-        documents_resource._api._base_url + fields["callback_url"],  # full callback url
+        documents_resource._api._base_url + fields["callback_url"],  # type: ignore[possibly-unbound]  # full callback url
     )
 
     msg = f"{file_name}: finished"
@@ -396,9 +401,9 @@ def _upload_asset_fileobj(file_obj, file_name, assets_resource, name=None):
     s3_upload = _s3_intermediate_upload(
         file_obj,
         file_name,
-        fields,
+        fields,  # type: ignore[possibly-unbound]
         assets_resource._client.session,
-        assets_resource._api._base_url + fields["callback_url"],  # full callback url
+        assets_resource._api._base_url + fields["callback_url"],  # type: ignore[possibly-unbound]  # full callback url
         name=name,
     )
 
@@ -445,11 +450,11 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url, 
     -------
     `dict` : JSON results from internal confirm import callback URL
     """
-    import boto3
+    from boto3.session import Session
     from boto3.s3.transfer import TransferConfig
     from boto3.exceptions import S3UploadFailedError
 
-    boto3_session = boto3.session.Session()
+    boto3_session = Session()
 
     # actually do the upload
     client = boto3_session.client(
@@ -517,11 +522,11 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url, 
     except requests.exceptions.ConnectionError:
         raise_connectivity_error(file_name)
 
-    if resp.status_code != 200:
+    if resp.status_code != 200:  # type: ignore[possibly-unbound]
         raise_connectivity_error(file_name)
 
     try:
-        return resp.json()
+        return resp.json()  # type: ignore[possibly-unbound]
     except ValueError:
         return {}
 

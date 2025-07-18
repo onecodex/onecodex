@@ -2,6 +2,7 @@ import click
 import os
 import os.path
 import requests
+import requests.exceptions
 import copy
 
 from onecodex.exceptions import OneCodexException
@@ -117,7 +118,7 @@ class ResourceDownloadMixin(object):
         progressbar=False,
     ):
         from requests.adapters import HTTPAdapter
-        from requests.packages.urllib3.util.retry import Retry
+        from urllib3.util.retry import Retry
 
         if hasattr(self, "visibility") and self.visibility == "awaiting data":
             raise OneCodexException("Sample has not finished processing. Please try again later.")
@@ -168,14 +169,14 @@ class ResourceDownloadMixin(object):
                 with click.progressbar(length=self.size, label=progress_label) as bar:
                     for data in resp.iter_content(chunk_size=1024):
                         bar.update(len(data))
-                        f_out.write(data)
+                        f_out.write(data)  # type: ignore[possibly-unbound-attribute]
             else:
                 for data in resp.iter_content(chunk_size=1024):
-                    f_out.write(data)
+                    f_out.write(data)  # type: ignore[possibly-unbound-attribute]
 
             # do not close the handle if file_obj is used
             if not file_obj:
-                f_out.close()
+                f_out.close()  # type: ignore[possibly-unbound-attribute]
 
         except KeyboardInterrupt:
             if path and os.path.exists(path):

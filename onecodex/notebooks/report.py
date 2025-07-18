@@ -1,5 +1,10 @@
 import datetime
 
+try:
+    from IPython import get_ipython  # type: ignore[unresolved-import]  # Optional dependency
+except ImportError:
+    get_ipython = None
+
 from onecodex.exceptions import OneCodexException
 
 
@@ -20,7 +25,7 @@ class set_style(object):
         self.style = style
 
     def display(self):
-        from IPython.display import display
+        from IPython.display import display  # type: ignore[unresolved-import]  # Optional dependency
 
         display(self)
 
@@ -46,7 +51,7 @@ class set_center_header(object):
         self.style = "" if style is None else style
 
     def display(self):
-        from IPython.display import display
+        from IPython.display import display  # type: ignore[unresolved-import]  # Optional dependency
 
         display(self)
 
@@ -74,13 +79,14 @@ class set_date(object):
         self.style = "" if style is None else style
 
         try:
-            ipy = get_ipython()
-            ipy.meta["customdate"] = self.date
-        except NameError:
+            if get_ipython is not None:
+                ipy = get_ipython()
+                ipy.meta["customdate"] = self.date
+        except (NameError, AttributeError):
             pass
 
     def display(self):
-        from IPython.display import display
+        from IPython.display import display  # type: ignore[unresolved-import]  # Optional dependency
 
         display(self)
 
@@ -107,7 +113,7 @@ class title(object):
         self.style = "" if style is None else style
 
     def display(self):
-        from IPython.display import display
+        from IPython.display import display  # type: ignore[unresolved-import]  # Optional dependency
 
         display(self)
 
@@ -142,7 +148,7 @@ class set_logo(object):
             raise OneCodexException("position must be one of: left, right, center")
 
     def display(self):
-        from IPython.display import display
+        from IPython.display import display  # type: ignore[unresolved-import]  # Optional dependency
 
         display(self)
 
@@ -186,9 +192,12 @@ class legend(object):
 
         if fignum is None:
             try:
-                ipy = get_ipython()
-                self.fignum = ipy.meta.get("figure_count", 0) + 1
-            except NameError:
+                if get_ipython is not None:
+                    ipy = get_ipython()
+                    self.fignum = ipy.meta.get("figure_count", 0) + 1
+                else:
+                    raise OneCodexException("Must be run from within IPython")
+            except (NameError, AttributeError):
                 raise OneCodexException("Must be run from within IPython")
 
             ipy.meta["figure_count"] = self.fignum
@@ -196,7 +205,7 @@ class legend(object):
             self.fignum = fignum
 
     def display(self):
-        from IPython.display import display
+        from IPython.display import display  # type: ignore[unresolved-import]  # Optional dependency
 
         display(self)
 
@@ -274,9 +283,10 @@ class reference(object):
         self.label = label or ""
 
         try:
-            ipy = get_ipython()
-            self.ref_list = ipy.meta.get("references", {})
-        except NameError:
+            if get_ipython is not None:
+                ipy = get_ipython()
+                self.ref_list = ipy.meta.get("references", {})
+        except (NameError, AttributeError):
             raise OneCodexException("Must be run from within IPython")
 
         if text:
@@ -308,7 +318,7 @@ class reference(object):
                     ref_label = label
 
                 self.ref_list[ref_label] = (self.ref_num, text)
-                ipy.meta["references"] = self.ref_list
+                ipy.meta["references"] = self.ref_list  # type: ignore[possibly-unbound]
 
         elif label:
             if label not in self.ref_list.keys():
@@ -317,7 +327,7 @@ class reference(object):
             self.ref_num = self.ref_list[label][0]
 
     def display(self):
-        from IPython.display import display
+        from IPython.display import display  # type: ignore[unresolved-import]  # Optional dependency
 
         display(self)
 
@@ -341,15 +351,16 @@ class bibliography(object):
         self.style = "" if style is None else style
 
         try:
-            ipy = get_ipython()
-            ref_list = ipy.meta.get("references", {})
-        except NameError:
+            if get_ipython is not None:
+                ipy = get_ipython()
+                ref_list = ipy.meta.get("references", {})
+        except (NameError, AttributeError):
             raise OneCodexException("Must be run from within IPython")
 
-        self.ref_list = ref_list
+        self.ref_list = ref_list  # type: ignore[possibly-unbound]
 
     def display(self):
-        from IPython.display import display
+        from IPython.display import display  # type: ignore[unresolved-import]  # Optional dependency
 
         display(self)
 
@@ -373,7 +384,7 @@ class page_break(object):
     """Inserts a page break."""
 
     def display(self):
-        from IPython.display import display
+        from IPython.display import display  # type: ignore[unresolved-import]  # Optional dependency
 
         display(self)
 
@@ -428,18 +439,19 @@ class cover_sheet(object):
             self.project_details = project_details
 
         try:
-            ipy = get_ipython()
-            proj_date = ipy.meta.get("customdate")
-        except NameError:
+            if get_ipython is not None:
+                ipy = get_ipython()
+                proj_date = ipy.meta.get("customdate")
+        except (NameError, AttributeError):
             proj_date = None
 
-        if proj_date is None:
+        if proj_date is None:  # type: ignore[possibly-unbound]
             proj_date = set_date().date
 
-        self.proj_date = proj_date
+        self.proj_date = proj_date  # type: ignore[possibly-unbound]
 
     def display(self):
-        from IPython.display import display
+        from IPython.display import display  # type: ignore[unresolved-import]  # Optional dependency
 
         display(self)
 

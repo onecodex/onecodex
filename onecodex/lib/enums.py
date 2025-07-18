@@ -1,6 +1,6 @@
 try:
     # Python 3.11 changed `__str__`/`__format__` behavior for enums with mixed-in data types
-    from enum import ReprEnum as Enum
+    from enum import ReprEnum as Enum  # type: ignore[attr-defined]
 except ImportError:
     from enum import Enum
 

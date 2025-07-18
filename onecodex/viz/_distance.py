@@ -464,7 +464,7 @@ class VizDistanceMixin(DistanceMixin):
             y_extra_label = "%0.02f%%" % (ord_result.proportion_explained.iloc[1] * 100,)
         else:
             raise OneCodexException(
-                "MDS method must be one of: {}".format(", ".join(OrdinationMethod.values))
+                "MDS method must be one of: {}".format(", ".join(OrdinationMethod.values()))
             )
 
         # label the axes

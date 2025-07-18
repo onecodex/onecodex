@@ -1,5 +1,6 @@
 import re
 import requests
+import requests.auth
 
 
 class BearerTokenAuth(requests.auth.AuthBase):
@@ -23,7 +24,7 @@ def fetch_api_key_from_uname(username, password, server_url):
         text = session.get(server_url + "login").text
 
         # retrieve the CSRF token out of it
-        csrf = re.search('type="hidden" value="([^"]+)"', text).group(1)
+        csrf = re.search('type="hidden" value="([^"]+)"', text).group(1)  # type: ignore[possibly-unbound-attribute]
 
         # and resubmit using the username/password *and* the CSRF
         login_data = {

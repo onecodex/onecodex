@@ -49,7 +49,7 @@ def warning_msg(message, category, filename, lineno, file=None, line=None):
     log.warning(message)
 
 
-warnings.showwarning = warning_msg
+warnings.showwarning = warning_msg  # type: ignore[assignment]
 
 
 # options
@@ -73,7 +73,7 @@ def onecodex(ctx, api_key, no_pprint, verbose, telemetry):
     log.handlers[0].setFormatter(log_formatter)
 
     # set up the context for sub commands
-    click.Context.get_usage = click.Context.get_help
+    click.Context.get_usage = click.Context.get_help  # type: ignore[assignment]
     ctx.obj = {}
     ctx.obj["API_KEY"] = api_key
     ctx.obj["NOPPRINT"] = no_pprint

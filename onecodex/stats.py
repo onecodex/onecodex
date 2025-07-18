@@ -2,7 +2,7 @@ from __future__ import annotations
 import itertools
 import warnings
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Union
 
 from onecodex.exceptions import OneCodexException, StatsException, StatsWarning
 from onecodex.lib.enums import (
@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class AlphaDiversityStatsResults:
-    test: AlphaDiversityStatsTest
+    test: Union[AlphaDiversityStatsTest, str]
     statistic: float
     pvalue: float
     sample_size: int
@@ -46,7 +46,7 @@ class AlphaDiversityStatsResults:
 
 @dataclass(frozen=True)
 class BetaDiversityStatsResults:
-    test: BetaDiversityStatsTest
+    test: Union[BetaDiversityStatsTest, str]
     statistic: float
     pvalue: float
     num_permutations: int
@@ -69,9 +69,9 @@ class StatsMixin:
         *,
         group_by: str | tuple[str, ...] | list[str],
         paired_by: Optional[str | tuple[str, ...] | list[str]] = None,
-        test: AlphaDiversityStatsTest = AlphaDiversityStatsTest.Auto,
-        metric: AlphaDiversityMetric = AlphaDiversityMetric.Shannon,
-        rank: Rank = Rank.Auto,
+        test: Union[AlphaDiversityStatsTest, str] = AlphaDiversityStatsTest.Auto,
+        metric: Union[AlphaDiversityMetric, str] = AlphaDiversityMetric.Shannon,
+        rank: Union[Rank, str] = Rank.Auto,
         alpha: float = 0.05,
     ) -> AlphaDiversityStatsResults:
         """Perform a test for significant differences between groups of alpha diversity values.
@@ -392,8 +392,8 @@ class StatsMixin:
         self,
         *,
         group_by: str | tuple[str, ...] | list[str],
-        metric: BetaDiversityMetric = BetaDiversityMetric.BrayCurtis,
-        rank: Rank = Rank.Auto,
+        metric: Union[BetaDiversityMetric, str] = BetaDiversityMetric.BrayCurtis,
+        rank: Union[Rank, str] = Rank.Auto,
         alpha: float = 0.05,
         num_permutations: int = 999,
     ) -> BetaDiversityStatsResults:
@@ -559,6 +559,6 @@ class StatsMixin:
             num_permutations=result["number of permutations"],
             sample_size=result["sample size"],
             group_by_variable=group_by_column_name,
-            groups=group_names,
+            groups=set(group_names),
             posthoc=posthoc,
         )

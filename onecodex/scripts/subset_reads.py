@@ -43,7 +43,7 @@ def fastfastq(file_path):
 def validating_parser(file_path, **io_kwargs):
     import skbio
 
-    for rec in skbio.io.read(file_path, **io_kwargs):
+    for rec in skbio.io.read(file_path, **io_kwargs):  # type: ignore[attr-defined]
         buf = io.BytesIO()
         rec.write(buf, **io_kwargs)
         buf.seek(0)
@@ -274,7 +274,7 @@ def cli(
     # do the actual filtering
     save_msg = "Saving subsetted reads: {}".format(filtered_filename)
     if reverse:
-        save_msg += " and {}".format(rev_filtered_filename)
+        save_msg += " and {}".format(rev_filtered_filename)  # type: ignore[possibly-unbound]
     click.echo(save_msg, err=True)
 
     # see mainline/#3513. we must set idx=0 here for cases where the fastx file is empty
@@ -293,7 +293,7 @@ def cli(
 
             with (
                 io.open(filtered_filename, "wb") as out_file,
-                io.open(rev_filtered_filename, "wb") as rev_out_file,
+                io.open(rev_filtered_filename, "wb") as rev_out_file,  # type: ignore[possibly-unbound]
             ):
                 for idx, (fwd, rev) in enumerate(zip(fwd_iter, rev_iter)):
                     if idx == tsv_row_count:
