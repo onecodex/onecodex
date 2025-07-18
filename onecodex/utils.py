@@ -411,7 +411,7 @@ def progressbar(*args, **kwargs):
         else:
             self._update(value)
 
-    bar.update = partial(update, bar)
+    bar.update = partial(update, bar)  # type: ignore[assignment]
     return bar
 
 
