@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class AlphaDiversityStatsResults:
-    test: AlphaDiversityStatsTest
+    test: Union[AlphaDiversityStatsTest, str]
     statistic: float
     pvalue: float
     sample_size: int
@@ -46,7 +46,7 @@ class AlphaDiversityStatsResults:
 
 @dataclass(frozen=True)
 class BetaDiversityStatsResults:
-    test: BetaDiversityStatsTest
+    test: Union[BetaDiversityStatsTest, str]
     statistic: float
     pvalue: float
     num_permutations: int
