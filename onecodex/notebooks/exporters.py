@@ -211,7 +211,9 @@ class OneCodexDocumentExporter(OneCodexPDFExporter):
 
         try:
             document_id = _upload_document_fileobj(
-                BytesIO(output), file_name, ocx.Documents._resource
+                BytesIO(output),
+                file_name,
+                ocx.Documents._resource,  # type: ignore[attr-defined]
             )
         except UploadException as exc:
             resp = json.dumps({"status": 500, "message": str(exc)})

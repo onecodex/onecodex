@@ -522,11 +522,11 @@ def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url, 
     except requests.exceptions.ConnectionError:
         raise_connectivity_error(file_name)
 
-    if resp.status_code != 200:
+    if resp.status_code != 200:  # type: ignore[possibly-unbound]
         raise_connectivity_error(file_name)
 
     try:
-        return resp.json()
+        return resp.json()  # type: ignore[possibly-unbound]
     except ValueError:
         return {}
 

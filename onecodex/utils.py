@@ -268,7 +268,7 @@ VALUES_RE = re.compile(r"^(?:\d[ -]*?){13,16}$")
 
 
 def _preprocess_sentry_event(event, hint):
-    from sentry_sdk._compat import string_types
+    from sentry_sdk._compat import string_types  # type: ignore[import-not-found]
 
     for key, value in event.items():
         lower_key = key.lower()
@@ -390,13 +390,13 @@ def run_via_threadpool(fn, iterable, fn_kwargs, max_threads=1, graceful_exit=Fal
         except KeyboardInterrupt as k:
             if not graceful_exit:
                 executor._threads.clear()
-                concurrent.futures.thread._threads_queues.clear()
+                concurrent.futures.thread._threads_queues.clear()  # type: ignore[attr-defined]
             raise k
 
 
 def progressbar(*args, **kwargs):
     bar = click.progressbar(*args, **kwargs)
-    bar._update = bar.update
+    bar._update = bar.update  # type: ignore[attr-defined]
 
     def update(self, value):
         if getattr(self, "canceled", False) is True:

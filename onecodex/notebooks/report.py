@@ -445,10 +445,10 @@ class cover_sheet(object):
         except (NameError, AttributeError):
             proj_date = None
 
-        if proj_date is None:
+        if proj_date is None:  # type: ignore[possibly-unbound]
             proj_date = set_date().date
 
-        self.proj_date = proj_date
+        self.proj_date = proj_date  # type: ignore[possibly-unbound]
 
     def display(self):
         from IPython.display import display
