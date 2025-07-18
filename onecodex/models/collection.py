@@ -423,8 +423,8 @@ class SampleCollection(AnalysisMixin, MutableSequence):
             if self._is_metagenomic:
                 metric = Metric.AbundanceWChildren
 
-        metric_dtype = metric.dtype
-        metric = metric.value
+        metric_dtype = metric.dtype  # type: ignore[possibly-unbound-attribute]
+        metric = metric.value  # type: ignore[possibly-unbound-attribute]
         self._cached["metric"] = metric
 
         # Compile info about all taxa observed in the classification results.

@@ -243,15 +243,17 @@ def _find_multilane_groups(files):
             expected_sequence = list(range(1, len(elems) + 1))
             if paired:
                 fwd_nums = [
-                    int(pattern_multilane.search(se).group(1)) for se in [fwd for fwd, _ in elems]
+                    int(pattern_multilane.search(se).group(1))
+                    for se in [fwd for fwd, _ in elems]  # type: ignore[possibly-unbound-attribute]
                 ]
                 rev_nums = [
-                    int(pattern_multilane.search(se).group(1)) for se in [rev for _, rev in elems]
+                    int(pattern_multilane.search(se).group(1))
+                    for se in [rev for _, rev in elems]  # type: ignore[possibly-unbound-attribute]
                 ]
                 if fwd_nums != expected_sequence or rev_nums != expected_sequence:
                     gapped_groups.add(group)
             else:
-                nums = [int(pattern_multilane.search(se).group(1)) for se in elems]
+                nums = [int(pattern_multilane.search(se).group(1)) for se in elems]  # type: ignore[possibly-unbound-attribute]
                 if nums != expected_sequence:
                     gapped_groups.add(group)
 

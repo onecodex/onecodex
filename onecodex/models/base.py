@@ -135,7 +135,7 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
     )
     _client: ClassVar[Optional["HTTPClient"]] = None  # noqa: F821
     _resource_path: ClassVar[str]  # Default resource path, subclasses override
-    _allowed_methods: ClassVar[AllowedMethods] = {}
+    _allowed_methods: ClassVar[AllowedMethods] = {}  # type: ignore[invalid-assignment]
 
     model_config = ConfigDict(
         populate_by_alias=True,

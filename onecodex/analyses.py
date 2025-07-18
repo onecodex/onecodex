@@ -498,8 +498,8 @@ class AnalysisMixin(
         if normalize is False and self._guess_normalized():
             raise OneCodexException(
                 f"Data has already been normalized. To generate denormalized data, please create a "
-                f"new SampleCollection with `metric={Metric.Readcount.value!r}` or "
-                f"`metric={Metric.ReadcountWChildren.value!r}`."
+                f"new SampleCollection with `metric={Metric.Readcount.value!r}` or "  # type: ignore[possibly-unbound-attribute]
+                f"`metric={Metric.ReadcountWChildren.value!r}`."  # type: ignore[possibly-unbound-attribute]
             )
 
         if normalize is True or (normalize == "auto" and rank):
