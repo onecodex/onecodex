@@ -279,9 +279,9 @@ class VizMetadataMixin(object):
             )
 
         if facet_by and not secondary_haxis:
-            chart = chart.resolve_scale(x="independent")
+            chart = chart.resolve_scale(x="independent")  # type: ignore[possibly-unbound]
 
-        chart = chart.properties(**prepare_props(title=title, height=height, width=width))
+        chart = chart.properties(**prepare_props(title=title, height=height, width=width))  # type: ignore[possibly-unbound]
 
         if return_chart:
             return chart

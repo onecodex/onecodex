@@ -187,16 +187,16 @@ class Samples(OneCodexBase, _SampleSchema, ResourceDownloadMixin):
 
         if md_search_keywords:
             # we tried searching by metadata fields
-            if not metadata_samples:
+            if not metadata_samples:  # type: ignore[possibly-unbound]
                 # there were no results, so don't bother with a slower query on Samples
                 samples = []
             elif not (filters or keyword_filters):
                 # there were results, and there are no other filters to apply, so return them
-                samples = metadata_samples
+                samples = metadata_samples  # type: ignore[possibly-unbound]
             else:
                 # there were results, and we want to return the intersection of those with a query
                 # on Samples using any non-metadata filters
-                metadata_sample_ids = {s.id for s in metadata_samples}
+                metadata_sample_ids = {s.id for s in metadata_samples}  # type: ignore[possibly-unbound]
                 samples = super(Samples, cls).where(*filters, **keyword_filters)
                 samples = [s for s in samples if s.id in metadata_sample_ids]
         else:
