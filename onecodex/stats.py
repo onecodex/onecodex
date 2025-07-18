@@ -2,7 +2,7 @@ from __future__ import annotations
 import itertools
 import warnings
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Union
 
 from onecodex.exceptions import OneCodexException, StatsException, StatsWarning
 from onecodex.lib.enums import (
@@ -69,9 +69,9 @@ class StatsMixin:
         *,
         group_by: str | tuple[str, ...] | list[str],
         paired_by: Optional[str | tuple[str, ...] | list[str]] = None,
-        test: AlphaDiversityStatsTest = AlphaDiversityStatsTest.Auto,
-        metric: AlphaDiversityMetric = AlphaDiversityMetric.Shannon,
-        rank: Rank = Rank.Auto,
+        test: Union[AlphaDiversityStatsTest, str] = AlphaDiversityStatsTest.Auto,
+        metric: Union[AlphaDiversityMetric, str] = AlphaDiversityMetric.Shannon,
+        rank: Union[Rank, str] = Rank.Auto,
         alpha: float = 0.05,
     ) -> AlphaDiversityStatsResults:
         """Perform a test for significant differences between groups of alpha diversity values.
@@ -392,8 +392,8 @@ class StatsMixin:
         self,
         *,
         group_by: str | tuple[str, ...] | list[str],
-        metric: BetaDiversityMetric = BetaDiversityMetric.BrayCurtis,
-        rank: Rank = Rank.Auto,
+        metric: Union[BetaDiversityMetric, str] = BetaDiversityMetric.BrayCurtis,
+        rank: Union[Rank, str] = Rank.Auto,
         alpha: float = 0.05,
         num_permutations: int = 999,
     ) -> BetaDiversityStatsResults:

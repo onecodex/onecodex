@@ -183,7 +183,7 @@ def auto_detect_pairs(files, prompt):
                 n_files=len(pairs) * 2 + len(single_files),
                 pair_list=pair_list,
             ),
-            default="Y",
+            default=True,
         )
 
         if not answer:
@@ -316,7 +316,7 @@ def concatenate_multilane_files(files, prompt, tempdir):
     if prompt:
         answer = click.confirm(
             "This data appears to have been split across multiple sequencing lanes.\nConcatenate lanes before upload?",
-            default="Y",
+            default=True,
         )
         if not answer:
             perform_concat = False

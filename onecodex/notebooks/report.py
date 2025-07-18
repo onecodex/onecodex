@@ -1,5 +1,10 @@
 import datetime
 
+try:
+    from IPython import get_ipython
+except ImportError:
+    get_ipython = None
+
 from onecodex.exceptions import OneCodexException
 
 
@@ -74,9 +79,10 @@ class set_date(object):
         self.style = "" if style is None else style
 
         try:
-            ipy = get_ipython()
-            ipy.meta["customdate"] = self.date
-        except NameError:
+            if get_ipython is not None:
+                ipy = get_ipython()
+                ipy.meta["customdate"] = self.date
+        except (NameError, AttributeError):
             pass
 
     def display(self):
@@ -186,9 +192,12 @@ class legend(object):
 
         if fignum is None:
             try:
-                ipy = get_ipython()
-                self.fignum = ipy.meta.get("figure_count", 0) + 1
-            except NameError:
+                if get_ipython is not None:
+                    ipy = get_ipython()
+                    self.fignum = ipy.meta.get("figure_count", 0) + 1
+                else:
+                    raise OneCodexException("Must be run from within IPython")
+            except (NameError, AttributeError):
                 raise OneCodexException("Must be run from within IPython")
 
             ipy.meta["figure_count"] = self.fignum
@@ -274,9 +283,10 @@ class reference(object):
         self.label = label or ""
 
         try:
-            ipy = get_ipython()
-            self.ref_list = ipy.meta.get("references", {})
-        except NameError:
+            if get_ipython is not None:
+                ipy = get_ipython()
+                self.ref_list = ipy.meta.get("references", {})
+        except (NameError, AttributeError):
             raise OneCodexException("Must be run from within IPython")
 
         if text:
@@ -341,9 +351,10 @@ class bibliography(object):
         self.style = "" if style is None else style
 
         try:
-            ipy = get_ipython()
-            ref_list = ipy.meta.get("references", {})
-        except NameError:
+            if get_ipython is not None:
+                ipy = get_ipython()
+                ref_list = ipy.meta.get("references", {})
+        except (NameError, AttributeError):
             raise OneCodexException("Must be run from within IPython")
 
         self.ref_list = ref_list
@@ -428,9 +439,10 @@ class cover_sheet(object):
             self.project_details = project_details
 
         try:
-            ipy = get_ipython()
-            proj_date = ipy.meta.get("customdate")
-        except NameError:
+            if get_ipython is not None:
+                ipy = get_ipython()
+                proj_date = ipy.meta.get("customdate")
+        except (NameError, AttributeError):
             proj_date = None
 
         if proj_date is None:
