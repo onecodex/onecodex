@@ -135,7 +135,7 @@ def dendrogram(tree):
             order="o",
             color=alt.Color(
                 "b:N",
-                scale=alt.Scale(domain=list(range(idx + 1)), range=["black"] * (idx + 1)),
+                scale=alt.Scale(domain=list(range(idx + 1)), range=["black"] * (idx + 1)),  # type: ignore[possibly-unbound]
                 legend=None,
             ),
         )

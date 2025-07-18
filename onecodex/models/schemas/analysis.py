@@ -1,9 +1,12 @@
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, TYPE_CHECKING
 from pydantic import Field, ConfigDict
 
 from onecodex.models.base import ApiRef
 from onecodex.models.schemas.base import URIModel
 from onecodex.models.schemas.types import RFC3339Datetime
+
+if TYPE_CHECKING:
+    from onecodex.models.schemas.sample import SampleSchema
 
 
 class BaseAnalysisSchema(URIModel):
