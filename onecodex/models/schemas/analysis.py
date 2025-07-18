@@ -7,6 +7,7 @@ from onecodex.models.schemas.types import RFC3339Datetime
 
 if TYPE_CHECKING:
     from onecodex.models.schemas.sample import SampleSchema
+    from onecodex.models.schemas.misc import JobSchema
 
 
 class BaseAnalysisSchema(URIModel):

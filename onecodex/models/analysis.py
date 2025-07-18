@@ -1,4 +1,4 @@
-from typing import Optional, Union, Dict
+from typing import Optional, Union, Dict, TYPE_CHECKING
 
 from onecodex.exceptions import OneCodexException
 from onecodex.models.base import OneCodexBase, ApiRef
@@ -9,6 +9,10 @@ from onecodex.models.schemas.analysis import AlignmentSchema
 from onecodex.models.schemas.analysis import ClassificationSchema
 from onecodex.models.schemas.analysis import FunctionalRunSchema
 from onecodex.models.schemas.analysis import PanelSchema
+
+if TYPE_CHECKING:
+    from onecodex.models.sample import Samples
+    from onecodex.models.misc import Jobs
 
 
 class _AnalysesBase(OneCodexBase):

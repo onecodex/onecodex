@@ -2,7 +2,7 @@ import inspect
 import json
 
 
-from typing import ClassVar, Optional, List, Type, TypedDict
+from typing import ClassVar, Optional, List, Type, TypedDict, TYPE_CHECKING
 from pprint import pformat
 from html import escape
 
@@ -15,6 +15,9 @@ from onecodex.models.helpers import (
     generate_potion_sort_clause,
     generate_potion_keyword_where,
 )
+
+if TYPE_CHECKING:
+    from onecodex.api import Api, HTTPClient
 
 
 # This Pydantic magic callable needs to be removed
