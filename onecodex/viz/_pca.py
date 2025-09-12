@@ -7,7 +7,7 @@ from onecodex.viz._primitives import (
     get_classification_url,
 )
 from onecodex.exceptions import OneCodexException, PlottingException, PlottingWarning
-from onecodex.utils import is_continuous, has_missing_values
+from onecodex.utils import is_continuous, has_missing_values, _escape_chart_fields
 
 
 class VizPCAMixin(object):
@@ -232,6 +232,7 @@ class VizPCAMixin(object):
             chart = alt.layer(chart, vector_chart).resolve_scale(color="independent")
 
         chart = chart.properties(**prepare_props(title=title, height=height, width=width))
+        _escape_chart_fields(chart)
 
         if return_chart:
             return chart

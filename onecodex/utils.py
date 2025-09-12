@@ -1,17 +1,18 @@
-import click
 import concurrent.futures
-from functools import partial, wraps
 import json
 import logging
 import os
 import platform
 import re
-import requests
 import sys
-import sentry_sdk
-from contextlib import contextmanager
 import tempfile
+from collections.abc import Iterable
+from contextlib import contextmanager
+from functools import partial, wraps
 
+import click
+import requests
+import sentry_sdk
 from pydantic_core import to_jsonable_python
 
 try:
@@ -27,7 +28,6 @@ except ImportError:
 
 from onecodex.exceptions import OneCodexException, UploadException
 from onecodex.version import __version__
-
 
 log = logging.getLogger("onecodex")
 
@@ -506,3 +506,23 @@ def has_missing_values(dataframe_or_series):
 def use_tempdir():
     with tempfile.TemporaryDirectory() as tempdir:
         yield tempdir
+
+
+def _escape_chart_fields(chart):
+    import altair as alt
+
+    def _escape_iter(schema_item, path):
+        for key, val in schema_item._kwds.items():
+            if isinstance(val, alt.VegaLiteSchema):
+                _escape_iter(val, path + [key])
+            elif isinstance(val, Iterable) and not isinstance(val, str):
+                for v in val:
+                    if isinstance(v, alt.VegaLiteSchema):
+                        _escape_iter(v, path + [key, v])
+
+            elif key == "shorthand" and isinstance(val, str):
+                schema_item._kwds[key] = (
+                    val.replace(".", r"\.").replace("[", r"\[").replace("]", r"\]")
+                )
+
+    _escape_iter(chart.encoding, [])

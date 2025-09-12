@@ -8,6 +8,7 @@ from onecodex.viz._primitives import (
     sort_helper,
     get_classification_url,
 )
+from onecodex.utils import _escape_chart_fields
 
 
 class PlotType(BaseEnum):
@@ -231,7 +232,8 @@ class VizMetadataMixin(object):
         encode_kwargs = {}
         if facet_by:
             encode_kwargs["column"] = alt.Column(
-                facet_by, header=alt.Header(titleOrient="bottom", labelOrient="bottom")
+                facet_by,
+                header=alt.Header(title=facet_by, titleOrient="bottom", labelOrient="bottom"),
             )
 
         x_kwargs = {"axis": alt.Axis(title=xlabel)}
@@ -282,6 +284,7 @@ class VizMetadataMixin(object):
             chart = chart.resolve_scale(x="independent")
 
         chart = chart.properties(**prepare_props(title=title, height=height, width=width))
+        _escape_chart_fields(chart)
 
         if return_chart:
             return chart
