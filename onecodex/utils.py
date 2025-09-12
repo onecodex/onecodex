@@ -525,4 +525,5 @@ def _escape_chart_fields(chart):
                     val.replace(".", r"\.").replace("[", r"\[").replace("]", r"\]")
                 )
 
-    _escape_iter(chart.encoding, [])
+    if isinstance(chart.encoding, alt.VegaLiteSchema):
+        _escape_iter(chart.encoding, [])
