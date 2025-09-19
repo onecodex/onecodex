@@ -191,3 +191,46 @@ def test_collate_results(samples, metric, sha):
     with pytest.raises(OneCodexException) as e:
         samples._collate_results(metric="does_not_exist")
     assert "not valid" in str(e.value)
+
+
+def test_collate_results_with_auto_metric_no_abundance_estimates(samples):
+    assert samples._metric == "abundance_w_children"
+    classifications = samples._classifications
+
+    for classification in classifications:
+        results = classification.results()
+        for data in results["table"]:
+            data["abundance_w_children"] = None
+            data["abundance"] = None
+
+    samples._collate_results(metric="auto")
+    assert samples._metric == "readcount_w_children"
+
+
+def test_collate_results_with_auto_metric_one_lacking_abundance_estimates(samples):
+    assert samples._metric == "abundance_w_children"
+    classifications = samples._classifications
+
+    c1_results = classifications[0].results()
+    for data in c1_results["table"]:
+        data["abundance_w_children"] = None
+        data["abundance"] = None
+
+    samples._collate_results(metric="auto")
+    # only 1 out of 3 does not have abundance estimates so we can
+    # still use `abundance_w_children`
+    assert samples._metric == "abundance_w_children"
+
+
+def test_collate_results_with_auto_metric_majority_lacking_abundance_estimates(samples):
+    assert samples._metric == "abundance_w_children"
+    classifications = samples._classifications
+
+    for classification in classifications[:2]:
+        results = classification.results()
+        for data in results["table"]:
+            data["abundance_w_children"] = None
+            data["abundance"] = None
+
+    samples._collate_results(metric="auto")
+    assert samples._metric == "readcount_w_children"
