@@ -176,14 +176,14 @@ def escape_chart_fields(chart):
     """
     import altair as alt
 
-    def _escape_iter(schema_item, path):
+    def _escape_iter(schema_item):
         for key, val in schema_item._kwds.items():
             if isinstance(val, alt.VegaLiteSchema):
-                _escape_iter(val, path + [key])
+                _escape_iter(val)
             elif isinstance(val, Iterable) and not isinstance(val, str):
                 for v in val:
                     if isinstance(v, alt.VegaLiteSchema):
-                        _escape_iter(v, path + [key, v])
+                        _escape_iter(v)
 
             elif key == "shorthand" and isinstance(val, str):
                 schema_item._kwds[key] = (
@@ -191,4 +191,4 @@ def escape_chart_fields(chart):
                 )
 
     if isinstance(chart.encoding, alt.VegaLiteSchema):
-        _escape_iter(chart.encoding, [])
+        _escape_iter(chart.encoding)

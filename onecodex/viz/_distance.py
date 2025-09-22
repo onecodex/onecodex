@@ -270,8 +270,8 @@ class VizDistanceMixin(DistanceMixin):
             .mark_rect()
             .encode(**alt_kwargs)
         )
-
         chart = chart.properties(**prepare_props(height=height, width=width))
+        escape_chart_fields(chart)
 
         dendro_chart = dendrogram(clust["scipy_tree"])
 
