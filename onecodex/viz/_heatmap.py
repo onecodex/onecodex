@@ -5,8 +5,8 @@ from onecodex.viz._primitives import (
     sort_helper,
     get_classification_url,
     get_ncbi_taxonomy_browser_url,
+    escape_chart_fields,
 )
-from onecodex.utils import _escape_chart_fields
 
 
 class VizHeatmapMixin(object):
@@ -295,7 +295,7 @@ class VizHeatmapMixin(object):
         if haxis:
             chart = chart.resolve_scale(x="independent")
 
-        _escape_chart_fields(chart)
+        escape_chart_fields(chart)
 
         if return_chart:
             return chart

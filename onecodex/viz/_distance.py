@@ -9,8 +9,9 @@ from onecodex.viz._primitives import (
     interleave_palette,
     prepare_props,
     get_classification_url,
+    escape_chart_fields,
 )
-from onecodex.utils import is_continuous, has_missing_values, _escape_chart_fields
+from onecodex.utils import is_continuous, has_missing_values
 
 
 class VizDistanceMixin(DistanceMixin):
@@ -500,7 +501,7 @@ class VizDistanceMixin(DistanceMixin):
 
         chart = alt.Chart(plot_data).mark_circle(size=mark_size).encode(**alt_kwargs)
         chart = chart.properties(**prepare_props(title=title, height=height, width=width))
-        _escape_chart_fields(chart)
+        escape_chart_fields(chart)
 
         if return_chart:
             return chart

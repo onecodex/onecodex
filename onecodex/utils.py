@@ -6,7 +6,6 @@ import platform
 import re
 import sys
 import tempfile
-from collections.abc import Iterable
 from contextlib import contextmanager
 from functools import partial, wraps
 
@@ -506,24 +505,3 @@ def has_missing_values(dataframe_or_series):
 def use_tempdir():
     with tempfile.TemporaryDirectory() as tempdir:
         yield tempdir
-
-
-def _escape_chart_fields(chart):
-    import altair as alt
-
-    def _escape_iter(schema_item, path):
-        for key, val in schema_item._kwds.items():
-            if isinstance(val, alt.VegaLiteSchema):
-                _escape_iter(val, path + [key])
-            elif isinstance(val, Iterable) and not isinstance(val, str):
-                for v in val:
-                    if isinstance(v, alt.VegaLiteSchema):
-                        _escape_iter(v, path + [key, v])
-
-            elif key == "shorthand" and isinstance(val, str):
-                schema_item._kwds[key] = (
-                    val.replace(".", r"\.").replace("[", r"\[").replace("]", r"\]")
-                )
-
-    if isinstance(chart.encoding, alt.VegaLiteSchema):
-        _escape_iter(chart.encoding, [])

@@ -7,8 +7,8 @@ from onecodex.viz._primitives import (
     prepare_props,
     sort_helper,
     get_unique_column,
+    escape_chart_fields,
 )
-from onecodex.utils import _escape_chart_fields
 
 
 class VizFunctionalHeatmapMixin(object):
@@ -203,7 +203,7 @@ class VizFunctionalHeatmapMixin(object):
         if haxis:
             chart = chart.resolve_scale(x="independent")
 
-        _escape_chart_fields(chart)
+        escape_chart_fields(chart)
 
         if return_chart:
             return chart

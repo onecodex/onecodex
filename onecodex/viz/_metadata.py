@@ -7,8 +7,8 @@ from onecodex.viz._primitives import (
     prepare_props,
     sort_helper,
     get_classification_url,
+    escape_chart_fields,
 )
-from onecodex.utils import _escape_chart_fields
 
 
 class PlotType(BaseEnum):
@@ -284,7 +284,7 @@ class VizMetadataMixin(object):
             chart = chart.resolve_scale(x="independent")
 
         chart = chart.properties(**prepare_props(title=title, height=height, width=width))
-        _escape_chart_fields(chart)
+        escape_chart_fields(chart)
 
         if return_chart:
             return chart

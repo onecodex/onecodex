@@ -1,6 +1,5 @@
 from onecodex.exceptions import OneCodexException, PlottingException
 from onecodex.lib.enums import Link, Metric, Rank
-from onecodex.utils import _escape_chart_fields
 from onecodex.viz._primitives import (
     get_classification_url,
     get_ncbi_taxonomy_browser_url,
@@ -8,6 +7,7 @@ from onecodex.viz._primitives import (
     interleave_palette,
     prepare_props,
     sort_helper,
+    escape_chart_fields,
 )
 
 
@@ -319,5 +319,5 @@ class VizBargraphMixin(object):
             chart = chart.resolve_scale(x="independent")
 
         chart = chart.properties(**prepare_props(title=title, width=width, height=height))
-        _escape_chart_fields(chart)
+        escape_chart_fields(chart)
         return chart if return_chart else chart.display()
