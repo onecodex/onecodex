@@ -417,36 +417,47 @@ class SampleCollection(AnalysisMixin, MutableSequence):
         # getting classification IDs is 15% of execution time
         classification_ids = [c.id for c in self._classifications]
 
+        # Compile info about all taxa observed in the classification results & get classification_ids_without_abundances
+        tax_info = {"tax_id": [], "name": [], "rank": [], "parent_tax_id": []}
+        tax_ids = set()
+        classification_ids_without_abundances = []
+
+        for classification in self._classifications:
+            # pulling results from API is the slowest part of the function, 75% of the execution time
+            results = classification.results()
+            host_tax_ids = results.get("host_tax_ids", [])
+            has_abundance_estimates = False
+
+            # d contains info about a taxon in result, including name, id, counts, rank, etc.
+            for data in results["table"]:
+                d_tax_id = data["tax_id"]
+
+                if not include_host and d_tax_id in host_tax_ids:
+                    continue
+
+                if data.get(Metric.AbundanceWChildren) or data.get(Metric.Abundance):
+                    has_abundance_estimates = True
+
+                if d_tax_id not in tax_ids:
+                    for k in ("tax_id", "name", "rank", "parent_tax_id"):
+                        tax_info[k].append(data[k])
+                    tax_ids.add(d_tax_id)
+
+            if not has_abundance_estimates:
+                classification_ids_without_abundances.append(classification.id)
+
         if metric == Metric.Auto:
             metric = Metric.ReadcountWChildren
-
-            if self._is_metagenomic:
+            # If half or fewer than half of total samples lack abundance estimates, we are ok to
+            # use abundance with children as metric. Otherwise, use readcount w children
+            if self._is_metagenomic and len(classification_ids_without_abundances) <= (
+                len(self) / 2
+            ):
                 metric = Metric.AbundanceWChildren
 
         metric_dtype = metric.dtype
         metric = metric.value
         self._cached["metric"] = metric
-
-        # Compile info about all taxa observed in the classification results.
-        tax_info = {"tax_id": [], "name": [], "rank": [], "parent_tax_id": []}
-        tax_ids = set()
-        for c_idx, c in enumerate(self._classifications):
-            # pulling results from API is the slowest part of the function, 75% of the execution time
-            results = c.results()
-            host_tax_ids = results.get("host_tax_ids", [])
-
-            # d contains info about a taxon in result, including name, id, counts, rank, etc.
-            for d in results["table"]:
-                d_tax_id = d["tax_id"]
-
-                if not include_host and d_tax_id in host_tax_ids:
-                    continue
-
-                if d_tax_id not in tax_ids:
-                    for k in ("tax_id", "name", "rank", "parent_tax_id"):
-                        tax_info[k].append(d[k])
-                    tax_ids.add(d_tax_id)
-
         tax_info = pd.DataFrame(tax_info, dtype=object, copy=False)
         tax_info.set_index("tax_id", inplace=True)
 
