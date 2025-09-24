@@ -2,7 +2,6 @@ import click
 import os
 import os.path
 import requests
-import copy
 
 from onecodex.exceptions import OneCodexException
 
@@ -141,11 +140,13 @@ class ResourceDownloadMixin(object):
             download_link_info.raise_for_status()
             link = download_link_info.json()["download_uri"]
 
-            # Create a new session with custom retries for downloads.
+            # Create a new session with custom retries for downloads. Do not use HTTPClient because
+            # this request goes to S3 and uses a different auth mechanism
+            session = requests.Session()
+
             # Retry up to 5 times with backoff timing of 2s, 4s, 8s, 16s, and 32s (applies to all
             # HTTP methods). 404 is included for cases where the file is being asynchronously
             # uploaded to S3 and is expected to be available soon.
-            session = copy.deepcopy(self._client.session)
             retry_strategy = Retry(
                 total=5,
                 backoff_factor=2,
