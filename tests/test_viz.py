@@ -1052,3 +1052,22 @@ def test_plot_functional_heatmap_when_metadata_contains_function_id(ocx, api_dat
         "[CC] phosphopyruvate hydratase complex",
         "[BP] ribosomal large subunit assembly",
     }
+
+
+@pytest.mark.parametrize(
+    ("metadata_key", "escaped_key"),
+    [
+        ("foo.bar", r"foo\.bar"),
+        ("foo[bar]", r"foo\[bar\]"),
+    ],
+)
+def test_plot_bargraph_escape_js_like_fields(samples, metadata_key, escaped_key):
+    samples._collate_results(metric="readcount_w_children")
+    for i, sample in enumerate(samples):
+        sample.metadata.custom[metadata_key] = f"value_{i}"
+    chart = samples.plot_bargraph(
+        return_chart=True,
+        group_by=metadata_key,
+        rank="genus",
+    ).to_dict()
+    assert chart["encoding"]["x"]["field"] == escaped_key

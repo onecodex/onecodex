@@ -1,12 +1,13 @@
 from onecodex.exceptions import OneCodexException, PlottingException
-from onecodex.lib.enums import Rank, Metric, Link
+from onecodex.lib.enums import Link, Metric, Rank
 from onecodex.viz._primitives import (
+    get_classification_url,
+    get_ncbi_taxonomy_browser_url,
+    get_unique_column,
     interleave_palette,
     prepare_props,
     sort_helper,
-    get_ncbi_taxonomy_browser_url,
-    get_classification_url,
-    get_unique_column,
+    escape_chart_fields,
 )
 
 
@@ -255,7 +256,7 @@ class VizBargraphMixin(object):
         encode_kwargs = {}
         if haxis:
             encode_kwargs["column"] = alt.Column(
-                haxis, header=alt.Header(titleOrient="bottom", labelOrient="bottom")
+                haxis, header=alt.Header(title=haxis, titleOrient="bottom", labelOrient="bottom")
             )
         domain = sorted(df[tax_name_column].unique())
         no_level_name = "No {}".format(rank)
@@ -318,5 +319,5 @@ class VizBargraphMixin(object):
             chart = chart.resolve_scale(x="independent")
 
         chart = chart.properties(**prepare_props(title=title, width=width, height=height))
-
+        escape_chart_fields(chart)
         return chart if return_chart else chart.display()

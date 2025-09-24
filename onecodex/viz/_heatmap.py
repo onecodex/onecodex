@@ -5,6 +5,7 @@ from onecodex.viz._primitives import (
     sort_helper,
     get_classification_url,
     get_ncbi_taxonomy_browser_url,
+    escape_chart_fields,
 )
 
 
@@ -258,7 +259,7 @@ class VizHeatmapMixin(object):
 
         if haxis:
             alt_kwargs["column"] = alt.Column(
-                haxis, header=alt.Header(titleOrient="bottom", labelOrient="bottom")
+                haxis, header=alt.Header(title=haxis, titleOrient="bottom", labelOrient="bottom")
             )
 
         # Drop all-NaN rows, convert remaining NaNs to 0s, and concat
@@ -293,6 +294,8 @@ class VizHeatmapMixin(object):
 
         if haxis:
             chart = chart.resolve_scale(x="independent")
+
+        escape_chart_fields(chart)
 
         if return_chart:
             return chart

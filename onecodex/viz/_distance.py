@@ -9,6 +9,7 @@ from onecodex.viz._primitives import (
     interleave_palette,
     prepare_props,
     get_classification_url,
+    escape_chart_fields,
 )
 from onecodex.utils import is_continuous, has_missing_values
 
@@ -269,8 +270,8 @@ class VizDistanceMixin(DistanceMixin):
             .mark_rect()
             .encode(**alt_kwargs)
         )
-
         chart = chart.properties(**prepare_props(height=height, width=width))
+        escape_chart_fields(chart)
 
         dendro_chart = dendrogram(clust["scipy_tree"])
 
@@ -500,6 +501,7 @@ class VizDistanceMixin(DistanceMixin):
 
         chart = alt.Chart(plot_data).mark_circle(size=mark_size).encode(**alt_kwargs)
         chart = chart.properties(**prepare_props(title=title, height=height, width=width))
+        escape_chart_fields(chart)
 
         if return_chart:
             return chart

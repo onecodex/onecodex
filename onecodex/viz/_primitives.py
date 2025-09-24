@@ -1,5 +1,6 @@
 import os
 from itertools import chain
+from collections.abc import Iterable
 from math import ceil
 
 from onecodex.exceptions import OneCodexException
@@ -161,3 +162,33 @@ def get_unique_column(preferred_name, existing_columns):
     while result in existing_columns:
         result = "_" + result
     return result
+
+
+def escape_chart_fields(chart):
+    """Escape fields to be not evaluated as JS object access pathes.
+
+    WARNING: it modifies `chart` in-place.
+
+    Parameters
+    ----------
+    chart : `altair.Chart`
+
+    """
+    import altair as alt
+
+    def _escape_iter(schema_item):
+        for key, val in schema_item._kwds.items():
+            if isinstance(val, alt.VegaLiteSchema):
+                _escape_iter(val)
+            elif isinstance(val, Iterable) and not isinstance(val, str):
+                for v in val:
+                    if isinstance(v, alt.VegaLiteSchema):
+                        _escape_iter(v)
+
+            elif key == "shorthand" and isinstance(val, str):
+                schema_item._kwds[key] = (
+                    val.replace(".", r"\.").replace("[", r"\[").replace("]", r"\]")
+                )
+
+    if isinstance(chart.encoding, alt.VegaLiteSchema):
+        _escape_iter(chart.encoding)

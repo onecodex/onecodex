@@ -7,6 +7,7 @@ from onecodex.viz._primitives import (
     prepare_props,
     sort_helper,
     get_unique_column,
+    escape_chart_fields,
 )
 
 
@@ -157,7 +158,7 @@ class VizFunctionalHeatmapMixin(object):
                 "column": alt.Column(
                     haxis,
                     type="nominal",
-                    header=alt.Header(titleOrient="bottom", labelOrient="bottom"),
+                    header=alt.Header(title=haxis, titleOrient="bottom", labelOrient="bottom"),
                 ),
             }
 
@@ -201,6 +202,8 @@ class VizFunctionalHeatmapMixin(object):
         )
         if haxis:
             chart = chart.resolve_scale(x="independent")
+
+        escape_chart_fields(chart)
 
         if return_chart:
             return chart
