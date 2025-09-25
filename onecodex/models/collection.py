@@ -435,7 +435,10 @@ class SampleCollection(AnalysisMixin, MutableSequence):
                 if not include_host and d_tax_id in host_tax_ids:
                     continue
 
-                if data.get(Metric.AbundanceWChildren) or data.get(Metric.Abundance):
+                if (
+                    data.get(Metric.AbundanceWChildren) is not None
+                    or data.get(Metric.Abundance) is not None
+                ):
                     has_abundance_estimates = True
 
                 if d_tax_id not in tax_ids:
