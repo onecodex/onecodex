@@ -17,9 +17,17 @@ from onecodex.models.schemas.misc import (
     ProjectSchema,
     JobSchema,
     DocumentSchema,
+    AssetSchema,
+)
+from onecodex.models.schemas.genome import (
+    AnnotationSetSchema,
+    AssemblySchema,
+    GenomeSchema,
+    TaxonSchema,
 )
 
 SampleUpdateSchema.model_rebuild()
+SampleSchema.model_rebuild()
 
 __all__ = [
     "SampleSchema",
@@ -36,4 +44,9 @@ __all__ = [
     "JobSchema",
     "DocumentSchema",
     "ProjectSchema",
+    "AssetSchema",
+    "AnnotationSetSchema",
+    "AssemblySchema",
+    "GenomeSchema",
+    "TaxonSchema",
 ]

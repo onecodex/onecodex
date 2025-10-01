@@ -7,7 +7,8 @@ from onecodex.models.analysis import (
 )
 from onecodex.models.sample import Metadata, Samples
 from onecodex.models.collection import SampleCollection
-from onecodex.models.misc import Users, Projects, Tags, Jobs, Documents
+from onecodex.models.misc import Users, Projects, Tags, Jobs, Documents, Assets
+from onecodex.models.genome import AnnotationSets, Assemblies, Genomes, Taxa
 
 # Model registry for dynamic resolution based on resource paths
 _MODEL_REGISTRY = {}
@@ -41,6 +42,11 @@ register_model(Projects)
 register_model(Tags)
 register_model(Jobs)
 register_model(Documents)
+register_model(Assets)
+register_model(AnnotationSets)
+register_model(Assemblies)
+register_model(Genomes)
+register_model(Taxa)
 
 # Rebuild all models to resolve forward references
 Metadata.model_rebuild()
@@ -55,6 +61,11 @@ Projects.model_rebuild()
 Tags.model_rebuild()
 Jobs.model_rebuild()
 Documents.model_rebuild()
+Assets.model_rebuild()
+AnnotationSets.model_rebuild()
+Assemblies.model_rebuild()
+Genomes.model_rebuild()
+Taxa.model_rebuild()
 
 __all__ = [
     "Samples",
@@ -69,6 +80,11 @@ __all__ = [
     "Analyses",
     "Jobs",
     "Documents",
+    "Assets",
+    "AnnotationSets",
+    "Assemblies",
+    "Genomes",
+    "Taxa",
     "SampleCollection",
     "register_model",
     "get_model_class",

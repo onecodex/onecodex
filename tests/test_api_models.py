@@ -103,10 +103,10 @@ def test_download_path_exists(runner, ocx, api_data):
             doc.download()
 
 
-def test_download_use_potion_session(runner, ocx, api_data):
+def test_download_use_client_session(runner, ocx, api_data):
     with runner.isolated_filesystem():
         doc = ocx.Documents.get("a4f6727a840a4df0")
-        doc._download("download_uri", doc.filename, use_potion_session=True)
+        doc._download("download_uri", doc.filename, use_client_session=True)
 
 
 def test_download_with_progressbar(runner, ocx, api_data):

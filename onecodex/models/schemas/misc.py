@@ -1,11 +1,15 @@
 import re
 
 from typing import Any, List, Optional, Union
-from pydantic import Field, ConfigDict
+from pydantic import Field, ConfigDict, BaseModel
 
 from onecodex.models.base import ApiRef
 from onecodex.models.schemas.base import URIModel
 from onecodex.models.schemas.types import RFC3339Datetime
+
+
+# FIXME: Make these literals or enums
+AssetStatus = str
 
 
 class TagSchema(URIModel):
@@ -70,5 +74,16 @@ class DocumentSchema(URIModel):
     )
 
 
-# class AssetsSchema(URIModel):
-#     pass
+class AssetUpdateSchema(BaseModel):
+    name: str
+
+
+class AssetSchema(URIModel):
+    created_at: RFC3339Datetime
+    name: str
+    filename: str
+    s3_uri: str | None
+    status: AssetStatus
+    organization_id: int
+    uploaded_by: Union[UserSchema, ApiRef]
+    uuid: str

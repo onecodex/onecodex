@@ -4,18 +4,19 @@ from typing import List, Optional, Union
 from pydantic import Field
 
 from onecodex.exceptions import MethodNotSupported
-from onecodex.lib.upload import upload_document
-
-# from onecodex.lib.upload import upload_asset
+from onecodex.lib.upload import upload_document, upload_asset
 from onecodex.models.helpers import truncate_string, ResourceDownloadMixin
 
 from onecodex.models.base import OneCodexBase, ApiRef
-from onecodex.models.schemas.misc import TagSchema
-from onecodex.models.schemas.misc import UserSchema
-from onecodex.models.schemas.misc import ProjectSchema
-from onecodex.models.schemas.misc import JobSchema
-from onecodex.models.schemas.misc import DocumentSchema
-# from onecodex.models.schemas.misc import AssetSchema
+from onecodex.models.schemas.misc import (
+    TagSchema,
+    UserSchema,
+    ProjectSchema,
+    JobSchema,
+    DocumentSchema,
+    AssetSchema,
+    AssetUpdateSchema,
+)
 
 
 class Tags(OneCodexBase, TagSchema):
@@ -86,31 +87,35 @@ class Documents(OneCodexBase, DocumentSchema, ResourceDownloadMixin):
         -------
         A `Documents` object upon successful upload. None if the upload failed.
         """
-        doc_id = upload_document(file_path, cls._resource, progressbar=progressbar)
+        doc_id = upload_document(file_path, cls, progressbar=progressbar)
         return cls.get(doc_id)
 
 
-# Not supported in OpenAPI yet...
-# class Assets(OneCodexBase, AssetSchema, ResourceDownloadMixin):
-#     _resource_path = "/api/v1_experimental/assets"
-#
-#     @classmethod
-#     def upload(cls, file_path, progressbar=None, name=None):
-#         """Upload a file to an asset.
-#
-#         Parameters
-#         ----------
-#         file_path : `string`
-#             A path to a file on the system.
-#         progressbar : `click.progressbar`, optional
-#             If passed, display a progress bar using Click.
-#         name : `string`, optional
-#             If passed, name is sent with upload request and is associated with asset.
-#
-#         Returns
-#         -------
-#         An `Assets` object upon successful upload. None if the upload failed.
-#         """
-#         asset_id = upload_asset(file_path, cls._resource, progressbar=progressbar, name=name)
-#
-#         return cls.get(asset_id)
+class Assets(OneCodexBase, AssetSchema, ResourceDownloadMixin):
+    _resource_path = "/api/v1/assets"
+    _allowed_methods = {
+        "delete": None,
+        "update": AssetUpdateSchema,
+    }
+    uploaded_by: Union[Users, ApiRef]
+
+    @classmethod
+    def upload(cls, file_path, progressbar=None, name=None):
+        """Upload a file to an asset.
+
+        Parameters
+        ----------
+        file_path : `string`
+            A path to a file on the system.
+        progressbar : `click.progressbar`, optional
+            If passed, display a progress bar using Click.
+        name : `string`, optional
+            If passed, name is sent with upload request and is associated with asset.
+
+        Returns
+        -------
+        An `Assets` object upon successful upload. None if the upload failed.
+        """
+        asset_id = upload_asset(file_path, cls, progressbar=progressbar, name=name)
+
+        return cls.get(asset_id)

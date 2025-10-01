@@ -387,7 +387,11 @@ def _upload_asset_fileobj(file_obj, file_name, assets_resource, name=None):
     `string` id of newly uploaded asset.
     """
     try:
-        fields = assets_resource.init_multipart_upload()
+        resp = assets_resource._client.post(
+            f"{assets_resource._api._base_url}{assets_resource._resource_path}/init_multipart_upload"
+        )
+        resp.raise_for_status()
+        fields = resp.json()
     except requests.exceptions.HTTPError as e:
         raise_api_error(e.response, state="init")
     except requests.exceptions.ConnectionError:
@@ -406,7 +410,7 @@ def _upload_asset_fileobj(file_obj, file_name, assets_resource, name=None):
 
     message = s3_upload.get("message")
     if message is not None:
-        output_msg += message
+        output_msg += f"\n{message}"
 
     log.info(output_msg)
     asset_uuid = s3_upload.get("asset_uuid")
