@@ -102,6 +102,7 @@ filterwarnings = [
     'ignore:.*platformdirs.*:DeprecationWarning:jupyter_client.connect',
     'ignore:Parsing dates:DeprecationWarning:jupyter_client.jsonutil',
     'ignore:datetime.datetime.utcnow:DeprecationWarning:jupyter_client.session',
+    'ignore:datetime.datetime.utcnow:DeprecationWarning:botocore.auth',
 ]
 
 [tool.ruff]

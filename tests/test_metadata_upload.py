@@ -192,34 +192,3 @@ def test_coerce_custom_value_falsy():
 def test_coerce_custom_value_string():
     custom_value = coerce_custom_value("Foo")
     assert custom_value == "Foo"
-
-
-@pytest.mark.xfail(reason="Multipart upload not yet implemented")
-def test_pandas_and_numpy_type_coercions(ocx, upload_mocks):
-    # See https://github.com/onecodex/onecodex/issues/232 and
-    # https://github.com/pandas-dev/pandas/issues/25969
-    # We can remove this test once the Pandas bug above is fixed
-    # upstream and we require >= that version of pandas.
-    pytest.importorskip("pandas")
-    import numpy as np
-    import pandas as pd
-
-    series = pd.Series({"a": np.int64(64), "b": 10, "c": "ABC"})
-    metadata = {
-        "platform": "Illumina NovaSeq 6000",
-        "date_collected": "2019-04-14T00:51:54.832048+00:00",
-        "external_sample_id": "my-lims-ID-or-similar",
-        "custom": series.to_dict(),
-    }
-
-    # This works
-    ocx.Samples.init_multipart_upload(
-        filename="SRR2352185.fastq.gz", size=181687821, metadata=metadata
-    )
-
-    # Now try to serialize something really not supported, so we can get the Exception
-    with pytest.raises(TypeError):
-        metadata["custom"]["bad_field"] = ocx.Samples  # not JSON serializable
-        ocx.Samples.init_multipart_upload(
-            filename="SRR2352185.fastq.gz", size=181687821, metadata=metadata
-        )

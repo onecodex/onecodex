@@ -41,7 +41,30 @@ def mock_api_responses():
         rsps.add(
             responses.POST,
             "http://localhost:3000/s3_confirm",
-            json={"sample_id": "s3_confirm_sample_id"},
+            json={"sample_id": "abcdef1234567890"},
+            status=200,
+        )
+
+        rsps.add(
+            responses.GET,
+            "http://localhost:3000/api/v1/samples/abcdef1234567890",
+            json={
+                "$uri": "/api/v1/samples/7428cca4a3a04a8e",
+                "created_at": "2015-09-25T17:27:19.596555-07:00",
+                "filename": "SRR2352185.fastq.gz",
+                "metadata": {"$ref": "/api/v1/metadata/a7fc7e430e704e2e"},
+                "owner": {"$ref": "/api/v1/users/4ada56103d9a48b8"},
+                "primary_classification": {"$ref": "/api/v1/classifications/464a7ebcf9f84050"},
+                "project": None,
+                "size": 181687821,
+                "tags": [
+                    {"$ref": "/api/v1/tags/42997b7a62634985"},
+                    {"$ref": "/api/v1/tags/fb8e3b693c874f9e"},
+                    {"$ref": "/api/v1/tags/ff4e81909a4348d9"},
+                ],
+                "visibility": "private",
+                "status": "available",
+            },
             status=200,
         )
 
@@ -254,6 +277,20 @@ def test_single_end_files(ocx, mock_api_responses):
         mock_file_obj._fsize = 1000  # Add size property to avoid comparison errors
 
         upload_sequence("tests/data/files/test_R1_L001.fq.gz", ocx.Samples)
+        assert b3.call_count == 1
+
+
+def test_single_end_files_upload_method(ocx, mock_api_responses):
+    with (
+        patch("onecodex.lib.upload.get_file_wrapper") as mock_wrapper,
+        patch("boto3.session.Session") as b3,
+    ):
+        # Configure mock file object
+        mock_file_obj = mock_wrapper.return_value
+        mock_file_obj.filename = "test_R1_L001.fq.gz"
+        mock_file_obj._fsize = 1000  # Add size property to avoid comparison errors
+
+        ocx.Samples.upload("tests/data/files/test_R1_L001.fq.gz")
         assert b3.call_count == 1
 
 
