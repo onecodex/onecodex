@@ -389,6 +389,7 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
     def update(self, **kwargs):
         if "update" not in self._allowed_methods:
             raise MethodNotSupported("Cannot update {self.__class__.__name__} objects")
+
         if not kwargs:
             # TODO: Consider using `pydantic_changedetect` to only send the fields that have changed
             kwargs = self.model_dump(exclude_unset=True, by_alias=True)
@@ -401,10 +402,17 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
         # TODO: Nicely format Pydantic error messages here
         if resp.status_code >= 400:
             raise OneCodexException(resp.json().get("message", f"Unknown error updating {self}"))
+
+        # Finally, we update the model in-place with the validated server-side response.
+        # Note that this is lazy and does *not* trigger `getattr` and cache resolution
+        # whereas `setattr(self, field, getattr(new_pydantic_obj, field))` does.
         updated_data = resp.json()
-        copied_cache = self._resolved_cache.copy()
-        self = self.__class__.model_validate(updated_data)
-        self._resolved_cache = copied_cache
+        new_pydantic_obj = self.__class__.model_validate(updated_data)
+        for field, value in new_pydantic_obj:
+            try:
+                setattr(self, field, value)
+            except MethodNotSupported:
+                pass
 
     def delete(self) -> bool:
         if "delete" not in self._allowed_methods:

@@ -261,6 +261,36 @@ def test_metadata_saving_should_ignore_updated_at_prop(ocx, api_data):
     assert "updated_at" not in patch_data
 
 
+def test_metadata_update_name(ocx, api_data):
+    m = ocx.Metadata.get("4fe05e748b5a4f0e")
+    assert len(api_data.calls) == 1
+    m.update(name="new name")
+    patch_request = api_data.calls[-1].request
+    assert json.loads(patch_request.body) == {"name": "new name"}
+    assert patch_request.method == "PATCH"
+    assert m.name == "new name"
+    assert len(api_data.calls) == 2
+    _ = m.sample
+    assert len(api_data.calls) == 3
+
+
+def test_metadata_update_from_properties_w_coercions(ocx, api_data):
+    m = ocx.Metadata.get("4fe05e748b5a4f0e")
+    assert len(api_data.calls) == 1
+    m.location_lat = "90"
+    m.location_lon = "180"
+
+    # There's a user warning from the "90" -> 90.0 type coercion
+    with pytest.warns(UserWarning):
+        m.update()
+
+    patch_request = api_data.calls[-1].request
+    assert patch_request.method == "PATCH"
+    assert m.location_lat == 90.0
+    assert m.location_lon == 180.0
+    assert len(api_data.calls) == 2
+
+
 def test_dir_patching(ocx, api_data):
     sample = ocx.Samples.get("761bc54b97f64980")
     props = {
