@@ -91,6 +91,7 @@ class Documents(OneCodexBase, DocumentSchema, ResourceDownloadMixin):
         return cls.get(doc_id)
 
 
+# NOTE: this model is only accessible via `X-OneCodex-Api-Experimental` as of 10/2/2025
 class Assets(OneCodexBase, AssetSchema, ResourceDownloadMixin):
     _resource_path = "/api/v1/assets"
     _allowed_methods = {

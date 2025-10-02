@@ -7,6 +7,8 @@ from onecodex.models.schemas.genome import (
     AssemblySchema,
 )
 
+# NOTE: these models are only accessible via `X-OneCodex-Api-Experimental` as of 10/2/2025
+
 
 class AnnotationSets(OneCodexBase, AnnotationSetSchema, ResourceDownloadMixin):
     _resource_path = "/api/v1/annotation_sets"

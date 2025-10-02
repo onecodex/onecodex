@@ -74,10 +74,14 @@ class DocumentSchema(URIModel):
     )
 
 
+# NOTE: these Asset models are only accessible via `X-OneCodex-Api-Experimental` as of 10/2/2025
+
+
 class AssetUpdateSchema(BaseModel):
     name: str
 
 
+# NOTE: this model is unstable/experimental and likely to change
 class AssetSchema(URIModel):
     created_at: RFC3339Datetime
     name: str

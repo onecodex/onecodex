@@ -6,6 +6,8 @@ from onecodex.models.schemas.misc import JobSchema, TagSchema, UserSchema
 from onecodex.models.schemas.sample import ApiV1Visibility, SampleSchema
 from onecodex.models.schemas.types import RFC3339Datetime
 
+# NOTE: these models are only accessible via `X-OneCodex-Api-Experimental` as of 10/2/2025
+
 
 class AssemblySchema(URIModel):
     created_at: RFC3339Datetime
