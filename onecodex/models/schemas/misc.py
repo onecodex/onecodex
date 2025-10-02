@@ -82,7 +82,7 @@ class AssetSchema(URIModel):
     created_at: RFC3339Datetime
     name: str
     filename: str
-    s3_uri: str | None
+    s3_uri: Optional[str]
     status: AssetStatus
     organization_id: int
     uploaded_by: Union[UserSchema, ApiRef]

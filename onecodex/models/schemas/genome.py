@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List, Optional, Union
 
 from onecodex.models.base import ApiRef
 from onecodex.models.schemas.base import URIModel
@@ -9,35 +9,35 @@ from onecodex.models.schemas.types import RFC3339Datetime
 
 class AssemblySchema(URIModel):
     created_at: RFC3339Datetime
-    filename: str | None
-    genome: ApiRef | None
-    input_samples: Union[List[SampleSchema], List[ApiRef]] | None
-    job: Union[JobSchema, ApiRef] | None
+    filename: Optional[str]
+    genome: Optional[ApiRef]
+    input_samples: Optional[Union[List[SampleSchema], List[ApiRef]]]
+    job: Optional[Union[JobSchema, ApiRef]]
     owner: Union[UserSchema, ApiRef]
-    primary_annotation_set: ApiRef | None
-    size: int | None
+    primary_annotation_set: Optional[ApiRef]
+    size: Optional[int]
     visibility: ApiV1Visibility
 
 
 class AnnotationSetSchema(URIModel):
     created_at: RFC3339Datetime
     assembly: Union[AssemblySchema, ApiRef]
-    job: Union[JobSchema, ApiRef] | None
+    job: Optional[Union[JobSchema, ApiRef]]
 
 
 class TaxonSchema(URIModel):
     created_at: RFC3339Datetime
-    name: str | None
+    name: Optional[str]
     taxon_id: str
-    rank: str | None
-    parent: ApiRef | None
+    rank: Optional[str]
+    parent: Optional[ApiRef]
 
 
 class GenomeSchema(URIModel):
     created_at: RFC3339Datetime
     assemblies: Union[List[AssemblySchema], List[ApiRef]]
-    description: str | None
-    name: str | None
-    primary_assembly: Union[AssemblySchema, ApiRef] | None
+    description: Optional[str]
+    name: Optional[str]
+    primary_assembly: Optional[Union[AssemblySchema, ApiRef]]
     tags: Union[List[TagSchema], List[ApiRef]]
     taxon: Union[TaxonSchema, ApiRef]
