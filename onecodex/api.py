@@ -76,18 +76,11 @@ class Api(object):
         load_extensions=True,
         **kwargs,
     ):
-        if kwargs.get("experimental") is True:
-            warnings.warn(
-                "Experimental mode is deprecated and does not work in this version. Please use <=0.18.0.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
         if base_url is None:
             base_url = os.environ.get("ONE_CODEX_API_BASE", "https://app.onecodex.com")
             if base_url != "https://app.onecodex.com":
                 warnings.warn("Using base API URL: {}".format(base_url))
 
-        self._req_args = {}
         self._base_url = base_url
         self._schema_path = schema_path
 
@@ -130,6 +123,13 @@ class Api(object):
 
         headers = {"X-OneCodex-Client-User-Agent": __version__}
 
+        if kwargs.get("experimental", False):
+            warnings.warn(
+                "Experimental API mode enabled. Features of the experimental API are subject to "
+                "change without notice and should not be relied upon in a production environment."
+            )
+            headers["X-OneCodex-Api-Experimental"] = "1"
+
         self._client = HTTPClient(auth=auth, headers=headers)
         self._copy_resources()
 
@@ -166,13 +166,7 @@ class Api(object):
         return os.environ.get("ONE_CODEX_USER_EMAIL", os.environ.get("ONE_CODEX_USER_UUID"))
 
     def _copy_resources(self):
-        """Copy subclassed potion resources into this instance of Api().
-
-        Notes
-        -----
-        Will only make available any objects that were listed in the REST API schema, either cached
-        or retrieved from the server. If a non-standard schema_path was given, make sure we match
-        e.g., /api/v1_experimental/samples up with /api/v1/samples.
+        """Copy models into this instance of Api().
 
         Returns
         -------

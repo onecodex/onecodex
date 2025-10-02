@@ -361,7 +361,8 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
                     "expand": "all",
                 },
             )
-            instances.extend([cls.model_validate(r) for r in resp.json()])
+            resp.raise_for_status()
+            instances.extend(cls.model_validate(r) for r in resp.json())
             n_instances = len(instances)
             if limit is not None and n_instances >= limit:
                 break

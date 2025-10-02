@@ -161,7 +161,6 @@ def test_upload_lots_of_files(files, n_uploads, fxi_calls, fxp_calls, ocx, mock_
                 assert passthru.call_count == fxp_calls + fxi_calls
 
 
-@pytest.mark.xfail(reason="Assets are not supported in the API")
 def test_upload_asset(ocx, mock_api_responses):
     with patch("boto3.session.Session"):
         file = "test_asset_file.fa"
@@ -184,7 +183,6 @@ def test_upload_asset(ocx, mock_api_responses):
             assert passthru.call_count == 1
 
 
-@pytest.mark.xfail(reason="Assets are not supported in the API")
 def test_upload_asset_with_name(ocx, mock_api_responses):
     with patch("boto3.session.Session"):
         file = "test_asset_file.fa"

@@ -1,6 +1,8 @@
-import click
+import copy
 import os
 import os.path
+
+import click
 import requests
 
 from onecodex.exceptions import OneCodexException
@@ -100,7 +102,6 @@ class ResourceDownloadMixin(object):
         return self._download(
             "download_uri",
             _filename=self.filename,
-            use_potion_session=False,
             path=path,
             file_obj=file_obj,
             progressbar=progressbar,
@@ -110,7 +111,7 @@ class ResourceDownloadMixin(object):
         self,
         _resource_method,
         _filename=None,
-        use_potion_session=False,
+        use_client_session=False,
         path=None,
         file_obj=None,
         progressbar=False,
@@ -135,14 +136,17 @@ class ResourceDownloadMixin(object):
                 raise OneCodexException("{} already exists. Will not overwrite.".format(path))
 
             download_link_info = self._client.post(
-                f"{self._api._base_url}{self.field_uri}/download_uri"
+                f"{self._api._base_url}{self.field_uri}/{_resource_method}"
             )
             download_link_info.raise_for_status()
             link = download_link_info.json()["download_uri"]
 
-            # Create a new session with custom retries for downloads. Do not use HTTPClient because
-            # this request goes to S3 and uses a different auth mechanism
-            session = requests.Session()
+            if use_client_session:
+                session = copy.deepcopy(self._client.session)
+            else:
+                # Create a new session with custom retries for downloads. Do not use HTTPClient
+                # because this request goes to S3 and uses a different auth mechanism
+                session = requests.Session()
 
             # Retry up to 5 times with backoff timing of 2s, 4s, 8s, 16s, and 32s (applies to all
             # HTTP methods). 404 is included for cases where the file is being asynchronously
