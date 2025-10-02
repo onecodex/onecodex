@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.19.0] - 2025-10-06
+
+### Added
+
+- Adds Python 3.13 support
+- Adds numpy v2 support
+
+### Changed
+
+- Upgrades Altair to 5.5.0
+- Upgrades scikit-bio to 0.7.0. **IMPORTANT:** This changes the log base used in Shannon alpha diversity calculations from base 2 to `e` (natural log)
+- Upgrades urllib3 to >=2.5.0
+- Modernizes packaging and tooling by migrating to `pyproject.toml`, `uv`, and `ruff`
+- Updates `pytest` to fail on warnings
+- Replaces Potion-Client resources with Pydantic v2 models
+- Changes `metric=auto` behavior based on the number of classification results with abundance estimates
+
+### Fixed
+
+- Fixes `SampleCollection` metadata fetching to only match canonical ranks
+- Fixes issue when plotting fields that look like JavaScript paths (e.g. `field.name` or `field[name]`)
+- Fixes various documentation issues
+
+### Removed
+
+- Removes `Samples.init_multipart_upload()` in favor of `Samples.upload()`
+
 ## [v0.18.0] - 2025-04-18
 
 ### Added
