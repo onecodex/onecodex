@@ -172,15 +172,10 @@ class Api(object):
         -------
         `None`
         """
-        from onecodex import models
-        from onecodex.models.base import OneCodexBase
+        from onecodex.models import _MODEL_REGISTRY
 
-        for model_name in models.__all__:
-            if issubclass(getattr(models, model_name), OneCodexBase):
-                self._register(getattr(models, model_name))
-
-    def _register(self, model):
-        model._api = self
-        model._client = self._client
-        assert getattr(self, model.__name__, None) is None
-        setattr(self, model.__name__, model)
+        for model in _MODEL_REGISTRY.values():
+            model._api = self
+            model._client = self._client
+            assert getattr(self, model.__name__, None) is None
+            setattr(self, model.__name__, model)
