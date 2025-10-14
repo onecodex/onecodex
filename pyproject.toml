@@ -39,7 +39,7 @@ dependencies = [
     "six>=1.10.0",
     "unidecode>=1.0.23",
     "filelock>=3.0.12,<4",
-    "pydantic>=2.11.7",
+    "pydantic>=2.10.6",
 ]
 
 [project.optional-dependencies]

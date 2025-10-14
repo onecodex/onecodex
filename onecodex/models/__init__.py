@@ -86,6 +86,4 @@ __all__ = [
     "Genomes",
     "Taxa",
     "SampleCollection",
-    "register_model",
-    "get_model_class",
 ]
