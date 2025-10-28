@@ -1091,7 +1091,7 @@ def test_plot_bargraph_include_taxa_missing_rank(
     with (
         mock.patch.object(samples, "to_df") as mock_to_df,
     ):
-        samples.plot_bargraph()
+        samples.plot_bargraph(return_chart=True)
 
     mock_to_df.assert_called_with(
         rank=Rank.Auto,
