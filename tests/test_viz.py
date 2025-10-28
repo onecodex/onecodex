@@ -1071,3 +1071,32 @@ def test_plot_bargraph_escape_js_like_fields(samples, metadata_key, escaped_key)
         rank="genus",
     ).to_dict()
     assert chart["encoding"]["x"]["field"] == escaped_key
+
+
+@pytest.mark.parametrize(
+    ("metric", "expected_include_taxa_missing_rank"),
+    [
+        (Metric.Readcount, False),
+        (Metric.ReadcountWChildren, True),
+        (Metric.Abundance, False),
+        (Metric.AbundanceWChildren, True),
+    ],
+)
+def test_plot_bargraph_include_taxa_missing_rank(
+    samples, metric, expected_include_taxa_missing_rank
+):
+    samples._collate_results(metric=metric)
+    assert samples._metric == metric
+
+    with (
+        mock.patch.object(samples, "to_df") as mock_to_df,
+    ):
+        samples.plot_bargraph(return_chart=True)
+
+    mock_to_df.assert_called_with(
+        rank=Rank.Auto,
+        top_n=None,
+        threshold=None,
+        normalize=None,
+        include_taxa_missing_rank=expected_include_taxa_missing_rank,
+    )

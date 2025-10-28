@@ -130,10 +130,10 @@ class VizBargraphMixin(object):
                 )
 
         if include_taxa_missing_rank is None:
-            if self._metric == Metric.AbundanceWChildren:
-                include_taxa_missing_rank = True
-            else:
-                include_taxa_missing_rank = False
+            include_taxa_missing_rank = self._metric in {
+                Metric.ReadcountWChildren,
+                Metric.AbundanceWChildren,
+            }
 
         # We're intentionally *not* normalizing or filtering by top_n/threshold in to_df() in case
         # group_by was passed. Grouping samples needs to happen *before* normalization.
