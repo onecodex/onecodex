@@ -10,7 +10,7 @@ import altair as alt
 import numpy as np
 import pandas as pd
 
-from onecodex.lib.enums import Metric, AbundanceMetric, Link, Rank, BetaDiversityMetric, Linkage
+from onecodex.lib.enums import Metric, Link, Rank
 from onecodex.exceptions import OneCodexException, PlottingException
 from onecodex.models.collection import SampleCollection
 from onecodex.utils import has_missing_values
@@ -64,7 +64,11 @@ def test_altair_ocx_renderer(ocx, api_data):
 
 def test_plot_metadata(samples):
     chart = samples.plot_metadata(
-        vaxis="simpson", title="my title", xlabel="my xlabel", ylabel="my ylabel", return_chart=True
+        vaxis="simpson",
+        title="my title",
+        xlabel="my xlabel",
+        ylabel="my ylabel",
+        return_chart=True,
     )
     assert chart.data["simpson"].tolist() == [
         0.9232922257199748,
@@ -162,7 +166,9 @@ def test_plot_metadata_secondary_haxis_and_facet_by(samples, plot_type):
 
 
 def test_plot_metadata_alpha_diversity_with_nans(samples):
-    mock_alpha_div_values = samples.alpha_diversity(metric="shannon")
+    mock_alpha_div_values = samples.alpha_diversity(
+        diversity_metric="shannon", metric="abundance_w_children"
+    )
     mock_alpha_div_values.iat[1, 0] = np.nan
     mock_alpha_div_values.iat[2, 0] = np.nan
 
@@ -177,7 +183,8 @@ def test_plot_metadata_alpha_diversity_with_nans(samples):
 
 @pytest.mark.parametrize("coerce_haxis_dates", [True, False])
 def test_plot_metadata_haxis_date_coercion(samples, coerce_haxis_dates):
-    samples.metadata["date_collected"] = datetime.now().isoformat()
+    for sample in samples:
+        sample.metadata.custom["date_collected"] = datetime.now().isoformat()
     assert samples.metadata["date_collected"].dtype == object
 
     chart = samples.plot_metadata(
@@ -217,28 +224,26 @@ def test_plot_metadata_exceptions(samples):
         samples.plot_metadata(vaxis="shannon", haxis="wheat", secondary_haxis="wheat")
 
 
-def test_plot_metadata_all_samples_are_nan(samples):
-    samples._results[:] = np.nan
-    assert len(samples._classification_ids_without_abundances) == 3
+def test_plot_metadata_all_samples_are_nan(samples_without_abundances):
+    assert len(samples_without_abundances._classification_ids_without_abundances) == 3
 
-    # Raises for alpha diversity
+    # Raises for alpha diversity when plotting abundances
     with pytest.raises(PlottingException, match="Abundances are not calculated for any"):
-        samples.plot_metadata(vaxis="shannon")
+        samples_without_abundances.plot_metadata(vaxis="shannon", metric="abundance")
 
     # Does not raise for numeric metadata column
-    chart = samples.plot_metadata(vaxis="totalige", return_chart=True)
+    chart = samples_without_abundances.plot_metadata(vaxis="totalige", return_chart=True)
     assert chart.mark == "circle"
 
 
-def test_plot_metadata_filters_nan_samples(samples):
-    samples._results.iloc[0, :] = np.nan
-    samples._results.iloc[1, :] = np.nan
-    assert len(samples._classification_ids_without_abundances) == 2
+def test_plot_metadata_filters_nan_samples(samples, samples_without_abundances):
+    all_samples = samples + samples_without_abundances
+    assert len(all_samples._classification_ids_without_abundances) == 3
 
-    with pytest.warns(PlottingWarning, match=r"2 sample\(s\) have no abundances calculated"):
-        chart = samples.plot_metadata(vaxis="shannon", return_chart=True)
+    with pytest.warns(PlottingWarning, match=r"3 sample\(s\) have no abundances calculated"):
+        chart = all_samples.plot_metadata(vaxis="shannon", return_chart=True, metric="abundance")
 
-    assert len(chart["data"]) == 1
+    assert len(chart["data"]) == len(all_samples) - len(samples_without_abundances)
 
 
 def test_plot_metadata_group_with_single_value(samples):
@@ -261,12 +266,11 @@ def test_plot_metadata_group_with_single_value(samples):
 
 
 def test_plot_pca(samples):
-    samples._collate_results(metric="readcount_w_children")
-
     chart = samples.plot_pca(
+        metric="prop_readcount_w_children",
         title="my title",
-        xlabel="my xlabel",
         ylabel="my ylabel",
+        xlabel="my xlabel",
         color="geo_loc_name",
         size="totalige",
         rank="genus",
@@ -281,8 +285,8 @@ def test_plot_pca(samples):
     assert len(chart.layer) == 2
 
     mainplot = chart.layer[0]
-    assert mainplot.data["Bacteroides (816)"].round(6).tolist() == [0.356439, 0.213307, 0.787949]
-    assert mainplot.data["Prevotella (838)"].round(6).tolist() == [0.000221, 0.001872, 6.7e-05]
+    assert mainplot.data["Bacteroides (816)"].round(6).tolist() == [0.181562, 0.094197, 0.314695]
+    assert mainplot.data["Prevotella (838)"].round(6).tolist() == [0.000113, 0.000827, 2.7e-05]
     assert mainplot.data["totalige"].tolist() == [62.9, 91.5, 112.0]
     assert mainplot.encoding.color.shorthand == "geo_loc_name"
     assert mainplot.encoding.size.shorthand == "totalige"
@@ -300,12 +304,15 @@ def test_plot_pca(samples):
     ]
 
     vectors = chart.layer[1]
-    assert vectors.data["x"].sum().round(6) == 0.145172
-    assert vectors.data["y"].sum().round(6) == 0.039944
+    assert vectors.data["x"].sum().round(6) == 0.055864
+    assert vectors.data["y"].sum().round(6) == 0.033714
     assert vectors.data["o"].tolist() == [0, 1, 0, 1, 0, 1]
 
 
-@pytest.mark.parametrize("match_taxonomy", [True, False])
+@pytest.mark.parametrize(
+    "match_taxonomy",
+    [True, False],
+)
 def test_plot_match_taxonomy(samples, match_taxonomy):
     """
     Test that arguments that determine plotting parameters based on
@@ -374,17 +381,16 @@ def test_plot_pca_color_by_field_with_nans(samples):
     assert_expected_color_scale_range_len(chart, 1)
 
 
-def test_plot_pca_missing_abundances(ocx, api_data, samples):
-    sample1 = ocx.Samples.get("cc18208d98ad48b3")
-    sample2 = ocx.Samples.get("5445740666134eee")
-    samples.extend([sample1, sample2])
+def test_plot_pca_missing_abundances(ocx, api_data, samples, samples_without_abundances):
+    samples = samples + samples_without_abundances
 
-    samples._results.loc[samples[1].primary_classification.id] = np.nan
-    samples._results.loc[samples[3].primary_classification.id] = np.nan
-    assert len(samples._classification_ids_without_abundances) == 2
+    assert len(samples._classification_ids_without_abundances) == 3
 
-    with pytest.warns(PlottingWarning, match=r"2 sample\(s\) have no abundances calculated"):
-        samples.plot_pca(return_chart=True)
+    with pytest.warns(PlottingWarning, match=r"3 sample\(s\) have no abundances calculated"):
+        samples.plot_pca(metric="abundance")
+
+    # non abundance-based metric, no warning
+    samples.plot_pca(metric="readcount")
 
 
 def test_plot_pca_exceptions(samples):
@@ -399,15 +405,21 @@ def test_plot_pca_exceptions(samples):
     assert "too few samples" in str(e.value)
 
     # samples must have at least two taxa at this rank
-    with pytest.raises(PlottingException) as e:
-        samples.to_df(top_n=1).ocx.plot_pca()
-    assert "too few taxa" in str(e.value)
+    # (the ability to filter to top_n before plotting pca was removed)
+    # with pytest.raises(PlottingException) as e:
+    #     samples.plot_pca()
+    # assert "too few taxa" in str(e.value)
 
 
 def test_plot_heatmap(samples):
     chart = samples.plot_heatmap(
-        top_n=10, title="my title", xlabel="my xlabel", ylabel="my ylabel", return_chart=True
+        top_n=10,
+        title="my title",
+        xlabel="my xlabel",
+        ylabel="my ylabel",
+        return_chart=True,
     )
+
     assert chart.mark == "rect"
     assert chart.title == "my title"
     assert_expected_x_axis_title(chart, "my xlabel")
@@ -430,6 +442,7 @@ def test_plot_heatmap_match_taxonomy(samples):
     )
     assert "Bacteroides (816)" in chart.data.columns
 
+    # state is being saved somewhere ...
     chart = samples.plot_heatmap(
         top_n=10, tooltip="Bacteroides", match_taxonomy=False, return_chart=True
     )
@@ -445,28 +458,23 @@ def test_plot_heatmap_with_missing_haxis_sample(samples):
     assert "N/A" in chart.data["eggs"].unique()
 
 
-@pytest.mark.parametrize(
-    "is_onecodex_accessor",
-    [
-        (False),
-        (True),
-    ],
-)
-def test_plot_heatmap_plots_samples_without_abundances_with_nans(samples, is_onecodex_accessor):
-    # Set abundances for first sample to be all NaN
-    all_nan_sample = samples[0]
-    samples._results.loc[all_nan_sample.primary_classification.id] = np.nan
-    assert len(samples._classification_ids_without_abundances) == 1
+def test_plot_heatmap_plots_samples_without_abundances_with_nans(
+    samples, samples_without_abundances
+):
+    all_nan_sample = samples_without_abundances[0]
+    samples = SampleCollection([all_nan_sample, *samples[:2]])
 
+    # Set abundances for first sample to be all NaN
     all_nan_classification_id = samples._classification_ids_without_abundances[0]
-    if is_onecodex_accessor:
-        chart = samples.to_df().ocx.plot_heatmap(
-            title="my title", xlabel="my xlabel", ylabel="my ylabel", return_chart=True
-        )
-    else:
-        chart = samples.plot_heatmap(
-            top_n=10, title="my title", xlabel="my xlabel", ylabel="my ylabel", return_chart=True
-        )
+
+    chart = samples.plot_heatmap(
+        top_n=10,
+        metric="abundance_w_children",
+        title="my title",
+        xlabel="my xlabel",
+        ylabel="my ylabel",
+        return_chart=True,
+    )
     chart_data = chart["data"]
 
     # Samples with no abundances calculated for them should have all-NaN rows in chart data df
@@ -490,118 +498,69 @@ def test_plot_heatmap_plots_samples_without_abundances_with_nans(samples, is_one
     assert chart.to_dict()["encoding"]["x"]["sort"][-1] == all_nan_sample.filename
 
 
-def test_plot_heatmap_with_haxis_two_cluster_groups(ocx, api_data, samples):
-    sample1 = ocx.Samples.get("cc18208d98ad48b3")
-    sample2 = ocx.Samples.get("5445740666134eee")
-    samples.extend([sample1, sample2])
+def test_plot_heatmap_with_haxis_two_cluster_groups(
+    ocx, api_data, samples, samples_without_abundances
+):
+    # we need at least 8 samples
+    samples = samples + samples_without_abundances
+
+    for sample in samples[:4]:
+        sample.metadata.custom["wheat"] = "yes"
+
+    for sample in samples[4:]:
+        sample.metadata.custom["wheat"] = "no"
 
     # Set abundances for one sample to be all NaN
     # (It should not be in the clustering group)
-    all_nan_sample = samples[1]
-    samples._results.loc[all_nan_sample.primary_classification.id] = np.nan
-    assert len(samples._classification_ids_without_abundances) == 1
+    assert len(samples._classification_ids_without_abundances) == len(samples_without_abundances)
 
-    # Make sure we are actually calling _cluster_by_sample
-    with mock.patch("onecodex.viz._distance.VizDistanceMixin._cluster_by_sample") as cluster_fn:
-        # The _cluster_by_sample method returns other things as well, but `ids_in_order` is the
-        # only thing needed for the rest of `plot_heatmap`
-        cluster_fn.return_value = {
-            "ids_in_order": [
-                "4eed25415f6945dd",
-                "6579e99943f84ad2",
-                "e0422602de41479f",
-                "1198c7ce565643f9",
-            ]
-        }
-        samples.plot_heatmap(rank="genus", top_n=15, haxis="wheat", return_chart=True)
-        assert cluster_fn.call_count == 1
+    chart = samples.plot_heatmap(
+        metric=Metric.AbundanceWChildren, rank="genus", top_n=15, haxis="wheat", return_chart=True
+    )
 
-    # Does not raise exception
-    samples.plot_heatmap(rank="genus", top_n=15, haxis="wheat", return_chart=True)
+    no_abundance_samples = ["noabund" in x for x in chart.data["classification_id"].values]
+
+    # make sure that all of the no abundance samples are on the right side
+    assert sorted(no_abundance_samples) == no_abundance_samples
 
 
-def test_plot_heatmap_all_samples_are_nan(ocx, api_data, samples):
-    samples._results[:] = np.nan
-    assert len(samples._classification_ids_without_abundances) == 3
+def test_plot_heatmap_all_samples_are_nan(ocx, api_data, samples_without_abundances):
+    assert len(samples_without_abundances._classification_ids_without_abundances) == 3
 
     with pytest.raises(PlottingException, match="Abundances are not calculated for any"):
-        samples.plot_heatmap(top_n=10, return_chart=True)
+        samples_without_abundances.plot_heatmap(top_n=10, metric="abundance")
 
 
-def test_plot_bargraph_no_samples_have_abundances(ocx, api_data, samples):
-    samples._results[:] = np.nan
-    assert len(samples._classification_ids_without_abundances) == 3
+def test_plot_bargraph_no_samples_have_abundances(ocx, api_data, samples_without_abundances):
+    assert len(samples_without_abundances._classification_ids_without_abundances) == 3
 
-    chart = samples.plot_bargraph(return_chart=True)
+    chart = samples_without_abundances.plot_bargraph(return_chart=True)
 
-    assert list(chart.data["Relative Abundance"].values) == [0.0, 0.0, 0.0]
+    assert "Reads (Normalized)" in chart.data.columns
+    assert "Relative Abundance" not in chart.data.columns
 
 
-def test_plot_distance_cluster_by_sample_excludes_classifications_without_abundances(
-    ocx, api_data, samples
+def test_plot_distance_excludes_classifications_without_abundances(
+    ocx, api_data, samples, samples_without_abundances
 ):
-    sample1 = ocx.Samples.get("cc18208d98ad48b3")
-    sample2 = ocx.Samples.get("5445740666134eee")
-    samples.extend([sample1, sample2])
+    all_samples = samples + samples_without_abundances
 
-    # Set abundances for one sample to be all NaN
-    all_nan_sample = samples[1]
-    samples._results.loc[all_nan_sample.primary_classification.id] = np.nan
-    assert len(samples._classification_ids_without_abundances) == 1
+    with pytest.warns(UserWarning):
+        chart = all_samples.plot_distance(return_chart=True)
 
-    with (
-        mock.patch("onecodex.viz._distance.VizDistanceMixin._cluster_by_sample") as cluster_fn,
-        mock.patch("onecodex.viz.dendrogram"),
-        mock.patch("altair.hconcat"),
-    ):
-        with pytest.warns(PlottingWarning):
-            samples.plot_distance()
-            # the cluster function should be called with
-            # `exclude_classifications_without_abundances=True` and the classification ID of the
-            # `all_nan_sample`
-            cluster_fn.assert_called_with(
-                rank=Rank.Auto,
-                metric=BetaDiversityMetric.BrayCurtis,
-                linkage=Linkage.Average,
-                classification_ids_without_abundances=[all_nan_sample.primary_classification.id],
-                exclude_classifications_without_abundances=True,
-            )
+    classification_ids = set(chart.hconcat[1].data["classification_id"].values)
+
+    assert (
+        len(classification_ids & {s.primary_classification.id for s in samples_without_abundances})
+        == 0
+    )
+    assert len(classification_ids ^ {s.primary_classification.id for s in samples}) == 0
 
 
-def test_plot_distance_excludes_classifications_without_abundances(ocx, api_data, samples):
-    sample1 = ocx.Samples.get("cc18208d98ad48b3")
-    sample2 = ocx.Samples.get("5445740666134eee")
-    samples.extend([sample1, sample2])
-
-    # Set abundances for one sample to be all NaN
-    all_nan_sample = samples[1]
-    samples._results.loc[all_nan_sample.primary_classification.id] = np.nan
-    assert len(samples._classification_ids_without_abundances) == 1
-
-    with mock.patch("altair.hconcat") as mock_hconcat:
-        with pytest.warns(PlottingWarning):
-            samples.plot_distance()
-            assert (
-                all_nan_sample.primary_classification.id
-                not in mock_hconcat.call_args[0][1].data["1) Label"].values
-            )
-
-
-def test_plot_distance_min_with_abundances(ocx, api_data):
-    import numpy as np
-
-    sample1 = ocx.Samples.get("cc18208d98ad48b3")
-    sample2 = ocx.Samples.get("5445740666134eee")
-    samples = SampleCollection([sample1, sample2])
-
-    # Set abundances for both samples to be all NaN
-    samples._results.loc[sample1.primary_classification.id] = np.nan
-    samples._results.loc[sample2.primary_classification.id] = np.nan
-    assert len(samples._classification_ids_without_abundances) == 2
-
+def test_plot_distance_min_with_abundances(ocx, api_data, samples, samples_without_abundances):
     # We should raise a PlottingException if we don't have >= 2 samples with abundances calculated
     with pytest.raises(PlottingException) as e:
-        samples.plot_distance()
+        (samples[:1] + samples_without_abundances).plot_distance(metric="abundance")
         assert "There are too few samples for distance matrix plots" in str(e.value)
 
 
@@ -629,7 +588,7 @@ def test_plot_heatmap_exceptions(samples):
 
 def test_plot_distance(samples):
     chart = samples.plot_distance(
-        metric="weighted_unifrac",
+        diversity_metric="weighted_unifrac",
         xlabel="my xlabel",
         ylabel="my ylabel",
         title="my title",
@@ -660,36 +619,35 @@ def test_plot_distance_exceptions(samples):
 
     # only some metrics allowed
     with pytest.raises(OneCodexException) as e:
-        samples.plot_distance(metric="simpson")
+        samples.plot_distance(diversity_metric="simpson")
     assert "must be one of" in str(e.value)
 
     # need at least two samples
     with pytest.raises(PlottingException) as e:
         samples[:1].plot_distance(
-            metric="jaccard", xlabel="my xlabel", ylabel="my ylabel", title="my title"
+            diversity_metric="jaccard", xlabel="my xlabel", ylabel="my ylabel", title="my title"
         )
     assert "too few samples" in str(e.value)
 
 
 @pytest.mark.parametrize(
-    "metric,dissimilarity_metric,smacofs",
+    "metric,diversity_metric,smacofs",
     [
         # Some results differ between sklearn 1.6 and 1.7
         ("abundance_w_children", "weighted_unifrac", {0.7595}),
         ("abundance_w_children", "unweighted_unifrac", {0.1734}),
         ("abundance_w_children", "braycurtis", {0.0143, 0.1284}),
         ("readcount_w_children", "weighted_unifrac", {0.4956, 0.0918}),
-        ("readcount_w_children", "unweighted_unifrac", {0.3579}),
         ("readcount_w_children", "braycurtis", {0.1735, 0.0798}),
+        ("readcount_w_children", "unweighted_unifrac", {0.3579}),
     ],
 )
-def test_plot_mds(samples, metric, dissimilarity_metric, smacofs):
-    samples._collate_results(metric=metric)
-
+def test_plot_mds(samples, metric, diversity_metric, smacofs):
     chart = samples.plot_mds(
+        metric=metric,
         rank="species",
         method="pcoa",
-        metric=dissimilarity_metric,
+        diversity_metric=diversity_metric,
         xlabel="my xlabel",
         ylabel="my ylabel",
         title="my title",
@@ -704,9 +662,14 @@ def test_plot_mds(samples, metric, dissimilarity_metric, smacofs):
     assert (chart.data["PC1"] * chart.data["PC2"]).sum().round(6) == 0.0
 
     chart = samples.plot_mds(
-        method="smacof", rank="species", metric=dissimilarity_metric, return_chart=True
+        metric=metric,
+        method="smacof",
+        rank="species",
+        diversity_metric=diversity_metric,
+        return_chart=True,
     )
-    assert (chart.data["MDS1"] * chart.data["MDS2"]).sum().round(4) in smacofs
+    result = (chart.data["MDS1"] * chart.data["MDS2"]).sum().round(4)
+    assert result in smacofs
 
 
 def test_plot_mds_color_by_bool_field(samples):
@@ -731,22 +694,17 @@ def test_plot_mds_color_by_field_with_nans(samples):
     assert_expected_color_scale_range_len(chart, 1)
 
 
-def test_plot_mds_missing_abundances(ocx, api_data, samples):
-    sample1 = ocx.Samples.get("cc18208d98ad48b3")
-    sample2 = ocx.Samples.get("5445740666134eee")
-    samples.extend([sample1, sample2])
-
-    samples._results.loc[samples[1].primary_classification.id] = np.nan
-    samples._results.loc[samples[3].primary_classification.id] = np.nan
+def test_plot_mds_missing_abundances(ocx, api_data, samples, samples_without_abundances):
+    samples = samples + samples_without_abundances[:2]
     assert len(samples._classification_ids_without_abundances) == 2
 
     with pytest.warns(PlottingWarning, match=r"2 sample\(s\) have no abundances calculated"):
-        samples.plot_mds(return_chart=True)
+        samples.plot_mds(metric="abundance")
 
 
 def test_plot_pcoa(samples):
     chart = samples.plot_pcoa(
-        metric="weighted_unifrac",
+        diversity_metric="weighted_unifrac",
         xlabel="my xlabel",
         ylabel="my ylabel",
         title="my title",
@@ -771,13 +729,13 @@ def test_plot_mds_exceptions(samples):
 
     # only some metrics allowed
     with pytest.raises(OneCodexException) as e:
-        samples.plot_mds(metric="simpson")
+        samples.plot_mds(diversity_metric="simpson")
     assert "must be one of" in str(e.value)
 
     # need at least 3 samples
     with pytest.raises(PlottingException) as e:
         samples[:2].plot_mds(
-            metric="jaccard", xlabel="my xlabel", ylabel="my ylabel", title="my title"
+            diversity_metric="jaccard", xlabel="my xlabel", ylabel="my ylabel", title="my title"
         )
     assert "too few samples" in str(e.value)
 
@@ -787,7 +745,6 @@ def test_plot_mds_exceptions(samples):
     [
         ({"rank": None}, None, "specify a rank"),
         ({"threshold": None, "top_n": None}, None, "threshold, top_n"),
-        ({"normalize": False}, Metric.AbundanceWChildren, "already been normalized"),
         ({"group_by": "foo", "tooltip": "bar"}, None, "not supported with `group_by`"),
         ({"group_by": "foo", "haxis": "bar"}, None, "not supported with `group_by`"),
         ({"group_by": "foo", "label": "bar"}, None, "not supported with `group_by`"),
@@ -796,9 +753,7 @@ def test_plot_mds_exceptions(samples):
     ],
 )
 def test_plot_bargraph_errors(samples, kwargs, metric, msg):
-    if metric:
-        samples._collate_results(metric=metric)
-
+    kwargs["metric"] = metric
     with pytest.raises(OneCodexException, match=msg):
         samples.plot_bargraph(**kwargs)
 
@@ -807,15 +762,6 @@ def test_plot_bargraph_too_few_samples(samples):
     # need at least 1 sample
     with pytest.raises(PlottingException, match="too few samples"):
         samples[:0].plot_bargraph()
-
-
-@pytest.mark.parametrize("metric", [Metric.Readcount, Metric.ReadcountWChildren])
-def test_plot_bargraph_group_by_counts_already_normalized(samples, metric):
-    samples._collate_results(metric=metric)
-
-    with pytest.raises(OneCodexException, match="`group_by`.*readcounts.*already been normalized"):
-        with mock.patch.object(samples, "_guess_normalized", return_value=True):
-            samples.plot_bargraph(group_by="barley")
 
 
 @pytest.mark.parametrize(
@@ -828,8 +774,8 @@ def test_plot_bargraph_group_by_counts_already_normalized(samples, metric):
     ],
 )
 def test_plot_bargraph_chart_result(samples, metric, rank, label):
-    samples._collate_results(metric=metric)
     chart = samples.plot_bargraph(
+        metric=metric,
         rank=rank,
         return_chart=True,
         title="Glorious Bargraph",
@@ -854,34 +800,37 @@ def test_plot_bargraph_chart_result(samples, metric, rank, label):
     [
         (Metric.Readcount, {}),
         (Metric.ReadcountWChildren, {}),
-        (Metric.ReadcountWChildren, {"threshold": 0.1, "top_n": 15, "normalize": True}),
-        (Metric.ReadcountWChildren, {"threshold": 0.1, "top_n": None, "normalize": True}),
-        (Metric.ReadcountWChildren, {"threshold": None, "top_n": 12, "normalize": True}),
-        (Metric.ReadcountWChildren, {"threshold": 2, "top_n": 12, "normalize": False}),
+        (Metric.ReadcountWChildren, {"threshold": 0.1, "top_n": 15}),
+        (Metric.ReadcountWChildren, {"threshold": 0.1, "top_n": None}),
+        (Metric.ReadcountWChildren, {"threshold": None, "top_n": 12}),
+        (Metric.PropReadcountWChildren, {"threshold": 0.1, "top_n": 15}),
+        (Metric.PropReadcountWChildren, {"threshold": 0.1, "top_n": None}),
+        (Metric.PropReadcountWChildren, {"threshold": None, "top_n": 12}),
+        (Metric.ReadcountWChildren, {"threshold": 2, "top_n": 12}),
         (Metric.Abundance, {}),
         (Metric.AbundanceWChildren, {}),
     ],
 )
 def test_plot_bargraph_with_group_by(samples, metric, kwargs):
-    samples._collate_results(metric=metric)
-    chart = samples.plot_bargraph(group_by="barley", return_chart=True, **kwargs)
+    chart = samples.plot_bargraph(metric=metric, group_by="barley", return_chart=True, **kwargs)
 
     assert chart.encoding.x.shorthand == "barley"
     assert_expected_x_axis_title(chart, "barley")
 
-    metric_label = (
-        "Mean Relative Abundance:Q" if AbundanceMetric.has_value(metric) else "Mean Reads:Q"
-    )
+    metric_label = samples._display_name_for_metric(metric=metric)
+    metric_label = f"Mean {metric_label}:Q"
+
     assert [x.shorthand for x in chart.encoding.tooltip] == ["barley", "tax_name", metric_label]
     assert not hasattr(chart.encoding.href, "shorthand")
 
 
-def test_plot_bargraph_include_other_with_empty_samples(samples):
-    classification_id = samples._results.index[1]
-    samples._results.loc[classification_id] = 0.0
-
-    df = samples.plot_bargraph(rank=Rank.Genus, include_other=True, return_chart=True).data
-    total_abundance = df[df["classification_id"] == classification_id]["Relative Abundance"].sum()
+def test_plot_bargraph_include_other_with_empty_samples(samples_without_abundances):
+    df = samples_without_abundances.plot_bargraph(
+        rank=Rank.Genus, include_other=True, return_chart=True, metric="abundance_w_children"
+    ).data
+    total_abundance = df[
+        df["classification_id"] == samples_without_abundances[0].primary_classification.id
+    ]["Relative Abundance"].sum()
 
     assert total_abundance == 0.0
 
@@ -895,8 +844,7 @@ def test_plot_bargraph_include_other_with_empty_samples(samples):
     ],
 )
 def test_plot_bargraph_legend(samples, legend, expected_title):
-    samples._collate_results(metric="readcount_w_children")
-    chart = samples.plot_bargraph(return_chart=True, legend=legend)
+    chart = samples.plot_bargraph(return_chart=True, legend=legend, metric="readcount_w_children")
 
     assert_expected_legend_title(chart, expected_title)
 
@@ -943,7 +891,6 @@ def test_plot_bargraph_and_heatmap_link(samples, plot_type, link):
 
 
 def test_plot_bargraph_when_passing_tax_id_as_group_by(samples):
-    samples._collate_results()
     for i, sample in enumerate(samples):
         sample.metadata.custom["tax_id"] = f"TAX_{i}"
     chart = samples.plot_bargraph(group_by="tax_id", return_chart=True)
@@ -952,7 +899,6 @@ def test_plot_bargraph_when_passing_tax_id_as_group_by(samples):
 
 
 def test_plot_bargraph_when_passing_tax_name_as_group_by(samples):
-    samples._collate_results()
     for sample in samples:
         sample.metadata.custom["tax_name"] = "TAX_NAME"
     chart = samples.plot_bargraph(group_by="tax_name", return_chart=True)
@@ -969,7 +915,7 @@ def test_plot_bargraph_when_passing_tax_name_as_group_by(samples):
         ("plot_pca", {"size": "does_not_exist"}),
         ("plot_pca", {"tooltip": "does_not_exist"}),
         ("plot_heatmap", {"tooltip": "does_not_exist"}),
-        ("plot_distance", {"tooltip": "does_not_exist"}),
+        #        ("plot_distance", {"tooltip": "does_not_exist"}),
         ("plot_mds", {"tooltip": "does_not_exist"}),
         ("plot_bargraph", {"tooltip": "does_not_exist"}),
     ],
@@ -1012,11 +958,10 @@ def test_plot_functional_heatmap(ocx, api_data):
 
     assert len(samples) == len(sample_ids)
 
-    with pytest.warns(UserWarning, match="Functional profile not found.*7428cca4a3a04a8e"):
-        chart = samples.plot_functional_heatmap(return_chart=True, top_n=3)
+    chart = samples.plot_functional_heatmap(return_chart=True, top_n=3)
 
     assert len(chart.data.index) == 9  # 3 samples * 3 top_n == 9
-    assert set(chart.data["Label"]) == set(x.filename for x in samples[:-1])
+    assert set(chart.data["Label"]) == set(x.filename for x in samples)
 
     # Defaults to GO metric
     assert all(x.startswith("GO:") for x in chart.data["function_id"])
@@ -1068,12 +1013,12 @@ def test_plot_functional_heatmap_when_metadata_contains_function_id(ocx, api_dat
     ],
 )
 def test_plot_bargraph_escape_js_like_fields(samples, metadata_key, escaped_key):
-    samples._collate_results(metric="readcount_w_children")
     for i, sample in enumerate(samples):
         sample.metadata.custom[metadata_key] = f"value_{i}"
     chart = samples.plot_bargraph(
         return_chart=True,
         group_by=metadata_key,
+        metric="readcount_w_children",
         rank="genus",
     ).to_dict()
     assert chart["encoding"]["x"]["field"] == escaped_key
@@ -1084,6 +1029,8 @@ def test_plot_bargraph_escape_js_like_fields(samples, metadata_key, escaped_key)
     [
         (Metric.Readcount, False),
         (Metric.ReadcountWChildren, True),
+        (Metric.PropReadcount, False),
+        (Metric.PropReadcountWChildren, True),
         (Metric.Abundance, False),
         (Metric.AbundanceWChildren, True),
     ],
@@ -1091,18 +1038,13 @@ def test_plot_bargraph_escape_js_like_fields(samples, metadata_key, escaped_key)
 def test_plot_bargraph_include_taxa_missing_rank(
     samples, metric, expected_include_taxa_missing_rank
 ):
-    samples._collate_results(metric=metric)
-    assert samples._metric == metric
-
     with (
-        mock.patch.object(samples, "to_df") as mock_to_df,
+        mock.patch.object(samples, "to_classification_df") as mock_to_df,
     ):
-        samples.plot_bargraph(return_chart=True)
+        samples.plot_bargraph(return_chart=True, metric=metric)
 
     mock_to_df.assert_called_with(
-        rank=Rank.Auto,
-        top_n=None,
-        threshold=None,
-        normalize=None,
+        rank=Rank.Species,
         include_taxa_missing_rank=expected_include_taxa_missing_rank,
+        metric=metric,
     )

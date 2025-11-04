@@ -195,6 +195,9 @@ class Classifications(_AnalysesBase, ClassificationSchema):
     _resource_path = "/api/v1/classifications"
     _cached_table = None
 
+    # root & cellular organisms
+    _NONSPECIFIC_TAX_IDS = {"1", "131567"}
+
     def results(self, json=True):
         """Return the complete results table for a classification.
 
@@ -233,6 +236,30 @@ class Classifications(_AnalysesBase, ClassificationSchema):
             A Pandas DataFrame of the classification results.
         """
         return self.results(json=False)
+
+    @property
+    def _classification_stats(self) -> dict[str, int]:
+        """Return some high-level classification stats needed for normalization."""
+        results = self.results()
+        host_tax_ids = set(results["host_tax_ids"])
+
+        n_host_reads = 0
+        n_nonspecific_reads = 0
+        n_mapped_reads = 0
+        for row in results["table"]:
+            n_mapped_reads += row["readcount"]
+            if row["tax_id"] in host_tax_ids:
+                n_host_reads += row["readcount"]
+            if row["tax_id"] in self._NONSPECIFIC_TAX_IDS:
+                n_nonspecific_reads += row["readcount"]
+
+        return {
+            "n_reads_total": results["n_reads"],
+            "n_host_reads": n_host_reads,
+            "n_nonspecific_reads": n_nonspecific_reads,
+            "n_mapped_reads": n_mapped_reads,
+            "n_mapped_microbial_reads": n_mapped_reads - n_host_reads - n_nonspecific_reads,
+        }
 
     @classmethod
     def where(cls, *filters, **keyword_filters):
