@@ -124,6 +124,19 @@ def test_classification_fetch(ocx, samples):
         samples._classification_fetch()
 
 
+def test_classification_fetch_sample_missing_primary_classification(ocx, samples):
+    sample = samples._res_list[0]
+    object.__setattr__(sample, "primary_classification", None)
+
+    msg = f"Classification not found.*{sample.id}"
+    with pytest.warns(UserWarning, match=msg):
+        samples._classification_fetch()
+
+    samples._kwargs["skip_missing"] = False
+    with pytest.raises(OneCodexException, match=msg):
+        samples._classification_fetch()
+
+
 def test_collate_metadata(samples):
     # check contents of metadata df--at least that which can easily be coerced to strings
     metadata = samples.metadata
@@ -142,7 +155,7 @@ def test_collate_metadata(samples):
 
     assert (
         sha256(string_to_hash.encode()).hexdigest()
-        == "3ead672171efcb806323a55216683834aa89b5a657da31ab5bf01c6adcd882e6"
+        == "d886c5850325327050ef0d73f942c92f8830524363b7a5cbf1eaed805a9f4582"
     )
 
 

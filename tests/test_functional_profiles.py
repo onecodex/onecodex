@@ -72,11 +72,20 @@ def test_functional_profiles_results(ocx, api_data):
 
 
 def test_functional_profiles_fetch(ocx, api_data):
-    sample_ids = ["543c9c046e3e4e09", "66c1531cb0b244f6", "37e5151e7bcb4f87"]
+    sample_ids = [
+        "543c9c046e3e4e09",
+        "66c1531cb0b244f6",
+        "37e5151e7bcb4f87",
+        "7428cca4a3a04a8e",  # does not have functional results
+    ]
     samples = [ocx.Samples.get(sample_id) for sample_id in sample_ids]
-    sc = SampleCollection(samples)
-    # SampleCollection._functional_profiles_fetch() populates the .functional_profiles attribute cache
-    functional_profiles = sc._functional_profiles
+    sc = SampleCollection(samples, skip_missing=True)
+
+    with pytest.warns(UserWarning, match="Functional profile not found.*7428cca4a3a04a8e"):
+        # SampleCollection._functional_profiles_fetch() populates the .functional_profiles attribute cache
+        functional_profiles = sc._functional_profiles
+
+    assert len(functional_profiles) == 3
     for profile in functional_profiles:
         assert isinstance(profile, FunctionalProfiles)
 
@@ -168,7 +177,7 @@ def test_to_df_for_functional_profiles(ocx, api_data):
     assert df.shape == (3, 7)
     assert df.ocx_functional_group == "eggnog"
     assert df.ocx_metric == "cpm"
-    assert df.ocx_metadata.shape == (3, 92)
+    assert df.ocx_metadata.shape == (3, 93)
     assert df.index.name == "functional_profile_id"
     assert set(df.ocx_metadata["sample_id"]) == set(sample_ids)
     assert set(df.ocx_feature_name_map.keys()) == set(df.columns)
