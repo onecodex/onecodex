@@ -1,16 +1,11 @@
 from __future__ import annotations
 
 import warnings
-from typing import Callable, Any, TYPE_CHECKING
+from functools import cached_property
+from typing import Any, Callable, Literal
 
-from onecodex.lib.enums import (
-    Metric,
-    Rank,
-    FunctionalAnnotations,
-    FunctionalAnnotationsMetric,
-    Link,
-)
-from onecodex.models import SampleCollection as BaseSampleCollection
+import pandas as pd
+
 from onecodex.exceptions import (
     OneCodexException,
     PlottingException,
@@ -18,15 +13,19 @@ from onecodex.exceptions import (
     ValidationError,
     NoTaxaException,
 )
+from onecodex.lib.enums import (
+    FunctionalAnnotations,
+    FunctionalAnnotationsMetric,
+    Link,
+    Metric,
+)
+from onecodex.models import SampleCollection as BaseSampleCollection
+
 from .enums import PlotRepr, PlotType
-from .metadata import metadata_record_to_label, deduplicate_labels, sort_metadata_records
-from .utils import get_plot_title
-from .models import PlotParams, PlotResult
 from .export import export_chart_data
-
-if TYPE_CHECKING:
-    import pandas as pd
-
+from .metadata import deduplicate_labels, metadata_record_to_label, sort_metadata_records
+from .models import PlotParams, PlotResult
+from .utils import get_plot_title
 
 METADATA_FIELD_PLOT_PARAMS = [
     "facet_by",
@@ -68,10 +67,19 @@ class Samples:
         return self._sample_datum["functional_profile"]
 
 
+class Jobs:
+    def __init__(self, name: str):
+        self.name = name
+
+
 class Classifications(dict):
-    """Mock the Classifications model."""
+    """Mock the Classifications + results model."""
 
     id: str | None = None
+    sample: Samples | None = None
+    # all should be successful at this point if retrieved from the V2 API
+    success: Literal[True] = True
+    job: Jobs
 
     def results(self) -> "Classifications":
         return self
@@ -120,24 +128,27 @@ class SampleCollection(BaseSampleCollection):
         # For some reason, it would try to collate_results in loop because that value is not set.
         # Strangely, that value should be set in collate_results so it shouldn't recurse.
         # Not sure what's happening but setting it initially fixes it.
-        self._cached = {"metric": kwargs.get("metric", Metric.Auto)}
+
         self._kwargs = {
             "skip_missing": True,
-            "metric": Metric.Auto,
             "include_host": False,
             "job": None,
         }
         self._kwargs.update(kwargs)
-
         self.samples = samples
-        self._res_list = self.samples
-        self._collate_metadata()
 
+        # for reverse-compatibility, should always be None in this case
+        # see onecodex.models.collection.BaseSampleCollection.__init__
+        self._metric = None
+
+        # only collections of "Samples" are used in Custom Plots
+        self._oc_model = Samples
+
+        # this will set self._res_list
         self._classification_fetch()
-        self.rank = self._default_rank
-        self._functional_profiles  # precompute the cache
 
-    def _collate_metadata(self):
+    @cached_property
+    def metadata(self):
         """Overridden for shims."""
         import pandas as pd
 
@@ -152,12 +163,32 @@ class SampleCollection(BaseSampleCollection):
                 columns=["classification_id", "sample_id", "metadata_id", "created_at"]
             )
 
-        self._cached["metadata"] = metadata
+        return metadata
+
+    @property
+    def _classifications_from_res_list(self) -> list[Classifications]:
+        classifications = []
+        for obj in self._res_list:
+            if isinstance(obj, Samples):
+                if hasattr(obj, "primary_classification"):
+                    classification = obj.primary_classification
+                else:
+                    # functional results case: there is no classification data
+                    classification = None
+            elif isinstance(obj, Classifications):
+                classification = obj
+            else:
+                raise OneCodexException(
+                    f"Objects in SampleCollection must be one of: Classifications, Samples, got {obj} {type(obj)}"
+                )
+
+            if classification is not None:
+                classifications.append(classification)
+        return classifications
 
     def _classification_fetch(self):
         """Overridden for shims."""
         classifications = []
-        job_names = set()
         for sample in self.samples:
             summary = sample._classification
             if not summary:
@@ -167,33 +198,29 @@ class SampleCollection(BaseSampleCollection):
             results.update(summary.get("api_results", {}))
             results["id"] = summary["uuid"]
             results.id = summary["uuid"]
+            results.sample = sample
+            results.job = Jobs(name=summary["job_name"])
 
-            job_names.add(summary["job_name"])
+            sample.primary_classification = results
+
             classifications.append(results)
 
-        self._cached["is_metagenomic"] = False
-        if all(("One Codex Database" in name for name in job_names)):
-            self._cached["is_metagenomic"] = True
+        self._res_list = self.samples
 
-        self._default_rank = self._get_auto_rank(Rank.Auto)
-        self._cached["classifications"] = classifications
-
-    @property
+    @cached_property
     def _functional_profiles(self):
         """Overridden for shims."""
-        if "functional_profiles" not in self._cached:
-            functional_results = []
-            for sample in self.samples:
-                profile = sample._functional_profile
-                if not profile:
-                    continue
-                functional_results.append(
-                    FunctionalProfiles(profile["uuid"], profile["sample_uuid"], profile["results"])
-                )
 
-            self._cached["functional_profiles"] = functional_results
+        functional_results = []
+        for sample in self.samples:
+            profile = sample._functional_profile
+            if not profile:
+                continue
+            functional_results.append(
+                FunctionalProfiles(profile["uuid"], profile["sample_uuid"], profile["results"])
+            )
 
-        return self._cached["functional_profiles"]
+        return functional_results
 
     def plot(self, params: PlotParams) -> PlotResult:
         import altair as alt
@@ -230,9 +257,8 @@ class SampleCollection(BaseSampleCollection):
             self = self._filter_by_metadata(params.filter_by, params.filter_value)
 
         if params.metric == Metric.Auto:
-            self._collate_results()  # This resolves `self._metric`
             params = params.model_copy(
-                update={"metric": Metric(self._metric)}
+                update={"metric": self.automatic_metric}
             )  # don't mutate the input
 
         label_func = self._x_axis_label_func(params.plot_type, params.label_by)
@@ -244,7 +270,9 @@ class SampleCollection(BaseSampleCollection):
             )
 
         sort_x_func = self._x_axis_sort_func(params.sort_by, label_func)
+
         title = get_plot_title(params)
+
         default_x_axis_title = "Samples"
         # "container" for responsive plots when window is resized
         default_size_kwargs = {"width": "container", "height": "container"}
@@ -261,6 +289,7 @@ class SampleCollection(BaseSampleCollection):
                     top_n=params.top_n,
                     rank=params.rank,
                     haxis=params.facet_by,
+                    metric=params.metric,
                     title=title,
                     xlabel=None if params.facet_by or params.group_by else default_x_axis_title,
                     label=None if params.group_by else label_func,
@@ -272,6 +301,7 @@ class SampleCollection(BaseSampleCollection):
                 )
             else:
                 chart = self.plot_heatmap(
+                    metric=params.metric,
                     return_chart=True,
                     top_n=params.top_n,
                     rank=params.rank,
@@ -301,6 +331,7 @@ class SampleCollection(BaseSampleCollection):
                 return_chart=True,
                 rank=params.rank,
                 vaxis=params.alpha_metric,
+                metric=params.metric,
                 haxis=params.group_by or "Label",
                 secondary_haxis=params.secondary_group_by,
                 facet_by=params.facet_by,
@@ -317,7 +348,8 @@ class SampleCollection(BaseSampleCollection):
                 chart = self.plot_mds(
                     return_chart=True,
                     rank=params.rank,
-                    metric=params.beta_metric,
+                    metric=params.metric,
+                    diversity_metric=params.beta_metric,
                     color=params.facet_by,
                     title=title,
                     label=label_func,
@@ -328,6 +360,7 @@ class SampleCollection(BaseSampleCollection):
                 chart = self.plot_pca(
                     return_chart=True,
                     rank=params.rank,
+                    metric=params.metric,
                     color=params.facet_by,
                     title=title,
                     label=label_func,
@@ -341,7 +374,8 @@ class SampleCollection(BaseSampleCollection):
                 chart = self.plot_distance(
                     return_chart=True,
                     rank=params.rank,
-                    metric=params.beta_metric,
+                    metric=params.metric,
+                    diversity_metric=params.beta_metric,
                     title=title,
                     xlabel=default_x_axis_title,
                     label=label_func,
@@ -434,7 +468,12 @@ class SampleCollection(BaseSampleCollection):
             if metadata.index.name == "sample_id":
                 metadatum = metadata.loc[sample.id, field]
             else:
-                metadatum = metadata.loc[metadata["sample_id"] == sample.id, field].iloc[0]
+                rows = metadata.loc[metadata["sample_id"] == sample.id, field]
+                if len(rows) == 1:
+                    metadatum = rows.iloc[0]
+                else:
+                    # ambiguous or no match
+                    metadatum = None
             return not pd.isna(metadatum) and metadatum in values_to_keep
 
         return self.filter(_filter_func)

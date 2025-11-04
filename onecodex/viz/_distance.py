@@ -1,42 +1,68 @@
-# -*- coding: utf-8 -*-
-from itertools import chain
-import warnings
+from __future__ import annotations
 
-from onecodex.lib.enums import BetaDiversityMetric, Rank, Linkage, OrdinationMethod
-from onecodex.exceptions import OneCodexException, PlottingException, PlottingWarning
+import warnings
+from itertools import chain
+from typing import TYPE_CHECKING, Callable, Union
+
 from onecodex.distance import DistanceMixin
+from onecodex.exceptions import OneCodexException, PlottingException, PlottingWarning
+from onecodex.lib.enums import BetaDiversityMetric, Linkage, Metric, OrdinationMethod, Rank
+from onecodex.utils import has_missing_values, is_continuous
 from onecodex.viz._primitives import (
+    escape_chart_fields,
+    get_classification_url,
     interleave_palette,
     prepare_props,
-    get_classification_url,
-    escape_chart_fields,
 )
-from onecodex.utils import is_continuous, has_missing_values
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 
 class VizDistanceMixin(DistanceMixin):
-    def _compute_distance(self, rank, metric, exclude_classifications_without_abundances=False):
-        if rank is None:
-            raise OneCodexException("Please specify a rank or 'auto' to choose automatically")
+    def _compute_distance(
+        self,
+        rank: Rank,
+        distance_metric: Union[BetaDiversityMetric, Callable],
+        metric: Metric = Metric.Auto,
+        exclude_classifications_without_abundances=False,
+    ):
+        metric, rank = self._parse_classification_config_args(metric=metric, rank=rank)
 
         # if taxonomy trees are inconsistent, unifrac will not work
-        if callable(metric):
-            distances = metric(self, rank=rank)
-        elif metric in (BetaDiversityMetric.BrayCurtis, "bray-curtis", "bray curtis"):
-            distances = self.beta_diversity(metric=BetaDiversityMetric.BrayCurtis, rank=rank)
-        elif metric in ("manhattan", BetaDiversityMetric.CityBlock):
-            distances = self.beta_diversity(metric=BetaDiversityMetric.CityBlock, rank=rank)
-        elif metric == BetaDiversityMetric.Jaccard:
-            distances = self.beta_diversity(metric=BetaDiversityMetric.Jaccard, rank=rank)
-        elif metric == BetaDiversityMetric.WeightedUnifrac:
-            distances = self.unifrac(weighted=True, rank=rank)
-        elif metric == BetaDiversityMetric.UnweightedUnifrac:
-            distances = self.unifrac(weighted=False, rank=rank)
-        elif metric == BetaDiversityMetric.Aitchison:
-            distances = self.beta_diversity(metric=BetaDiversityMetric.Aitchison, rank=rank)
+        if type(distance_metric) is Callable:
+            distances = distance_metric(self, metric=metric, rank=rank)
+        elif distance_metric in (BetaDiversityMetric.BrayCurtis, "bray-curtis", "bray curtis"):
+            distances = self.beta_diversity(
+                metric=metric,
+                diversity_metric=BetaDiversityMetric.BrayCurtis,
+                rank=rank,
+            )
+        elif distance_metric in ("manhattan", BetaDiversityMetric.CityBlock):
+            distances = self.beta_diversity(
+                metric=metric,
+                diversity_metric=BetaDiversityMetric.CityBlock,
+                rank=rank,
+            )
+        elif distance_metric == BetaDiversityMetric.Jaccard:
+            distances = self.beta_diversity(
+                metric=metric,
+                diversity_metric=BetaDiversityMetric.Jaccard,
+                rank=rank,
+            )
+        elif distance_metric == BetaDiversityMetric.WeightedUnifrac:
+            distances = self.unifrac(metric=metric, weighted=True, rank=rank)
+        elif distance_metric == BetaDiversityMetric.UnweightedUnifrac:
+            distances = self.unifrac(metric=metric, weighted=False, rank=rank)
+        elif distance_metric == BetaDiversityMetric.Aitchison:
+            distances = self.beta_diversity(
+                metric=metric,
+                diversity_metric=BetaDiversityMetric.Aitchison,
+                rank=rank,
+            )
         else:
             raise OneCodexException(
-                "Metric must be one of: {}".format(", ".join(BetaDiversityMetric.values()))
+                "distance_metric must be one of: {}".format(", ".join(BetaDiversityMetric.values()))
             )
 
         if exclude_classifications_without_abundances:
@@ -51,9 +77,8 @@ class VizDistanceMixin(DistanceMixin):
 
     def _cluster_by_sample(
         self,
-        classification_ids_without_abundances=None,
-        rank=Rank.Auto,
-        metric=BetaDiversityMetric.BrayCurtis,
+        results_df: pd.DataFrame,
+        diversity_metric: BetaDiversityMetric = BetaDiversityMetric.BrayCurtis,
         linkage=Linkage.Average,
         exclude_classifications_without_abundances=False,
     ):
@@ -62,24 +87,23 @@ class VizDistanceMixin(DistanceMixin):
         from scipy.spatial.distance import squareform
         from sklearn.metrics.pairwise import euclidean_distances
 
-        df = self._results
-
-        if classification_ids_without_abundances:
+        if exclude_classifications_without_abundances:
             # subset in case we're plotting a facet
             classification_ids_without_abundances = [
-                x for x in classification_ids_without_abundances if x in df.index
+                x for x in self._classification_ids_without_abundances if x in results_df.index
             ]
-            df = df.drop(classification_ids_without_abundances)
+            df = results_df.drop(classification_ids_without_abundances)
 
-        df = df.replace(np.nan, 0)
+        df = results_df.replace(np.nan, 0)
 
-        if metric == "euclidean":
+        if diversity_metric == "euclidean":
             dist_matrix = euclidean_distances(df).round(6)
         else:
             dist_matrix = (
                 self._compute_distance(
-                    rank=rank,
-                    metric=metric,
+                    metric=results_df.ocx_metric,
+                    rank=results_df.ocx_rank,
+                    distance_metric=diversity_metric,
                     exclude_classifications_without_abundances=exclude_classifications_without_abundances,
                 )
                 .to_data_frame()
@@ -90,8 +114,8 @@ class VizDistanceMixin(DistanceMixin):
         scipy_tree = hierarchy.dendrogram(clustering, no_plot=True)
         ids_in_order = [df.index[int(x)] for x in scipy_tree["ivl"]]
 
-        if classification_ids_without_abundances and not exclude_classifications_without_abundances:
-            ids_in_order.extend(classification_ids_without_abundances)
+        if not exclude_classifications_without_abundances:
+            ids_in_order += self._classification_ids_without_abundances
 
         return {
             "dist_matrix": dist_matrix,
@@ -100,13 +124,13 @@ class VizDistanceMixin(DistanceMixin):
             "ids_in_order": ids_in_order,
         }
 
-    def _cluster_by_taxa(self, linkage=Linkage.Average):
+    def _cluster_by_taxa(self, results_df: "pd.DataFrame", linkage=Linkage.Average):
         import numpy as np
         from scipy.cluster import hierarchy
         from scipy.spatial.distance import squareform
         from sklearn.metrics.pairwise import euclidean_distances
 
-        df = self._results.dropna(how="all").replace(np.nan, 0)
+        df = results_df.dropna(how="all").replace(np.nan, 0)
 
         dist_matrix = euclidean_distances(df.T).round(6)
 
@@ -125,8 +149,9 @@ class VizDistanceMixin(DistanceMixin):
 
     def plot_distance(
         self,
-        rank=Rank.Auto,
-        metric=BetaDiversityMetric.BrayCurtis,
+        rank: Union[Rank, str] = Rank.Auto,
+        metric: Union[Metric, str] = Metric.Auto,
+        diversity_metric: BetaDiversityMetric = BetaDiversityMetric.BrayCurtis,
         title=None,
         xlabel=None,
         ylabel=None,
@@ -142,12 +167,16 @@ class VizDistanceMixin(DistanceMixin):
 
         Parameters
         ----------
-        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+        rank : :class:`~onecodex.lib.enums.Rank`, optional
             Analysis will be restricted to abundances of taxa at the specified level.
-        metric : {'braycurtis', 'cityblock', 'manhattan', 'jaccard', 'unifrac', 'unweighted_unifrac', 'aitchison'}, optional
+            See :class:`~onecodex.lib.enums.Rank` for details.
+        metric : :class:`~onecodex.lib.enums.Metric`, optional
+            The taxonomic abundance metric to use. See :class:`~onecodex.lib.enums.Metric`
+            for definitions.
+        diversity_metric : :class:`~onecodex.lib.enums.BetaDiversityMetric`
             Function to use when calculating the distance between two samples.
             Note that 'cityblock' and 'manhattan' are equivalent metrics.
-        linkage : {'average', 'single', 'complete', 'weighted', 'centroid', 'median'}
+        linkage :  :class:`~onecodex.lib.enums.Linkage`
             The type of linkage to use when clustering axes.
         title : `string`, optional
             Text label at the top of the plot.
@@ -176,14 +205,20 @@ class VizDistanceMixin(DistanceMixin):
         import altair as alt
         import numpy as np
         import pandas as pd
+
         from onecodex.viz import dendrogram
 
-        if len(self._results) < 2:
+        metric, rank = self._parse_classification_config_args(metric=metric, rank=rank)
+
+        if len(self._classifications) < 2:
             raise PlottingException(
                 "There are too few samples for distance matrix plots after filtering. Please "
                 "select 2 or more samples to plot."
             )
-        elif len(self._results) - len(self._classification_ids_without_abundances) < 2:
+
+        elif metric.is_abundance_metric and (
+            len(self._classifications) - len(self._classification_ids_without_abundances) < 2
+        ):
             raise PlottingException(
                 "There are too few samples for distance matrix plots after filtering out samples "
                 "with no abundances calculated; please select more samples to plot."
@@ -201,7 +236,14 @@ class VizDistanceMixin(DistanceMixin):
 
         tooltip.insert(0, "Label")
 
-        metadata_results = self._metadata_fetch(tooltip, label=label, match_taxonomy=match_taxonomy)
+        results_df = self.to_classification_df(metric=metric, rank=rank)
+
+        metadata_results = self._metadata_fetch(
+            tooltip,
+            label=label,
+            match_taxonomy=match_taxonomy,
+            results_df=results_df,
+        )
         magic_metadata = metadata_results.df
         magic_fields = metadata_results.renamed_fields
 
@@ -217,10 +259,9 @@ class VizDistanceMixin(DistanceMixin):
             formatted_fields.append(field_group)
 
         clust = self._cluster_by_sample(
-            rank=rank,
-            metric=metric,
+            results_df=results_df,
+            diversity_metric=diversity_metric,
             linkage=linkage,
-            classification_ids_without_abundances=self._classification_ids_without_abundances,
             exclude_classifications_without_abundances=True,
         )
 
@@ -295,7 +336,8 @@ class VizDistanceMixin(DistanceMixin):
     def plot_mds(
         self,
         rank=Rank.Auto,
-        metric=BetaDiversityMetric.BrayCurtis,
+        metric=Metric.Auto,
+        diversity_metric=BetaDiversityMetric.BrayCurtis,
         method=OrdinationMethod.Pcoa,
         title=None,
         xlabel=None,
@@ -314,12 +356,16 @@ class VizDistanceMixin(DistanceMixin):
 
         Parameters
         ----------
-        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+        rank : :class:`~onecodex.lib.enums.Rank`, optional
             Analysis will be restricted to abundances of taxa at the specified level.
-        metric : {'braycurtis', 'cityblock', 'manhattan', 'jaccard', 'unifrac', 'unweighted_unifrac', 'aitchison'}, optional
+            See :class:`~onecodex.lib.enums.Rank` for details.
+        metric : :class:`~onecodex.lib.enums.Metric`, optional
+            The taxonomic abundance metric to use. See :class:`~onecodex.lib.enums.Metric`
+            for definitions.
+        diversity_metric : :class:`~onecodex.lib.enums.BetaDiversityMetric`
             Function to use when calculating the distance between two samples.
             Note that 'cityblock' and 'manhattan' are equivalent metrics.
-        method : {'pcoa', 'smacof'}
+        method : :class:`~onecodex.lib.enums.OrdinationMethod`
             Algorithm to use for ordination. PCoA uses eigenvalue decomposition and is not well
             suited to non-euclidean distance functions. SMACOF is an iterative optimization strategy
             that can be used as an alternative.
@@ -369,27 +415,34 @@ class VizDistanceMixin(DistanceMixin):
         from sklearn import manifold
         from sklearn.metrics.pairwise import euclidean_distances
 
-        if len(self._results) < 3:
+        metric, rank = self._parse_classification_config_args(metric=metric, rank=rank)
+
+        if len(self._classifications) < 3:
             raise PlottingException(
                 "There are too few samples for MDS/PCoA after filtering. Please select 3 or more "
                 "samples to plot."
             )
-        elif len(self._results) - len(self._classification_ids_without_abundances) < 3:
-            raise PlottingException(
-                "There are too few samples for MDS/PCoA after filtering out samples with no "
-                "abundances calculated; please select 3 or more samples to plot."
-            )
+
+        if metric.is_abundance_metric:
+            if self._classification_ids_without_abundances:
+                warnings.warn(
+                    f"{len(self._classification_ids_without_abundances)} sample(s) have no abundances "
+                    f"calculated and have been omitted from the MDS/PCoA plot.",
+                    PlottingWarning,
+                )
+
+            if len(self._classifications) - len(self._classification_ids_without_abundances) < 3:
+                raise PlottingException(
+                    "There are too few samples for MDS/PCoA after filtering out samples with no "
+                    "abundances calculated; please select 3 or more samples to plot."
+                )
 
         dists = self._compute_distance(
-            rank, metric, exclude_classifications_without_abundances=True
+            rank=rank,
+            metric=metric,
+            distance_metric=diversity_metric,
+            exclude_classifications_without_abundances=metric.is_abundance_metric,
         ).to_data_frame()
-
-        if self._classification_ids_without_abundances:
-            warnings.warn(
-                f"{len(self._classification_ids_without_abundances)} sample(s) have no abundances "
-                f"calculated and have been omitted from the MDS/PCoA plot.",
-                PlottingWarning,
-            )
 
         # here we figure out what to put in the tooltips and get the appropriate data
         if tooltip:
@@ -406,7 +459,9 @@ class VizDistanceMixin(DistanceMixin):
         if size and size not in tooltip:
             tooltip.insert(2, size)
 
-        metadata_results = self._metadata_fetch(tooltip, label=label, match_taxonomy=match_taxonomy)
+        metadata_results = self._metadata_fetch(
+            tooltip, results_df=self.to_df(), label=label, match_taxonomy=match_taxonomy
+        )
         magic_metadata = metadata_results.df
         magic_fields = metadata_results.renamed_fields
 
