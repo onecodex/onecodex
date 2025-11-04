@@ -506,8 +506,23 @@ def runner():
 # SampleCollection fixtures
 @pytest.fixture
 def samples(ocx, api_data) -> SampleCollection:
-    # Project with 3 samples
+    # Project with 6 samples
     return ocx.Samples.where(project="4b53797444f846c4")
+
+
+@pytest.fixture
+def samples_without_abundances(ocx, api_data) -> SampleCollection:
+    """
+    These samples have null values for `abundance` and `abundance_w_children`
+    """
+
+    return SampleCollection(
+        [
+            ocx.Samples.get("7428cca4nocaffe1"),
+            ocx.Samples.get("7428cca4nocaffe2"),
+            ocx.Samples.get("7428cca4nocaffe3"),
+        ]
+    )
 
 
 # CLI / FILE SYSTEM FIXTURE
