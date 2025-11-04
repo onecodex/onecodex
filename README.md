@@ -11,7 +11,7 @@ MAINTAINERS: [@clausmith](https://github.com/clausmith), [@boydgreenfield](https
 
 This package provides 3 major pieces of functionality: (1) a core Python client library; (2) a simple CLI for interacting with the One Codex platform that uses that core library; and (3) optional extensions to the client library, which offers many features aimed at advanced users and provides functionality for use in interactive notebook environments (e.g., IPython notebooks).
 
-Python 3.9 or later is required. **Python 2 is no longer supported.**
+Python 3.10 or later is required. **Python 2 is no longer supported.**
 
 
 ### _Basic installation_
@@ -169,7 +169,7 @@ all_completed_analyses.to_df()    # Returns a pandas dataframe
 
 ## Environment Setup
 
-Before developing, `git` and `python` version >=3.9 are needed. We recommend using [uv](https://github.com/astral-sh/uv) for Python version management and dependency installation.
+Before developing, `git` and `python` version >=3.10 are needed. We recommend using [uv](https://github.com/astral-sh/uv) for Python version management and dependency installation.
 
 To download the client library from GitHub:
 
