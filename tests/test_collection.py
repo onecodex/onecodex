@@ -1,12 +1,24 @@
-from hashlib import sha256
 import json
+from hashlib import sha256
 
+import mock
 import pytest
 
 pytest.importorskip("pandas")  # noqa
 
-from onecodex.models.collection import SampleCollection
 from onecodex.exceptions import OneCodexException
+from onecodex.lib.enums import Metric, Rank
+from onecodex.models.collection import SampleCollection
+
+
+def test_sample_collection_hashability(samples):
+    # the entire sample collection is hashable
+    assert len(set([samples])) == 1
+
+    # individual samples cannot be hashed as they hold state (e.g., two samples with the same id
+    # can have different metadata if one has been edited)
+    with pytest.raises(TypeError):
+        set(samples)
 
 
 def test_sample_collection_pandas(samples):
@@ -14,35 +26,112 @@ def test_sample_collection_pandas(samples):
     class_id = samples[2].primary_classification.id
     del samples[2]
 
+    df = samples.to_df()
+    assert df.ocx_metric is Metric.AbundanceWChildren
+
     assert len(samples) == 2
-    assert len(samples.to_df()) == 2
+    assert len(df) == 2
     assert len(samples.metadata) == 2
-    assert class_id not in samples._results.index
+
+    results, _ = samples._collate_results()
+
+    assert class_id not in results.index
     assert class_id not in samples.metadata.index
 
+    df = samples.to_df(metric=Metric.ReadcountWChildren)
+    assert df.ocx_metric is Metric.ReadcountWChildren
 
-def test_collection_constructor(samples):
-    col = SampleCollection(samples)
-    assert col._kwargs["metric"] == "auto"
+    df = samples.to_df(metric=Metric.Readcount)
+    assert df.ocx_metric is Metric.Readcount
 
-    with pytest.deprecated_call():
-        col = SampleCollection(samples, field="readcount_w_children")
-    assert isinstance(col, SampleCollection)
-    assert col._kwargs["metric"] == "readcount_w_children"
 
-    col = SampleCollection(samples, metric="abundance_w_children")
-    assert isinstance(col, SampleCollection)
-    assert col._kwargs["metric"] == "abundance_w_children"
+def test_normalize_results(samples):
+    """
+    These numbers should match the numbers displayed on the
+    classification results page (filtered=True): https://app.onecodex.com/analysis/6579e99943f84ad2
+    """
+    run = samples[0].primary_classification
 
-    with pytest.raises(OneCodexException):
-        SampleCollection(samples, metric="abundance_w_children", field="readcount_w_children")
+    assert run.id == "6579e99943f84ad2"  # update golden output below if this ID changes
+
+    assert run._classification_stats == {
+        "n_host_reads": 109585,
+        "n_mapped_microbial_reads": 24527027,
+        "n_mapped_reads": 25444333,
+        "n_nonspecific_reads": 807721,
+        "n_reads_total": 32742710,
+    }
+
+    collection = SampleCollection([samples[0]])
+
+    df_abundance = collection.to_df(rank=Rank.Species, metric=Metric.AbundanceWChildren)
+    vals = df_abundance.values[0]
+    vals.sort()
+    assert vals[::-1][:6].round(4).tolist() == [0.2439, 0.0685, 0.0646, 0.0324, 0.0324, 0.0287]
+    assert vals.sum().round(4) == 1.0
+
+    df_readcount = collection.to_df(rank=Rank.Species, metric=Metric.Readcount)
+    vals = df_readcount.values[0]
+    vals.sort()
+    assert vals[::-1][:6].round(4).tolist() == [4417519, 283510, 212457, 179055, 172214, 128158]
+
+    df_readcount_w_children = collection.to_df(rank=Rank.Species, metric=Metric.ReadcountWChildren)
+    vals = df_readcount_w_children.values[0]
+    vals.sort()
+    assert vals[::-1][:6].round(4).tolist() == [4417519, 754966, 283510, 226485, 214160, 212457]
+
+    df_prop_classified_w_children = collection.to_df(
+        rank=Rank.Species, metric=Metric.PropClassifiedWChildren
+    )
+    vals = df_prop_classified_w_children.values[0]
+    vals.sort()
+    assert vals[::-1][:6].round(4).tolist() == [0.1801, 0.0308, 0.0116, 0.0092, 0.0087, 0.0087]
+
+    df_prop_classified_w_children = collection.to_df(
+        rank=Rank.Genus, metric=Metric.PropClassifiedWChildren
+    )
+    vals = df_prop_classified_w_children.values[0]
+    vals.sort()
+    assert vals[::-1][:6].round(4).tolist() == [0.2424, 0.1801, 0.0404, 0.0396, 0.0313, 0.03]
+
+    df_prop_classified_w_children = collection.to_df(
+        rank=Rank.Phylum, metric=Metric.PropClassifiedWChildren
+    )
+    vals = df_prop_classified_w_children.values[0]
+    vals.sort()
+    assert vals[::-1][:6].round(4).tolist() == [0.5110, 0.2645, 0.1887, 0.012, 0.0008, 0.0000]
+
+    df_prop_readcount = collection.to_df(rank=Rank.Species, metric=Metric.PropReadcount)
+    vals = df_prop_readcount.values[0]
+    vals.sort()
+    assert vals[::-1][:6].round(4).tolist() == [0.1349, 0.0087, 0.0065, 0.0055, 0.0053, 0.0039]
+
+    # not displayed on frontend, but consistent with data in Complete Results Table
+    df_prop_readcount = collection.to_df(rank=Rank.Species, metric=Metric.PropReadcountWChildren)
+    vals = df_prop_readcount.values[0]
+    vals.sort()
+    assert vals[::-1][:6].round(4).tolist() == [0.1349, 0.0231, 0.0087, 0.0069, 0.0065, 0.0065]
+
+
+def test_automatic_rank(samples):
+    assert samples.is_metagenomic
+    assert samples.automatic_rank(metric=Metric.Auto) == "species"
+    assert samples.automatic_rank(metric=Metric.AbundanceWChildren) == "species"
+    assert samples.automatic_rank(metric=Metric.Abundance) == "species"
+    assert samples.automatic_rank(metric=Metric.ReadcountWChildren) == "species"
+    assert samples.automatic_rank(metric=Metric.Readcount) == "species"
+
+    with mock.patch.object(SampleCollection, "is_metagenomic", property(lambda _: False)):
+        assert samples.automatic_rank(metric=Metric.Auto) == "genus"
+        assert samples.automatic_rank(metric=Metric.ReadcountWChildren) == "genus"
+        assert samples.automatic_rank(metric=Metric.Readcount) == "genus"
 
 
 @pytest.mark.filterwarnings("ignore:.*multiple analysis types.*")
 def test_biom(ocx, api_data):
     c1 = ocx.Classifications.get("45a573fb7833449a")
     c2 = ocx.Classifications.get("593601a797914cbf")
-    biom = SampleCollection([c1, c2], ocx.Classifications).to_otu()
+    biom = SampleCollection([c1, c2]).to_otu(metric=Metric.ReadcountWChildren)
     assert set(biom.keys()) == {
         "columns",
         "data",
@@ -92,6 +181,9 @@ def test_biom(ocx, api_data):
         "",
     ]
 
+    # golden output
+    assert biom["data"] == [[0, 0, 3], [0, 1, 80], [1, 0, 0], [1, 1, 0]]
+
     # make sure data is the correct shape
     assert [len(x) for x in biom["data"]] == [3, 3, 3, 3]
 
@@ -111,17 +203,16 @@ def test_biom(ocx, api_data):
     assert json.loads(json.dumps(biom)) == biom  # tests json serialization
 
 
-def test_classification_fetch(ocx, samples):
+def test_classifications(ocx, samples):
     # should work with a list of classifications as input, not just samples
     samples._oc_model = ocx.Classifications
     samples._res_list = samples._classifications
-    samples._classification_fetch()
+    assert len(samples._classifications) == len(samples)
 
     # should issue a warning if a classification did not succeed
     object.__setattr__(samples._res_list[0], "success", False)
-    samples._cached = {}
     with pytest.warns(UserWarning, match="not successful"):
-        samples._classification_fetch()
+        samples._classifications
 
 
 def test_classification_fetch_sample_missing_primary_classification(ocx, samples):
@@ -130,11 +221,11 @@ def test_classification_fetch_sample_missing_primary_classification(ocx, samples
 
     msg = f"Classification not found.*{sample.id}"
     with pytest.warns(UserWarning, match=msg):
-        samples._classification_fetch()
+        samples._classifications
 
     samples._kwargs["skip_missing"] = False
     with pytest.raises(OneCodexException, match=msg):
-        samples._classification_fetch()
+        samples._classifications
 
 
 def test_collate_metadata(samples):
@@ -155,7 +246,7 @@ def test_collate_metadata(samples):
 
     assert (
         sha256(string_to_hash.encode()).hexdigest()
-        == "d886c5850325327050ef0d73f942c92f8830524363b7a5cbf1eaed805a9f4582"
+        == "3ead672171efcb806323a55216683834aa89b5a657da31ab5bf01c6adcd882e6"
     )
 
 
@@ -173,14 +264,14 @@ def test_collate_metadata(samples):
     ],
 )
 def test_collate_results(samples, metric, sha):
-    samples._collate_results(metric=metric)
+    results, taxonomy = samples._collate_results(metric=metric)
 
     # check contents of results df
     string_to_hash = ""
-    for col in sorted(samples._results.columns.tolist()):
-        for row in sorted(samples._results.index.tolist()):
+    for col in sorted(results.columns.tolist()):
+        for row in sorted(results.index.tolist()):
             try:
-                string_to_hash += samples._results.fillna(0).loc[row, col].astype(str)
+                string_to_hash += results.fillna(0).loc[row, col].astype(str)
             except AttributeError:
                 pass
 
@@ -188,10 +279,10 @@ def test_collate_results(samples, metric, sha):
 
     # check contents of taxonomy df
     string_to_hash = ""
-    for col in sorted(samples.taxonomy.columns.tolist()):
-        for row in sorted(samples.taxonomy.index.tolist()):
+    for col in sorted(taxonomy.columns.tolist()):
+        for row in sorted(taxonomy.index.tolist()):
             try:
-                string_to_hash += samples.taxonomy.loc[row, col].astype(str)
+                string_to_hash += taxonomy.loc[row, col].astype(str)
             except AttributeError:
                 pass
 
@@ -206,44 +297,20 @@ def test_collate_results(samples, metric, sha):
     assert "not valid" in str(e.value)
 
 
-def test_collate_results_with_auto_metric_no_abundance_estimates(samples):
-    assert samples._metric == "abundance_w_children"
-    classifications = samples._classifications
-
-    for classification in classifications:
-        results = classification.results()
-        for data in results["table"]:
-            data["abundance_w_children"] = None
-            data["abundance"] = None
-
-    samples._collate_results(metric="auto")
-    assert samples._metric == "readcount_w_children"
+def test_automatic_metric_no_abundance_estimates(samples_without_abundances):
+    assert samples_without_abundances.automatic_metric == Metric.NormalizedReadcountWChildren
 
 
-def test_collate_results_with_auto_metric_one_lacking_abundance_estimates(samples):
-    assert samples._metric == "abundance_w_children"
-    classifications = samples._classifications
-
-    c1_results = classifications[0].results()
-    for data in c1_results["table"]:
-        data["abundance_w_children"] = None
-        data["abundance"] = None
-
-    samples._collate_results(metric="auto")
-    # only 1 out of 3 does not have abundance estimates so we can
-    # still use `abundance_w_children`
-    assert samples._metric == "abundance_w_children"
+def test_automatic_metric_with_abundances(samples):
+    assert samples.automatic_metric == Metric.AbundanceWChildren
 
 
-def test_collate_results_with_auto_metric_majority_lacking_abundance_estimates(samples):
-    assert samples._metric == "abundance_w_children"
-    classifications = samples._classifications
+def test_automatic_metric_majority_rules(samples, samples_without_abundances):
+    assert (samples + samples_without_abundances[:1]).automatic_metric == Metric.AbundanceWChildren
+    assert (
+        samples_without_abundances + samples[:1]
+    ).automatic_metric == Metric.NormalizedReadcountWChildren
 
-    for classification in classifications[:2]:
-        results = classification.results()
-        for data in results["table"]:
-            data["abundance_w_children"] = None
-            data["abundance"] = None
 
-    samples._collate_results(metric="auto")
-    assert samples._metric == "readcount_w_children"
+def test_automatic_metric_majority_lacking_abundance_estimates(samples, samples_without_abundances):
+    assert samples_without_abundances.automatic_metric == Metric.NormalizedReadcountWChildren

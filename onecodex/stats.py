@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Optional
 
 from onecodex.exceptions import OneCodexException, StatsException, StatsWarning
 from onecodex.lib.enums import (
+    Metric,
     Rank,
     AlphaDiversityMetric,
     AlphaDiversityStatsTest,
@@ -69,8 +70,9 @@ class StatsMixin:
         *,
         group_by: str | tuple[str, ...] | list[str],
         paired_by: Optional[str | tuple[str, ...] | list[str]] = None,
+        metric: Metric = Metric.Auto,
         test: AlphaDiversityStatsTest = AlphaDiversityStatsTest.Auto,
-        metric: AlphaDiversityMetric = AlphaDiversityMetric.Shannon,
+        diversity_metric: AlphaDiversityMetric = AlphaDiversityMetric.Shannon,
         rank: Rank = Rank.Auto,
         alpha: float = 0.05,
     ) -> AlphaDiversityStatsResults:
@@ -132,6 +134,9 @@ class StatsMixin:
         """
         self._assert_valid_alpha(alpha)
 
+        if metric == Metric.Auto:
+            metric = self.automatic_metric
+
         group_by = self._tuplize(group_by)
         metadata_fields = [group_by]
         if paired_by is not None:
@@ -140,15 +145,20 @@ class StatsMixin:
 
         # Munge the metadata first in case there's any errors
         metadata_results = self._metadata_fetch(
-            metadata_fields, coerce_missing_composite_fields=False
+            metadata_fields,
+            results_df=self.to_classification_df(rank=rank, metric=metric),
+            coerce_missing_composite_fields=False,
         )
+
         df = metadata_results.df
         magic_fields = metadata_results.renamed_fields
         group_by_column_name = magic_fields[group_by]
         paired_by_column_name = magic_fields.get(paired_by, None)
 
         # Compute alpha diversity
-        df.loc[:, metric] = self.alpha_diversity(metric=metric, rank=rank)
+        df.loc[:, metric] = self.alpha_diversity(
+            diversity_metric=diversity_metric, metric=metric, rank=rank
+        )
 
         # Drop NaN alpha diversity values
         prev_count = len(df)
@@ -175,6 +185,7 @@ class StatsMixin:
         # Drop groups of size < 2
         # NOTE: it's important to do this filtering *after* the other filters in case those filters
         # change the group sizes.
+
         df = self._drop_group_sizes_smaller_than(df, group_by_column_name, 2)
 
         self._assert_min_num_groups(df, group_by_column_name, 2)
@@ -392,7 +403,8 @@ class StatsMixin:
         self,
         *,
         group_by: str | tuple[str, ...] | list[str],
-        metric: BetaDiversityMetric = BetaDiversityMetric.BrayCurtis,
+        metric: Metric = Metric.Auto,
+        diversity_metric: BetaDiversityMetric = BetaDiversityMetric.BrayCurtis,
         rank: Rank = Rank.Auto,
         alpha: float = 0.05,
         num_permutations: int = 999,
@@ -451,7 +463,11 @@ class StatsMixin:
 
         # Munge the metadata first in case there's any errors
         group_by = self._tuplize(group_by)
-        metadata_results = self._metadata_fetch([group_by], coerce_missing_composite_fields=False)
+        metadata_results = self._metadata_fetch(
+            [group_by],
+            results_df=self.to_classification_df(rank=rank, metric=metric),
+            coerce_missing_composite_fields=False,
+        )
         df = metadata_results.df
         magic_fields = metadata_results.renamed_fields
         group_by_column_name = magic_fields[group_by]
@@ -471,7 +487,7 @@ class StatsMixin:
 
         # Compute beta diversity distance matrix and filter it to match the remaining IDs in the
         # metadata dataframe
-        dm = self.beta_diversity(metric=metric, rank=rank).filter(df.index, strict=True)
+        dm = self.beta_diversity(diversity_metric=metric, rank=rank).filter(df.index, strict=True)
 
         return self._permanova(dm, df, group_by_column_name, alpha, num_permutations)
 

@@ -1,7 +1,7 @@
 import warnings
 from typing import Optional, Literal, Union
 
-from onecodex.lib.enums import AlphaDiversityMetric, Rank, BaseEnum
+from onecodex.lib.enums import AlphaDiversityMetric, Metric, Rank, BaseEnum
 from onecodex.exceptions import OneCodexException, PlottingException, PlottingWarning
 from onecodex.viz._primitives import (
     prepare_props,
@@ -17,10 +17,14 @@ class PlotType(BaseEnum):
     Scatter = "scatter"
 
 
-class VizMetadataMixin(object):
+from onecodex.models.collection import BaseSampleCollection
+
+
+class VizMetadataMixin(BaseSampleCollection):
     def plot_metadata(
         self,
-        rank=Rank.Auto,
+        rank: Union[Rank, str] = Rank.Auto,
+        metric: Union[Metric, str] = Metric.Auto,
         haxis="Label",
         vaxis=AlphaDiversityMetric.Shannon,
         title=None,
@@ -116,8 +120,13 @@ class VizMetadataMixin(object):
         import altair as alt
         import pandas as pd
 
-        if rank is None:
-            raise OneCodexException("Please specify a rank or 'auto' to choose automatically")
+        metric, rank = self._parse_classification_config_args(metric=metric, rank=rank)
+
+        if len(self._classifications) == 0:
+            raise PlottingException(
+                "There are too few samples for metadata plots after filtering. Please select 1 or "
+                "more samples to plot."
+            )
 
         if not PlotType.has_value(plot_type):
             raise OneCodexException("Plot type must be one of: auto, boxplot, scatter")
@@ -125,11 +134,7 @@ class VizMetadataMixin(object):
         if haxis == secondary_haxis:
             raise OneCodexException("`haxis` and `secondary_haxis` cannot be the same field(s).")
 
-        if len(self._results) == 0:
-            raise PlottingException(
-                "There are too few samples for metadata plots after filtering. Please select 1 or "
-                "more samples to plot."
-            )
+        results_df = self.to_classification_df(metric=metric, rank=rank)
 
         # alpha diversity is only allowed on vertical axis--horizontal can be magically mapped
         metadata_fields = [haxis, "Label"]
@@ -139,21 +144,27 @@ class VizMetadataMixin(object):
             metadata_fields.append(secondary_haxis)
 
         metadata_results = self._metadata_fetch(
-            metadata_fields, label=label, match_taxonomy=match_taxonomy
+            metadata_fields, results_df=results_df, label=label, match_taxonomy=match_taxonomy
         )
         df = metadata_results.df
         magic_fields = metadata_results.renamed_fields
 
-        exclude_classifications_without_abundances = True
+        exclude_classifications_without_abundances = metric.is_abundance_metric
+
         if AlphaDiversityMetric.has_value(vaxis):
-            df.loc[:, vaxis] = self.alpha_diversity(vaxis, rank=rank)
+            df.loc[:, vaxis] = self.alpha_diversity(
+                diversity_metric=vaxis, metric=metric, rank=rank
+            )
             magic_fields[vaxis] = vaxis
             df.dropna(subset=[magic_fields[vaxis]], inplace=True)
         else:
             # if it's not alpha diversity, vertical axis can also be magically mapped
-            vert_metadata_results = self._metadata_fetch([vaxis], match_taxonomy=match_taxonomy)
+            vert_metadata_results = self._metadata_fetch(
+                [vaxis], match_taxonomy=match_taxonomy, results_df=results_df
+            )
             vert_df = vert_metadata_results.df
             vert_magic_fields = vert_metadata_results.renamed_fields
+
             exclude_classifications_without_abundances = (
                 vaxis in vert_metadata_results.taxonomy_fields
             )
