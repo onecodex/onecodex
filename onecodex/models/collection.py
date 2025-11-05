@@ -301,10 +301,16 @@ class SampleCollection(AnalysisMixin, MutableSequence):
                     "Objects in SampleCollection must be one of: Classifications, Samples"
                 )
 
+            if not classification:
+                msg = f"Classification not found for sample {obj.id}."
+                if skip_missing:
+                    warnings.warn(msg + " Skipping.")
+                    continue
+                else:
+                    raise OneCodexException(msg)
+
             if skip_missing and not classification.success:
-                warnings.warn(
-                    "Classification {} not successful. Skipping.".format(classification.id)
-                )
+                warnings.warn(f"Classification {classification.id} not successful. Skipping.")
                 continue
 
             new_classifications.append(classification)
@@ -347,7 +353,13 @@ class SampleCollection(AnalysisMixin, MutableSequence):
                 classification_id = None
             sample = obj.sample if isinstance(obj, Classifications) else obj
 
+            # Standard/structured metadata fields get priority over custom metadata fields in the
+            # event of a name clash. If the user is allowed to override certain metadata fields like
+            # `sample_id`, `metadata_id`, and `classification_id`, downstream code will break in
+            # strange ways.
             m = sample.metadata
+            metadatum = {}
+            metadatum.update(m.custom)
 
             if DEFAULT_FIELDS is None:
                 DEFAULT_FIELDS = list(m.__class__.model_fields.keys())
@@ -355,15 +367,17 @@ class SampleCollection(AnalysisMixin, MutableSequence):
                 DEFAULT_FIELDS.remove("sample")
                 DEFAULT_FIELDS.remove("custom")
 
-            metadatum = {f: getattr(m, f) for f in DEFAULT_FIELDS}
+            for f in DEFAULT_FIELDS:
+                metadatum[f] = getattr(m, f)
+
             metadatum["classification_id"] = classification_id
             metadatum["sample_id"] = sample.id
             metadatum["metadata_id"] = m.id
             metadatum["created_at"] = sample.created_at
             metadatum["filename"] = sample.filename
             metadatum["project"] = getattr(sample.project, "name", "")
+            metadatum["sample_name"] = m.name or sample.filename or "N/A"
 
-            metadatum.update(m.custom)
             metadata.append(metadatum)
 
         if metadata:
@@ -556,33 +570,26 @@ class SampleCollection(AnalysisMixin, MutableSequence):
         sample_ids = [
             obj.id if isinstance(obj, Samples) else obj.sample.id for obj in self._res_list
         ]
-        # Get all Functional Profiles for the current sample collection
+
+        # Get all Functional Profiles for the current sample collection, and determine the newest
+        # Functional Analysis version for each sample
         batch_size = 50
-        profiles = []
-        for i in range(0, len(sample_ids), batch_size):
-            profiles += FunctionalProfiles.where(sample=sample_ids[i : i + batch_size])
-        profiles = [fp for fp in profiles if fp.success]
-
-        if not profiles:
-            if skip_missing:
-                warnings.warn("No functional profiles found for sample collection")
-                self._cached["functional_profiles"] = []
-                return
-            else:
-                raise OneCodexException("No functional profiles found for sample collection")
-
-        # Determine the newest Functional Analysis version for each sample
         sample_id_to_profile = {}
-        for profile in profiles:
-            if profile.sample.id in sample_id_to_profile:
-                other = sample_id_to_profile[profile.sample.id]
-                if other.job.created_at < profile.job.created_at or (
-                    other.job.id == profile.job.id and other.created_at < profile.created_at
-                ):
-                    # Replace if either the job version is older or the run is older
+        for i in range(0, len(sample_ids), batch_size):
+            for profile in FunctionalProfiles.where(sample=sample_ids[i : i + batch_size]):
+                if skip_missing and not profile.success:
+                    warnings.warn(f"Functional profile {profile.id} not successful. Skipping.")
+                    continue
+
+                if profile.sample.id in sample_id_to_profile:
+                    other = sample_id_to_profile[profile.sample.id]
+                    if other.job.created_at < profile.job.created_at or (
+                        other.job.id == profile.job.id and other.created_at < profile.created_at
+                    ):
+                        # Replace if either the job version is older or the run is older
+                        sample_id_to_profile[profile.sample.id] = profile
+                else:
                     sample_id_to_profile[profile.sample.id] = profile
-            else:
-                sample_id_to_profile[profile.sample.id] = profile
 
         # Issue missing results or mixed versions warnings
         newest_profiles = list(sample_id_to_profile.values())
@@ -594,7 +601,11 @@ class SampleCollection(AnalysisMixin, MutableSequence):
 
         for sample_id in sample_ids:
             if sample_id not in functional_sample_ids:
-                raise OneCodexException(f"Functional profile not found for sample {sample_id}.")
+                msg = f"Functional profile not found for sample {sample_id}."
+                if skip_missing:
+                    warnings.warn(msg + " Skipping.")
+                else:
+                    raise OneCodexException(msg)
 
         self._cached["functional_profiles"] = newest_profiles
 

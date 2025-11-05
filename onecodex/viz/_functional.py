@@ -133,10 +133,12 @@ class VizFunctionalHeatmapMixin(object):
         }
 
         metadata["functional_profile_id"] = [
-            sample_id_to_functional_profile_id[sample_id] for sample_id in metadata["sample_id"]
+            sample_id_to_functional_profile_id.get(sample_id) for sample_id in metadata["sample_id"]
         ]
 
-        metadata = metadata.set_index("functional_profile_id")
+        metadata = metadata.dropna(subset=["functional_profile_id"]).set_index(
+            "functional_profile_id"
+        )
 
         df = df.join(metadata, validate="one_to_one", how="left")
 

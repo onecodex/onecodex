@@ -32,7 +32,7 @@ class ProjectSchema(URIModel):
     description: Optional[str] = None
     external_id: Optional[str] = Field(None, json_schema_extra={"example": "a1b2c3d4e5f67890"})
     name: Optional[str] = None
-    owner: Optional[Union["UserSchema", ApiRef]]
+    owner: Union["UserSchema", ApiRef]
     permissions: list[str]
     project_name: Optional[str] = Field(
         pattern=PROJECT_HANDLE_REGEX.pattern,
