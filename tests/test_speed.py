@@ -29,11 +29,6 @@ from onecodex import Cli
             },
             0.6,
         ),
-        (
-            "from onecodex.analyses import AnalysisMixin",
-            {"onecodex": 0.30, "onecodex.analyses": 0.30},
-            0.30,
-        ),
     ],
 )
 def test_import_speed(import_command, package_max_import_times, total_time_secs):

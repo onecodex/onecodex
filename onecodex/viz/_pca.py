@@ -1,21 +1,25 @@
 import warnings
+from typing import Union
 
-from onecodex.lib.enums import Rank
+from onecodex.exceptions import PlottingException, PlottingWarning
+from onecodex.lib.enums import Metric, Rank
+from onecodex.utils import has_missing_values, is_continuous
 from onecodex.viz._primitives import (
+    escape_chart_fields,
+    get_classification_url,
     interleave_palette,
     prepare_props,
-    get_classification_url,
-    escape_chart_fields,
 )
-from onecodex.exceptions import OneCodexException, PlottingException, PlottingWarning
-from onecodex.utils import is_continuous, has_missing_values
 
 
-class VizPCAMixin(object):
+from onecodex.models.base_sample_collection import BaseSampleCollection
+
+
+class VizPCAMixin(BaseSampleCollection):
     def plot_pca(
         self,
-        rank=Rank.Auto,
-        normalize="auto",
+        rank: Union[Rank, str] = Rank.Auto,
+        metric: Union[Metric, str] = Metric.Auto,
         org_vectors=0,
         org_vectors_scale=None,
         title=None,
@@ -92,21 +96,20 @@ class VizPCAMixin(object):
         import pandas as pd
         from sklearn.decomposition import PCA
 
-        if rank is None:
-            raise OneCodexException("Please specify a rank or 'auto' to choose automatically")
+        metric, rank = self._parse_classification_config_args(metric=metric, rank=rank)
 
-        if len(self._results) < 3:
+        df = self.to_classification_df(rank=rank, metric=metric)
+
+        if len(df) < 3:
             raise PlottingException(
                 "There are too few samples for PCA after filtering. Please select 3 or more "
                 "samples to plot."
             )
-        elif len(self._results) - len(self._classification_ids_without_abundances) < 3:
+        elif len(df) - len(self._classification_ids_without_abundances) < 3:
             raise PlottingException(
                 "There are too few samples for PCA after filtering out samples with no "
                 "abundances calculated; please select 3 or more samples to plot."
             )
-
-        df = self.to_df(rank=rank, normalize=normalize)
 
         if len(df.columns) < 2:
             raise PlottingException(
@@ -138,7 +141,13 @@ class VizPCAMixin(object):
         if size and size not in tooltip:
             tooltip.insert(2, size)
 
-        metadata_results = self._metadata_fetch(tooltip, label=label, match_taxonomy=match_taxonomy)
+        metadata_results = self._metadata_fetch(
+            tooltip,
+            results_df=df,
+            label=label,
+            match_taxonomy=match_taxonomy,
+            # this is needed because we're fetching abundance values as "metadata"
+        )
         magic_metadata = metadata_results.df
         magic_fields = metadata_results.renamed_fields
 
@@ -154,6 +163,7 @@ class VizPCAMixin(object):
             ylabel = "PC2 ({}%)".format(round(pca.explained_variance_ratio_[1] * 100, 2))
 
         # don't send all the data to vega, just what we're plotting
+        # we need to filter down to just the correct IDs
         plot_data = pd.concat(
             [pca_vals.loc[:, ("PC1", "PC2")], magic_metadata], axis=1
         ).reset_index()

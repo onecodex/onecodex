@@ -11,7 +11,10 @@ from onecodex.viz._primitives import (
 )
 
 
-class VizFunctionalHeatmapMixin(object):
+from onecodex.models.base_sample_collection import BaseSampleCollection
+
+
+class VizFunctionalHeatmapMixin(BaseSampleCollection):
     def plot_functional_heatmap(
         self,
         top_n=10,
@@ -129,16 +132,14 @@ class VizFunctionalHeatmapMixin(object):
 
         # Merge with metadata itself
         sample_id_to_functional_profile_id = {
-            fp.sample.id: fp.id for fp in self._functional_profiles
+            fp.sample.id: fp.id for fp in self.functional_profiles
         }
 
         metadata["functional_profile_id"] = [
-            sample_id_to_functional_profile_id.get(sample_id) for sample_id in metadata["sample_id"]
+            sample_id_to_functional_profile_id[sample_id] for sample_id in metadata["sample_id"]
         ]
 
-        metadata = metadata.dropna(subset=["functional_profile_id"]).set_index(
-            "functional_profile_id"
-        )
+        metadata = metadata.set_index("functional_profile_id")
 
         df = df.join(metadata, validate="one_to_one", how="left")
 

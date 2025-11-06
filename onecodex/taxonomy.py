@@ -1,5 +1,7 @@
 import warnings
 
+from onecodex.lib.enums import Metric, Rank
+
 
 class TaxonomyMixin(object):
     def tree_build(self):
@@ -94,6 +96,9 @@ class TaxonomyMixin(object):
         """
         if rank is None:
             return tree.copy()
+
+        if rank == Rank.Auto:
+            rank = self.automatic_rank(metric=Metric.Auto)
 
         tree = tree.copy()
 
