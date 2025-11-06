@@ -121,7 +121,10 @@ class VizMetadataMixin(BaseSampleCollection):
         import pandas as pd
 
         if len(self._classifications) == 0:
-            raise PlottingException(f"too few samples: n={len(self._classifications)}")
+            raise PlottingException(
+                "There are too few samples for metadata plots after filtering. Please select 1 or "
+                "more samples to plot."
+            )
 
         if not PlotType.has_value(plot_type):
             raise OneCodexException("Plot type must be one of: auto, boxplot, scatter")
@@ -131,12 +134,6 @@ class VizMetadataMixin(BaseSampleCollection):
 
         metric, rank = self._parse_classification_config_args(metric=metric, rank=rank)
         results_df = self.to_classification_df(metric=metric, rank=rank)
-
-        if len(results_df) == 0:
-            raise PlottingException(
-                "There are too few samples for metadata plots after filtering. Please select 1 or "
-                "more samples to plot."
-            )
 
         # alpha diversity is only allowed on vertical axis--horizontal can be magically mapped
         metadata_fields = [haxis, "Label"]
