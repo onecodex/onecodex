@@ -5,7 +5,6 @@ import copy
 import logging
 import math
 import requests
-import six
 
 from onecodex.exceptions import OneCodexException, raise_connectivity_error, raise_api_error
 from onecodex.utils import snake_case, FakeProgressBar
@@ -296,7 +295,7 @@ def upload_document(file_path, documents_resource, progressbar=None):
     -------
     A `str` document ID for the newly uploaded file.
     """
-    if not isinstance(file_path, six.string_types):
+    if not isinstance(file_path, str):
         raise ValueError(
             "Expected file_path to be a string, got {}".format(type(file_path).__name__)
         )
@@ -553,7 +552,7 @@ def upload_asset(file_path, assets_resource, progressbar=None, name=None):
     -------
     A `str` asset ID for the newly uploaded file.
     """
-    if not isinstance(file_path, six.string_types):
+    if not isinstance(file_path, str):
         raise ValueError(f"Expected file_path to be a string, got {type(file_path).__name__}")
 
     # disable progressbar while keeping context manager
