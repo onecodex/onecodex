@@ -463,11 +463,11 @@ def test_sample_preupload(ocx, upload_mocks, api_data):
 def test_sample_pagination_with_limit(ocx, api_data):
     samples = ocx.Samples.where(limit=1)
     assert len(samples) == 1
-    assert samples[0].id == "7428cca4noabund1"
+    assert samples[0].id == "7428cca4nocaffe1"
 
     samples = ocx.Samples.where(limit=2)
     assert len(samples) == 2
-    assert samples[1].id == "7428cca4noabund2"
+    assert samples[1].id == "7428cca4nocaffe2"
 
     samples = ocx.Samples.all()
     assert len(samples) == 80

@@ -506,9 +506,9 @@ def samples_without_abundances(ocx, api_data) -> SampleCollection:
 
     return SampleCollection(
         [
-            ocx.Samples.get("7428cca4noabund1"),
-            ocx.Samples.get("7428cca4noabund2"),
-            ocx.Samples.get("7428cca4noabund3"),
+            ocx.Samples.get("7428cca4nocaffe1"),
+            ocx.Samples.get("7428cca4nocaffe2"),
+            ocx.Samples.get("7428cca4nocaffe3"),
         ]
     )
 
