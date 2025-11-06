@@ -7,7 +7,6 @@ import json
 from nbconvert.exporters.html import HTMLExporter
 from nbconvert.preprocessors import Preprocessor
 import os
-import pytz
 from traitlets import default
 
 from onecodex.exceptions import UploadException
@@ -121,7 +120,7 @@ class OneCodexHTMLExporter(HTMLExporter):
 
         # tag this report for traceability, if run from notebook service. these will be transferred
         # to PDF metadata if the HTML output of this function is used as input for PDF generation
-        meta_tags = [("dcterms.created", datetime.datetime.now(pytz.utc).isoformat())]
+        meta_tags = [("dcterms.created", datetime.datetime.now(datetime.timezone.utc).isoformat())]
 
         user_uuid = os.environ.get("ONE_CODEX_USER_UUID")
         if user_uuid is not None:
