@@ -78,8 +78,8 @@ def test_functional_profiles_fetch(ocx, api_data):
     sc = SampleCollection(samples, skip_missing=True)
 
     with pytest.warns(UserWarning, match="Functional profile not found.*7428cca4a3a04a8e"):
-        # SampleCollection._functional_profiles_fetch() populates the .functional_profiles attribute cache
-        functional_profiles = sc.functional_profiles
+        # SampleCollection._functional_profiles_fetch() populates the ._functional_profiles attribute cache
+        functional_profiles = sc._functional_profiles
 
     assert len(functional_profiles) == 3
     for profile in functional_profiles:
