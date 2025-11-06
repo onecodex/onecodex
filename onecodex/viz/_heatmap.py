@@ -140,17 +140,6 @@ class VizHeatmapMixin(BaseSampleCollection):
             fill_missing=False,
         )
 
-        if len(df) < 2:
-            raise PlottingException(
-                "There are too few samples for heatmap plots after filtering. Please select 2 or "
-                "more samples to plot."
-            )
-        elif len(df) - len(self._classification_ids_without_abundances) <= 0:
-            raise PlottingException(
-                "Abundances are not calculated for any of the selected samples. Please select a "
-                "different metric or a different set of samples to plot."
-            )
-
         if len(df["tax_id"].unique()) < 2:
             raise PlottingException(
                 "There are too few taxa for heatmap clustering after filtering. Please select a "

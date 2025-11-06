@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import warnings
 from itertools import chain
-from typing import TYPE_CHECKING, Callable, Literal, Union
+from typing import TYPE_CHECKING, Callable, Union
 
 from onecodex.distance import DistanceMixin
 from onecodex.exceptions import OneCodexException, PlottingException, PlottingWarning
@@ -17,14 +17,13 @@ from onecodex.viz._primitives import (
 
 if TYPE_CHECKING:
     import pandas as pd
-    import sklearn.metrics.DistanceMetric
 
 
 class VizDistanceMixin(DistanceMixin):
     def _compute_distance(
         self,
         rank: Rank,
-        distance_metric: Union[sklearn.metrics.DistanceMetric, Callable],
+        distance_metric: Union[BetaDiversityMetric, Callable],
         metric: Metric = Metric.Auto,
         exclude_classifications_without_abundances=False,
     ):
@@ -333,7 +332,6 @@ class VizDistanceMixin(DistanceMixin):
         rank=Rank.Auto,
         metric=Metric.Auto,
         diversity_metric=BetaDiversityMetric.BrayCurtis,
-        normalize: Union[bool, Literal["auto"]] = "auto",
         method=OrdinationMethod.Pcoa,
         title=None,
         xlabel=None,

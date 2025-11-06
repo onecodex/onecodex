@@ -562,7 +562,7 @@ class BaseSampleCollection(
         return tax_info
 
     @cached_property
-    def functional_profiles(self) -> list[FunctionalProfiles]:
+    def _functional_profiles(self) -> list[FunctionalProfiles]:
         """Transform a list of Samples or Classifications into a list of FunctionalProfiles objects.
 
         Each sample will be mapped to the newest job version which may result in mixing different
@@ -670,7 +670,7 @@ class BaseSampleCollection(
 
         sample_id_to_profile_id = {}
 
-        for profile in self.functional_profiles:
+        for profile in self._functional_profiles:
             sample_id = profile.sample.id
 
             if sample_id in sample_id_to_profile_id:
