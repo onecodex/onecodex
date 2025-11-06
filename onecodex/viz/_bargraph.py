@@ -136,12 +136,14 @@ class VizBargraphMixin(BaseSampleCollection):
         pretty_metric_name = self._display_name_for_metric(metric=metric)
 
         if group_by:
+            # calculate per-group mean of each taxon
+
             df = df.fillna(0.0).join(self.metadata[group_by]).groupby(group_by, dropna=False).mean()
+
             # Nicer display for missing metadata values than `null`
             df.index = df.index.fillna("N/A")
             pretty_metric_name = f"Mean {pretty_metric_name}"
 
-        if not group_by:
             # Replace nans with zeros for samples that have a total abundance of zero.
             df = df.div(df.sum(axis=1), axis=0).fillna(0.0)
 
