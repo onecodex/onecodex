@@ -215,6 +215,19 @@ def test_classifications(ocx, samples):
         samples._classifications
 
 
+def test_classification_fetch_sample_missing_primary_classification(ocx, samples):
+    sample = samples._res_list[0]
+    object.__setattr__(sample, "primary_classification", None)
+
+    msg = f"Classification not found.*{sample.id}"
+    with pytest.warns(UserWarning, match=msg):
+        samples._classifications
+
+    samples._kwargs["skip_missing"] = False
+    with pytest.raises(OneCodexException, match=msg):
+        samples._classifications
+
+
 def test_collate_metadata(samples):
     # check contents of metadata df--at least that which can easily be coerced to strings
     metadata = samples.metadata
