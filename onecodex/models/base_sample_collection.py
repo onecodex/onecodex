@@ -7,7 +7,7 @@ from collections.abc import MutableSequence
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cached_property, lru_cache
-from typing import TYPE_CHECKING, Any, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Optional
 
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.enums import (
@@ -18,7 +18,7 @@ from onecodex.lib.enums import (
     Metric,
     Rank,
 )
-from onecodex.models.analysis import Classifications
+from onecodex.models.analysis import Classifications, FunctionalProfiles
 from onecodex.models.sample import Samples
 
 if TYPE_CHECKING:
@@ -73,7 +73,7 @@ class BaseSampleCollection(
         if metric in (None, Metric.Auto):
             metric = self.automatic_metric
 
-        if rank in (None, Rank.Auto):
+        if rank == Rank.Auto:
             rank = self.automatic_rank(metric=metric)
 
         return Metric.from_value(metric), Rank.from_value(rank)
@@ -393,7 +393,7 @@ class BaseSampleCollection(
 
         metric = Metric.from_value(metric)
 
-        if metric == "auto":
+        if metric == Metric.Auto:
             metric = self.automatic_metric
 
         # getting classification IDs is 15% of execution time
@@ -434,16 +434,6 @@ class BaseSampleCollection(
 
         data = np.zeros((len(self._classifications), len(tax_info.index)), dtype=metric.dtype)
 
-        # map metric to key for data in API results
-        metric_key = {
-            Metric.Readcount: "readcount",
-            Metric.ReadcountWChildren: "readcount_w_children",
-            Metric.PropReadcount: "readcount",
-            Metric.PropReadcountWChildren: "readcount_w_children",
-            Metric.PropClassified: "readcount",
-            Metric.PropClassifiedWChildren: "readcount_w_children",
-        }.get(metric, metric.value)
-
         if AbundanceMetric.has_value(metric):
             data.fill(np.nan)
 
@@ -459,9 +449,9 @@ class BaseSampleCollection(
                     continue
 
                 if metric in (Metric.AbundanceWChildren, Metric.Abundance):
-                    data[c_idx, tax_id_to_idx[d_tax_id]] = d.get(metric_key)
+                    data[c_idx, tax_id_to_idx[d_tax_id]] = d.get(metric.results_key)
                 else:
-                    data[c_idx, tax_id_to_idx[d_tax_id]] = d[metric_key] or 0
+                    data[c_idx, tax_id_to_idx[d_tax_id]] = d[metric.results_key] or 0
 
         df = pd.DataFrame(
             data,
@@ -476,12 +466,6 @@ class BaseSampleCollection(
             Metric.PropClassified,
             Metric.PropClassifiedWChildren,
         ):
-            # Divide by total + replace nans with zeros for samples that have a
-            # total abundance of zero.
-
-            # the denominator here is the total number of classified reads, with or without hosts
-            # but really it should be the total reads...
-
             if metric in (Metric.PropClassified, Metric.PropClassifiedWChildren):
                 denoms = [
                     c._classification_stats["n_mapped_microbial_reads"]
@@ -490,7 +474,7 @@ class BaseSampleCollection(
             elif metric in (Metric.PropReadcount, Metric.PropReadcountWChildren):
                 denoms = [c._classification_stats["n_reads_total"] for c in self._classifications]
             else:
-                raise Exception("unreachble")
+                raise Exception("unreachable")
 
             df = df.div(denoms, axis=0).fillna(0.0)
 
@@ -509,11 +493,9 @@ class BaseSampleCollection(
             )
 
         if len(job_names) == 1 and "One Codex Database" in list(job_names)[0]:
-            self._is_metagenomic = True
+            return True
         else:
-            self._is_metagenomic = False
-
-        return self._is_metagenomic
+            return False
 
     def automatic_rank(self, metric: str | Metric) -> Rank:
         """Automatically determine the best rank to use for stats/viz.
@@ -533,7 +515,7 @@ class BaseSampleCollection(
             return Rank.Genus
 
     @cached_property
-    def automatic_metric(self) -> Literal[Metric.AbundanceWChildren, Metric.PropReadcountWChildren]:
+    def automatic_metric(self) -> Metric:
         """
         Return the best classification metric given the set of classifications.
 
@@ -553,11 +535,9 @@ class BaseSampleCollection(
 
         # if abundances are available in more than half of the samples, use that
         if metric_counts["abundance"] >= (metric_counts["readcount_w_children"] // 2):
-            self._automatic_metric = Metric.AbundanceWChildren
+            return Metric.AbundanceWChildren
         else:
-            self._automatic_metric = Metric.PropReadcountWChildren
-
-        return self._automatic_metric
+            return Metric.PropReadcountWChildren
 
     @cached_property
     def _classification_ids_without_abundances(self) -> list[str]:
@@ -574,7 +554,7 @@ class BaseSampleCollection(
                 classification_ids_without_abundances.append(classification.id)
         return classification_ids_without_abundances
 
-    @property
+    @cached_property
     def taxonomy(self):
         # metric is arbitrary here as long as it has a value
         _, tax_info = self._collate_results(metric=Metric.Readcount)
@@ -582,7 +562,7 @@ class BaseSampleCollection(
         return tax_info
 
     @cached_property
-    def functional_profiles(self) -> list[FunctionalAnnotations]:
+    def functional_profiles(self) -> list[FunctionalProfiles]:
         """Transform a list of Samples or Classifications into a list of FunctionalProfiles objects.
 
         Each sample will be mapped to the newest job version which may result in mixing different
@@ -931,11 +911,6 @@ class BaseSampleCollection(
             Return only taxa more abundant than this threshold in one or more samples.
         remove_zeros : `bool`, optional
             Do not return taxa that have zero abundance in every sample.
-        normalize : {'auto', True, False}
-            Convert read counts to relative abundances (each sample sums to 1.0). If data has
-            already been normalized, passing ``normalize=False`` will raise an error. To generate
-            denormalized data, please create a new SampleCollection with ``metric="readcount"`` or
-            ``metric="readcount_w_children"``.
         table_format : {'long', 'wide'}
             If wide, rows are classifications, cols are taxa, elements are counts. If long, rows are
             observations with three cols each: classification_id, tax_id, and count.
@@ -969,7 +944,6 @@ class BaseSampleCollection(
         self,
         rank: Rank | str = Rank.Auto,
         metric: Metric | str = Metric.Auto,
-        normalize: Union[Literal["auto"], bool] = "auto",
         include_host: bool = False,
         top_n: Optional[int] = None,
         threshold: Optional[float] = None,
