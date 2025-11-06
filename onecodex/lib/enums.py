@@ -23,6 +23,13 @@ class BaseEnum(str, Enum):
     def values(cls):
         return [e.value for e in cls]
 
+    @classmethod
+    def from_value(cls: type[T], val: str) -> T:
+        try:
+            return cls(val)
+        except ValueError:
+            raise OneCodexException(f"{val} is not valid value for {cls.__name__}")
+
 
 class AbundanceMetric(BaseEnum):
     Abundance = "abundance"
@@ -76,15 +83,8 @@ class Metric(BaseEnum):
             "prop_readcount": "Reads (Normalized)",
             "prop_readcount_w_children": "Reads (Normalized)",
             "prop_classified": "Classified Reads (Normalized)",
-            "prop_classified_w_children": "Classified Reads(Normalized)",
+            "prop_classified_w_children": "Classified Reads (Normalized)",
         }[self.value]
-
-    @classmethod
-    def from_value(cls: type[T], val: str) -> T:
-        for member in cls:
-            if member.value == val:
-                return member
-        raise OneCodexException(f"{val} is not valid value for {cls.__name__}")
 
 
 # metrics that have been "normalized" (i.e., they are proportional)
