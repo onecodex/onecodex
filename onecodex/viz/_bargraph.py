@@ -113,12 +113,10 @@ class VizBargraphMixin(BaseSampleCollection):
                     f"Metadata field {group_by} not found. Choose from: {', '.join(self.metadata.keys())}"
                 )
 
+        metric, rank = self._parse_classification_config_args(metric=metric, rank=rank)
+
         if include_taxa_missing_rank is None:
-            include_taxa_missing_rank = metric in {
-                Metric.ReadcountWChildren,
-                Metric.AbundanceWChildren,
-                Metric.PropReadcountWChildren,
-            }
+            include_taxa_missing_rank = metric.includes_children
 
         if len(self._classifications) == 0:
             raise PlottingException(

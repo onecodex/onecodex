@@ -58,6 +58,28 @@ class Metric(BaseEnum):
     AbundanceWChildren = "abundance_w_children"
 
     @property
+    def includes_children(self) -> bool:
+        return self in (
+            Metric.ReadcountWChildren,
+            Metric.AbundanceWChildren,
+            Metric.PropReadcountWChildren,
+        )
+
+    @property
+    def results_key(self):
+        """Return the key used to fetch the raw value for this metric in Classifications.results."""
+        return {
+            Metric.Readcount: "readcount",
+            Metric.ReadcountWChildren: "readcount_w_children",
+            Metric.PropReadcount: "readcount",
+            Metric.PropReadcountWChildren: "readcount_w_children",
+            Metric.PropClassified: "readcount",
+            Metric.PropClassifiedWChildren: "readcount_w_children",
+            Metric.Abundance: "abundance",
+            Metric.AbundanceWChildren: "abundance_w_children",
+        }[self]
+
+    @property
     def dtype(self):
         dtype = {
             "readcount": int,
