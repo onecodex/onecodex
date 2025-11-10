@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 import warnings
-from typing import Callable, Any
+from typing import Callable, Any, TYPE_CHECKING
 
 from onecodex.lib.enums import (
     Metric,
     Rank,
     FunctionalAnnotations,
+    FunctionalAnnotationsMetric,
     Link,
 )
 from onecodex.models import SampleCollection as BaseSampleCollection
@@ -18,6 +21,9 @@ from .enums import PlotRepr, PlotType
 from .metadata import metadata_record_to_label, deduplicate_labels, sort_metadata_records
 from .utils import get_plot_title
 from .models import PlotParams, PlotResult
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 
 METADATA_FIELD_PLOT_PARAMS = [
@@ -52,9 +58,9 @@ class Samples:
 
 
 class ClassificationResult(dict):
-    id = None
+    id: str | None = None
 
-    def results(self):
+    def results(self) -> "ClassificationResult":
         return self
 
 
@@ -65,14 +71,19 @@ class FunctionalProfiles:
         self._sample_uuid = sample_uuid
 
     @property
-    def id(self):
+    def id(self) -> str:
         return self._uuid
 
     @property
-    def sample(self):
+    def sample(self) -> Samples:
         return Samples({"uuid": self._sample_uuid})
 
-    def _filtered_results(self, annotation, metric, taxa_stratified):
+    def _filtered_results(
+        self,
+        annotation: FunctionalAnnotations,
+        metric: FunctionalAnnotationsMetric,
+        taxa_stratified: bool,
+    ) -> dict:
         if taxa_stratified:
             raise OneCodexException("Taxa stratified results are not currently supported")
 
@@ -82,13 +93,13 @@ class FunctionalProfiles:
             "n_mapped": self._results["n_mapped"],
         }
 
-    def filtered_table(self, *args, **kwargs):
+    def filtered_table(self, *args, **kwargs) -> pd.DataFrame:
         from onecodex.models import FunctionalProfiles
 
         return FunctionalProfiles.filtered_table(self, *args, **kwargs)
 
     @classmethod
-    def from_dict(cls, values: dict):
+    def from_dict(cls, values: dict) -> "FunctionalProfiles":
         return cls(values["uuid"], values["sample_uuid"], values["results"])
 
 
@@ -187,7 +198,7 @@ class SampleCollection(BaseSampleCollection):
                 # TODO
                 # sentry_sdk.capture_exception(e)
                 return PlotResult(
-                    error="Something went wrong. We've been notified about the issue. Please reload the page to try again."
+                    error="Something went wrong. We've been notified about the issue. Please try again later."
                 )
 
         for warning in captured_warnings:
@@ -202,7 +213,8 @@ class SampleCollection(BaseSampleCollection):
         self._validate_plot_params(params)
 
         if params.filter_by and params.filter_value:
-            # Don't filter in-place because we don't want to cache the filtered SampleCollection
+            # Create a *new* filtered SampleCollection and reassign to `self`, rather than filtering
+            # the current `self` in-place. We don't want to cache the filtered SampleCollection
             self = self._filter_by_metadata(params.filter_by, params.filter_value)
 
         resolved_metric = params.metric
