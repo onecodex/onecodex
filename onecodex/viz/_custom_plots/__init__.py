@@ -1,3 +1,3 @@
-from .pyodide import plot
+from .pyodide import init, plot
 
-__all__ = ["plot"]
+__all__ = ["init", "plot"]

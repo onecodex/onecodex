@@ -5,6 +5,7 @@ import json
 
 import requests
 
+from onecodex.viz import configure_onecodex_theme
 from .collection import SampleCollection, Samples
 from .models import PlotParams
 from .enums import SuggestionType
@@ -13,13 +14,12 @@ if TYPE_CHECKING:
     from pyodide.ffi import JsProxy
 
 
+def init():
+    configure_onecodex_theme()
+
+
 def plot(params: JsProxy, csrf_token: str, include_exported_chart_data: bool = False) -> dict:
     import js  # available from pyodide
-
-    # TODO only configure theme a single time when pyodide loads
-    from onecodex.viz import configure_onecodex_theme
-
-    configure_onecodex_theme()
 
     params = PlotParams.model_validate(_replace_jsnull(params.to_py()))
     cache = globals().get("CUSTOM_PLOTS_CACHE", {})
@@ -33,7 +33,7 @@ def plot(params: JsProxy, csrf_token: str, include_exported_chart_data: bool = F
         uuid = params.project
         type_ = SuggestionType.Project
     else:
-        raise Exception
+        raise NotImplementedError
 
     key = (uuid, params.metric)
     if key in cache:

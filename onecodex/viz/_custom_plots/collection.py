@@ -195,7 +195,7 @@ class SampleCollection(BaseSampleCollection):
                     error="The selected dataset is too large to plot. Please try a different plot type or select a fewer number of samples."
                 )
             except Exception:
-                # TODO
+                # TODO get Sentry working in Pyodide (CORS)
                 # sentry_sdk.capture_exception(e)
                 return PlotResult(
                     error="Something went wrong. We've been notified about the issue. Please try again later."

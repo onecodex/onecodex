@@ -238,8 +238,11 @@ def collapse_user(fp):
     return abs_path.replace(home_dir, "~")
 
 
-def _setup_sentry_for_ipython():
-    from IPython import get_ipython
+def _setup_sentry_for_ipython() -> bool:
+    try:
+        from IPython import get_ipython
+    except ImportError:
+        return False
 
     ip = get_ipython()
 
@@ -274,15 +277,13 @@ VALUES_RE = re.compile(r"^(?:\d[ -]*?){13,16}$")
 
 
 def _preprocess_sentry_event(event, hint):
-    from sentry_sdk._compat import string_types
-
     for key, value in event.items():
         lower_key = key.lower()
         for bad_key in KEYS:
             if bad_key in lower_key:
                 event[key] = MASK
                 break
-        if isinstance(value, string_types) and VALUES_RE.match(value):
+        if isinstance(value, str) and VALUES_RE.match(value):
             event[key] = MASK
 
     if "sys.argv" in event.get("extra", {}):
