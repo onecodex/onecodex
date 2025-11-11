@@ -120,6 +120,8 @@ class VizMetadataMixin(BaseSampleCollection):
         import altair as alt
         import pandas as pd
 
+        metric, rank = self._parse_classification_config_args(metric=metric, rank=rank)
+
         if len(self._classifications) == 0:
             raise PlottingException(
                 "There are too few samples for metadata plots after filtering. Please select 1 or "
@@ -132,7 +134,6 @@ class VizMetadataMixin(BaseSampleCollection):
         if haxis == secondary_haxis:
             raise OneCodexException("`haxis` and `secondary_haxis` cannot be the same field(s).")
 
-        metric, rank = self._parse_classification_config_args(metric=metric, rank=rank)
         results_df = self.to_classification_df(metric=metric, rank=rank)
 
         # alpha diversity is only allowed on vertical axis--horizontal can be magically mapped
@@ -148,7 +149,8 @@ class VizMetadataMixin(BaseSampleCollection):
         df = metadata_results.df
         magic_fields = metadata_results.renamed_fields
 
-        exclude_classifications_without_abundances = True
+        exclude_classifications_without_abundances = metric.is_abundance_metric
+
         if AlphaDiversityMetric.has_value(vaxis):
             df.loc[:, vaxis] = self.alpha_diversity(
                 diversity_metric=vaxis, metric=metric, rank=rank

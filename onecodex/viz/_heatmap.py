@@ -107,6 +107,8 @@ class VizHeatmapMixin(BaseSampleCollection):
         import numpy as np
         import pandas as pd
 
+        metric, rank = self._parse_classification_config_args(metric=metric, rank=rank)
+
         if not (threshold or top_n):
             raise OneCodexException("Please specify at least one of: threshold, top_n")
 
@@ -116,7 +118,9 @@ class VizHeatmapMixin(BaseSampleCollection):
                 "more samples to plot."
             )
 
-        elif len(self._classifications) - len(self._classification_ids_without_abundances) <= 0:
+        if metric.is_abundance_metric and (
+            len(self._classifications) == len(self._classification_ids_without_abundances)
+        ):
             raise PlottingException(
                 "Abundances are not calculated for any of the selected samples. Please select a "
                 "different metric or a different set of samples to plot."
@@ -130,7 +134,6 @@ class VizHeatmapMixin(BaseSampleCollection):
         elif top_n != "auto" and threshold == "auto":
             threshold = None
 
-        metric, rank = self._parse_classification_config_args(metric=metric, rank=rank)
         df = self.to_classification_df(
             rank=rank,
             metric=metric,
