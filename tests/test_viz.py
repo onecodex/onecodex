@@ -227,9 +227,9 @@ def test_plot_metadata_exceptions(samples):
 def test_plot_metadata_all_samples_are_nan(samples_without_abundances):
     assert len(samples_without_abundances._classification_ids_without_abundances) == 3
 
-    # Raises for alpha diversity
+    # Raises for alpha diversity when plotting abundances
     with pytest.raises(PlottingException, match="Abundances are not calculated for any"):
-        samples_without_abundances.plot_metadata(vaxis="shannon")
+        samples_without_abundances.plot_metadata(vaxis="shannon", metric="abundance")
 
     # Does not raise for numeric metadata column
     chart = samples_without_abundances.plot_metadata(vaxis="totalige", return_chart=True)
@@ -241,7 +241,7 @@ def test_plot_metadata_filters_nan_samples(samples, samples_without_abundances):
     assert len(all_samples._classification_ids_without_abundances) == 3
 
     with pytest.warns(PlottingWarning, match=r"3 sample\(s\) have no abundances calculated"):
-        chart = all_samples.plot_metadata(vaxis="shannon", return_chart=True)
+        chart = all_samples.plot_metadata(vaxis="shannon", return_chart=True, metric="abundance")
 
     assert len(chart["data"]) == len(all_samples) - len(samples_without_abundances)
 
@@ -311,10 +311,7 @@ def test_plot_pca(samples):
 
 @pytest.mark.parametrize(
     "match_taxonomy",
-    [
-        True,
-        # False
-    ],
+    [True, False],
 )
 def test_plot_match_taxonomy(samples, match_taxonomy):
     """
@@ -390,7 +387,10 @@ def test_plot_pca_missing_abundances(ocx, api_data, samples, samples_without_abu
     assert len(samples._classification_ids_without_abundances) == 3
 
     with pytest.warns(PlottingWarning, match=r"3 sample\(s\) have no abundances calculated"):
-        samples.plot_pca(return_chart=True)
+        samples.plot_pca(metric="abundance")
+
+    # non abundance-based metric, no warning
+    samples.plot_pca(metric="readcount")
 
 
 def test_plot_pca_exceptions(samples):
@@ -528,7 +528,7 @@ def test_plot_heatmap_all_samples_are_nan(ocx, api_data, samples_without_abundan
     assert len(samples_without_abundances._classification_ids_without_abundances) == 3
 
     with pytest.raises(PlottingException, match="Abundances are not calculated for any"):
-        samples_without_abundances.plot_heatmap(top_n=10, return_chart=True)
+        samples_without_abundances.plot_heatmap(top_n=10, metric="abundance")
 
 
 def test_plot_bargraph_no_samples_have_abundances(ocx, api_data, samples_without_abundances):
@@ -699,7 +699,7 @@ def test_plot_mds_missing_abundances(ocx, api_data, samples, samples_without_abu
     assert len(samples._classification_ids_without_abundances) == 2
 
     with pytest.warns(PlottingWarning, match=r"2 sample\(s\) have no abundances calculated"):
-        samples.plot_mds(return_chart=True)
+        samples.plot_mds(metric="abundance")
 
 
 def test_plot_pcoa(samples):
