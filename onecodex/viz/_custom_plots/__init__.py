@@ -3,9 +3,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 import json
 
-import requests
-
+from onecodex.utils import get_requests_session
 from onecodex.viz import configure_onecodex_theme
+from onecodex.exceptions import OneCodexException
 from .collection import SampleCollection, Samples
 from .models import PlotParams
 from .enums import SuggestionType
@@ -33,7 +33,7 @@ def plot(params: JsProxy, csrf_token: str, include_exported_chart_data: bool = F
         uuid = params.project
         type_ = SuggestionType.Project
     else:
-        raise NotImplementedError
+        raise OneCodexException("Neither a tag nor project UUID was provided.")
 
     key = (uuid, params.metric)
     if key in cache:
@@ -45,12 +45,8 @@ def plot(params: JsProxy, csrf_token: str, include_exported_chart_data: bool = F
         samples = []
         page = 1
         while True:
-            resp = requests.get(
-                url,
-                params={"type": type_, "uuid": uuid, "page": page},
-                headers={"X-CSRFToken": csrf_token},
-            )
-            # TODO handle 429 retries
+            session = get_requests_session(headers={"X-CSRFToken": csrf_token})
+            resp = session.get(url, params={"type": type_, "uuid": uuid, "page": page})
             resp.raise_for_status()
             samples.extend(Samples(sample) for sample in resp.json())
 

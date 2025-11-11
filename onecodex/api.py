@@ -3,14 +3,11 @@ import filelock
 import json
 import logging
 import os
-import requests
-from requests.adapters import HTTPAdapter
 from requests.auth import HTTPBasicAuth
-from requests.packages.urllib3.util.retry import Retry
 import warnings
 
 from onecodex.lib.auth import BearerTokenAuth
-from onecodex.utils import collapse_user, init_sentry
+from onecodex.utils import collapse_user, init_sentry, get_requests_session
 from onecodex.version import __version__
 
 
@@ -21,19 +18,7 @@ class HTTPClient:
     """Simple requests-based HTTP client for API requests."""
 
     def __init__(self, auth=None, headers=None):
-        self.session = requests.Session()
-        if auth:
-            self.session.auth = auth
-        if headers:
-            self.session.headers.update(headers)
-
-        # Set backoff / retry strategy for 429s
-        retry_strategy = Retry(
-            total=3, backoff_factor=4, allowed_methods=None, status_forcelist=[429, 502, 503]
-        )
-        adapter = HTTPAdapter(max_retries=retry_strategy)
-        self.session.mount("http://", adapter)
-        self.session.mount("https://", adapter)
+        self.session = get_requests_session(auth=auth, headers=headers)
 
     def get(self, url, **kwargs):
         """Make GET request."""

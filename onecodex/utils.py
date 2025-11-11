@@ -13,6 +13,9 @@ import click
 import requests
 import sentry_sdk
 from pydantic_core import to_jsonable_python
+from requests.auth import HTTPBasicAuth
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 
 try:
     from StringIO import StringIO
@@ -25,6 +28,7 @@ except ImportError:
     from urllib.parse import urlparse
 
 
+from onecodex.lib.auth import BearerTokenAuth
 from onecodex.exceptions import OneCodexException, UploadException
 from onecodex.version import __version__
 
@@ -506,3 +510,24 @@ def has_missing_values(dataframe_or_series):
 def use_tempdir():
     with tempfile.TemporaryDirectory() as tempdir:
         yield tempdir
+
+
+def get_requests_session(
+    auth: BearerTokenAuth | HTTPBasicAuth | None = None, headers: dict | None = None
+) -> requests.Session:
+    session = requests.Session()
+
+    if auth:
+        session.auth = auth
+    if headers:
+        session.headers.update(headers)
+
+    # Set backoff / retry strategy for 429s, etc.
+    retry_strategy = Retry(
+        total=3, backoff_factor=4, allowed_methods=None, status_forcelist=[429, 502, 503]
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+
+    return session
