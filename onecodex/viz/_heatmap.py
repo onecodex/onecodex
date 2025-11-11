@@ -1,6 +1,7 @@
+import warnings
 from typing import Union
 
-from onecodex.exceptions import OneCodexException, PlottingException
+from onecodex.exceptions import OneCodexException, PlottingException, PlottingWarning
 from onecodex.lib.enums import (
     NORMALIZED_METRICS,
     BetaDiversityMetric,
@@ -183,7 +184,9 @@ class VizHeatmapMixin(BaseSampleCollection):
         # if we've already been normalized, we must cluster samples by euclidean distance. beta
         # diversity measures won't work with normalized distances.
         if metric in NORMALIZED_METRICS and diversity_metric != BetaDiversityMetric.Euclidean:
-            raise OneCodexException(f"Only euclidean distances are supported for metric {metric}")
+            warnings.warn(
+                f"Only euclidean distances are supported for metric {metric}", PlottingWarning
+            )
 
         # df is long, so create a wide version for clustering
         df_cluster = self.to_df(
