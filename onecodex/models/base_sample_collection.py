@@ -460,24 +460,6 @@ class BaseSampleCollection(
             copy=False,
         )
 
-        if metric in (
-            Metric.PropReadcount,
-            Metric.PropReadcountWChildren,
-            Metric.PropClassified,
-            Metric.PropClassifiedWChildren,
-        ):
-            if metric in (Metric.PropClassified, Metric.PropClassifiedWChildren):
-                denoms = [
-                    c._classification_stats["n_mapped_microbial_reads"]
-                    for c in self._classifications
-                ]
-            elif metric in (Metric.PropReadcount, Metric.PropReadcountWChildren):
-                denoms = [c._classification_stats["n_reads_total"] for c in self._classifications]
-            else:
-                raise Exception("unreachable")
-
-            df = df.div(denoms, axis=0).fillna(0.0)
-
         return df, tax_info
 
     @cached_property
@@ -537,7 +519,7 @@ class BaseSampleCollection(
         if metric_counts["abundance"] >= (metric_counts["readcount_w_children"] // 2):
             return Metric.AbundanceWChildren
         else:
-            return Metric.PropReadcountWChildren
+            return Metric.NormalizedReadcountWChildren
 
     @cached_property
     def _classification_ids_without_abundances(self) -> list[str]:
@@ -966,10 +948,10 @@ class BaseSampleCollection(
                 )
 
         # after this point, _to_classification_df should no longer care about metric or include_host
-        df, taxonomy = self._collate_results(metric=metric, include_host=include_host)
-
-        if fill_missing:
-            df = df.fillna(filler)
+        df, tax_info = self._collate_results(
+            metric=metric,
+            include_host=include_host,
+        )
 
         # subset by taxa
         if rank:
@@ -990,7 +972,7 @@ class BaseSampleCollection(
 
             for tax_id in df.keys():
                 try:
-                    tax_id_level = Rank(taxonomy["rank"][tax_id]).level
+                    tax_id_level = Rank(tax_info["rank"][tax_id]).level
                 except ValueError:
                     tax_id_level = None
 
@@ -1014,6 +996,31 @@ class BaseSampleCollection(
 
             df = df.loc[:, tax_ids_to_keep]
 
+        if metric in (
+            Metric.PropReadcount,
+            Metric.PropReadcountWChildren,
+            Metric.PropClassified,
+            Metric.PropClassifiedWChildren,
+            Metric.NormalizedReadcount,
+            Metric.NormalizedReadcountWChildren,
+        ):
+            if metric in (Metric.PropClassified, Metric.PropClassifiedWChildren):
+                denoms = [
+                    c._classification_stats["n_mapped_microbial_reads"]
+                    for c in self._classifications
+                ]
+            elif metric in (Metric.PropReadcount, Metric.PropReadcountWChildren):
+                denoms = [c._classification_stats["n_reads_total"] for c in self._classifications]
+            elif metric in (Metric.NormalizedReadcount, Metric.NormalizedReadcountWChildren):
+                denoms = df.sum(axis=1)
+            else:
+                raise Exception("unreachable")
+
+            df = df.div(denoms, axis=0).fillna(0.0)
+
+        if fill_missing:
+            df = df.fillna(filler)
+
         # remove columns (tax_ids) with no values that are > 0
         if remove_zeros:
             df = df.loc[:, (df != 0).any(axis=0)]
@@ -1033,7 +1040,7 @@ class BaseSampleCollection(
             "ocx_rank": rank,
             "ocx_metric": metric,
             # this does not include parents...
-            "ocx_taxonomy": taxonomy.copy(),
+            "ocx_taxonomy": tax_info.copy(),
             "ocx_threshold": threshold,
             "ocx_classification_ids_without_abundances": self._classification_ids_without_abundances,
         }
