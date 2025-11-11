@@ -1,7 +1,7 @@
 from typing import Union
 
 from onecodex.exceptions import OneCodexException, PlottingException
-from onecodex.lib.enums import NORMALIZED_METRICS, Link, Metric, Rank
+from onecodex.lib.enums import Link, Metric, Rank
 from onecodex.viz._primitives import (
     get_classification_url,
     get_ncbi_taxonomy_browser_url,
@@ -280,7 +280,7 @@ class VizBargraphMixin(BaseSampleCollection):
 
         y_scale_kwargs = {"zero": True, "nice": False}
 
-        if metric in NORMALIZED_METRICS:
+        if metric.is_normalized:
             y_scale_kwargs["domain"] = [0, 1]
 
         chart = (

@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING
 
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.enums import (
-    NORMALIZED_METRICS,
     AlphaDiversityMetric,
     BetaDiversityMetric,
     Metric,
@@ -191,7 +190,7 @@ class DistanceMixin(BaseSampleCollection, TaxonomyMixin):
         df = self.to_df(rank=rank, metric=metric, fill_missing=True)
 
         # The scikit-bio implementations of phylogenetic metrics require integer counts
-        if metric in NORMALIZED_METRICS:
+        if metric.is_normalized:
             df = df * 10e9
 
         tax_ids = df.keys().tolist()

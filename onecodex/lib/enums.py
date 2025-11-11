@@ -66,6 +66,22 @@ class Metric(BaseEnum):
         return self in AbundanceMetric.values()
 
     @property
+    def is_normalized(self) -> bool:
+        """Return true if the metric has been normalized (ie proportionalized) in some way."""
+        return {
+            Metric.Abundance: True,
+            Metric.AbundanceWChildren: True,
+            Metric.PropReadcount: True,
+            Metric.PropReadcountWChildren: True,
+            Metric.PropClassified: True,
+            Metric.PropClassifiedWChildren: True,
+            Metric.NormalizedReadcount: True,
+            Metric.NormalizedReadcountWChildren: True,
+            Metric.Readcount: False,
+            Metric.ReadcountWChildren: False,
+        }[self]
+
+    @property
     def includes_children(self) -> bool:
         return self in (
             Metric.ReadcountWChildren,
@@ -123,17 +139,6 @@ class Metric(BaseEnum):
             "normalized_readcount": "Reads (Normalized)",
             "normalized_readcount_w_children": "Reads (Normalized)",
         }[self.value]
-
-
-# metrics that have been "normalized" (i.e., they are proportional)
-NORMALIZED_METRICS = {
-    Metric.Abundance,
-    Metric.AbundanceWChildren,
-    Metric.PropReadcount,
-    Metric.PropReadcountWChildren,
-    Metric.PropClassified,
-    Metric.PropClassifiedWChildren,
-}
 
 
 class AlphaDiversityMetric(BaseEnum):
