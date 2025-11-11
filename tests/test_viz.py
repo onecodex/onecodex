@@ -560,7 +560,7 @@ def test_plot_distance_excludes_classifications_without_abundances(
 def test_plot_distance_min_with_abundances(ocx, api_data, samples, samples_without_abundances):
     # We should raise a PlottingException if we don't have >= 2 samples with abundances calculated
     with pytest.raises(PlottingException) as e:
-        (samples[:1] + samples_without_abundances).plot_distance()
+        (samples[:1] + samples_without_abundances).plot_distance(metric="abundance")
         assert "There are too few samples for distance matrix plots" in str(e.value)
 
 

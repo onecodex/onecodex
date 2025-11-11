@@ -206,12 +206,17 @@ class VizDistanceMixin(DistanceMixin):
 
         from onecodex.viz import dendrogram
 
+        metric, rank = self._parse_classification_config_args(metric=metric, rank=rank)
+
         if len(self._classifications) < 2:
             raise PlottingException(
                 "There are too few samples for distance matrix plots after filtering. Please "
                 "select 2 or more samples to plot."
             )
-        elif len(self._classifications) - len(self._classification_ids_without_abundances) < 2:
+
+        elif metric.is_abundance_metric and (
+            len(self._classifications) - len(self._classification_ids_without_abundances) < 2
+        ):
             raise PlottingException(
                 "There are too few samples for distance matrix plots after filtering out samples "
                 "with no abundances calculated; please select more samples to plot."
@@ -229,7 +234,6 @@ class VizDistanceMixin(DistanceMixin):
 
         tooltip.insert(0, "Label")
 
-        metric, rank = self._parse_classification_config_args(metric=metric, rank=rank)
         results_df = self.to_classification_df(metric=metric, rank=rank)
 
         metadata_results = self._metadata_fetch(
