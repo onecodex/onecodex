@@ -301,6 +301,14 @@ class BaseSampleCollection(
                     "Objects in SampleCollection must be one of: Classifications, Samples"
                 )
 
+            if not classification:
+                msg = f"Classification not found for sample {obj.id}."
+                if self._kwargs["skip_missing"]:
+                    warnings.warn(msg + " Skipping.")
+                    continue
+                else:
+                    raise OneCodexException(msg)
+
             if self._kwargs["skip_missing"] and not classification.success:
                 warnings.warn(
                     "Classification {} not successful. Skipping.".format(classification.id)
@@ -595,7 +603,11 @@ class BaseSampleCollection(
 
         for sample_id in sample_ids:
             if sample_id not in functional_sample_ids:
-                raise OneCodexException(f"Functional profile not found for sample {sample_id}.")
+                msg = f"Functional profile not found for sample {sample_id}."
+                if self._kwargs["skip_missing"]:
+                    warnings.warn(msg + " Skipping.")
+                else:
+                    raise OneCodexException(msg)
 
         return newest_profiles
 

@@ -72,13 +72,17 @@ def test_functional_profiles_results(ocx, api_data):
 
 
 def test_functional_profiles_fetch(ocx, api_data):
-    sample_ids = ["543c9c046e3e4e09", "66c1531cb0b244f6", "37e5151e7bcb4f87"]
+    sample_ids = [
+        "543c9c046e3e4e09",
+        "66c1531cb0b244f6",
+        "37e5151e7bcb4f87",
+        "7428cca4a3a04a8e",  # does not have functional results
+    ]
     samples = [ocx.Samples.get(sample_id) for sample_id in sample_ids]
-
     sc = SampleCollection(samples, skip_missing=True)
 
     with pytest.warns(UserWarning, match="Functional profile not found.*7428cca4a3a04a8e"):
-        # SampleCollection._functional_profiles_fetch() populates the ._functional_profiles attribute cache
+        # SampleCollection._functional_profiles_fetch() populates the .functional_profiles attribute cache
         functional_profiles = sc._functional_profiles
 
     assert len(functional_profiles) == 3
