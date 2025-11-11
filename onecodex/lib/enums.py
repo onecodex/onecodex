@@ -45,6 +45,8 @@ class Metric(BaseEnum):
     PropReadcountWChildren: ReadcountWChildren normalized by the number of classified microbial reads.
     Abundance: Relative abundance estimate for a given taxon.
     AbundanceWChildren: Abundance for a taxon and all its descendants.
+    NormalizedReadcount: readcount divided by the total of readcounts for all taxa minus hosts.
+    NormalizedReadcountWChildren: NormalizedReadcount for a taxon and all its descendants.
     """
 
     Auto = "auto"
