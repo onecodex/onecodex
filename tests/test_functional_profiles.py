@@ -104,60 +104,46 @@ def test_collate_functional_results(ocx, api_data):
     assert df.shape == (3, 39)
     assert len(mapping) == 39
     assert sorted(list(mapping.keys())) == sorted(list(df.columns))
-    assert df.compare(
-        sc._cached[
-            "functional_results_annotation=go_metric=rpk_taxa_stratified=True_fill_missing=False_filler=0"
-        ]
-    ).empty
+
     df, mapping = sc._functional_results(
         annotation="eggnog", metric="cpm", taxa_stratified=False, fill_missing=True, filler=0
     )
-    # Old cache is still kept
-    assert (
-        "functional_results_annotation=go_metric=rpk_taxa_stratified=True_fill_missing=False_filler=0"
-        in sc._cached
-    )
-    assert df.compare(
-        sc._cached[
-            "functional_results_annotation=eggnog_metric=cpm_taxa_stratified=False_fill_missing=True_filler=0"
-        ]
-    ).empty
+
     df, mapping = sc._functional_results(
         annotation="pathways", metric="coverage", taxa_stratified=True, fill_missing=False, filler=0
     )
+
     assert df.shape == (3, 27)
     assert len(mapping) == 27
     assert sorted(list(mapping.keys())) == sorted(list(df.columns))
+
     with pytest.raises(ValueError):
         sc._functional_results(
             annotation="all", metric="rpk", taxa_stratified=True, fill_missing=False, filler=0
         )
+
     with pytest.raises(ValueError):
         sc._functional_results(
             annotation="pathways", metric="rpk", taxa_stratified=True, fill_missing=False, filler=0
         )
+
     with pytest.raises(ValueError):
         sc._functional_results(
             annotation="go", metric="coverage", taxa_stratified=False, fill_missing=True, filler=0
         )
-    sc._functional_results(
+
+    result, _ = sc._functional_results(
         annotation="pfam", metric="cpm", taxa_stratified=False, fill_missing=False, filler=0
     )
-    assert sc._cached[
-        "functional_results_annotation=pfam_metric=cpm_taxa_stratified=False_fill_missing=False_filler=0"
-    ].shape == (3, 2)
-    sc._functional_results(
+    assert result.shape == (3, 2)
+    result, _ = sc._functional_results(
         annotation="pfam", metric="rpk", taxa_stratified=False, fill_missing=False, filler=0
     )
-    assert sc._cached[
-        "functional_results_annotation=pfam_metric=rpk_taxa_stratified=False_fill_missing=False_filler=0"
-    ].shape == (3, 2)
-    sc._functional_results(
+    assert result.shape == (3, 2)
+    result, _ = sc._functional_results(
         annotation="go", metric="rpk", taxa_stratified=True, fill_missing=False, filler=0
     )
-    assert sc._cached[
-        "functional_results_annotation=go_metric=rpk_taxa_stratified=True_fill_missing=False_filler=0"
-    ].shape == (3, 39)
+    assert result.shape == (3, 39)
 
 
 def test_to_df_for_functional_profiles(ocx, api_data):
@@ -177,7 +163,7 @@ def test_to_df_for_functional_profiles(ocx, api_data):
     assert df.shape == (3, 7)
     assert df.ocx_functional_group == "eggnog"
     assert df.ocx_metric == "cpm"
-    assert df.ocx_metadata.shape == (3, 93)
+    assert df.ocx_metadata.shape == (3, 92)
     assert df.index.name == "functional_profile_id"
     assert set(df.ocx_metadata["sample_id"]) == set(sample_ids)
     assert set(df.ocx_feature_name_map.keys()) == set(df.columns)

@@ -1,19 +1,29 @@
-from onecodex.lib.enums import Rank, Linkage, Link
-from onecodex.exceptions import OneCodexException, PlottingException
+import warnings
+from typing import Union
+
+from onecodex.exceptions import OneCodexException, PlottingException, PlottingWarning
+from onecodex.lib.enums import (
+    BetaDiversityMetric,
+    Link,
+    Linkage,
+    Metric,
+    Rank,
+)
+from onecodex.models.base_sample_collection import BaseSampleCollection
 from onecodex.viz._primitives import (
-    prepare_props,
-    sort_helper,
+    escape_chart_fields,
     get_classification_url,
     get_ncbi_taxonomy_browser_url,
-    escape_chart_fields,
+    prepare_props,
+    sort_helper,
 )
 
 
-class VizHeatmapMixin(object):
+class VizHeatmapMixin(BaseSampleCollection):
     def plot_heatmap(
         self,
-        rank=Rank.Auto,
-        normalize="auto",
+        rank: Union[Rank, str] = Rank.Auto,
+        metric: Union[Metric, str] = Metric.Auto,
         top_n="auto",
         threshold="auto",
         title=None,
@@ -23,7 +33,7 @@ class VizHeatmapMixin(object):
         return_chart=False,
         linkage=Linkage.Average,
         haxis=None,
-        metric="euclidean",
+        diversity_metric: BetaDiversityMetric = BetaDiversityMetric.Euclidean,
         legend="auto",
         label=None,
         sort_x=None,
@@ -39,16 +49,15 @@ class VizHeatmapMixin(object):
         ----------
         rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
             Analysis will be restricted to abundances of taxa at the specified level.
-        normalize : 'auto' or `bool`, optional
-            Convert read counts to relative abundances such that each sample sums to 1.0. Setting
-            'auto' will choose automatically based on the data.
+        metric: Metric
+            the taxonomic abundance metric to use. See onecodex.lib.enums.Metric for definitions
         return_chart : `bool`, optional
             When True, return an `altair.Chart` object instead of displaying the resulting plot in
             the current notebook.
         haxis : `string`, optional
             The metadata field (or tuple containing multiple categorical fields) used to group
             samples together. Each group of samples will be clustered independently.
-        metric : {'euclidean', 'braycurtis', 'cityblock', 'manhattan', 'jaccard', 'unifrac', 'unweighted_unifrac', 'aitchison'}, optional
+        diversity_metric: BetaDiversityMetric
             Function to use when calculating the distance between two samples.
             Note that 'cityblock' and 'manhattan' are equivalent metrics.
         linkage : {'average', 'single', 'complete', 'weighted', 'centroid', 'median'}
@@ -95,22 +104,23 @@ class VizHeatmapMixin(object):
         """
         # Deferred imports
         import altair as alt
-        import pandas as pd
         import numpy as np
-        from onecodex.dataframes import OneCodexAccessor
+        import pandas as pd
 
-        if rank is None:
-            raise OneCodexException("Please specify a rank or 'auto' to choose automatically")
+        metric, rank = self._parse_classification_config_args(metric=metric, rank=rank)
 
         if not (threshold or top_n):
             raise OneCodexException("Please specify at least one of: threshold, top_n")
 
-        if len(self._results) < 2:
+        if len(self._classifications) < 2:
             raise PlottingException(
                 "There are too few samples for heatmap plots after filtering. Please select 2 or "
                 "more samples to plot."
             )
-        elif len(self._results) - len(self._classification_ids_without_abundances) <= 0:
+
+        if metric.is_abundance_metric and (
+            len(self._classifications) == len(self._classification_ids_without_abundances)
+        ):
             raise PlottingException(
                 "Abundances are not calculated for any of the selected samples. Please select a "
                 "different metric or a different set of samples to plot."
@@ -124,15 +134,14 @@ class VizHeatmapMixin(object):
         elif top_n != "auto" and threshold == "auto":
             threshold = None
 
-        df = self.to_df(
+        df = self.to_classification_df(
             rank=rank,
-            normalize=normalize,
+            metric=metric,
             top_n=top_n,
-            threshold=threshold,
             table_format="long",
+            threshold=threshold,
             fill_missing=False,
         )
-        classification_ids_without_abundances = self._classification_ids_without_abundances
 
         if len(df["tax_id"].unique()) < 2:
             raise PlottingException(
@@ -141,7 +150,7 @@ class VizHeatmapMixin(object):
             )
 
         if legend == "auto":
-            legend = df.ocx.metric
+            legend = df.ocx_metric
 
         if tooltip:
             if not isinstance(tooltip, list):
@@ -154,13 +163,17 @@ class VizHeatmapMixin(object):
 
         tooltip.insert(0, "Label")
 
-        metadata_results = self._metadata_fetch(tooltip, label=label, match_taxonomy=match_taxonomy)
+        metadata_results = self._metadata_fetch(
+            tooltip, results_df=df, label=label, match_taxonomy=match_taxonomy
+        )
         magic_metadata = metadata_results.df
         magic_fields = metadata_results.renamed_fields
+
         magic_metadata.replace(np.nan, "N/A", inplace=True)
 
         # add columns for prettier display
         df["Label"] = magic_metadata["Label"][df["classification_id"]].tolist()
+
         df["tax_name"] = ["{} ({})".format(self.taxonomy["name"][t], t) for t in df["tax_id"]]
 
         # and for metadata
@@ -169,28 +182,19 @@ class VizHeatmapMixin(object):
 
         # if we've already been normalized, we must cluster samples by euclidean distance. beta
         # diversity measures won't work with normalized distances.
-        if self._guess_normalized():
-            if metric != "euclidean":
-                raise OneCodexException(
-                    "Results are normalized. Please re-run with metric=euclidean"
-                )
-
-            df_sample_cluster = self.to_df(
-                rank=rank, normalize=normalize, top_n=top_n, threshold=threshold, fill_missing=False
-            )
-            df_taxa_cluster = df_sample_cluster
-        else:
-            df_sample_cluster = self.to_df(
-                rank=rank, normalize=False, top_n=top_n, threshold=threshold, fill_missing=False
+        if metric.is_normalized and diversity_metric != BetaDiversityMetric.Euclidean:
+            warnings.warn(
+                f"Only euclidean distances are supported for metric {metric}", PlottingWarning
             )
 
-            df_taxa_cluster = self.to_df(
-                rank=rank, normalize=normalize, top_n=top_n, threshold=threshold, fill_missing=False
-            )
+        # df is long, so create a wide version for clustering
+        df_cluster = self.to_df(
+            metric=metric, rank=rank, top_n=top_n, threshold=threshold, fill_missing=False
+        )
 
         # applying clustering to determine order of taxa, or use custom sorting function if given
         if sort_y is None:
-            taxa_cluster = df_taxa_cluster.ocx._cluster_by_taxa(linkage=linkage)
+            taxa_cluster = self._cluster_by_taxa(results_df=df_cluster, linkage=linkage)
             taxa_cluster = taxa_cluster["labels_in_order"]
         else:
             taxa_cluster = sort_helper(sort_y, df["tax_name"])
@@ -198,10 +202,9 @@ class VizHeatmapMixin(object):
         if sort_x is None:
             if haxis is None:
                 # cluster samples only once
-                sample_cluster = df_sample_cluster.ocx._cluster_by_sample(
-                    classification_ids_without_abundances=classification_ids_without_abundances,
-                    rank=rank,
-                    metric=metric,
+                sample_cluster = self._cluster_by_sample(
+                    results_df=df_cluster,
+                    diversity_metric=diversity_metric,
                     linkage=linkage,
                 )
                 labels_in_order = magic_metadata["Label"][sample_cluster["ids_in_order"]].tolist()
@@ -216,9 +219,9 @@ class VizHeatmapMixin(object):
                     )
 
                 labels_in_order = []
-                df_sample_cluster[haxis] = self.metadata[haxis]
+                df_cluster[haxis] = self.metadata[haxis]
 
-                for group, group_df in df_sample_cluster.groupby(haxis, dropna=False):
+                for group, group_df in df_cluster.groupby(haxis, dropna=False):
                     if group_df.shape[0] <= 3:
                         # we can't cluster
                         labels_in_order.extend(
@@ -226,10 +229,9 @@ class VizHeatmapMixin(object):
                         )
                         continue
 
-                    sample_cluster = group_df.drop(columns=[haxis]).ocx._cluster_by_sample(
-                        classification_ids_without_abundances=classification_ids_without_abundances,
-                        rank=rank,
-                        metric=metric,
+                    sample_cluster = self._cluster_by_sample(
+                        results_df=group_df.drop(columns=[haxis]),
+                        diversity_metric=diversity_metric,
                         linkage=linkage,
                     )
                     labels_in_order.extend(
@@ -238,15 +240,20 @@ class VizHeatmapMixin(object):
         else:
             labels_in_order = sort_helper(sort_x, magic_metadata["Label"].tolist())
 
+        pretty_metric_name = self._display_name_for_metric(metric=df.ocx_metric)
+
         # should ultimately be Label, tax_name, readcount_w_children, then custom fields
         tooltip_for_altair = [magic_fields[f] for f in tooltip]
         tooltip_for_altair.insert(1, "tax_name")
-        tooltip_for_altair.insert(2, f"{df.ocx.metric}:Q")
+        tooltip_for_altair.insert(2, f"{pretty_metric_name}:Q")
 
         alt_kwargs = dict(
             x=alt.X("Label:N", axis=alt.Axis(title=xlabel), sort=labels_in_order),
             y=alt.Y("tax_name:N", axis=alt.Axis(title=ylabel), sort=taxa_cluster),
-            color=alt.Color(f"{df.ocx.metric}:Q", legend=alt.Legend(title=legend)),
+            color=alt.Color(
+                f"{pretty_metric_name}:Q",
+                legend=alt.Legend(title=legend),
+            ),
             tooltip=tooltip_for_altair,
         )
 
@@ -263,21 +270,24 @@ class VizHeatmapMixin(object):
             )
 
         # Drop all-NaN rows, convert remaining NaNs to 0s, and concat
-        # dropped all-NaN rows to the end
-        dropped = []
-        for classification_id in classification_ids_without_abundances:
-            d = df[(df == classification_id).any(axis=1)]
-            if isinstance(self, OneCodexAccessor):
-                # the df of a `OneCodexAccessor` does not have NaNs, and we want to display
-                # classification_ids_without_abundances columns as white instead of color
-                # corresponding to 0
-                d = d.replace(0.0, np.nan)
-            dropped.append(d)
-            index = df[(df == classification_id).any(axis=1)].index
-            df = df.drop(index)
+        # dropped all-NaN rows to the end (only if using Abundance or AbundanceWChildren)
+        if metric in {Metric.Abundance, Metric.AbundanceWChildren}:
+            end_labels = []
+            dropped = []
+            for classification_id in self._classification_ids_without_abundances:
+                d = df[(df == classification_id).any(axis=1)]
+                label = d["Label"].values[0]
+                labels_in_order.remove(label)
+                end_labels.append(label)
+                dropped.append(d)
+                index = df[(df == classification_id).any(axis=1)].index
+                df = df.drop(index)
 
-        df = df.replace(np.nan, 0)
-        df = pd.concat([df, *dropped])
+            # replace NaN with 0.0 in the not-dropped classifications (classifications that have abundances)
+            df = df.replace(np.nan, 0)
+            df = pd.concat([df, *dropped])
+
+            labels_in_order = labels_in_order + end_labels
 
         assert set(df["Label"].values) == set(labels_in_order)
 
