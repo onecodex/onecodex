@@ -47,3 +47,9 @@ def test_metric_results_key():
     """this just makes sure that we have defined a results key mapping for all metrics"""
     for metric in set(Metric) - {Metric.Auto}:
         assert metric.results_key
+
+
+def test_metric_is_normalized():
+    """this just makes sure that we have defined an is_normalized mapping for all metrics"""
+    for metric in set(Metric) - {Metric.Auto}:
+        assert metric.is_normalized is not None
