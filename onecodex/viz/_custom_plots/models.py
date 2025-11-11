@@ -76,6 +76,12 @@ class PlotResult:
         chart = self.chart
         if chart:
             chart = chart.to_dict()
+
+            # This is a backwards compatibility fix.
+            # Default OCX plot styles include background and no grid. Custom Plots historically
+            # had no background and enabled grid which was due to an unexpected error in loading
+            # the `altair` module. This function removes some of the default styling to keep the
+            # charts consistent.
             if isinstance(chart.get("config"), dict):
                 chart["config"].pop("background", None)
                 if isinstance(chart["config"].get("axis"), dict):

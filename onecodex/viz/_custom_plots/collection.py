@@ -36,7 +36,16 @@ METADATA_FIELD_PLOT_PARAMS = [
 ]
 
 
+###
+# SampleCollection shims to support data fetched via the internal v2 API instead of the v1 API. The
+# v2 API has an endpoint that provides all the necessary/minimal sample data, and is more efficient
+# than fetching the data via the v1 API.
+###
+
+
 class Samples:
+    """Mock the Samples model."""
+
     def __init__(self, sample_datum: dict):
         self._sample_datum = sample_datum
 
@@ -57,14 +66,18 @@ class Samples:
         return self._sample_datum["functional_profile"]
 
 
-class ClassificationResult(dict):
+class Classifications(dict):
+    """Mock the Classifications model."""
+
     id: str | None = None
 
-    def results(self) -> "ClassificationResult":
+    def results(self) -> "Classifications":
         return self
 
 
 class FunctionalProfiles:
+    """Mock the FunctionalProfiles model."""
+
     def __init__(self, functional_run_uuid: str, sample_uuid: str, results: dict):
         self._uuid = functional_run_uuid
         self._results = results
@@ -98,13 +111,10 @@ class FunctionalProfiles:
 
         return FunctionalProfiles.filtered_table(self, *args, **kwargs)
 
-    @classmethod
-    def from_dict(cls, values: dict) -> "FunctionalProfiles":
-        return cls(values["uuid"], values["sample_uuid"], values["results"])
-
 
 class SampleCollection(BaseSampleCollection):
     def __init__(self, samples: list[Samples], **kwargs):
+        """Overridden for shims."""
         # For some reason, it would try to collate_results in loop because that value is not set.
         # Strangely, that value should be set in collate_results so it shouldn't recurse.
         # Not sure what's happening but setting it initially fixes it.
@@ -126,6 +136,7 @@ class SampleCollection(BaseSampleCollection):
         self._functional_profiles  # precompute the cache
 
     def _collate_metadata(self):
+        """Overridden for shims."""
         import pandas as pd
 
         metadata = [sample._metadata for sample in self.samples]
@@ -142,6 +153,7 @@ class SampleCollection(BaseSampleCollection):
         self._cached["metadata"] = metadata
 
     def _classification_fetch(self):
+        """Overridden for shims."""
         classifications = []
         job_names = set()
         for sample in self.samples:
@@ -149,7 +161,7 @@ class SampleCollection(BaseSampleCollection):
             if not summary:
                 continue
 
-            results = ClassificationResult()
+            results = Classifications()
             results.update(summary["api_results"])
             results["id"] = summary["uuid"]
             results.id = summary["uuid"]
@@ -166,13 +178,16 @@ class SampleCollection(BaseSampleCollection):
 
     @property
     def _functional_profiles(self):
+        """Overridden for shims."""
         if "functional_profiles" not in self._cached:
             functional_results = []
             for sample in self.samples:
                 profile = sample._functional_profile
                 if not profile:
                     continue
-                functional_results.append(FunctionalProfiles.from_dict(profile))
+                functional_results.append(
+                    FunctionalProfiles(profile["uuid"], profile["sample_uuid"], profile["results"])
+                )
 
             self._cached["functional_profiles"] = functional_results
 

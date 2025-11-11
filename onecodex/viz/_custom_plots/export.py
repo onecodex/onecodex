@@ -23,7 +23,7 @@ METRIC_COLUMNS = [
 
 
 def export_chart_data(params: PlotParams, chart: alt.Chart) -> bytes:
-    """Prepare Custom Plot chart data for CSV or XLSX export."""
+    """Export chart data to CSV or XLSX."""
     df = _extract_chart_data(params, chart)
     return _dataframe_to_bytes(params, df)
 
@@ -42,10 +42,7 @@ def _extract_chart_data(params: PlotParams, chart: alt.Chart) -> pd.DataFrame:
                 values_col = col_name
 
         if not values_col:
-            raise OneCodexException(
-                "Cannot prepare chart data for export: Unexpected or missing metric column in "
-                "chart data"
-            )
+            raise OneCodexException("Cannot export chart data: unexpected or missing metric column")
 
         columns = "Label"
         if params.group_by:

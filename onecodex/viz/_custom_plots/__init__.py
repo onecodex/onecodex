@@ -21,7 +21,10 @@ def init():
 def plot(params: JsProxy, csrf_token: str, include_exported_chart_data: bool = False) -> dict:
     import js  # available from pyodide
 
-    params = PlotParams.model_validate(_replace_jsnull(params.to_py()))
+    params = PlotParams.model_validate(_convert_jsnull_to_none(params.to_py()))
+
+    # Cache the *unfiltered* SampleCollection, keyed by (<tag_or_project_uuid>, <metric>).
+    # It looks gross but this is how you cache in Pyodide ¯\_(ツ)_/¯
     cache = globals().get("CUSTOM_PLOTS_CACHE", {})
 
     uuid = None
@@ -58,22 +61,30 @@ def plot(params: JsProxy, csrf_token: str, include_exported_chart_data: bool = F
         collection = SampleCollection(samples, metric=params.metric)
         cache[key] = collection
 
+    # Now that we have a SampleCollection, do the actual plotting
     result = collection.plot(params)
+
+    # Cache the results in case the original metric was "auto" and got resolved to a concrete metric
     cache[(uuid, result.metric)] = collection
     globals()["CUSTOM_PLOTS_CACHE"] = cache
 
     return result.to_dict(params, include_exported_chart_data=include_exported_chart_data)
 
 
-def _replace_jsnull(obj: Any) -> Any:
+def _convert_jsnull_to_none(obj: Any) -> Any:
+    """Convert `jsnull` to `None`.
+
+    Pyodide converts `null` to `jsnull`, and `undefined` to `None`. Convert `jsnull` to `None` too.
+
+    """
     from pyodide.ffi import jsnull
 
     if obj is jsnull:
         return None
     elif isinstance(obj, list):
-        return [_replace_jsnull(x) for x in obj]
+        return [_convert_jsnull_to_none(x) for x in obj]
     elif isinstance(obj, dict):
-        return {k: _replace_jsnull(v) for k, v in obj.items()}
+        return {k: _convert_jsnull_to_none(v) for k, v in obj.items()}
     return obj
 
 
