@@ -61,7 +61,7 @@ class Metric(BaseEnum):
 
     @property
     def is_abundance_metric(self) -> bool:
-        return self in AbundanceMetric
+        return self in AbundanceMetric.values()
 
     @property
     def includes_children(self) -> bool:
@@ -70,6 +70,7 @@ class Metric(BaseEnum):
             Metric.AbundanceWChildren,
             Metric.PropReadcountWChildren,
             Metric.NormalizedReadcountWChildren,
+            Metric.PropClassifiedWChildren,
         )
 
     @property
