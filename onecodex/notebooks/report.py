@@ -282,7 +282,6 @@ class reference(object):
         if text:
             # has this reference already been cited?
             for ref_label, (ref_num, ref_text) in self.ref_list.items():
-                print(ref_label, ref_num, ref_text)
                 if text == ref_text:
                     if label and label != ref_label:
                         raise OneCodexException(
