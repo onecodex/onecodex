@@ -298,7 +298,7 @@ def test_collate_results(samples, metric, sha):
 
 
 def test_automatic_metric_no_abundance_estimates(samples_without_abundances):
-    assert samples_without_abundances.automatic_metric == Metric.PropReadcountWChildren
+    assert samples_without_abundances.automatic_metric == Metric.NormalizedReadcountWChildren
 
 
 def test_automatic_metric_with_abundances(samples):
@@ -309,8 +309,8 @@ def test_automatic_metric_majority_rules(samples, samples_without_abundances):
     assert (samples + samples_without_abundances[:1]).automatic_metric == Metric.AbundanceWChildren
     assert (
         samples_without_abundances + samples[:1]
-    ).automatic_metric == Metric.PropReadcountWChildren
+    ).automatic_metric == Metric.NormalizedReadcountWChildren
 
 
 def test_automatic_metric_majority_lacking_abundance_estimates(samples, samples_without_abundances):
-    assert samples_without_abundances.automatic_metric == Metric.PropReadcountWChildren
+    assert samples_without_abundances.automatic_metric == Metric.NormalizedReadcountWChildren

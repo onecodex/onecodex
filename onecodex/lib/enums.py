@@ -56,6 +56,8 @@ class Metric(BaseEnum):
     PropReadcountWChildren = "prop_readcount_w_children"
     Abundance = "abundance"
     AbundanceWChildren = "abundance_w_children"
+    NormalizedReadcount = "normalized_readcount"
+    NormalizedReadcountWChildren = "normalized_readcount_w_children"
 
     @property
     def includes_children(self) -> bool:
@@ -63,6 +65,7 @@ class Metric(BaseEnum):
             Metric.ReadcountWChildren,
             Metric.AbundanceWChildren,
             Metric.PropReadcountWChildren,
+            Metric.NormalizedReadcountWChildren,
         )
 
     @property
@@ -77,6 +80,8 @@ class Metric(BaseEnum):
             Metric.PropClassifiedWChildren: "readcount_w_children",
             Metric.Abundance: "abundance",
             Metric.AbundanceWChildren: "abundance_w_children",
+            Metric.NormalizedReadcount: "readcount",
+            Metric.NormalizedReadcountWChildren: "readcount_w_children",
         }[self]
 
     @property
@@ -90,6 +95,8 @@ class Metric(BaseEnum):
             "prop_readcount_w_children": float,
             "prop_classified": float,
             "prop_classified_w_children": float,
+            "normalized_readcount": int,
+            "normalized_readcount_w_children": int,
         }.get(self.value)
         if dtype is None:
             raise ValueError(f"Metric {self} does not have an associated dtype.")
@@ -106,6 +113,8 @@ class Metric(BaseEnum):
             "prop_readcount_w_children": "Reads (Normalized)",
             "prop_classified": "Classified Reads (Normalized)",
             "prop_classified_w_children": "Classified Reads (Normalized)",
+            "normalized_readcount": "Reads (Normalized)",
+            "normalized_readcount_w_children": "Reads (Normalized)",
         }[self.value]
 
 
