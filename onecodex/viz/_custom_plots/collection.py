@@ -222,7 +222,7 @@ class SampleCollection(BaseSampleCollection):
             self._collate_results()  # This resolves `self._metric`
             resolved_metric = self._metric
 
-        label_func = self._x_axis_label_func(params.label_by)
+        label_func = self._x_axis_label_func(params.plot_type, params.label_by)
         if params.plot_type == PlotType.Functional:
             x_axis_label_links = self._x_axis_label_functional_links(label_func, params.group_by)
         else:
@@ -410,18 +410,34 @@ class SampleCollection(BaseSampleCollection):
 
         return self.filter(_filter_func)
 
-    def _x_axis_label_func(self, label_by: list[str]) -> Callable[[dict], str]:
+    def _x_axis_label_func(self, plot_type: PlotType, label_by: list[str]) -> Callable[[dict], str]:
+        id_field = None
+        ids = set()
+        if plot_type == PlotType.Functional:
+            id_field = "sample_id"
+            for profile in self._functional_profiles:
+                ids.add(profile.sample.id)
+        else:
+            id_field = "classification_id"
+            for classification in self._classifications:
+                ids.add(classification.id)
+
         labels_by_metadata_id = {}
-        records = self.metadata.to_dict("records")
-        for record in records:
-            labels_by_metadata_id[record["metadata_id"]] = metadata_record_to_label(
-                record, label_by
-            )
+        for idx, record in self.metadata.to_dict("index").items():
+            id_ = record[id_field] if self.metadata.index.name != id_field else idx
+            if id_ in ids:
+                # Only deduplicate labels for samples that will be included in the plot: if it's a
+                # functional plot, only deduplicate labels of samples that have functional profiles.
+                # If it's not a functional plot, only deduplicate labels of samples that have
+                # classifications.
+                labels_by_metadata_id[record["metadata_id"]] = metadata_record_to_label(
+                    record, label_by
+                )
 
         unique_labels_by_metadata_id = deduplicate_labels(labels_by_metadata_id)
 
         def _label_func(record: dict) -> str:
-            return unique_labels_by_metadata_id[record["metadata_id"]]
+            return unique_labels_by_metadata_id.get(record["metadata_id"], "N/A")
 
         return _label_func
 
