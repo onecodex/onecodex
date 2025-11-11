@@ -15,6 +15,8 @@ from onecodex.lib.enums import (
     BetaDiversityMetric,
 )
 from .enums import ExportFormat, PlotType, PlotRepr
+from .export import export_chart_data
+
 
 if TYPE_CHECKING:
     import altair as alt
@@ -67,8 +69,6 @@ class PlotResult:
     exported_chart_data: bytes | None = None
 
     def to_dict(self, params: PlotParams, include_exported_chart_data: bool = False) -> dict:
-        from .export import export_chart_data  # TODO fix circular import
-
         exported_chart_data = None
         if include_exported_chart_data and self.chart:
             exported_chart_data = export_chart_data(params, self.chart)

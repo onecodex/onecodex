@@ -6,11 +6,12 @@ from typing import TYPE_CHECKING
 
 from onecodex.exceptions import OneCodexException
 from .enums import PlotType, PlotRepr, ExportFormat
-from .models import PlotParams
 
 if TYPE_CHECKING:
     import altair as alt
     import pandas as pd
+
+    from .models import PlotParams
 
 METRIC_COLUMNS = [
     "Reads",

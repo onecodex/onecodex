@@ -1,38 +1,12 @@
 from collections import Counter
 from typing import Any
-from datetime import datetime, date
-from numbers import Number
-from functools import partial
-
-from onecodex.lib.enums import BaseEnum
 
 
 def metadata_record_to_label(metadata: dict, label_by: list[str]) -> str:
     values = []
     for field in label_by:
-        value = get_metadata_field_value(metadata, field)
-        values.append(normalize_value(value))
+        values.append(get_metadata_field_value(metadata, field))
     return " / ".join(values)
-
-
-# TODO is this needed?
-def normalize_value(value: Any) -> str:
-    try:
-        # Metadata stores dates as ISO 8601 strings
-        if isinstance(value, str):
-            value = datetime.fromisoformat(value).date()
-    except ValueError:
-        pass  # Do not care
-
-    if isinstance(value, datetime):
-        value = value.date()
-
-    if isinstance(value, date):
-        return value.strftime("%Y-%m-%d")  # US formating would not work nice with sorting
-    elif isinstance(value, BaseEnum):
-        return value.value
-
-    return str(value)
 
 
 def get_metadata_field_value(metadata: dict, field: str) -> Any:
@@ -61,11 +35,6 @@ def deduplicate_labels(labels_by_metadata_id: dict) -> dict:
 
 
 def sort_metadata_records(metadata_records: list[dict], sort_by: str) -> list[dict]:
-    get_value = partial(get_metadata_field_value, field=sort_by)
-
-    all_keys = {get_value(x) for x in metadata_records}
-    if all(isinstance(x, Number) for x in all_keys):
-        # TODO does this work?
-        return sorted(metadata_records, key=get_value)
-    else:
-        return sorted(metadata_records, key=lambda x: normalize_value(get_value(x)).lower())
+    return sorted(
+        metadata_records, key=lambda record: get_metadata_field_value(record, sort_by).lower()
+    )
