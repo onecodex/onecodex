@@ -368,7 +368,6 @@ class BaseSampleCollection(
 
         return metadata
 
-    @lru_cache
     def _collate_results(
         self,
         metric: str | Metric = Metric.Auto,
