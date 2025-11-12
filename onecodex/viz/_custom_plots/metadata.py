@@ -5,17 +5,8 @@ from typing import Any
 def metadata_record_to_label(metadata: dict, label_by: list[str]) -> str:
     values = []
     for field in label_by:
-        values.append(get_metadata_field_value(metadata, field))
+        values.append(_get_metadata_field_value(metadata, field))
     return " / ".join(values)
-
-
-def get_metadata_field_value(metadata: dict, field: str) -> Any:
-    import pandas as pd
-
-    value = metadata.get(field)
-    if pd.isnull(value):
-        value = "N/A"
-    return value
 
 
 def deduplicate_labels(labels_by_metadata_id: dict) -> dict:
@@ -36,5 +27,14 @@ def deduplicate_labels(labels_by_metadata_id: dict) -> dict:
 
 def sort_metadata_records(metadata_records: list[dict], sort_by: str) -> list[dict]:
     return sorted(
-        metadata_records, key=lambda record: get_metadata_field_value(record, sort_by).lower()
+        metadata_records, key=lambda record: _get_metadata_field_value(record, sort_by).lower()
     )
+
+
+def _get_metadata_field_value(metadata: dict, field: str) -> Any:
+    import pandas as pd
+
+    value = metadata.get(field)
+    if pd.isnull(value):
+        value = "N/A"
+    return value

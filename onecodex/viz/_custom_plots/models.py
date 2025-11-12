@@ -15,7 +15,6 @@ from onecodex.lib.enums import (
     BetaDiversityMetric,
 )
 from .enums import ExportFormat, PlotType, PlotRepr
-from .export import export_chart_data
 
 
 if TYPE_CHECKING:
@@ -68,11 +67,7 @@ class PlotResult:
     warnings: list[str] = field(default_factory=list)
     exported_chart_data: bytes | None = None
 
-    def to_dict(self, params: PlotParams, include_exported_chart_data: bool = False) -> dict:
-        exported_chart_data = None
-        if include_exported_chart_data and self.chart:
-            exported_chart_data = export_chart_data(params, self.chart)
-
+    def to_dict(self) -> dict:
         chart = self.chart
         if chart:
             chart = chart.to_dict()
@@ -93,5 +88,5 @@ class PlotResult:
             "x_axis_label_links": self.x_axis_label_links,
             "error": self.error,
             "warnings": self.warnings,
-            "exported_chart_data": exported_chart_data,
+            "exported_chart_data": self.exported_chart_data,
         }

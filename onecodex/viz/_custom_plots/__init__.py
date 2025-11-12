@@ -18,7 +18,7 @@ def init():
     configure_onecodex_theme()
 
 
-def plot(params: JsProxy, csrf_token: str, include_exported_chart_data: bool = False) -> dict:
+def plot(params: JsProxy, csrf_token: str) -> dict:
     import js  # available from pyodide
 
     params = PlotParams.model_validate(_convert_jsnull_to_none(params.to_py()))
@@ -68,7 +68,7 @@ def plot(params: JsProxy, csrf_token: str, include_exported_chart_data: bool = F
     cache[(uuid, result.metric)] = collection
     globals()["CUSTOM_PLOTS_CACHE"] = cache
 
-    return result.to_dict(params, include_exported_chart_data=include_exported_chart_data)
+    return result.to_dict()
 
 
 def _convert_jsnull_to_none(obj: Any) -> Any:

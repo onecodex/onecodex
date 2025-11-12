@@ -22,8 +22,11 @@ METRIC_COLUMNS = [
 ]
 
 
-def export_chart_data(params: PlotParams, chart: alt.Chart) -> bytes:
+def export_chart_data(params: PlotParams, chart: alt.Chart) -> bytes | None:
     """Export chart data to CSV or XLSX."""
+    if not params.export_format:
+        return None
+
     df = _extract_chart_data(params, chart)
     return _dataframe_to_bytes(params, df)
 

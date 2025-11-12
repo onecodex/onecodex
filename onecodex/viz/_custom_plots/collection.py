@@ -21,6 +21,7 @@ from .enums import PlotRepr, PlotType
 from .metadata import metadata_record_to_label, deduplicate_labels, sort_metadata_records
 from .utils import get_plot_title
 from .models import PlotParams, PlotResult
+from .export import export_chart_data
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -382,8 +383,12 @@ class SampleCollection(BaseSampleCollection):
         # Open links in new tab: https://stackoverflow.com/a/72241020/3776794
         chart["usermeta"] = {"embedOptions": {"loader": {"target": "_blank", "rel": "noreferrer"}}}
 
+        exported_chart_data = export_chart_data(params, chart)
         return PlotResult(
-            chart=chart, metric=resolved_metric, x_axis_label_links=x_axis_label_links
+            chart=chart,
+            metric=resolved_metric,
+            x_axis_label_links=x_axis_label_links,
+            exported_chart_data=exported_chart_data,
         )
 
     def _validate_plot_params(self, params: PlotParams):
