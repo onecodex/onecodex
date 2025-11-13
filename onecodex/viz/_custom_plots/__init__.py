@@ -13,6 +13,8 @@ from .enums import SuggestionType
 if TYPE_CHECKING:
     from pyodide.ffi import JsProxy
 
+CUSTOM_PLOTS_CACHE = {}
+
 
 def init():
     configure_onecodex_theme()
@@ -22,10 +24,6 @@ def plot(params: JsProxy, csrf_token: str) -> dict:
     import js  # available from pyodide
 
     params = PlotParams.model_validate(_convert_jsnull_to_none(params.to_py()))
-
-    # Cache the *unfiltered* SampleCollection, keyed by (<tag_or_project_uuid>, <metric>).
-    # It looks gross but this is how you cache in Pyodide ¯\_(ツ)_/¯
-    cache = globals().get("CUSTOM_PLOTS_CACHE", {})
 
     uuid = None
     type_ = None
@@ -38,9 +36,10 @@ def plot(params: JsProxy, csrf_token: str) -> dict:
     else:
         raise OneCodexException("Neither a tag nor project UUID was provided.")
 
+    # Cache the *unfiltered* SampleCollection, keyed by (<tag_or_project_uuid>, <metric>)
     key = (uuid, params.metric)
-    if key in cache:
-        collection = cache[key]
+    if key in CUSTOM_PLOTS_CACHE:
+        collection = CUSTOM_PLOTS_CACHE[key]
     else:
         base_url = js.self.location.origin
         url = f"{base_url}/api/v2/custom-plots/sample-data"
@@ -59,14 +58,13 @@ def plot(params: JsProxy, csrf_token: str) -> dict:
             page += 1
 
         collection = SampleCollection(samples, metric=params.metric)
-        cache[key] = collection
+        CUSTOM_PLOTS_CACHE[key] = collection
 
     # Now that we have a SampleCollection, do the actual plotting
     result = collection.plot(params)
 
     # Cache the results in case the original metric was "auto" and got resolved to a concrete metric
-    cache[(uuid, result.metric)] = collection
-    globals()["CUSTOM_PLOTS_CACHE"] = cache
+    CUSTOM_PLOTS_CACHE[(uuid, result.metric)] = collection
 
     return result.to_dict()
 
