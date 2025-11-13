@@ -13,6 +13,9 @@ import click
 import requests
 import sentry_sdk
 from pydantic_core import to_jsonable_python
+from requests.auth import HTTPBasicAuth
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 
 try:
     from StringIO import StringIO
@@ -25,6 +28,7 @@ except ImportError:
     from urllib.parse import urlparse
 
 
+from onecodex.lib.auth import BearerTokenAuth
 from onecodex.exceptions import OneCodexException, UploadException
 from onecodex.version import __version__
 
@@ -238,8 +242,11 @@ def collapse_user(fp):
     return abs_path.replace(home_dir, "~")
 
 
-def _setup_sentry_for_ipython():
-    from IPython import get_ipython
+def _setup_sentry_for_ipython() -> bool:
+    try:
+        from IPython import get_ipython
+    except ImportError:
+        return False
 
     ip = get_ipython()
 
@@ -274,15 +281,13 @@ VALUES_RE = re.compile(r"^(?:\d[ -]*?){13,16}$")
 
 
 def _preprocess_sentry_event(event, hint):
-    from sentry_sdk._compat import string_types
-
     for key, value in event.items():
         lower_key = key.lower()
         for bad_key in KEYS:
             if bad_key in lower_key:
                 event[key] = MASK
                 break
-        if isinstance(value, string_types) and VALUES_RE.match(value):
+        if isinstance(value, str) and VALUES_RE.match(value):
             event[key] = MASK
 
     if "sys.argv" in event.get("extra", {}):
@@ -505,3 +510,24 @@ def has_missing_values(dataframe_or_series):
 def use_tempdir():
     with tempfile.TemporaryDirectory() as tempdir:
         yield tempdir
+
+
+def get_requests_session(
+    auth: BearerTokenAuth | HTTPBasicAuth | None = None, headers: dict | None = None
+) -> requests.Session:
+    session = requests.Session()
+
+    if auth:
+        session.auth = auth
+    if headers:
+        session.headers.update(headers)
+
+    # Set backoff / retry strategy for 429s, etc.
+    retry_strategy = Retry(
+        total=3, backoff_factor=4, allowed_methods=None, status_forcelist=[429, 502, 503]
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+
+    return session
