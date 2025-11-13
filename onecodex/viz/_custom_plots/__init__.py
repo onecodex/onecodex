@@ -45,17 +45,13 @@ def plot(params: JsProxy, csrf_token: str) -> dict:
         url = f"{base_url}/api/v2/custom-plots/sample-data"
 
         samples = []
-        page = 1
-        while True:
+        next_page = 1
+        while next_page:
             session = get_requests_session(headers={"X-CSRFToken": csrf_token})
-            resp = session.get(url, params={"type": type_, "uuid": uuid, "page": page})
+            resp = session.get(url, params={"type": type_, "uuid": uuid, "page": next_page})
             resp.raise_for_status()
             samples.extend(Samples(sample) for sample in resp.json())
-
-            num_samples = len(samples)
-            if num_samples >= json.loads(resp.headers.get("X-Pagination", "{}")).get("total", 0):
-                break
-            page += 1
+            next_page = json.loads(resp.headers.get("X-Pagination", "{}")).get("next_page")
 
         collection = SampleCollection(samples, metric=params.metric)
         CUSTOM_PLOTS_CACHE[key] = collection
