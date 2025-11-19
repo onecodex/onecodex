@@ -82,7 +82,7 @@ def _extract_chart_data(params: PlotParams, chart: alt.Chart) -> pd.DataFrame:
                 .fillna(0)
                 .rename(columns={"1) Label": "Sample"})
             )
-        elif params.plot_repr == PlotRepr.PCA or params.plot_repr == PlotRepr.PCoA:
+        elif params.plot_repr == PlotRepr.Pca or params.plot_repr == PlotRepr.Pcoa:
             df.rename(
                 columns={"Label": "Sample", "classification_id": "Classification ID"},
                 inplace=True,

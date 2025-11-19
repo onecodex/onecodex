@@ -205,10 +205,11 @@ class SampleCollection(BaseSampleCollection):
                 result = self._plot(params)
             except (ValidationError, PlottingException) as e:
                 # Expected user error
-                return PlotResult(error=str(e))
+                return PlotResult(params=params, error=str(e))
             except alt.MaxRowsError:
                 return PlotResult(
-                    error="The selected dataset is too large to plot. Please try a different plot type or select a fewer number of samples."
+                    params=params,
+                    error="The selected dataset is too large to plot. Please try a different plot type or select a fewer number of samples.",
                 )
 
         for warning in captured_warnings:
@@ -227,10 +228,9 @@ class SampleCollection(BaseSampleCollection):
             # the current `self` in-place. We don't want to cache the filtered SampleCollection
             self = self._filter_by_metadata(params.filter_by, params.filter_value)
 
-        resolved_metric = params.metric
-        if resolved_metric == Metric.Auto:
+        if params.metric == Metric.Auto:
             self._collate_results()  # This resolves `self._metric`
-            resolved_metric = self._metric
+            params = params.model_copy(update={"metric": self._metric})  # don't mutate the input
 
         label_func = self._x_axis_label_func(params.plot_type, params.label_by)
         if params.plot_type == PlotType.Functional:
@@ -310,7 +310,7 @@ class SampleCollection(BaseSampleCollection):
                 **default_size_kwargs,
             )
         elif params.plot_type == PlotType.Beta:
-            if params.plot_repr == PlotRepr.PCoA:
+            if params.plot_repr == PlotRepr.Pcoa:
                 chart = self.plot_mds(
                     return_chart=True,
                     rank=params.rank,
@@ -321,7 +321,7 @@ class SampleCollection(BaseSampleCollection):
                     match_taxonomy=False,
                     **default_size_kwargs,
                 )
-            elif params.plot_repr == PlotRepr.PCA:
+            elif params.plot_repr == PlotRepr.Pca:
                 chart = self.plot_pca(
                     return_chart=True,
                     rank=params.rank,
@@ -379,8 +379,8 @@ class SampleCollection(BaseSampleCollection):
 
         exported_chart_data = export_chart_data(params, chart)
         return PlotResult(
+            params=params,
             chart=chart,
-            metric=resolved_metric,
             x_axis_label_links=x_axis_label_links,
             exported_chart_data=exported_chart_data,
         )

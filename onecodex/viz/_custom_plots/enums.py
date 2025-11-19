@@ -10,8 +10,8 @@ class PlotType(BaseEnum):
 
 class PlotRepr(BaseEnum):
     Bargraph = "bargraph"
-    PCoA = "pcoa"
-    PCA = "pca"
+    Pcoa = "pcoa"
+    Pca = "pca"
     Distance = "distance"
     Heatmap = "heatmap"
 
@@ -22,5 +22,6 @@ class ExportFormat(BaseEnum):
 
 
 class SuggestionType(BaseEnum):
+    # the v2 API expects these title-case string values
     Project = "Project"
     Tag = "Tag"
