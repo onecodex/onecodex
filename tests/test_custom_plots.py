@@ -161,12 +161,13 @@ def test_plot(sample_collection, default_plot_params_payload, params):
     params = PlotParams.model_validate(default_plot_params_payload | params)
     result = sample_collection.plot(params)
 
+    if params.metric == Metric.Auto:
+        assert result.params != params
+        assert result.params.metric == Metric.ReadcountWChildren
+    else:
+        assert result.params == params
+
     assert isinstance(result.chart, alt.Chart) or isinstance(result.chart, alt.HConcatChart)
-    assert (
-        result.metric == Metric.Abundance
-        if params.metric == Metric.Abundance
-        else Metric.ReadcountWChildren
-    )
     assert isinstance(result.x_axis_label_links, dict)
     assert result.error is None
     assert result.warnings == []

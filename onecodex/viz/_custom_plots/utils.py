@@ -23,9 +23,9 @@ def get_plot_title(params: PlotParams) -> str:
         elif params.plot_type == PlotType.Beta:
             if params.plot_repr == PlotRepr.Distance:
                 start = "Distance"
-            elif params.plot_repr == PlotRepr.PCA:
+            elif params.plot_repr == PlotRepr.Pca:
                 start = "PCA"
-            elif params.plot_repr == PlotRepr.PCoA:
+            elif params.plot_repr == PlotRepr.Pcoa:
                 start = "PCoA"
         elif params.plot_type == PlotType.Functional:
             if params.functional_annotation == FunctionalAnnotations.Pathways:

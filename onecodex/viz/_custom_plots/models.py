@@ -60,8 +60,8 @@ class PlotParams(BaseModel):
 
 @dataclass(kw_only=True)
 class PlotResult:
+    params: PlotParams
     chart: alt.Chart | None = None
-    metric: Metric | None = None
     x_axis_label_links: dict[str, str] = field(default_factory=dict)
     error: str | None = None
     warnings: list[str] = field(default_factory=list)
@@ -83,8 +83,8 @@ class PlotResult:
                     chart["config"]["axis"].pop("grid", None)
 
         return {
+            "params": self.params.dict(),
             "chart": chart,
-            "metric": self.metric,
             "x_axis_label_links": self.x_axis_label_links,
             "error": self.error,
             "warnings": self.warnings,
