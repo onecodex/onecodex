@@ -1,21 +1,30 @@
-from typing import Optional, Union, Dict
+from typing import IO, Dict, List, Optional, TypedDict, Union
 
 from onecodex.exceptions import OneCodexException
-from onecodex.models.base import OneCodexBase, ApiRef
 from onecodex.lib.enums import FunctionalAnnotations, FunctionalAnnotationsMetric
+from onecodex.models.base import ApiRef, OneCodexBase
+from onecodex.models.helpers import ResourceDownloadMixin
+from onecodex.models.schemas.analysis import (
+    AlignmentSchema,
+    AnalysisSchema,
+    ClassificationSchema,
+    FunctionalRunSchema,
+    PanelSchema,
+)
 
-from onecodex.models.schemas.analysis import AnalysisSchema
-from onecodex.models.schemas.analysis import AlignmentSchema
-from onecodex.models.schemas.analysis import ClassificationSchema
-from onecodex.models.schemas.analysis import FunctionalRunSchema
-from onecodex.models.schemas.analysis import PanelSchema
+
+class _FileDetail(TypedDict):
+    filename: str
+    size: int
+    url: str
 
 
-class _AnalysesBase(OneCodexBase):
+class _AnalysesBase(OneCodexBase, ResourceDownloadMixin):
     _allowed_methods = {
         "instances_public": None,
     }
     _cached_result: Dict = {}
+    _cached_files: Optional[List[_FileDetail]] = None
     sample: Union["Samples", ApiRef]  # noqa: F821
     job: Union["Jobs", ApiRef]  # noqa: F821
     error_msg: Optional[str] = None
@@ -45,6 +54,74 @@ class _AnalysesBase(OneCodexBase):
         resp = self._client.get(f"{self._api._base_url}{self.field_uri}/results")
         self._cached_result = resp.json()
         return self._cached_result
+
+    def get_files(self) -> List[_FileDetail]:
+        """Fetch the files details of an Analyses.
+
+        Returns
+        -------
+        A list of dictonaries `[{"filename": "...", "size": 1234, "url": "..."}, ...]`
+        """
+        return self._get_files()
+
+    def _get_files(self) -> List[_FileDetail]:
+        if getattr(self, "_cached_files", None) is not None:
+            return self._cached_files
+
+        resp = self._client.get(f"{self._api._base_url}{self.field_uri}/file_details")
+        self._cached_files = resp.json()["files"]
+        return self._cached_files
+
+    def download_file(
+        self,
+        filename: str,
+        path: Optional[str] = None,
+        file_obj: Optional[IO] = None,
+        progressbar: bool = False,
+    ) -> str:
+        """Download analysis result file.
+
+        Parameters
+        ----------
+        filename: `string`
+            Must be one of files returned by `get_files`.
+        path: `string`, optional
+            Full path to save the file to. If omitted, defaults to the original filename
+            in the current working directory.
+        file_obj: file-like object, optional
+            Rather than save the file to a path, write it to this file-like object.
+        progressbar: `bool`, optional
+            Display a progress bar using Click for the download?
+
+        Returns
+        -------
+        `string`
+            The path the file was downloaded to, if applicable. Otherwise, None.
+
+        Notes
+        -----
+        Existing paths will not be overwritten.
+        """
+        files = self.get_files()
+        filenames = {x["filename"] for x in files}
+
+        if filename not in filenames:
+            raise OneCodexException(f"Can't find `{filename}` in analysis files")
+
+        def get_link_callback(_resource_method, _filename):
+            for item in files:
+                if item["filename"] == _filename:
+                    return item["url"]
+            raise OneCodexException(f"Can't find `{filename}` in analysis files")
+
+        return self._download(
+            _resource_method=None,
+            _filename=filename,
+            path=path,
+            file_obj=file_obj,
+            progressbar=progressbar,
+            get_link_callback=get_link_callback,
+        )
 
 
 class Analyses(_AnalysesBase, AnalysisSchema):
