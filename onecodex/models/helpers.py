@@ -136,9 +136,11 @@ class ResourceDownloadMixin(object):
             if path and os.path.exists(path):
                 raise OneCodexException("{} already exists. Will not overwrite.".format(path))
 
-            if get_link_callback is None:
-                get_link_callback = self._default_get_link_callback
-            link = get_link_callback(_resource_method=_resource_method, _filename=_filename)
+            download_link_info = self._client.post(
+                f"{self._api._base_url}{self.field_uri}/{_resource_method}"
+            )
+            download_link_info.raise_for_status()
+            link = download_link_info.json()["download_uri"]
 
             if use_client_session:
                 session = copy.deepcopy(self._client.session)
@@ -202,11 +204,3 @@ class ResourceDownloadMixin(object):
                 )
 
         return path
-
-    def _default_get_link_callback(self, _resource_method, _filename):
-        download_link_info = self._client.post(
-            f"{self._api._base_url}{self.field_uri}/{_resource_method}"
-        )
-        download_link_info.raise_for_status()
-        link = download_link_info.json()["download_uri"]
-        return link
