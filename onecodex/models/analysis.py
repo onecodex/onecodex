@@ -75,6 +75,8 @@ class _AnalysesBase(OneCodexBase):
         self._cached_files = resp.json()["files"]
         return self._cached_files
 
+    # It is almost copy/paste of ResourceDownloadMixin._download
+    # I do not want to extract re-usable function just yet I need more than two copies.
     def download_file(
         self,
         filename: str,
