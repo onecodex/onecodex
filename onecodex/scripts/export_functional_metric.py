@@ -140,35 +140,28 @@ class WideFunctionalResultExporter(BaseFunctionalResultExporter):
         self.csv_writer.writerow(self.headers)
         # Convert data in long format in temp files to wide format
         try:
-            if self.taxa_stratified:
-                for (function_id, taxon_name, taxon_id), tmp_path in self.temp_files.items():
+            for key, tmp_path in self.temp_files.items():
+                if self.taxa_stratified:
+                    function_id, taxon_name, taxon_id = key
                     row = [
                         function_id,
                         self.function_names.get(function_id, ""),
                         taxon_id,
                         taxon_name,
                     ] + [""] * len(self.functional_run_positions)
-                    with open(tmp_path, "r", newline="") as tmp_file:
-                        reader = csv.reader(tmp_file)
-                        # Read long format temp file into wide row
-                        for analysis_id, value in reader:
-                            pos = self.functional_run_positions.get(analysis_id)
-                            if pos is not None:
-                                row[pos] = value
-                    self.csv_writer.writerow(row)
-            else:
-                for function_id, tmp_path in self.temp_files.items():
+                else:
+                    function_id = key
                     row = [function_id, self.function_names.get(function_id, "")] + [""] * len(
                         self.functional_run_positions
                     )
-                    with open(tmp_path, "r", newline="") as tmp_file:
-                        reader = csv.reader(tmp_file)
-                        # Read long format temp file into wide row
-                        for analysis_id, value in reader:
-                            pos = self.functional_run_positions.get(analysis_id)
-                            if pos is not None:
-                                row[pos] = value
-                    self.csv_writer.writerow(row)
+                with open(tmp_path, "r", newline="") as tmp_file:
+                    reader = csv.reader(tmp_file)
+                    # Read long format temp file into wide row
+                    for analysis_id, value in reader:
+                        pos = self.functional_run_positions.get(analysis_id)
+                        if pos is not None:
+                            row[pos] = value
+                self.csv_writer.writerow(row)
         finally:
             shutil.rmtree(self.temp_dir, ignore_errors=True)
             self.fd.close()
