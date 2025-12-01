@@ -43,6 +43,7 @@ def sample_collection() -> SampleCollection:
                 "library_type": "WGS",
                 "platform": "Illumina",
                 "cohort": "C1",
+                "whitespace_field": " value 1",
             },
             "primary_classification": {
                 "uuid": classification1_uuid,
@@ -68,6 +69,7 @@ def sample_collection() -> SampleCollection:
                 "library_type": "WGS",
                 "platform": "Illumina",
                 "cohort": "C2",
+                "whitespace_field": "value 2  ",
             },
             "primary_classification": {
                 "uuid": classification2_uuid,
@@ -93,6 +95,7 @@ def sample_collection() -> SampleCollection:
                 "library_type": "Other",
                 "platform": "Other",
                 "cohort": "C1",
+                "whitespace_field": "  \tvalue 3  ",
             },
             "primary_classification": {
                 "uuid": classification3_uuid,
@@ -379,6 +382,7 @@ def test_filter_by_metadata(sample_collection, field, values, expected_num_sampl
     [
         (["cohort"], {"C1 (1)", "C1 (2)", "C2"}),
         (["cohort", "sample_type"], {"C1 / Isolate", "C1 / Metagenomic", "C2 / Other"}),
+        (["whitespace_field"], {"value 1", "value 2", "value 3"}),
     ],
 )
 def test_x_axis_label_func(sample_collection, label_by, expected_labels):
