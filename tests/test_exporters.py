@@ -247,11 +247,11 @@ def test_functional_long_exporter(fmt, taxa_stratified, expected_header, expecte
 
         exporter = (
             LongFunctionalResultExporter(
-                out_file, taxa_stratified=taxa_stratified, metric="abundance"
+                out_path=out_file, taxa_stratified=taxa_stratified, metric="abundance"
             )
             if fmt == "long"
             else WideFunctionalResultExporter(
-                out_file, taxa_stratified=taxa_stratified, metric="abundance"
+                out_path=out_file, taxa_stratified=taxa_stratified, metric="abundance"
             )
         )
         for idx, result in enumerate(results):

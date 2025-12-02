@@ -1,7 +1,6 @@
 from collections import deque
 from typing import Union
 import time
-import sys
 from hashlib import sha256
 
 
@@ -34,18 +33,8 @@ class RateLimiter:
         self.actions.append(time.time())
 
 
-def print_progress(step: int, total: int, pad: int | None = None, msg: str | None = None):
-    text = f"{step} / {total}"
-    if msg is not None:
-        text = f"{text} {msg}"
-    if pad is not None:
-        text = text.ljust(pad)
-    sys.stdout.write("\r\033[2K" + text)  # \r to line start, \033[2K clear line
-    sys.stdout.flush()
-
-
 def hash_to_hex(value: Union[str, tuple]) -> str:
-    """Hash a string or a tuple of strings into a 128-bit value into a hex string."""
+    """Hash a string or a tuple of strings into a 128-bit hex string."""
 
     h = sha256()
 

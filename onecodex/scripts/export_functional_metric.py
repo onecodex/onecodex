@@ -6,12 +6,14 @@ import shutil
 import tempfile
 
 from abc import ABC, abstractmethod
+from datetime import datetime
 from onecodex.exceptions import OneCodexException
 from onecodex.auth import login_required
 from onecodex.utils import pretty_errors
-from onecodex.lib.helpers import RateLimiter, print_progress, hash_to_hex
+from onecodex.lib.helpers import RateLimiter, hash_to_hex
 from onecodex.lib.download import get_project
 from onecodex.lib.enums import FunctionalAnnotationsMetric
+from typing import TextIO
 
 API_BASE = "/api/v1/functional_profiles"
 SPECIES_RE = re.compile(r"s__(\w+)", re.IGNORECASE | re.UNICODE)
@@ -35,8 +37,20 @@ class BaseFunctionalResultExporter(ABC):
 
 
 class LongFunctionalResultExporter(BaseFunctionalResultExporter):
-    def __init__(self, out_path: str, taxa_stratified: bool, metric: str):
-        self.fd = open(out_path, "w")
+    def __init__(
+        self,
+        *,
+        out_path: str | None = None,
+        file_obj: TextIO | None = None,
+        taxa_stratified: bool,
+        metric: str,
+    ):
+        if out_path is None and file_obj is None:
+            raise OneCodexException("Provide one of out_path or file_obj")
+        elif out_path is not None and file_obj is not None:
+            raise OneCodexException("Provide only one of out_path or file_obj")
+
+        self.fd = open(out_path, "w", newline="") if out_path is not None else file_obj
         self.csv_writer = csv.writer(self.fd)
         self.taxa_stratified = taxa_stratified
         self.metric = FunctionalAnnotationsMetric(metric)
@@ -79,8 +93,20 @@ class LongFunctionalResultExporter(BaseFunctionalResultExporter):
 
 
 class WideFunctionalResultExporter(BaseFunctionalResultExporter):
-    def __init__(self, out_path: str, taxa_stratified: bool, metric: str):
-        self.fd = open(out_path, "w", newline="")
+    def __init__(
+        self,
+        *,
+        out_path: str | None = None,
+        file_obj: TextIO | None = None,
+        taxa_stratified: bool,
+        metric: str,
+    ):
+        if out_path is None and file_obj is None:
+            raise OneCodexException("Provide one of out_path or file_obj")
+        elif out_path is not None and file_obj is not None:
+            raise OneCodexException("Provide only one of out_path or file_obj")
+
+        self.fd = open(out_path, "w", newline="") if out_path is not None else file_obj
         self.csv_writer = csv.writer(self.fd)
         self.taxa_stratified = taxa_stratified
         self.metric = FunctionalAnnotationsMetric(metric)
@@ -175,7 +201,7 @@ class WideFunctionalResultExporter(BaseFunctionalResultExporter):
 @click.option(
     "-o",
     "--out",
-    default="functional_table.csv",
+    required=False,
     help="A CSV filename for where to save the output/",
 )
 @click.option(
@@ -231,6 +257,10 @@ def cli(ctx, out, annotation, metric, not_taxa_stratified, project, sample_ids, 
             f"Metric '{metric}' is not a valid metric for annotation '{annotation}'"
         )
 
+    if not out:
+        now = datetime.now()
+        out = f"functional_{annotation}_{metric}_{now.strftime('%Y-%m-%d_%H-%M')}.csv"
+
     ocx = ctx.obj["API"]
     if project:
         click.echo(f"Fetching samples for project: {project}", err=True)
@@ -249,23 +279,23 @@ def cli(ctx, out, annotation, metric, not_taxa_stratified, project, sample_ids, 
     limiter = RateLimiter(max_actions=10, period=1.0)
 
     exporter = (
-        LongFunctionalResultExporter(out, not not_taxa_stratified, metric)
+        LongFunctionalResultExporter(
+            out_path=out, taxa_stratified=not not_taxa_stratified, metric=metric
+        )
         if fmt == "long"
-        else WideFunctionalResultExporter(out, not not_taxa_stratified, metric)
+        else WideFunctionalResultExporter(
+            out_path=out, taxa_stratified=not not_taxa_stratified, metric=metric
+        )
     )
 
-    total_runs = len(functional_runs)
-    for idx, fr in enumerate(functional_runs, start=1):
-        limiter.acquire()
+    with click.progressbar(functional_runs, label="Downloading functional results") as bar:
+        for fr in bar:
+            limiter.acquire()
 
-        data = fr._filtered_results(
-            annotation=annotation, metric=metric, taxa_stratified=not not_taxa_stratified
-        )
-
-        exporter.consume_results(fr.sample.id, fr.sample.metadata.name, fr.id, data)
-
-        print_progress(idx, total_runs, msg="functional results downloaded")
-    click.echo("", err=True)  # Print newline to wrap the progress bar
+            data = fr._filtered_results(
+                annotation=annotation, metric=metric, taxa_stratified=not not_taxa_stratified
+            )
+            exporter.consume_results(fr.sample.id, fr.sample.metadata.name, fr.id, data)
 
     exporter.produce_output()
     click.echo(f"Exported {len(functional_runs)} functional results", err=True)
