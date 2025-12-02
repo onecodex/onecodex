@@ -230,7 +230,9 @@ class SampleCollection(BaseSampleCollection):
 
         if params.metric == Metric.Auto:
             self._collate_results()  # This resolves `self._metric`
-            params = params.model_copy(update={"metric": self._metric})  # don't mutate the input
+            params = params.model_copy(
+                update={"metric": Metric(self._metric)}
+            )  # don't mutate the input
 
         label_func = self._x_axis_label_func(params.plot_type, params.label_by)
         if params.plot_type == PlotType.Functional:
@@ -446,7 +448,7 @@ class SampleCollection(BaseSampleCollection):
                 # classifications.
                 labels_by_metadata_id[record["metadata_id"]] = metadata_record_to_label(
                     record, label_by
-                )
+                ).strip()
 
         unique_labels_by_metadata_id = deduplicate_labels(labels_by_metadata_id)
 
