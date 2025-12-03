@@ -1,5 +1,5 @@
 import os.path
-from typing import IO, Dict, List, Optional, TypedDict, Union
+from typing import IO, Dict, List, Optional, Union
 
 import click
 import requests
@@ -7,6 +7,7 @@ import requests
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.enums import FunctionalAnnotations, FunctionalAnnotationsMetric
 from onecodex.models.base import ApiRef, OneCodexBase
+from onecodex.models.schemas.misc import FileDetailSchema
 from onecodex.models.schemas.analysis import (
     AlignmentSchema,
     AnalysisSchema,
@@ -16,18 +17,12 @@ from onecodex.models.schemas.analysis import (
 )
 
 
-class _FileDetail(TypedDict):
-    filename: str
-    size: int
-    url: str
-
-
 class _AnalysesBase(OneCodexBase):
     _allowed_methods = {
         "instances_public": None,
     }
     _cached_result: Dict = {}
-    _cached_files: Optional[List[_FileDetail]] = None
+    _cached_files: Optional[List[FileDetailSchema]] = None
     sample: Union["Samples", ApiRef]  # noqa: F821
     job: Union["Jobs", ApiRef]  # noqa: F821
     error_msg: Optional[str] = None
@@ -58,28 +53,25 @@ class _AnalysesBase(OneCodexBase):
         self._cached_result = resp.json()
         return self._cached_result
 
-    def get_files(self) -> List[_FileDetail]:
+    def get_files(self) -> List[FileDetailSchema]:
         """Fetch the files details of an Analyses.
 
         Returns
         -------
-        A list of dictonaries `[{"filename": "...", "size": 1234, "url": "..."}, ...]`
+        A list of FileDetailSchema
         """
-        return self._get_files()
-
-    def _get_files(self) -> List[_FileDetail]:
         if getattr(self, "_cached_files", None) is not None:
             return self._cached_files
 
         resp = self._client.get(f"{self._api._base_url}{self.field_uri}/file_details")
-        self._cached_files = resp.json()["files"]
+        self._cached_files = [FileDetailSchema(**x) for x in resp.json()["files"]]
         return self._cached_files
 
     # It is almost copy/paste of ResourceDownloadMixin._download
     # I do not want to extract re-usable function just yet I need more than two copies.
     def download_file(
         self,
-        filename: str,
+        file_details: FileDetailSchema,
         path: Optional[str] = None,
         file_obj: Optional[IO] = None,
         progressbar: bool = False,
@@ -88,7 +80,7 @@ class _AnalysesBase(OneCodexBase):
 
         Parameters
         ----------
-        filename: `string`
+        filename: `FileDetailSchema`
             Must be one of files returned by `get_files`.
         path: `string`, optional
             Full path to save the file to. If omitted, defaults to the original filename
@@ -110,20 +102,12 @@ class _AnalysesBase(OneCodexBase):
         from requests.adapters import HTTPAdapter
         from requests.packages.urllib3.util.retry import Retry
 
-        files = self.get_files()
-        filename_to_details = {x["filename"]: x for x in files}
-
-        if filename not in filename_to_details:
-            raise OneCodexException(f"Can't find `{filename}` in analysis files")
-
-        file_details = filename_to_details[filename]
-
         if path and file_obj:
             raise OneCodexException("Please specify only one of: path, file_obj")
 
         try:
             if path is None and file_obj is None:
-                path = os.path.join(os.getcwd(), filename)
+                path = os.path.join(os.getcwd(), file_details.filename)
 
             if path and os.path.exists(path):
                 raise OneCodexException(f"{path} already exists. Will not overwrite.")
@@ -143,7 +127,7 @@ class _AnalysesBase(OneCodexBase):
 
             session.mount("http://", adapter)
             session.mount("https://", adapter)
-            resp = session.get(file_details["url"], stream=True)
+            resp = session.get(file_details.url, stream=True)
 
             if path:
                 f_out = open(path, "wb")
@@ -151,8 +135,8 @@ class _AnalysesBase(OneCodexBase):
                 f_out = file_obj
 
             if progressbar:
-                progress_label = os.path.basename(path) if path else filename
-                with click.progressbar(length=file_details["size"], label=progress_label) as bar:
+                progress_label = os.path.basename(path) if path else file_details.filename
+                with click.progressbar(length=file_details.size, label=progress_label) as bar:
                     for data in resp.iter_content(chunk_size=1024):
                         bar.update(len(data))
                         f_out.write(data)
