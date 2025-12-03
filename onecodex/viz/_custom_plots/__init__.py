@@ -47,12 +47,12 @@ def plot(
     else:
         base_url = js.self.location.origin
         url = f"{base_url}/api/v2/custom-plots/sample-data"
+        session = get_requests_session(headers={"X-CSRFToken": csrf_token})
 
         samples = []
         next_page = 1
         progress_callback("Loading samples", 0.0)
         while next_page:
-            session = get_requests_session(headers={"X-CSRFToken": csrf_token})
             resp = session.get(url, params={"type": type_, "uuid": uuid, "page": next_page})
             resp.raise_for_status()
             samples.extend(Samples(sample) for sample in resp.json())
