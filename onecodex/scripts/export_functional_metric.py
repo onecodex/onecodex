@@ -12,11 +12,21 @@ from onecodex.auth import login_required
 from onecodex.utils import pretty_errors
 from onecodex.lib.helpers import RateLimiter, hash_to_hex
 from onecodex.lib.download import get_project
-from onecodex.lib.enums import FunctionalAnnotationsMetric
+from onecodex.lib.enums import FunctionalAnnotationsMetric, FunctionalAnnotations
 from typing import TextIO
 
 API_BASE = "/api/v1/functional_profiles"
 SPECIES_RE = re.compile(r"s__(\w+)", re.IGNORECASE | re.UNICODE)
+
+FUNCTIONAL_ANNOTATIONS = {fa.name.lower() for fa in FunctionalAnnotations}
+PATHWAY_METRICS = {
+    fm.name.lower()
+    for fm in FunctionalAnnotationsMetric.metrics_for_annotation(FunctionalAnnotations.Pathways)
+}
+OTHER_METRICS = {
+    fm.name.lower()
+    for fm in FunctionalAnnotationsMetric.metrics_for_annotation(FunctionalAnnotations.Go)
+}
 
 
 def parse_functional_taxon_name(taxon_name: str) -> str:
@@ -202,19 +212,19 @@ class WideFunctionalResultExporter(BaseFunctionalResultExporter):
     "-o",
     "--out",
     required=False,
-    help="A CSV filename for where to save the output/",
+    help="A CSV filename for where to save the output",
 )
 @click.option(
     "-a",
     "--annotation",
     required=True,
-    help="Choose a functional annotation that you'd like to pull from the functional results.",
+    help=f"Choose a functional annotation that you'd like to pull from the functional results, one of: {FUNCTIONAL_ANNOTATIONS}.",
 )
 @click.option(
     "-m",
     "--metric",
     required=True,
-    help="Choose a functional metric that you'd like to pull from the functional results. Choose from 'abundance' or 'coverage' for pathway annotations, or from 'cpm' or 'rpk' for other annotations.",
+    help=f"Choose a functional metric that you'd like to pull from the functional results. Choose from {PATHWAY_METRICS} for pathway annotations, or from {OTHER_METRICS} for other annotations.",
 )
 @click.option(
     "--not-taxa-stratified",
@@ -236,7 +246,7 @@ class WideFunctionalResultExporter(BaseFunctionalResultExporter):
     help="Provide a comma separated list of sample ids for the samples that should be exported. Provide either this option or a project.",
 )
 @click.option(
-    "--fmt",
+    "--table-format",
     required=False,
     default="long",
     help="Choose either the wide format or long (default).",
@@ -244,7 +254,7 @@ class WideFunctionalResultExporter(BaseFunctionalResultExporter):
 @click.pass_context
 @pretty_errors
 @login_required
-def cli(ctx, out, annotation, metric, not_taxa_stratified, project, sample_ids, fmt):
+def cli(ctx, out, annotation, metric, not_taxa_stratified, project, sample_ids, table_format):
     if not project and not sample_ids:
         raise OneCodexException("Either --project or --sample-ids needs to be provided")
     elif project and sample_ids:
@@ -252,9 +262,11 @@ def cli(ctx, out, annotation, metric, not_taxa_stratified, project, sample_ids, 
 
     metric = metric.lower()
     annotation = annotation.lower()
+    if annotation not in FUNCTIONAL_ANNOTATIONS:
+        raise OneCodexException(f"Invalid annotation: '{annotation}'")
     if metric not in FunctionalAnnotationsMetric.metrics_for_annotation(annotation):
         raise OneCodexException(
-            f"Metric '{metric}' is not a valid metric for annotation '{annotation}'"
+            f"Metric: '{metric}' is not a valid metric for annotation: '{annotation}'"
         )
 
     if not out:
@@ -282,7 +294,7 @@ def cli(ctx, out, annotation, metric, not_taxa_stratified, project, sample_ids, 
         LongFunctionalResultExporter(
             out_path=out, taxa_stratified=not not_taxa_stratified, metric=metric
         )
-        if fmt == "long"
+        if table_format == "long"
         else WideFunctionalResultExporter(
             out_path=out, taxa_stratified=not not_taxa_stratified, metric=metric
         )
@@ -295,7 +307,8 @@ def cli(ctx, out, annotation, metric, not_taxa_stratified, project, sample_ids, 
             data = fr._filtered_results(
                 annotation=annotation, metric=metric, taxa_stratified=not not_taxa_stratified
             )
-            exporter.consume_results(fr.sample.id, fr.sample.metadata.name, fr.id, data)
+            sample_name = fr.sample.metadata.name or fr.sample.filename
+            exporter.consume_results(fr.sample.id, sample_name, fr.id, data)
 
     exporter.produce_output()
     click.echo(f"Exported {len(functional_runs)} functional results", err=True)
