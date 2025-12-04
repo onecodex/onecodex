@@ -380,6 +380,18 @@ class SampleCollection(BaseSampleCollection):
         chart["usermeta"] = {"embedOptions": {"loader": {"target": "_blank", "rel": "noreferrer"}}}
 
         exported_chart_data = export_chart_data(params, chart)
+
+        # This is a backwards compatibility fix.
+        # Default OCX plot styles include background and no grid. Custom Plots historically
+        # had no background and enabled grid which was due to an unexpected error in loading
+        # the `altair` module. This function removes some of the default styling to keep the
+        # charts consistent.
+        chart = chart.to_dict()
+        if isinstance(chart.get("config"), dict):
+            chart["config"].pop("background", None)
+            if isinstance(chart["config"].get("axis"), dict):
+                chart["config"]["axis"].pop("grid", None)
+
         return PlotResult(
             params=params,
             chart=chart,
