@@ -1002,7 +1002,6 @@ def test_get_ncbi_taxonomy_browser_url(tax_id, expected):
 
 
 def test_plot_functional_heatmap(ocx, api_data):
-    sample_ids = ["543c9c046e3e4e09", "66c1531cb0b244f6", "37e5151e7bcb4f87"]
     sample_ids = [
         "543c9c046e3e4e09",
         "66c1531cb0b244f6",
