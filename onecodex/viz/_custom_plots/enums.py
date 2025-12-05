@@ -22,6 +22,10 @@ class ExportFormat(BaseEnum):
 
 
 class SuggestionType(BaseEnum):
-    # the v2 API expects these title-case string values
-    Project = "Project"
-    Tag = "Tag"
+    Project = "project"
+    Tag = "tag"
+
+
+class SamplesFilter(BaseEnum):
+    WithClassifications = "with_classifications"
+    WithFunctionalResults = "with_functional_results"
