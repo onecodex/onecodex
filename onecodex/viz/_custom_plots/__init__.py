@@ -7,7 +7,7 @@ import json
 from onecodex.viz import configure_onecodex_theme
 from onecodex.exceptions import OneCodexException
 from .collection import SampleCollection, Samples
-from .enums import SuggestionType
+from .enums import PlotType, SamplesFilter, SuggestionType
 from .models import PlotParams
 
 if TYPE_CHECKING:
@@ -39,13 +39,23 @@ async def plot(
     else:
         raise OneCodexException("Neither a tag nor project UUID was provided.")
 
-    # Cache the *unfiltered* SampleCollection, keyed by (<tag_or_project_uuid>, <metric>)
-    key = (uuid, params.metric)
+    filter_ = (
+        SamplesFilter.WithFunctionalResults
+        if params.plot_type == PlotType.Functional
+        else SamplesFilter.WithClassifications
+    )
+
+    # Cache the SampleCollection, keyed by (<tag_or_project_uuid>, <filter>, <metric>)
+    key = (uuid, filter_, params.metric)
     if key in CUSTOM_PLOTS_CACHE:
         collection = CUSTOM_PLOTS_CACHE[key]
     else:
         samples = await _fetch_samples(
-            type_=type_, uuid=uuid, csrf_token=csrf_token, progress_callback=progress_callback
+            type_=type_,
+            uuid=uuid,
+            filter_=filter_,
+            csrf_token=csrf_token,
+            progress_callback=progress_callback,
         )
         collection = SampleCollection(samples, metric=params.metric)
         CUSTOM_PLOTS_CACHE[key] = collection
@@ -54,7 +64,7 @@ async def plot(
     result = collection.plot(params)
 
     # Cache the results in case the original metric was "auto" and got resolved to a concrete metric
-    CUSTOM_PLOTS_CACHE[(uuid, result.params.metric)] = collection
+    CUSTOM_PLOTS_CACHE[(uuid, filter_, result.params.metric)] = collection
 
     return result.to_dict()
 
@@ -80,6 +90,7 @@ async def _fetch_samples(
     *,
     type_: SuggestionType,
     uuid: str,
+    filter_: SamplesFilter,
     csrf_token: str,
     progress_callback: Callable[[str, float], None] = lambda msg, pct: None,
 ) -> list[Samples]:
@@ -100,6 +111,7 @@ async def _fetch_samples(
             {
                 "type": type_,
                 "uuid": uuid,
+                "filter": filter_,
                 "page": next_page,
             }
         )
