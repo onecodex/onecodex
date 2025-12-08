@@ -17,7 +17,7 @@ from onecodex.auth import (
 )
 from onecodex.lib.upload import DEFAULT_THREADS
 from onecodex.metadata_upload import validate_appendables
-from onecodex.scripts import subset_reads
+from onecodex.scripts import subset_reads, export_functional_metric
 from onecodex.utils import (
     click_path_autocomplete_helper,
     cli_resource_fetcher,
@@ -89,6 +89,7 @@ def scripts():
 
 
 scripts.add_command(subset_reads.cli, "subset_reads")
+scripts.add_command(export_functional_metric.cli, "export_functional_metric")
 
 # TODO: remove filter_reads which is deprecated in favor of subset_reads
 filter_reads = copy.deepcopy(subset_reads.cli)
