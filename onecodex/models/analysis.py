@@ -71,7 +71,7 @@ class _AnalysesBase(OneCodexBase):
     # I do not want to extract re-usable function just yet I need more than two copies.
     def download_file(
         self,
-        file_details: FileDetailSchema,
+        file_details: Union[FileDetailSchema, str],
         path: Optional[str] = None,
         file_obj: Optional[IO] = None,
         progressbar: bool = False,
@@ -80,8 +80,8 @@ class _AnalysesBase(OneCodexBase):
 
         Parameters
         ----------
-        file_details: `FileDetailSchema`
-            Must be one of files returned by `get_files`.
+        file_details: `FileDetailSchema` or `str`
+            Must be one of objects or filepathes returned by `get_files`
         path: `string`, optional
             Full path to save the file to. If omitted, defaults to the original filename
             in the current working directory.
@@ -101,6 +101,17 @@ class _AnalysesBase(OneCodexBase):
         """
         from requests.adapters import HTTPAdapter
         from requests.packages.urllib3.util.retry import Retry
+
+        # You can pass filepath instead of `FileDetailSchema` object.
+        if isinstance(file_details, str):
+            exists = False
+            for x in self.get_files():
+                if x.filepath == file_details:
+                    file_details = x
+                    exists = True
+                    break
+            if not exists:
+                raise OneCodexException(f"Filepath: {file_details} does not exist.")
 
         if path and file_obj:
             raise OneCodexException("Please specify only one of: path, file_obj")
