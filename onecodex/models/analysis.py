@@ -80,7 +80,7 @@ class _AnalysesBase(OneCodexBase):
 
         Parameters
         ----------
-        filename: `FileDetailSchema`
+        file_details: `FileDetailSchema`
             Must be one of files returned by `get_files`.
         path: `string`, optional
             Full path to save the file to. If omitted, defaults to the original filename
