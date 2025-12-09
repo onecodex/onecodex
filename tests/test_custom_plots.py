@@ -2,7 +2,6 @@ import io
 import json
 import uuid
 
-import altair as alt
 import numpy as np
 import pandas as pd
 import pytest
@@ -170,7 +169,7 @@ def test_plot(sample_collection, default_plot_params_payload, params):
     else:
         assert result.params == params
 
-    assert isinstance(result.chart, alt.Chart) or isinstance(result.chart, alt.HConcatChart)
+    assert isinstance(result.chart, dict)
     assert isinstance(result.x_axis_label_links, dict)
     assert result.error is None
     assert result.warnings == []
