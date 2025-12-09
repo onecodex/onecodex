@@ -76,6 +76,7 @@ class DocumentSchema(URIModel):
 
 class FileDetailSchema(BaseModel):
     filename: str
+    filepath: str
     size: int
     url: str
 
