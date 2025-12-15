@@ -7,7 +7,6 @@ import requests
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.enums import FunctionalAnnotations, FunctionalAnnotationsMetric
 from onecodex.models.base import ApiRef, OneCodexBase
-from onecodex.models.schemas.misc import FileDetailSchema
 from onecodex.models.schemas.analysis import (
     AlignmentSchema,
     AnalysisSchema,
@@ -15,6 +14,7 @@ from onecodex.models.schemas.analysis import (
     FunctionalRunSchema,
     PanelSchema,
 )
+from onecodex.models.schemas.misc import FileDetailSchema
 
 
 class _AnalysesBase(OneCodexBase):
@@ -71,22 +71,22 @@ class _AnalysesBase(OneCodexBase):
     # I do not want to extract re-usable function just yet I need more than two copies.
     def download_file(
         self,
-        file_details: Union[FileDetailSchema, str],
-        path: Optional[str] = None,
-        file_obj: Optional[IO] = None,
+        filepath: Union[str, FileDetailSchema],
+        out_path: Optional[str] = None,
+        out_file_obj: Optional[IO] = None,
         progressbar: bool = False,
     ) -> str:
         """Download analysis result file.
 
         Parameters
         ----------
-        file_details: `FileDetailSchema` or `str`
+        filepath: `str` or `FileDetailSchema`
             Must be one of objects or filepathes returned by `get_files`
-        path: `string`, optional
+        out_path: `string`, optional
             Full path to save the file to. If omitted, defaults to the original filename
             in the current working directory.
-        file_obj: file-like object, optional
-            Rather than save the file to a path, write it to this file-like object.
+        out_file_obj: file-like object, optional
+            Rather than save the file to a `out_path`, write it to this file-like object.
         progressbar: `bool`, optional
             Display a progress bar using Click for the download?
 
@@ -103,25 +103,25 @@ class _AnalysesBase(OneCodexBase):
         from requests.packages.urllib3.util.retry import Retry
 
         # You can pass filepath instead of `FileDetailSchema` object.
-        if isinstance(file_details, str):
+        if isinstance(filepath, str):
             exists = False
             for x in self.get_files():
-                if x.filepath == file_details:
-                    file_details = x
+                if x.filepath == filepath:
+                    filepath = x
                     exists = True
                     break
             if not exists:
-                raise OneCodexException(f"Filepath: {file_details} does not exist.")
+                raise OneCodexException(f"Filepath: {filepath} does not exist.")
 
-        if path and file_obj:
+        if out_path and out_file_obj:
             raise OneCodexException("Please specify only one of: path, file_obj")
 
         try:
-            if path is None and file_obj is None:
-                path = os.path.join(os.getcwd(), file_details.filename)
+            if out_path is None and out_file_obj is None:
+                out_path = os.path.join(os.getcwd(), filepath.filename)
 
-            if path and os.path.exists(path):
-                raise OneCodexException(f"{path} already exists. Will not overwrite.")
+            if out_path and os.path.exists(out_path):
+                raise OneCodexException(f"{out_path} already exists. Will not overwrite.")
 
             session = requests.Session()
 
@@ -138,16 +138,16 @@ class _AnalysesBase(OneCodexBase):
 
             session.mount("http://", adapter)
             session.mount("https://", adapter)
-            resp = session.get(file_details.url, stream=True)
+            resp = session.get(filepath.url, stream=True)
 
-            if path:
-                f_out = open(path, "wb")
+            if out_path:
+                f_out = open(out_path, "wb")
             else:
-                f_out = file_obj
+                f_out = out_file_obj
 
             if progressbar:
-                progress_label = os.path.basename(path) if path else file_details.filename
-                with click.progressbar(length=file_details.size, label=progress_label) as bar:
+                progress_label = os.path.basename(out_path) if out_path else filepath.filename
+                with click.progressbar(length=filepath.size, label=progress_label) as bar:
                     for data in resp.iter_content(chunk_size=1024):
                         bar.update(len(data))
                         f_out.write(data)
@@ -156,12 +156,12 @@ class _AnalysesBase(OneCodexBase):
                     f_out.write(data)
 
             # do not close the handle if file_obj is used
-            if not file_obj:
+            if not out_file_obj:
                 f_out.close()
 
         except KeyboardInterrupt:
-            if path and os.path.exists(path):
-                os.remove(path)
+            if out_path and os.path.exists(out_path):
+                os.remove(out_path)
             raise
         except requests.exceptions.HTTPError as exc:
             if exc.response.status_code == 401:
@@ -179,7 +179,7 @@ class _AnalysesBase(OneCodexBase):
                     "Download failed with an HTTP status code {}.".format(exc.response.status_code)
                 )
 
-        return path
+        return out_path
 
 
 class Analyses(_AnalysesBase, AnalysisSchema):
