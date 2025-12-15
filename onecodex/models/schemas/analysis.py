@@ -10,7 +10,6 @@ from onecodex.models.schemas.sample import SampleSchema
 
 
 class BaseAnalysisSchema(URIModel):
-    # Do not load `draft`, `dependencies`, and `cost` fields
     model_config = ConfigDict(extra="ignore")
 
     created_at: RFC3339Datetime
