@@ -5,6 +5,9 @@ from onecodex.models.base import ApiRef
 from onecodex.models.schemas.base import URIModel
 from onecodex.models.schemas.types import RFC3339Datetime
 
+from onecodex.models.schemas.misc import CostSchema, JobSchema
+from onecodex.models.schemas.sample import SampleSchema
+
 
 class BaseAnalysisSchema(URIModel):
     # Do not load `draft`, `dependencies`, and `cost` fields
@@ -28,6 +31,14 @@ class BaseAnalysisSchema(URIModel):
         description='A reference to the sample underlying the analysis, e.g., `{"$ref": "/api/v1/sample/0ee172af60e84f61"}`.',
     )
     success: bool = False
+
+    cost: Optional["CostSchema"] = Field(  # noqa: F821
+        description="Cost incurred by this analysis",
+    )
+
+    draft: bool
+
+    dependencies: Union[list["BaseAnalysisSchema"], list[ApiRef]]
 
 
 class AnalysisSchema(BaseAnalysisSchema):

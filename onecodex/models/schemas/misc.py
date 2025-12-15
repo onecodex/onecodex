@@ -77,6 +77,11 @@ class DocumentSchema(URIModel):
 # NOTE: these Asset models are only accessible via `X-OneCodex-Api-Experimental` as of 10/2/2025
 
 
+class CostSchema(BaseModel):
+    amount: float
+    currency: str
+
+
 class AssetUpdateSchema(BaseModel):
     name: str
 
