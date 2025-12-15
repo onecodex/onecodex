@@ -30,15 +30,16 @@ class BaseAnalysisSchema(URIModel):
     sample: Union["SampleSchema", ApiRef] = Field(  # noqa: F821
         description='A reference to the sample underlying the analysis, e.g., `{"$ref": "/api/v1/sample/0ee172af60e84f61"}`.',
     )
-    success: bool = False
+    success: Optional[bool] = False
 
     cost: Optional["CostSchema"] = Field(  # noqa: F821
+        default=None,
         description="Cost incurred by this analysis",
     )
 
-    draft: bool
+    draft: Optional[bool] = None
 
-    dependencies: Union[list["BaseAnalysisSchema"], list[ApiRef]]
+    dependencies: Union[None, list["BaseAnalysisSchema"], list[ApiRef]] = None
 
 
 class AnalysisSchema(BaseAnalysisSchema):
