@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Any, Optional, Union
 from pydantic import Field, ConfigDict
 
@@ -32,13 +33,12 @@ class BaseAnalysisSchema(URIModel):
     success: Optional[bool] = False
 
     cost: Optional["CostSchema"] = Field(  # noqa: F821
-        default=None,
-        description="Cost incurred by this analysis",
+        description="Cost incurred by this analysis", default=None
     )
 
     draft: Optional[bool] = None
 
-    dependencies: Union[None, list["BaseAnalysisSchema"], list[ApiRef]] = None
+    dependencies: Union[None, list[BaseAnalysisSchema], list[ApiRef]] = None
 
 
 class AnalysisSchema(BaseAnalysisSchema):
