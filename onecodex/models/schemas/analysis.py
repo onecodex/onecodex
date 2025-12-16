@@ -32,13 +32,9 @@ class BaseAnalysisSchema(URIModel):
     )
     success: Optional[bool] = False
 
-    cost: Optional["CostSchema"] = Field(  # noqa: F821
-        description="Cost incurred by this analysis", default=None
-    )
-
-    draft: Optional[bool] = None
-
-    dependencies: Union[None, list[BaseAnalysisSchema], list[ApiRef]] = None
+    cost: Optional[CostSchema] = None
+    draft: bool
+    dependencies: Union[list[BaseAnalysisSchema], list[ApiRef]]
 
 
 class AnalysisSchema(BaseAnalysisSchema):
