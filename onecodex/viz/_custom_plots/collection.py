@@ -23,8 +23,7 @@ from .utils import get_plot_title
 from .models import PlotParams, PlotResult
 from .export import export_chart_data
 
-if TYPE_CHECKING:
-    import pandas as pd
+import pandas as pd
 
 
 METADATA_FIELD_PLOT_PARAMS = [
@@ -44,6 +43,21 @@ METADATA_FIELD_PLOT_PARAMS = [
 ###
 
 
+class Metadata(dict):
+    # TODO: what is this normally?
+    # TODO: why not inherit from some base pydantic model...
+    model_fields: dict[str, Any] = {"field_uri": str, "sample": Any, "custom": Any}
+
+    @property
+    def id(self):
+        return self["metadata_id"]
+
+    @property
+    def custom(self) -> dict:
+        # TODO: omit certain fields
+        return self
+
+
 class Samples:
     """Mock the Samples model."""
 
@@ -58,6 +72,24 @@ class Samples:
     def _metadata(self) -> dict:
         return self._sample_datum["metadata"]
 
+    # TODO: replace with whatever the current actual attribute name is in the real Samples
+    @property
+    def metadata(self) -> Metadata:
+        return Metadata(self._sample_datum["metadata"])
+
+    @property
+    def created_at(self) -> None:
+        return None
+
+    @property
+    def filename(self) -> None:
+        # TODO: get from metadata
+        return None
+
+    @property
+    def project(self) -> None:
+        return None
+
     @property
     def _classification(self) -> dict | None:
         return self._sample_datum["primary_classification"]
@@ -67,11 +99,20 @@ class Samples:
         return self._sample_datum["functional_profile"]
 
 
+class Jobs:
+    def __init__(self, name: str):
+        self.name = name
+
+
 class Classifications(dict):
     """Mock the Classifications model."""
 
     id: str | None = None
+    sample: Samples | None = None
+    success: bool = True  # TODO: get the real value
+    job: Jobs
 
+    # TODO.... should this be a different class?
     def results(self) -> "Classifications":
         return self
 
@@ -119,10 +160,9 @@ class SampleCollection(BaseSampleCollection):
         # For some reason, it would try to collate_results in loop because that value is not set.
         # Strangely, that value should be set in collate_results so it shouldn't recurse.
         # Not sure what's happening but setting it initially fixes it.
-        self._cached = {"metric": kwargs.get("metric", Metric.Auto)}
+
         self._kwargs = {
             "skip_missing": True,
-            "metric": Metric.Auto,
             "include_host": False,
             "job": None,
         }
@@ -130,33 +170,32 @@ class SampleCollection(BaseSampleCollection):
 
         self.samples = samples
         self._res_list = self.samples
-        self._collate_metadata()
+        #        self._collate_metadata()
 
         self._classification_fetch()
-        self.rank = self._default_rank
-        self._functional_profiles  # precompute the cache
+        # self._functional_profiles  # precompute the cache
 
-    def _collate_metadata(self):
-        """Overridden for shims."""
-        import pandas as pd
-
-        metadata = [sample._metadata for sample in self.samples]
-
-        if metadata:
-            df = pd.DataFrame(metadata)
-            index = "classification_id" if df["classification_id"].is_unique else "sample_id"
-            metadata = df.set_index(index)
-        else:
-            metadata = pd.DataFrame(
-                columns=["classification_id", "sample_id", "metadata_id", "created_at"]
-            )
-
-        self._cached["metadata"] = metadata
+    # TODO: why do we need to override this?
+    #    def _collate_metadata(self):
+    #        """Overridden for shims."""
+    #        import pandas as pd
+    #
+    #        metadata = [sample._metadata for sample in self.samples]
+    #
+    #        if metadata:
+    #            df = pd.DataFrame(metadata)
+    #            index = "classification_id" if df["classification_id"].is_unique else "sample_id"
+    #            metadata = df.set_index(index)
+    #        else:
+    #            metadata = pd.DataFrame(
+    #                columns=["classification_id", "sample_id", "metadata_id", "created_at"]
+    #            )
+    #
+    #        self._cached["metadata"] = metadata
 
     def _classification_fetch(self):
         """Overridden for shims."""
         classifications = []
-        job_names = set()
         for sample in self.samples:
             summary = sample._classification
             if not summary:
@@ -166,33 +205,30 @@ class SampleCollection(BaseSampleCollection):
             results.update(summary["api_results"])
             results["id"] = summary["uuid"]
             results.id = summary["uuid"]
+            results.sample = sample
+            results.job = Jobs(name=summary["job_name"])
 
-            job_names.add(summary["job_name"])
             classifications.append(results)
 
-        self._cached["is_metagenomic"] = False
-        if all(("One Codex Database" in name for name in job_names)):
-            self._cached["is_metagenomic"] = True
+        self._res_list = classifications
 
-        self._default_rank = self._get_auto_rank(Rank.Auto)
-        self._cached["classifications"] = classifications
-
-    @property
-    def _functional_profiles(self):
-        """Overridden for shims."""
-        if "functional_profiles" not in self._cached:
-            functional_results = []
-            for sample in self.samples:
-                profile = sample._functional_profile
-                if not profile:
-                    continue
-                functional_results.append(
-                    FunctionalProfiles(profile["uuid"], profile["sample_uuid"], profile["results"])
-                )
-
-            self._cached["functional_profiles"] = functional_results
-
-        return self._cached["functional_profiles"]
+    # already a cached_property in BaseSampleCollection
+    #    @property
+    #    def _functional_profiles(self):
+    #        """Overridden for shims."""
+    #        if "functional_profiles" not in self._cached:
+    #            functional_results = []
+    #            for sample in self.samples:
+    #                profile = sample._functional_profile
+    #                if not profile:
+    #                    continue
+    #                functional_results.append(
+    #                    FunctionalProfiles(profile["uuid"], profile["sample_uuid"], profile["results"])
+    #                )
+    #
+    #            self._cached["functional_profiles"] = functional_results
+    #
+    #        return self._cached["functional_profiles"]
 
     def plot(self, params: PlotParams) -> PlotResult:
         import altair as alt
@@ -229,9 +265,8 @@ class SampleCollection(BaseSampleCollection):
             self = self._filter_by_metadata(params.filter_by, params.filter_value)
 
         if params.metric == Metric.Auto:
-            self._collate_results()  # This resolves `self._metric`
             params = params.model_copy(
-                update={"metric": Metric(self._metric)}
+                update={"metric": Metric(self.automatic_metric)}
             )  # don't mutate the input
 
         label_func = self._x_axis_label_func(params.plot_type, params.label_by)
@@ -314,9 +349,10 @@ class SampleCollection(BaseSampleCollection):
         elif params.plot_type == PlotType.Beta:
             if params.plot_repr == PlotRepr.Pcoa:
                 chart = self.plot_mds(
+                    # TODO: allow specifying metric?
                     return_chart=True,
                     rank=params.rank,
-                    metric=params.beta_metric,
+                    diversity_metric=params.beta_metric,
                     color=params.facet_by,
                     title=title,
                     label=label_func,
@@ -340,7 +376,7 @@ class SampleCollection(BaseSampleCollection):
                 chart = self.plot_distance(
                     return_chart=True,
                     rank=params.rank,
-                    metric=params.beta_metric,
+                    diversity_metric=params.beta_metric,
                     title=title,
                     xlabel=default_x_axis_title,
                     label=label_func,
@@ -433,7 +469,12 @@ class SampleCollection(BaseSampleCollection):
             if metadata.index.name == "sample_id":
                 metadatum = metadata.loc[sample.id, field]
             else:
-                metadatum = metadata.loc[metadata["sample_id"] == sample.id, field].iloc[0]
+                rows = metadata.loc[metadata["sample_id"] == sample.id, field]
+                if len(rows) == 1:
+                    metadatum = rows.iloc[0]
+                else:
+                    # ambiguous or no match
+                    metadatum = None
             return not pd.isna(metadatum) and metadatum in values_to_keep
 
         return self.filter(_filter_func)
