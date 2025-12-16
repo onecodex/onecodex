@@ -296,9 +296,11 @@ class BaseSampleCollection(
                 classification = obj.primary_classification
             elif isinstance(obj, Classifications):
                 classification = obj
+            elif isinstance(obj, dict):  # TODO: this is our custom plots classification
+                classification = obj
             else:
                 raise OneCodexException(
-                    "Objects in SampleCollection must be one of: Classifications, Samples"
+                    f"Objects in SampleCollection must be one of: Classifications, Samples, got {obj} {type(obj)}"
                 )
 
             if not classification:
@@ -327,6 +329,7 @@ class BaseSampleCollection(
 
         return classifications
 
+    # TODO: cached property? we can't let it be mutable tho
     @property
     def metadata(self) -> pd.DataFrame:
         """Transform a list of Samples or Classifications into a `pd.DataFrame` of metadata."""
@@ -340,11 +343,17 @@ class BaseSampleCollection(
         for obj in self._res_list:
             try:
                 classification_id = (
-                    obj.id if isinstance(obj, Classifications) else obj.primary_classification.id
+                    obj.id
+                    # TODO: dict is a sub for mock Classifications, find a better way to distinguish
+                    if isinstance(obj, Classifications) or isinstance(obj, dict)
+                    else obj.primary_classification.id
                 )
             except AttributeError:
                 classification_id = None
-            sample = obj.sample if isinstance(obj, Classifications) else obj
+            # TODO: temp hack for shim
+            sample = (
+                obj.sample if isinstance(obj, Classifications) or isinstance(obj, dict) else obj
+            )
 
             m = sample.metadata
 
