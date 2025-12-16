@@ -74,6 +74,13 @@ class DocumentSchema(URIModel):
     )
 
 
+class FileDetailSchema(BaseModel):
+    filename: str
+    filepath: str
+    size: int
+    url: str
+
+
 # NOTE: these Asset models are only accessible via `X-OneCodex-Api-Experimental` as of 10/2/2025
 
 
