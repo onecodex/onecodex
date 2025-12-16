@@ -16,7 +16,6 @@ if TYPE_CHECKING:
     from pyodide.http import FetchResponse
 
 CUSTOM_PLOTS_CACHE = {}
-GZIP_MAGIC = b"\x1f\x8b"
 RESULTS_BATCH_SIZE = 15
 
 
@@ -48,35 +47,28 @@ async def plot(
         else SamplesFilter.WithClassifications
     )
 
-    import traceback
+    # Cache the SampleCollection, keyed by (<tag_or_project_uuid>, <filter>, <metric>)
+    key = (uuid, filter_, params.metric)
+    if key in CUSTOM_PLOTS_CACHE:
+        collection = CUSTOM_PLOTS_CACHE[key]
+    else:
+        samples = await _fetch_samples(
+            type_=type_,
+            uuid=uuid,
+            filter_=filter_,
+            csrf_token=csrf_token,
+            progress_callback=progress_callback,
+        )
+        collection = SampleCollection(samples, metric=params.metric)
+        CUSTOM_PLOTS_CACHE[key] = collection
 
-    try:
-        # Cache the SampleCollection, keyed by (<tag_or_project_uuid>, <filter>, <metric>)
-        key = (uuid, filter_, params.metric)
-        if key in CUSTOM_PLOTS_CACHE:
-            collection = CUSTOM_PLOTS_CACHE[key]
-        else:
-            samples = await _fetch_samples(
-                type_=type_,
-                uuid=uuid,
-                filter_=filter_,
-                csrf_token=csrf_token,
-                progress_callback=progress_callback,
-            )
-            collection = SampleCollection(samples, metric=params.metric)
-            CUSTOM_PLOTS_CACHE[key] = collection
+    # Now that we have a SampleCollection, do the actual plotting
+    result = collection.plot(params)
 
-        # Now that we have a SampleCollection, do the actual plotting
-        result = collection.plot(params)
+    # Cache the results in case the original metric was "auto" and got resolved to a concrete metric
+    CUSTOM_PLOTS_CACHE[(uuid, filter_, result.params.metric)] = collection
 
-        # Cache the results in case the original metric was "auto" and got resolved to a concrete metric
-        CUSTOM_PLOTS_CACHE[(uuid, filter_, result.params.metric)] = collection
-
-        return result.to_dict()
-    except Exception as e:
-        print(e)
-        print(traceback.format_exc())
-        raise e
+    return result.to_dict()
 
 
 def _convert_jsnull_to_none(obj: Any) -> Any:
