@@ -32,7 +32,7 @@ class BaseAnalysisSchema(URIModel):
     )
     success: Optional[bool] = False
 
-    cost: Optional[CostSchema] = None
+    cost: Optional[CostSchema]
     draft: bool
     dependencies: Union[list[BaseAnalysisSchema], list[ApiRef]]
 
