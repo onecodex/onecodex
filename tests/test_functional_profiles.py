@@ -202,6 +202,9 @@ def test_filter_functional_runs_to_newest_job(ocx, raw_api_data, custom_mock_req
             "error_msg": "",
             "job": {"$ref": "/api/v1/jobs/59e7904ea8ed4244"},
             "sample": {"$ref": "/api/v1/samples/37e5151e7bcb4f87"},
+            "cost": None,
+            "dependencies": [],
+            "draft": False,
             "success": True,
         }
     ]
