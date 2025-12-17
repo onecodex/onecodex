@@ -25,7 +25,7 @@ class PlotParams(BaseModel):
 
     plot_type: PlotType
     plot_repr: PlotRepr | None
-    metric: Metric
+    metric: Metric | str = Metric.NormalizedReadcountWChildren
     alpha_metric: AlphaDiversityMetric
     beta_metric: BetaDiversityMetric
     export_format: ExportFormat | None
