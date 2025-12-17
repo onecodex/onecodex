@@ -915,7 +915,7 @@ def test_plot_bargraph_when_passing_tax_name_as_group_by(samples):
         ("plot_pca", {"size": "does_not_exist"}),
         ("plot_pca", {"tooltip": "does_not_exist"}),
         ("plot_heatmap", {"tooltip": "does_not_exist"}),
-        #        ("plot_distance", {"tooltip": "does_not_exist"}),
+        ("plot_distance", {"tooltip": "does_not_exist"}),
         ("plot_mds", {"tooltip": "does_not_exist"}),
         ("plot_bargraph", {"tooltip": "does_not_exist"}),
     ],
