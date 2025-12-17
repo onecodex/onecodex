@@ -42,6 +42,7 @@ def sample_collection() -> SampleCollection:
                 "library_type": "WGS",
                 "platform": "Illumina",
                 "cohort": "C1",
+                "Bacteroides": None,
                 "whitespace_field": " value 1",
             },
             "primary_classification": {
@@ -68,6 +69,7 @@ def sample_collection() -> SampleCollection:
                 "library_type": "WGS",
                 "platform": "Illumina",
                 "cohort": "C2",
+                "Bacteroides": None,
                 "whitespace_field": "value 2\t",
             },
             "primary_classification": {
@@ -94,6 +96,7 @@ def sample_collection() -> SampleCollection:
                 "library_type": "Other",
                 "platform": "Other",
                 "cohort": "C1",
+                "Bacteroides": None,
                 "whitespace_field": "  \tvalue 3  ",
             },
             "primary_classification": {
@@ -195,29 +198,24 @@ def test_plot(sample_collection, default_plot_params_payload, params):
 # all have NaN as the value, the metadata column would get matched to the taxonomy table causing a
 # random taxon to get mapped to the plotting parameter, which then caused an error
 def test_plot_does_not_match_on_taxonomy(sample_collection, default_plot_params_payload):
-    sample_collection.taxonomy.loc["2", "name"] = "Group"
-    sample_collection.taxonomy.loc["2", "rank"] = "An Invalid Rank"
-    sample_collection.metadata["Group"] = "Test"
-    sample_collection.metadata["Cohort"] = "Some Cohort"
-
-    # These will get filtered out *after* the metadata key check
-    sample_collection.metadata.loc[sample_collection.metadata.index[-3:], "Cohort"] = (
-        "Some Other Cohort"
-    )
-    sample_collection.metadata.loc[sample_collection.metadata.index[-3:], "Group"] = np.nan
-
     params = PlotParams.model_validate(
         default_plot_params_payload
         | {
             "plot_type": "beta",
             "plot_repr": "pca",
-            "facet_by": "Group",
-            "filter_by": "Cohort",
-            "filter_value": ["Some Other Cohort"],
-            "rank": "species",
-            "metric": "abundance_w_children",
+            "facet_by": "Bacteroides",  # all are None
+            "filter_by": "cohort",
+            "filter_value": ["C1", "C2"],
+            "rank": "genus",
+            "metric": "readcount_w_children",
         }
     )
+
+    df = sample_collection.to_df(rank="genus", metric="readcount_w_children")
+
+    # make sure this taxon is actually there
+    assert (sample_collection.taxonomy["name"] == "Bacteroides").sum() == 1
+    assert "816" in df.columns
 
     result = sample_collection.plot(params)
     assert result.error is None
@@ -321,6 +319,7 @@ def test_export_chart_data(sample_collection, default_plot_params_payload, param
     params = PlotParams.model_validate(
         default_plot_params_payload | params | {"export_format": "csv"}
     )
+
     result = sample_collection.plot(params)
     df = pd.read_csv(io.BytesIO(result.exported_chart_data))
 
@@ -363,9 +362,9 @@ def test_validate_plot_params_invalid_metadata_field(
     "field,values,expected_num_samples",
     [
         ("cohort", ["C1"], 2),
-        #    ("cohort", ["C1", "C2"], 3),
-        #    ("sample_type", ["Metagenomic"], 1),
-        #    ("sample_name", ["Sample 1", "Sample 3"], 2),
+        ("cohort", ["C1", "C2"], 3),
+        ("sample_type", ["Metagenomic"], 1),
+        ("sample_name", ["Sample 1", "Sample 3"], 2),
     ],
 )
 def test_filter_by_metadata(sample_collection, field, values, expected_num_samples):
