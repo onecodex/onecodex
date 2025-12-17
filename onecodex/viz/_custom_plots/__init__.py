@@ -9,7 +9,7 @@ from onecodex.exceptions import OneCodexException
 from .collection import SampleCollection, Samples
 from .enums import PlotType, SamplesFilter, SuggestionType
 from .models import PlotParams
-from .helpers import AsyncRateLimiter
+from .utils import AsyncRateLimiter
 
 if TYPE_CHECKING:
     from pyodide.ffi import JsProxy
@@ -129,7 +129,7 @@ async def _fetch_batch_sample_results(base_url: str, data: list[dict], headers: 
             uuid_pos[uuid] = idx
 
     if classification_uuids:
-        from .helpers import format_classification_results
+        from .utils import format_classification_results
 
         url = f"{base_url}/api/v2/custom-plots/classification-results?uuids={','.join(classification_uuids)}"
         # Results are ordered according to order in the uuid list
