@@ -136,7 +136,10 @@ class VizFunctionalHeatmapMixin(BaseSampleCollection):
         }
 
         metadata["functional_profile_id"] = [
-            sample_id_to_functional_profile_id[sample_id] for sample_id in metadata["sample_id"]
+            sample_id_to_functional_profile_id[sample_id]
+            if sample_id in sample_id_to_functional_profile_id
+            else None
+            for sample_id in metadata["sample_id"]
         ]
 
         metadata = metadata.set_index("functional_profile_id")

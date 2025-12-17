@@ -958,10 +958,13 @@ def test_plot_functional_heatmap(ocx, api_data):
 
     assert len(samples) == len(sample_ids)
 
-    chart = samples.plot_functional_heatmap(return_chart=True, top_n=3)
+    with pytest.warns(
+        UserWarning, match="Functional profile not found for sample 7428cca4a3a04a8e. Skipping."
+    ):
+        chart = samples.plot_functional_heatmap(return_chart=True, top_n=3)
 
     assert len(chart.data.index) == 9  # 3 samples * 3 top_n == 9
-    assert set(chart.data["Label"]) == set(x.filename for x in samples)
+    assert set(chart.data["Label"]) == {p.sample.filename for p in samples._functional_profiles}
 
     # Defaults to GO metric
     assert all(x.startswith("GO:") for x in chart.data["function_id"])
