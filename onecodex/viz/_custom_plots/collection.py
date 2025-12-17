@@ -1,29 +1,30 @@
 from __future__ import annotations
 
 import warnings
-from typing import Callable, Any
+from functools import cached_property
+from typing import Any, Callable
 
-from onecodex.lib.enums import (
-    Metric,
-    FunctionalAnnotations,
-    FunctionalAnnotationsMetric,
-    Link,
-)
-from onecodex.models import SampleCollection as BaseSampleCollection
+import pandas as pd
+
 from onecodex.exceptions import (
     OneCodexException,
     PlottingException,
     PlottingWarning,
     ValidationError,
 )
+from onecodex.lib.enums import (
+    FunctionalAnnotations,
+    FunctionalAnnotationsMetric,
+    Link,
+    Metric,
+)
+from onecodex.models import SampleCollection as BaseSampleCollection
+
 from .enums import PlotRepr, PlotType
-from .metadata import metadata_record_to_label, deduplicate_labels, sort_metadata_records
-from .utils import get_plot_title
-from .models import PlotParams, PlotResult
 from .export import export_chart_data
-
-import pandas as pd
-
+from .metadata import deduplicate_labels, metadata_record_to_label, sort_metadata_records
+from .models import PlotParams, PlotResult
+from .utils import get_plot_title
 
 METADATA_FIELD_PLOT_PARAMS = [
     "facet_by",
@@ -227,22 +228,20 @@ class SampleCollection(BaseSampleCollection):
         self._res_list = self.samples
 
     # already a cached_property in BaseSampleCollection
-    #    @property
-    #    def _functional_profiles(self):
-    #        """Overridden for shims."""
-    #        if "functional_profiles" not in self._cached:
-    #            functional_results = []
-    #            for sample in self.samples:
-    #                profile = sample._functional_profile
-    #                if not profile:
-    #                    continue
-    #                functional_results.append(
-    #                    FunctionalProfiles(profile["uuid"], profile["sample_uuid"], profile["results"])
-    #                )
-    #
-    #            self._cached["functional_profiles"] = functional_results
-    #
-    #        return self._cached["functional_profiles"]
+    @cached_property
+    def _functional_profiles(self):
+        """Overridden for shims."""
+
+        functional_results = []
+        for sample in self.samples:
+            profile = sample._functional_profile
+            if not profile:
+                continue
+            functional_results.append(
+                FunctionalProfiles(profile["uuid"], profile["sample_uuid"], profile["results"])
+            )
+
+        return functional_results
 
     def plot(self, params: PlotParams) -> PlotResult:
         import altair as alt
