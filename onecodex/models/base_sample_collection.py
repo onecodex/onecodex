@@ -9,6 +9,7 @@ from datetime import datetime
 from functools import cached_property, lru_cache
 from typing import TYPE_CHECKING, Any, Literal, Optional
 
+
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.enums import (
     AbundanceMetric,
@@ -288,15 +289,15 @@ class BaseSampleCollection(
         A list of Classifications instances
         """
         from onecodex.models import Classifications, Samples
+        from onecodex.viz._custom_plots.collection import Classifications as ClassificationsShim
+        from onecodex.viz._custom_plots.collection import Samples as SamplesShim
 
         classifications = []
 
         for obj in self._res_list:
-            if isinstance(obj, Samples):
+            if isinstance(obj, Samples) or isinstance(obj, SamplesShim):
                 classification = obj.primary_classification
-            elif isinstance(obj, Classifications):
-                classification = obj
-            elif isinstance(obj, dict):  # TODO: this is our custom plots classification
+            elif isinstance(obj, Classifications) or isinstance(obj, ClassificationsShim):
                 classification = obj
             else:
                 raise OneCodexException(
@@ -336,6 +337,7 @@ class BaseSampleCollection(
         import pandas as pd
 
         from onecodex.models import Classifications
+        from onecodex.viz._custom_plots.collection import Classifications as ClassificationsShim
 
         DEFAULT_FIELDS = None
         metadata = []
@@ -344,15 +346,15 @@ class BaseSampleCollection(
             try:
                 classification_id = (
                     obj.id
-                    # TODO: dict is a sub for mock Classifications, find a better way to distinguish
-                    if isinstance(obj, Classifications) or isinstance(obj, dict)
+                    if isinstance(obj, Classifications) or isinstance(obj, ClassificationsShim)
                     else obj.primary_classification.id
                 )
             except AttributeError:
                 classification_id = None
-            # TODO: temp hack for shim
             sample = (
-                obj.sample if isinstance(obj, Classifications) or isinstance(obj, dict) else obj
+                obj.sample
+                if isinstance(obj, Classifications) or isinstance(obj, ClassificationsShim)
+                else obj
             )
 
             m = sample.metadata
@@ -571,9 +573,11 @@ class BaseSampleCollection(
         A list of FunctionalAnnotations
         """
         from onecodex.models import FunctionalProfiles, Samples
+        from onecodex.viz._custom_plots.collection import Samples as SamplesShim
 
         sample_ids = [
-            obj.id if isinstance(obj, Samples) else obj.sample.id for obj in self._res_list
+            obj.id if isinstance(obj, Samples) or isinstance(obj, SamplesShim) else obj.sample.id
+            for obj in self._res_list
         ]
         # Get all Functional Profiles for the current sample collection
         batch_size = 50

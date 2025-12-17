@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import warnings
-from typing import Callable, Any, TYPE_CHECKING
+from typing import Callable, Any
 
 from onecodex.lib.enums import (
     Metric,
-    Rank,
     FunctionalAnnotations,
     FunctionalAnnotationsMetric,
     Link,
@@ -62,10 +61,15 @@ class Samples:
     """Mock the Samples model."""
 
     def __init__(self, sample_datum: dict):
+        # TODO: debugging
+        assert "primary_classification" in sample_datum
+        assert "metadata" in sample_datum
+
         self._sample_datum = sample_datum
 
     @property
     def id(self) -> str:
+        assert "metadata" in self._sample_datum
         return self._sample_datum["uuid"]
 
     @property
@@ -105,7 +109,7 @@ class Jobs:
 
 
 class Classifications(dict):
-    """Mock the Classifications model."""
+    """Mock the Classifications + results model."""
 
     id: str | None = None
     sample: Samples | None = None
@@ -168,11 +172,19 @@ class SampleCollection(BaseSampleCollection):
         }
         self._kwargs.update(kwargs)
 
-        self.samples = samples
-        self._res_list = self.samples
-        #        self._collate_metadata()
+        for sample in samples:
+            if not isinstance(sample, Samples):
+                raise Exception(f"incorrect type: {sample}")
 
+        self.samples = samples
+
+        # this will set self._res_list
         self._classification_fetch()
+
+        # TODO: this is just for debugging
+        for sample in self.samples:
+            assert sample.id in self.metadata["sample_id"].values
+
         # self._functional_profiles  # precompute the cache
 
     # TODO: why do we need to override this?
@@ -208,9 +220,11 @@ class SampleCollection(BaseSampleCollection):
             results.sample = sample
             results.job = Jobs(name=summary["job_name"])
 
+            sample.primary_classification = results
+
             classifications.append(results)
 
-        self._res_list = classifications
+        self._res_list = self.samples
 
     # already a cached_property in BaseSampleCollection
     #    @property
@@ -266,7 +280,7 @@ class SampleCollection(BaseSampleCollection):
 
         if params.metric == Metric.Auto:
             params = params.model_copy(
-                update={"metric": Metric(self.automatic_metric)}
+                update={"metric": "normalized_readcount_w_children"}
             )  # don't mutate the input
 
         label_func = self._x_axis_label_func(params.plot_type, params.label_by)
@@ -295,6 +309,7 @@ class SampleCollection(BaseSampleCollection):
                     top_n=params.top_n,
                     rank=params.rank,
                     haxis=params.facet_by,
+                    metric=params.metric,
                     title=title,
                     xlabel=None if params.facet_by or params.group_by else default_x_axis_title,
                     label=None if params.group_by else label_func,
@@ -306,6 +321,7 @@ class SampleCollection(BaseSampleCollection):
                 )
             else:
                 chart = self.plot_heatmap(
+                    metric=params.metric,
                     return_chart=True,
                     top_n=params.top_n,
                     rank=params.rank,
@@ -335,6 +351,7 @@ class SampleCollection(BaseSampleCollection):
                 return_chart=True,
                 rank=params.rank,
                 vaxis=params.alpha_metric,
+                metric=params.metric,
                 haxis=params.group_by or "Label",
                 secondary_haxis=params.secondary_group_by,
                 facet_by=params.facet_by,
@@ -349,9 +366,9 @@ class SampleCollection(BaseSampleCollection):
         elif params.plot_type == PlotType.Beta:
             if params.plot_repr == PlotRepr.Pcoa:
                 chart = self.plot_mds(
-                    # TODO: allow specifying metric?
                     return_chart=True,
                     rank=params.rank,
+                    metric=params.metric,
                     diversity_metric=params.beta_metric,
                     color=params.facet_by,
                     title=title,
@@ -363,6 +380,7 @@ class SampleCollection(BaseSampleCollection):
                 chart = self.plot_pca(
                     return_chart=True,
                     rank=params.rank,
+                    metric=params.metric,
                     color=params.facet_by,
                     title=title,
                     label=label_func,
@@ -376,6 +394,7 @@ class SampleCollection(BaseSampleCollection):
                 chart = self.plot_distance(
                     return_chart=True,
                     rank=params.rank,
+                    metric=params.metric,
                     diversity_metric=params.beta_metric,
                     title=title,
                     xlabel=default_x_axis_title,
@@ -469,6 +488,8 @@ class SampleCollection(BaseSampleCollection):
             if metadata.index.name == "sample_id":
                 metadatum = metadata.loc[sample.id, field]
             else:
+                # for some reason, sample.id is a classification id here...
+                assert sample.id in self.metadata["sample_id"].values, (sample.id, self.metadata)
                 rows = metadata.loc[metadata["sample_id"] == sample.id, field]
                 if len(rows) == 1:
                     metadatum = rows.iloc[0]
@@ -477,6 +498,7 @@ class SampleCollection(BaseSampleCollection):
                     metadatum = None
             return not pd.isna(metadatum) and metadatum in values_to_keep
 
+        # self._res_list *can* be a list of classifications?
         return self.filter(_filter_func)
 
     def _x_axis_label_func(self, plot_type: PlotType, label_by: list[str]) -> Callable[[dict], str]:

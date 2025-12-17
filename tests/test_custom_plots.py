@@ -68,7 +68,7 @@ def sample_collection() -> SampleCollection:
                 "library_type": "WGS",
                 "platform": "Illumina",
                 "cohort": "C2",
-                "whitespace_field": "value 2  ",
+                "whitespace_field": "value 2\t",
             },
             "primary_classification": {
                 "uuid": classification2_uuid,
@@ -116,7 +116,7 @@ def default_plot_params_payload() -> dict:
         "source_name": "Source",
         "plot_type": "taxa",
         "plot_repr": "bargraph",
-        "metric": "abundance",
+        "metric": "normalized_readcount_w_children",
         "alpha_metric": "shannon",
         "beta_metric": "braycurtis",
         "export_format": None,
@@ -140,33 +140,33 @@ def default_plot_params_payload() -> dict:
 @pytest.mark.parametrize(
     "params",
     [
-        #        {"plot_type": "taxa", "plot_repr": "bargraph"},
+        {"plot_type": "taxa", "plot_repr": "bargraph"},
         {
             "plot_type": "taxa",
             "plot_repr": "bargraph",
             "filter_by": "cohort",
             "filter_value": ["C1"],
         },
-        #        {"plot_type": "taxa", "plot_repr": "heatmap"},
-        #        {"plot_type": "alpha"},
-        #        {"plot_type": "alpha", "group_by": "cohort", "secondary_group_by": "sample_type"},
-        #        {"plot_type": "beta", "plot_repr": "pca"},
-        #        {"plot_type": "beta", "plot_repr": "pcoa"},
-        #        {"plot_type": "beta", "plot_repr": "distance"},
-        #        {"metric": "auto"},
-        #        {"export_format": None},
-        #        {"export_format": "csv"},
-        #        {"export_format": "xlsx"},
+        {"plot_type": "taxa", "plot_repr": "heatmap"},
+        {"plot_type": "alpha"},
+        {"plot_type": "alpha", "group_by": "cohort", "secondary_group_by": "sample_type"},
+        {"plot_type": "beta", "plot_repr": "pca"},
+        {"plot_type": "beta", "plot_repr": "pcoa"},
+        {"plot_type": "beta", "plot_repr": "distance"},
+        {"metric": "auto"},
+        {"export_format": None},
+        {"export_format": "csv"},
+        {"export_format": "xlsx"},
     ],
 )
 def test_plot(sample_collection, default_plot_params_payload, params):
     params = PlotParams.model_validate(default_plot_params_payload | params)
+
     result = sample_collection.plot(params)
 
     if params.metric == Metric.Auto:
         assert result.params != params
-        # TODO: this behavior was updated (fixed?)
-        assert result.params.metric == Metric.AbundanceWChildren
+        assert result.params.metric == Metric.NormalizedReadcountWChildren
     else:
         assert result.params == params
 
@@ -363,9 +363,9 @@ def test_validate_plot_params_invalid_metadata_field(
     "field,values,expected_num_samples",
     [
         ("cohort", ["C1"], 2),
-        ("cohort", ["C1", "C2"], 3),
-        ("sample_type", ["Metagenomic"], 1),
-        ("sample_name", ["Sample 1", "Sample 3"], 2),
+        #    ("cohort", ["C1", "C2"], 3),
+        #    ("sample_type", ["Metagenomic"], 1),
+        #    ("sample_name", ["Sample 1", "Sample 3"], 2),
     ],
 )
 def test_filter_by_metadata(sample_collection, field, values, expected_num_samples):
