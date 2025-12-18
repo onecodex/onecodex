@@ -44,8 +44,6 @@ METADATA_FIELD_PLOT_PARAMS = [
 
 
 class Metadata(dict):
-    # TODO: what is this normally?
-    # TODO: why not inherit from some base pydantic model...
     model_fields: dict[str, Any] = {"field_uri": str, "sample": Any, "custom": Any}
 
     @property
@@ -54,7 +52,6 @@ class Metadata(dict):
 
     @property
     def custom(self) -> dict:
-        # TODO: omit certain fields
         return self
 
 
@@ -62,10 +59,6 @@ class Samples:
     """Mock the Samples model."""
 
     def __init__(self, sample_datum: dict):
-        # TODO: debugging
-        assert "primary_classification" in sample_datum
-        assert "metadata" in sample_datum
-
         self._sample_datum = sample_datum
 
     @property
@@ -73,11 +66,11 @@ class Samples:
         assert "metadata" in self._sample_datum
         return self._sample_datum["uuid"]
 
+    # TODO: we may no longer need this...
     @property
     def _metadata(self) -> dict:
         return self._sample_datum["metadata"]
 
-    # TODO: replace with whatever the current actual attribute name is in the real Samples
     @property
     def metadata(self) -> Metadata:
         return Metadata(self._sample_datum["metadata"])
@@ -114,10 +107,10 @@ class Classifications(dict):
 
     id: str | None = None
     sample: Samples | None = None
-    success: bool = True  # TODO: get the real value
+    # all should be successful at this point if retrieved from the V2 API
+    success: Literal[True] = True
     job: Jobs
 
-    # TODO.... should this be a different class?
     def results(self) -> "Classifications":
         return self
 
