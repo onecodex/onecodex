@@ -150,10 +150,10 @@ def default_plot_params_payload() -> dict:
             "filter_by": "cohort",
             "filter_value": ["C1"],
         },
-        {"plot_type": "taxa", "plot_repr": "heatmap"},
-        {"plot_type": "alpha"},
-        {"plot_type": "alpha", "group_by": "cohort", "secondary_group_by": "sample_type"},
-        {"plot_type": "beta", "plot_repr": "pca"},
+        {"plot_type": "taxa", "plot_repr": "heatmap", "metric": "normalized_readcount_w_children"},
+        {"plot_type": "alpha", "metric": "normalized_readcount_w_children"},
+        {"plot_type": "alpha", "group_by": "cohort", "secondary_group_by": "sample_type", "metric": "normalized_readcount_w_children"},
+        {"plot_type": "beta", "plot_repr": "pca", "metric": "normalized_readcount_w_children"},
         {"plot_type": "beta", "plot_repr": "pcoa"},
         {"plot_type": "beta", "plot_repr": "distance"},
         {"metric": "auto"},
@@ -167,9 +167,10 @@ def test_plot(sample_collection, default_plot_params_payload, params):
 
     result = sample_collection.plot(params)
 
+    assert result.error is None
+
     if params.metric == Metric.Auto:
-        assert result.params != params
-        assert result.params.metric == Metric.NormalizedReadcountWChildren
+        assert result.params.metric == sample_collection.automatic_metric
     else:
         assert result.params == params
 
