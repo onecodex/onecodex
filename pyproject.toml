@@ -33,6 +33,7 @@ dependencies = [
     "unidecode>=1.0.23",
     "filelock>=3.0.12,<4",
     "pydantic>=2.10.6",
+    "orjson>=3.10.16",
 ]
 
 [project.optional-dependencies]
