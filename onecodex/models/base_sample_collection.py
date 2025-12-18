@@ -337,8 +337,7 @@ class BaseSampleCollection(
 
         return classifications
 
-    # TODO: cached property? we can't let it be mutable tho
-    @property
+    @cached_property
     def metadata(self) -> pd.DataFrame:
         """Transform a list of Samples or Classifications into a `pd.DataFrame` of metadata."""
         import pandas as pd
