@@ -281,7 +281,7 @@ class SampleCollection(BaseSampleCollection):
 
         if params.metric == Metric.Auto:
             params = params.model_copy(
-                update={"metric": "normalized_readcount_w_children"}
+                update={"metric": str(self.automatic_metric)}
             )  # don't mutate the input
 
         label_func = self._x_axis_label_func(params.plot_type, params.label_by)
@@ -293,7 +293,9 @@ class SampleCollection(BaseSampleCollection):
             )
 
         sort_x_func = self._x_axis_sort_func(params.sort_by, label_func)
-        title = get_plot_title(params)
+
+        title = get_plot_title(params, collection_metric=self.automatic_metric)
+
         default_x_axis_title = "Samples"
         # "container" for responsive plots when window is resized
         default_size_kwargs = {"width": "container", "height": "container"}
