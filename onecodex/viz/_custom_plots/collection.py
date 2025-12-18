@@ -63,7 +63,6 @@ class Samples:
 
     @property
     def id(self) -> str:
-        assert "metadata" in self._sample_datum
         return self._sample_datum["uuid"]
 
     # TODO: we may no longer need this...
@@ -194,11 +193,12 @@ class SampleCollection(BaseSampleCollection):
         return metadata
 
     @property
-    def _classifications_from_res_list(self) -> list[Classifications | None]:
+    def _classifications_from_res_list(self) -> list[Classifications]:
         classifications = []
         for obj in self._res_list:
             if isinstance(obj, Samples):
-                classification = obj.primary_classification
+                # functional results case: there is no classification data
+                classification = None
             elif isinstance(obj, Classifications):
                 classification = obj
             else:
@@ -206,7 +206,8 @@ class SampleCollection(BaseSampleCollection):
                     f"Objects in SampleCollection must be one of: Classifications, Samples, got {obj} {type(obj)}"
                 )
 
-            classifications.append(classification)
+            if classification is not None:
+                classifications.append(classification)
         return classifications
 
     def _classification_fetch(self):
