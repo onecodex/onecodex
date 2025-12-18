@@ -197,8 +197,11 @@ class SampleCollection(BaseSampleCollection):
         classifications = []
         for obj in self._res_list:
             if isinstance(obj, Samples):
-                # functional results case: there is no classification data
-                classification = None
+                if hasattr(obj, "primary_classification"):
+                    classification = obj.primary_classification
+                else:
+                    # functional results case: there is no classification data
+                    classification = None
             elif isinstance(obj, Classifications):
                 classification = obj
             else:
