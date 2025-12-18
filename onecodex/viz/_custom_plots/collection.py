@@ -182,29 +182,39 @@ class SampleCollection(BaseSampleCollection):
         # this will set self._res_list
         self._classification_fetch()
 
-        # TODO: this is just for debugging
-        for sample in self.samples:
-            assert sample.id in self.metadata["sample_id"].values
+    @cached_property
+    def metadata(self):
+        """Overridden for shims."""
+        import pandas as pd
 
-        # self._functional_profiles  # precompute the cache
+        metadata = [sample._metadata for sample in self.samples]
 
-    # TODO: why do we need to override this?
-    #    def _collate_metadata(self):
-    #        """Overridden for shims."""
-    #        import pandas as pd
-    #
-    #        metadata = [sample._metadata for sample in self.samples]
-    #
-    #        if metadata:
-    #            df = pd.DataFrame(metadata)
-    #            index = "classification_id" if df["classification_id"].is_unique else "sample_id"
-    #            metadata = df.set_index(index)
-    #        else:
-    #            metadata = pd.DataFrame(
-    #                columns=["classification_id", "sample_id", "metadata_id", "created_at"]
-    #            )
-    #
-    #        self._cached["metadata"] = metadata
+        if metadata:
+            df = pd.DataFrame(metadata)
+            index = "classification_id" if df["classification_id"].is_unique else "sample_id"
+            metadata = df.set_index(index)
+        else:
+            metadata = pd.DataFrame(
+                columns=["classification_id", "sample_id", "metadata_id", "created_at"]
+            )
+
+        return metadata
+
+    @property
+    def _classifications_from_res_list(self) -> list[Classifications | None]:
+        classifications = []
+        for obj in self._res_list:
+            if isinstance(obj, Samples):
+                classification = obj.primary_classification
+            elif isinstance(obj, Classifications):
+                classification = obj
+            else:
+                raise OneCodexException(
+                    f"Objects in SampleCollection must be one of: Classifications, Samples, got {obj} {type(obj)}"
+                )
+
+            classifications.append(classification)
+        return classifications
 
     def _classification_fetch(self):
         """Overridden for shims."""
@@ -227,7 +237,6 @@ class SampleCollection(BaseSampleCollection):
 
         self._res_list = self.samples
 
-    # already a cached_property in BaseSampleCollection
     @cached_property
     def _functional_profiles(self):
         """Overridden for shims."""
