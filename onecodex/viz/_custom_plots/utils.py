@@ -48,14 +48,7 @@ def get_plot_title(params: PlotParams, collection_metric: str) -> str:
         start = params.facet_by
     else:
         if params.plot_type == PlotType.Taxa:
-            if metric == Metric.NormalizedReadcount:
-                start = "Normalized readcount"
-            elif metric == Metric.NormalizedReadcountWChildren:
-                start = "Normalized readcount with children"
-            elif metric in {Metric.Abundance, Metric.AbundanceWChildren}:
-                start = "Relative abundance"
-            else:
-                start = "Taxa"
+            start = Metric(metric).display_name.lower().capitalize()
         elif params.plot_type == PlotType.Alpha:
             start = "Alpha diversity"
         elif params.plot_type == PlotType.Beta:
