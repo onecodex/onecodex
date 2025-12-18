@@ -276,6 +276,25 @@ class BaseSampleCollection(
             )
 
     @property
+    def _classifications_from_res_list(self) -> list[Classifications | None]:
+        from onecodex.models import Classifications, Samples
+
+        classifications = []
+        for obj in self._res_list:
+            if isinstance(obj, Samples):
+                classification = obj.primary_classification
+            elif isinstance(obj, Classifications):
+                classification = obj
+            else:
+                raise OneCodexException(
+                    f"Objects in SampleCollection must be one of: Classifications, Samples, got {obj} {type(obj)}"
+                )
+
+            classifications.append(classification)
+
+        return classifications
+
+    @property
     def _classifications(self) -> list[Classifications]:
         """Transform a list of Samples or Classifications into a list of Classifications objects.
 
@@ -288,24 +307,12 @@ class BaseSampleCollection(
         -------
         A list of Classifications instances
         """
-        from onecodex.models import Classifications, Samples
-        from onecodex.viz._custom_plots.collection import Classifications as ClassificationsShim
-        from onecodex.viz._custom_plots.collection import Samples as SamplesShim
 
         classifications = []
 
-        for obj in self._res_list:
-            if isinstance(obj, Samples) or isinstance(obj, SamplesShim):
-                classification = obj.primary_classification
-            elif isinstance(obj, Classifications) or isinstance(obj, ClassificationsShim):
-                classification = obj
-            else:
-                raise OneCodexException(
-                    f"Objects in SampleCollection must be one of: Classifications, Samples, got {obj} {type(obj)}"
-                )
-
+        for classification in self._classifications_from_res_list:
             if not classification:
-                msg = f"Classification not found for sample {obj.id}."
+                msg = f"Classification not found for sample {classification.id}."
                 if self._kwargs["skip_missing"]:
                     warnings.warn(msg + " Skipping.")
                     continue
@@ -337,7 +344,6 @@ class BaseSampleCollection(
         import pandas as pd
 
         from onecodex.models import Classifications
-        from onecodex.viz._custom_plots.collection import Classifications as ClassificationsShim
 
         DEFAULT_FIELDS = None
         metadata = []
@@ -345,17 +351,11 @@ class BaseSampleCollection(
         for obj in self._res_list:
             try:
                 classification_id = (
-                    obj.id
-                    if isinstance(obj, Classifications) or isinstance(obj, ClassificationsShim)
-                    else obj.primary_classification.id
+                    obj.id if isinstance(obj, Classifications) else obj.primary_classification.id
                 )
             except AttributeError:
                 classification_id = None
-            sample = (
-                obj.sample
-                if isinstance(obj, Classifications) or isinstance(obj, ClassificationsShim)
-                else obj
-            )
+            sample = obj.sample if isinstance(obj, Classifications) else obj
 
             m = sample.metadata
 
@@ -573,11 +573,9 @@ class BaseSampleCollection(
         A list of FunctionalAnnotations
         """
         from onecodex.models import FunctionalProfiles, Samples
-        from onecodex.viz._custom_plots.collection import Samples as SamplesShim
 
         sample_ids = [
-            obj.id if isinstance(obj, Samples) or isinstance(obj, SamplesShim) else obj.sample.id
-            for obj in self._res_list
+            obj.id if isinstance(obj, Samples) else obj.sample.id for obj in self._res_list
         ]
         # Get all Functional Profiles for the current sample collection
         batch_size = 50
