@@ -440,11 +440,13 @@ def test_get_metadata_field_value(metadata, field, expected):
 @pytest.mark.parametrize(
     "params,start",
     [
-        ({"metric": "readcount"}, "Normalized readcount"),
-        ({"metric": "readcount_w_children"}, "Normalized readcount with children"),
+        ({"metric": "readcount"}, "Readcount"),
+        ({"metric": "readcount_w_children"}, "Readcount with children"),
+        ({"metric": "normalized_readcount"}, "Normalized readcount"),
+        ({"metric": "normalized_readcount_w_children"}, "Normalized readcount with children"),
         ({"metric": "abundance"}, "Relative abundance"),
         ({"metric": "abundance_w_children"}, "Relative abundance"),
-        ({"metric": "auto"}, "Taxa"),
+        ({"metric": "auto"}, "Relative abundance"),
         ({"facet_by": "Cohort"}, "Cohort"),
     ],
 )
@@ -452,5 +454,5 @@ def test_get_plot_title(default_plot_params_payload, params, start):
     params = PlotParams.model_validate(
         default_plot_params_payload | params | {"source_name": "My Project"}
     )
-    title = get_plot_title(params)
+    title = get_plot_title(params, collection_metric="abundance_w_children")
     assert title == f"{start} plot of My Project samples"

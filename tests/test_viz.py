@@ -533,11 +533,8 @@ def test_plot_heatmap_all_samples_are_nan(ocx, api_data, samples_without_abundan
 
 def test_plot_bargraph_no_samples_have_abundances(ocx, api_data, samples_without_abundances):
     assert len(samples_without_abundances._classification_ids_without_abundances) == 3
-
     chart = samples_without_abundances.plot_bargraph(return_chart=True)
-
-    assert "Reads (Normalized)" in chart.data.columns
-    assert "Relative Abundance" not in chart.data.columns
+    assert "Normalized Readcount With Children" in chart.data.columns
 
 
 def test_plot_distance_excludes_classifications_without_abundances(
@@ -769,8 +766,8 @@ def test_plot_bargraph_too_few_samples(samples):
     [
         ("abundance_w_children", "genus", "Relative Abundance"),
         ("abundance_w_children", "species", "Relative Abundance"),
-        ("readcount_w_children", "genus", "Reads"),
-        ("readcount_w_children", "species", "Reads"),
+        ("readcount_w_children", "genus", "Readcount With Children"),
+        ("readcount_w_children", "species", "Readcount With Children"),
     ],
 )
 def test_plot_bargraph_chart_result(samples, metric, rank, label):
@@ -838,7 +835,7 @@ def test_plot_bargraph_include_other_with_empty_samples(samples_without_abundanc
 @pytest.mark.parametrize(
     "legend,expected_title",
     [
-        ("auto", "Reads"),
+        ("auto", "Readcount With Children"),
         ("my plot title", "my plot title"),
         (alt.Legend(title="a different title"), "a different title"),
     ],

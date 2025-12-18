@@ -128,16 +128,16 @@ class Metric(BaseEnum):
     @property
     def display_name(self) -> str:
         return {
-            "readcount": "Reads",
-            "readcount_w_children": "Reads",
+            "readcount": "Readcount",
+            "readcount_w_children": "Readcount With Children",
             "abundance": "Relative Abundance",
             "abundance_w_children": "Relative Abundance",
             "prop_readcount": "Reads (Normalized)",
             "prop_readcount_w_children": "Reads (Normalized)",
             "prop_classified": "Classified Reads (Normalized)",
             "prop_classified_w_children": "Classified Reads (Normalized)",
-            "normalized_readcount": "Reads (Normalized)",
-            "normalized_readcount_w_children": "Reads (Normalized)",
+            "normalized_readcount": "Normalized Readcount",
+            "normalized_readcount_w_children": "Normalized Readcount With Children",
         }[self.value]
 
 
