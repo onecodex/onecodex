@@ -47,8 +47,9 @@ async def plot(
         else SamplesFilter.WithClassifications
     )
 
-    # Cache the SampleCollection, keyed by (<tag_or_project_uuid>, <filter>, <metric>)
-    key = (uuid, filter_, params.metric)
+    # Cache the SampleCollection, keyed by (<tag_or_project_uuid>, <filter>)
+
+    key = (uuid, filter_)
     if key in CUSTOM_PLOTS_CACHE:
         collection = CUSTOM_PLOTS_CACHE[key]
     else:
@@ -59,14 +60,15 @@ async def plot(
             csrf_token=csrf_token,
             progress_callback=progress_callback,
         )
-        collection = SampleCollection(samples, metric=params.metric)
+        collection = SampleCollection(samples)
         CUSTOM_PLOTS_CACHE[key] = collection
 
     # Now that we have a SampleCollection, do the actual plotting
+    print(f"calling collection.plot with {params=}")
     result = collection.plot(params)
 
     # Cache the results in case the original metric was "auto" and got resolved to a concrete metric
-    CUSTOM_PLOTS_CACHE[(uuid, filter_, result.params.metric)] = collection
+    CUSTOM_PLOTS_CACHE[(uuid, filter_)] = collection
 
     return result.to_dict()
 

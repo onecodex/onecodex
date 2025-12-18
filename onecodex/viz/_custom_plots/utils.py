@@ -36,21 +36,19 @@ class AsyncRateLimiter:
                 await asyncio.sleep(sleep_for)
 
 
-def get_plot_title(params: PlotParams) -> str:
+def get_plot_title(params: PlotParams, collection_metric: str) -> str:
     source_name = params.source_name
     start = ""
+
+    metric = params.metric
+    if params.metric == "auto":
+        metric = collection_metric
+
     if params.facet_by:
         start = params.facet_by
     else:
         if params.plot_type == PlotType.Taxa:
-            if params.metric == Metric.Readcount:
-                start = "Normalized readcount"
-            elif params.metric == Metric.ReadcountWChildren:
-                start = "Normalized readcount with children"
-            elif params.metric in {Metric.Abundance, Metric.AbundanceWChildren}:
-                start = "Relative abundance"
-            else:
-                start = "Taxa"
+            start = Metric(metric).display_name.lower().capitalize()
         elif params.plot_type == PlotType.Alpha:
             start = "Alpha diversity"
         elif params.plot_type == PlotType.Beta:

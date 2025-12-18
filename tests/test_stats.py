@@ -7,9 +7,9 @@ import numpy as np
 import pandas as pd
 import skbio
 
-from onecodex.models.collection import SampleCollection
 from onecodex.exceptions import OneCodexException, StatsException, StatsWarning
-from onecodex.lib.enums import AlphaDiversityStatsTest, BetaDiversityStatsTest, AlphaDiversityMetric
+from onecodex.lib.enums import AlphaDiversityMetric, AlphaDiversityStatsTest, BetaDiversityStatsTest
+from onecodex.models.collection import SampleCollection
 from onecodex.stats import AlphaDiversityStatsResults, PosthocResults
 
 
@@ -32,8 +32,9 @@ def test_invalid_metadata_fields(samples, method, fields):
     "group_by,num_groups", [("col1", 1), (("col1", "col2"), 0), (["col1", "col2"], 0)]
 )
 def test_missing_group_by_data(samples, method, group_by, num_groups):
-    samples.metadata["col1"] = ["a", None, "a"]
-    samples.metadata["col2"] = ["1", "42", np.nan]
+    for sample, col1, col2 in zip(samples, ["a", None, "a"], ["1", "42", np.nan]):
+        sample.metadata.custom["col1"] = col1
+        sample.metadata.custom["col2"] = col2
 
     with (
         pytest.warns(StatsWarning),
@@ -47,34 +48,35 @@ def test_missing_group_by_data(samples, method, group_by, num_groups):
 @pytest.mark.parametrize(
     "method,kwargs",
     [
-        ("alpha_diversity_stats", {"metric": AlphaDiversityMetric.ObservedTaxa}),
+        ("alpha_diversity_stats", {"diversity_metric": AlphaDiversityMetric.ObservedTaxa}),
         ("beta_diversity_stats", {}),
     ],
 )
-def test_samples_missing_abundances(samples, method, kwargs):
-    samples.metadata["col"] = ["a", "b", "a"]
-    samples._results[:] = np.nan
-    assert len(samples._classification_ids_without_abundances) == 3
+def test_samples_missing_abundances(samples_without_abundances, method, kwargs):
+    for sample, col in zip(samples_without_abundances, ["a", "b", "a"]):
+        sample.metadata.custom["col"] = col
 
     with (
         pytest.warns(StatsWarning, match="3 samples.*missing abundance"),
         pytest.raises(StatsException, match="`group_by` must have at least 2 groups.*found 0"),
     ):
-        getattr(samples, method)(group_by="col", **kwargs)
+        getattr(samples_without_abundances, method)(group_by="col", **kwargs)
 
 
 @pytest.mark.parametrize("method", ["alpha_diversity_stats", "beta_diversity_stats"])
 @pytest.mark.parametrize(
-    "values,num_groups", [("one_value", 1), (["all", "different", "values"], 0)]
+    "values,num_groups",
+    [(["one_value", "one_value", "one_value"], 1), (["all", "different", "values"], 0)],
 )
 @pytest.mark.filterwarnings("ignore:.*size < 2.*")
 def test_not_enough_groups(samples, method, values, num_groups):
-    samples.metadata["col"] = values
+    for sample, val in zip(samples, values):
+        sample.metadata.custom["col"] = val
 
     with pytest.raises(
         StatsException, match=f"`group_by` must have at least 2 groups.*found {num_groups}"
     ):
-        getattr(samples, method)(group_by="col")
+        getattr(samples, method)(group_by="col", rank="genus")
 
 
 @pytest.mark.parametrize("paired_by", [1, 4.2, False, b"", (42,), [-1.0], ("wheat", 43)])
@@ -84,7 +86,8 @@ def test_alpha_diversity_stats_invalid_paired_by(samples, paired_by):
 
 
 def test_alpha_diversity_stats_missing_alpha_diversity_values(samples):
-    samples.metadata["col"] = ["a", "b", "a"]
+    for sample, val in zip(samples, ["a", "b", "a"]):
+        sample.metadata.custom["col"] = val
 
     with (
         pytest.warns(StatsWarning),
@@ -104,9 +107,12 @@ def test_alpha_diversity_stats_missing_alpha_diversity_values(samples):
     "paired_by,num_groups", [("col1", 1), (("col1", "col2"), 0), (["col1", "col2"], 0)]
 )
 def test_alpha_diversity_stats_missing_paired_by_data(samples, paired_by, num_groups):
-    samples.metadata["group"] = "g1"
-    samples.metadata["col1"] = ["a", None, "a"]
-    samples.metadata["col2"] = ["1", "42", np.nan]
+    for sample, group, col1, col2 in zip(
+        samples, ["g1", "g1", "g1"], ["a", None, "a"], ["1", "42", np.nan]
+    ):
+        sample.metadata.custom["group"] = group
+        sample.metadata.custom["col1"] = col1
+        sample.metadata.custom["col2"] = col2
 
     with (
         pytest.warns(StatsWarning),
@@ -126,20 +132,34 @@ def test_alpha_diversity_stats_missing_paired_by_data(samples, paired_by, num_gr
     ],
 )
 def test_alpha_diversity_stats_auto_test(ocx, api_data, samples, groups, paired_by, test):
-    with pytest.warns(UserWarning):
-        samples.extend(
-            [
-                ocx.Samples.get("cc18208d98ad48b3"),
-                ocx.Samples.get("5445740666134eee"),
-                ocx.Samples.get("0ecac25ec0004fe4"),
-            ]
+    samples.extend(
+        [
+            ocx.Samples.get("cc18208d98ad48b3"),
+            ocx.Samples.get("5445740666134eee"),
+            # abundance_w_children are all zeroes, which causes alpha diversity to get computed as
+            # NaN and the sample to be dropped, so we use readcount_w_children
+            ocx.Samples.get("0ecac25ec0004fe4"),
+        ]
+    )
+
+    pairs = ["p1", "p1", "p2", "p2", "p3", "p3"]
+
+    n_updated = 0
+    for sample, group, pair in zip(samples, groups, pairs):
+        sample.metadata.custom["group"] = group
+        sample.metadata.custom["pair"] = pair
+        n_updated += 1
+
+    assert n_updated == len(samples)
+
+    assert list(samples.metadata["group"]) == groups
+    assert list(samples.metadata["pair"]) == pairs
+
+    with pytest.warns(UserWarning):  # unrelated -> multiple DBs
+        results = samples.alpha_diversity_stats(
+            metric="readcount_w_children", group_by="group", paired_by=paired_by, rank="genus"
         )
-        samples.metadata["group"] = groups
-        samples.metadata["pair"] = ["p1", "p1", "p2", "p2", "p3", "p3"]
-
-        results = samples.alpha_diversity_stats(group_by="group", paired_by=paired_by)
-
-        assert results.test == test
+    assert results.test == test
 
 
 @pytest.mark.parametrize(
@@ -147,11 +167,13 @@ def test_alpha_diversity_stats_auto_test(ocx, api_data, samples, groups, paired_
 )
 def test_alpha_diversity_stats_paired_by_with_wrong_test(ocx, api_data, samples, test):
     samples.extend([ocx.Samples.get("cc18208d98ad48b3")])
-    samples.metadata["group"] = ["g1", "g2", "g1", "g2"]
-    samples.metadata["pair"] = ["p1", "p1", "p2", "p2"]
+
+    for sample, group, pair in zip(samples, ["g1", "g2", "g1", "g2"], ["p1", "p1", "p2", "p2"]):
+        sample.metadata.custom["group"] = group
+        sample.metadata.custom["pair"] = pair
 
     with pytest.raises(StatsException, match="paired_by.*wilcoxon"):
-        samples.alpha_diversity_stats(group_by="group", paired_by="pair", test=test)
+        samples.alpha_diversity_stats(group_by="group", paired_by="pair", test=test, rank="genus")
 
 
 def test_wilcoxon_missing_paired_by(samples):
