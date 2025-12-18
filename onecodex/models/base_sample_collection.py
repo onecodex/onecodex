@@ -290,6 +290,14 @@ class BaseSampleCollection(
                     f"Objects in SampleCollection must be one of: Classifications, Samples, got {obj} {type(obj)}"
                 )
 
+            if not classification:
+                msg = f"Classification not found for sample {obj.id}."
+                if self._kwargs["skip_missing"]:
+                    warnings.warn(msg + " Skipping.")
+                    continue
+                else:
+                    raise OneCodexException(msg)
+
             classifications.append(classification)
 
         return classifications
@@ -311,14 +319,6 @@ class BaseSampleCollection(
         classifications = []
 
         for classification in self._classifications_from_res_list:
-            if not classification:
-                msg = f"Classification not found for sample {classification.id}."
-                if self._kwargs["skip_missing"]:
-                    warnings.warn(msg + " Skipping.")
-                    continue
-                else:
-                    raise OneCodexException(msg)
-
             if self._kwargs["skip_missing"] and not classification.success:
                 warnings.warn(
                     "Classification {} not successful. Skipping.".format(classification.id)
