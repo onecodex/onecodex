@@ -12,6 +12,7 @@ from onecodex.models.schemas.analysis import (
     PanelSchema,
 )
 from onecodex.models.schemas.misc import (
+    CostSchema,
     TagSchema,
     UserSchema,
     ProjectSchema,
@@ -49,4 +50,5 @@ __all__ = [
     "AssemblySchema",
     "GenomeSchema",
     "TaxonSchema",
+    "CostSchema",
 ]
