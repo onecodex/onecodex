@@ -285,7 +285,7 @@ class SampleCollection(BaseSampleCollection):
 
         if params.metric == Metric.Auto:
             params = params.model_copy(
-                update={"metric": str(self.automatic_metric)}
+                update={"metric": self.automatic_metric.value}
             )  # don't mutate the input
 
         label_func = self._x_axis_label_func(params.plot_type, params.label_by)
