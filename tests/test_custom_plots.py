@@ -152,7 +152,12 @@ def default_plot_params_payload() -> dict:
         },
         {"plot_type": "taxa", "plot_repr": "heatmap", "metric": "normalized_readcount_w_children"},
         {"plot_type": "alpha", "metric": "normalized_readcount_w_children"},
-        {"plot_type": "alpha", "group_by": "cohort", "secondary_group_by": "sample_type", "metric": "normalized_readcount_w_children"},
+        {
+            "plot_type": "alpha",
+            "group_by": "cohort",
+            "secondary_group_by": "sample_type",
+            "metric": "normalized_readcount_w_children",
+        },
         {"plot_type": "beta", "plot_repr": "pca", "metric": "normalized_readcount_w_children"},
         {"plot_type": "beta", "plot_repr": "pcoa"},
         {"plot_type": "beta", "plot_repr": "distance"},
