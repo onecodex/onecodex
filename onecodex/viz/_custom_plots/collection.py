@@ -470,7 +470,6 @@ class SampleCollection(BaseSampleCollection):
                     metadatum = None
             return not pd.isna(metadatum) and metadatum in values_to_keep
 
-        # self._res_list *can* be a list of classifications?
         return self.filter(_filter_func)
 
     def _x_axis_label_func(self, plot_type: PlotType, label_by: list[str]) -> Callable[[dict], str]:
