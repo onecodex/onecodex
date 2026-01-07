@@ -43,18 +43,6 @@ METADATA_FIELD_PLOT_PARAMS = [
 ###
 
 
-class Metadata(dict):
-    model_fields: dict[str, Any] = {"field_uri": str, "sample": Any, "custom": Any}
-
-    @property
-    def id(self):
-        return self["metadata_id"]
-
-    @property
-    def custom(self) -> dict:
-        return self
-
-
 class Samples:
     """Mock the Samples model."""
 
@@ -65,27 +53,9 @@ class Samples:
     def id(self) -> str:
         return self._sample_datum["uuid"]
 
-    # TODO: we may no longer need this...
     @property
     def _metadata(self) -> dict:
         return self._sample_datum["metadata"]
-
-    @property
-    def metadata(self) -> Metadata:
-        return Metadata(self._sample_datum["metadata"])
-
-    @property
-    def created_at(self) -> None:
-        return None
-
-    @property
-    def filename(self) -> None:
-        # TODO: get from metadata
-        return None
-
-    @property
-    def project(self) -> None:
-        return None
 
     @property
     def _classification(self) -> dict | None:
@@ -164,11 +134,6 @@ class SampleCollection(BaseSampleCollection):
             "job": None,
         }
         self._kwargs.update(kwargs)
-
-        for sample in samples:
-            if not isinstance(sample, Samples):
-                raise Exception(f"incorrect type: {sample}")
-
         self.samples = samples
 
         # this will set self._res_list
@@ -285,7 +250,7 @@ class SampleCollection(BaseSampleCollection):
 
         if params.metric == Metric.Auto:
             params = params.model_copy(
-                update={"metric": self.automatic_metric.value}
+                update={"metric": self.automatic_metric}
             )  # don't mutate the input
 
         label_func = self._x_axis_label_func(params.plot_type, params.label_by)
@@ -298,7 +263,7 @@ class SampleCollection(BaseSampleCollection):
 
         sort_x_func = self._x_axis_sort_func(params.sort_by, label_func)
 
-        title = get_plot_title(params, collection_metric=self.automatic_metric)
+        title = get_plot_title(params, collection_metric=params.metric)
 
         default_x_axis_title = "Samples"
         # "container" for responsive plots when window is resized
