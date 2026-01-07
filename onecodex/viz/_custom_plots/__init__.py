@@ -64,7 +64,6 @@ async def plot(
         CUSTOM_PLOTS_CACHE[key] = collection
 
     # Now that we have a SampleCollection, do the actual plotting
-    print(f"calling collection.plot with {params=}")
     result = collection.plot(params)
 
     # Cache the results in case the original metric was "auto" and got resolved to a concrete metric
