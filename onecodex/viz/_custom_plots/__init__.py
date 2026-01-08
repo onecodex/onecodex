@@ -48,7 +48,6 @@ async def plot(
     )
 
     # Cache the SampleCollection, keyed by (<tag_or_project_uuid>, <filter>)
-
     key = (uuid, filter_)
     if key in CUSTOM_PLOTS_CACHE:
         collection = CUSTOM_PLOTS_CACHE[key]
@@ -65,9 +64,6 @@ async def plot(
 
     # Now that we have a SampleCollection, do the actual plotting
     result = collection.plot(params)
-
-    # Cache the results in case the original metric was "auto" and got resolved to a concrete metric
-    CUSTOM_PLOTS_CACHE[(uuid, filter_)] = collection
 
     return result.to_dict()
 
