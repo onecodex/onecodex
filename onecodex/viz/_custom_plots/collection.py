@@ -263,7 +263,7 @@ class SampleCollection(BaseSampleCollection):
 
         sort_x_func = self._x_axis_sort_func(params.sort_by, label_func)
 
-        title = get_plot_title(params, collection_metric=params.metric)
+        title = get_plot_title(params)
 
         default_x_axis_title = "Samples"
         # "container" for responsive plots when window is resized

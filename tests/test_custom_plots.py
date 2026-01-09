@@ -452,7 +452,6 @@ def test_get_metadata_field_value(metadata, field, expected):
         ({"metric": "normalized_readcount_w_children"}, "Normalized readcount with children"),
         ({"metric": "abundance"}, "Relative abundance"),
         ({"metric": "abundance_w_children"}, "Relative abundance"),
-        ({"metric": "auto"}, "Relative abundance"),
         ({"facet_by": "Cohort"}, "Cohort"),
     ],
 )
@@ -460,5 +459,5 @@ def test_get_plot_title(default_plot_params_payload, params, start):
     params = PlotParams.model_validate(
         default_plot_params_payload | params | {"source_name": "My Project"}
     )
-    title = get_plot_title(params, collection_metric="abundance_w_children")
+    title = get_plot_title(params)
     assert title == f"{start} plot of My Project samples"
