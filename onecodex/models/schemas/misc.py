@@ -81,12 +81,12 @@ class FileDetailSchema(BaseModel):
     url: str
 
 
-# NOTE: these Asset models are only accessible via `X-OneCodex-Api-Experimental` as of 10/2/2025
-
-
 class CostSchema(BaseModel):
-    amount: float
+    amount: int
     currency: str
+
+
+# NOTE: these Asset models are only accessible via `X-OneCodex-Api-Experimental` as of 10/2/2025
 
 
 class AssetUpdateSchema(BaseModel):
