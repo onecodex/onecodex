@@ -2,6 +2,7 @@
 import hashlib
 import os
 import pytest
+import gzip
 
 pytest.importorskip("skbio")
 import shutil
@@ -237,3 +238,62 @@ def test_subset_reads(
                 (paired, subset_pairs_independently, with_children, exclude_reads, include_lowconf)
             ]
         )
+
+
+@pytest.mark.parametrize("output_path", ["output.fq", "output.fq.gz"])
+@pytest.mark.parametrize("use_gzip", [True, False])
+@pytest.mark.parametrize("strict", [True, False])
+def test_join_paired_ends(runner, output_path, use_gzip, strict):
+    files = [
+        "test_R1_L001.fq.gz",
+        "test_R2_L001.fq.gz",
+    ]
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    data_dir = os.path.join(basedir, "data/files")
+
+    with runner.isolated_filesystem():
+        for f in files:
+            path = os.path.join(data_dir, f)
+            dest = os.getcwd()
+            shutil.copy(path, dest)
+
+        args = [
+            "scripts",
+            "interleave",
+        ]
+
+        if use_gzip:
+            args.append("--gzip")
+
+        if strict:
+            args.append("--strict")
+
+        args += [
+            "test_R1_L001.fq.gz",
+            "test_R2_L001.fq.gz",
+            output_path,
+        ]
+
+        if strict:
+            with gzip.open("test_R2_L001.fq.gz", "wt") as handle:
+                handle.write("@badheader")
+
+        result = runner.invoke(Cli, args, catch_exceptions=True)
+
+        if strict:
+            assert "Input FASTQ files do not share headers" in result.exception.args[0]
+        else:
+            assert result.exit_code == 0, result.stderr
+
+            n_lines = 0
+
+            if use_gzip or output_path.endswith(".gz"):
+                opener = gzip.open
+            else:
+                opener = open
+
+            with opener(output_path, "rt") as handle:
+                for _ in handle:
+                    n_lines += 1
+
+            assert n_lines == 80
