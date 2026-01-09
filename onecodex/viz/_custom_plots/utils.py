@@ -36,13 +36,11 @@ class AsyncRateLimiter:
                 await asyncio.sleep(sleep_for)
 
 
-def get_plot_title(params: PlotParams, collection_metric: str) -> str:
+def get_plot_title(params: PlotParams) -> str:
     source_name = params.source_name
     start = ""
 
     metric = params.metric
-    if params.metric == "auto":
-        metric = collection_metric
 
     if params.facet_by:
         start = params.facet_by
