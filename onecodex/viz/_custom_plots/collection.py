@@ -460,8 +460,6 @@ class SampleCollection(BaseSampleCollection):
             if metadata.index.name == "sample_id":
                 metadatum = metadata.loc[sample.id, field]
             else:
-                # for some reason, sample.id is a classification id here...
-                assert sample.id in self.metadata["sample_id"].values, (sample.id, self.metadata)
                 rows = metadata.loc[metadata["sample_id"] == sample.id, field]
                 if len(rows) == 1:
                     metadatum = rows.iloc[0]
