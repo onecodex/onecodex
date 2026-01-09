@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v0.19.3] - 2026-01-09
 
+### Fixed
+
 - Fixes `cost.amount` should be an integer
 
 ## [v0.19.2] - 2026-01-08
