@@ -96,7 +96,7 @@ class BaseSampleCollection(
         Given a list of Samples, create a new SampleCollection using abundances:
 
             samples = [sample1, sample2, sample3]
-            collection = SampleCollection(samples, metric='abundance')
+            collection = SampleCollection(samples)
 
         Notes
         -----
