@@ -45,13 +45,82 @@ def test_sample_collection_pandas(samples):
     assert df.ocx_metric is Metric.Readcount
 
 
-def test_normalize_results(samples):
+@pytest.mark.parametrize(
+    "metric,rank,expected_top_6",
+    [
+        #
+        # all confirmed to match 0.19.3
+        #
+        (Metric.Readcount, Rank.Species, [4417519, 283510, 212457, 179055, 172214, 128158]),
+        (
+            Metric.ReadcountWChildren,
+            Rank.Species,
+            [4417519, 754966, 283510, 226485, 214160, 212457],
+        ),
+        (
+            Metric.NormalizedReadcount,
+            Rank.Species,
+            [0.5487, 0.0352, 0.0264, 0.0222, 0.0214, 0.0159],
+        ),
+        (
+            Metric.NormalizedReadcountWChildren,
+            Rank.Species,
+            [0.4483, 0.0766, 0.0288, 0.023, 0.0217, 0.0216],
+        ),
+        (
+            Metric.NormalizedReadcountWChildren,
+            Rank.Genus,
+            [0.3564, 0.2649, 0.0594, 0.0582, 0.046, 0.0441],
+        ),
+        (
+            Metric.AbundanceWChildren,
+            Rank.Genus,
+            [0.297, 0.2439, 0.0631, 0.0445, 0.0419, 0.041],
+        ),
+        (
+            Metric.AbundanceWChildren,
+            Rank.Species,
+            [0.2439, 0.0685, 0.0646, 0.0324, 0.0324, 0.0287],
+        ),
+        #
+        # added after 0.19.3
+        #
+        (
+            Metric.PropClassifiedWChildren,
+            Rank.Species,
+            [0.1801, 0.0308, 0.0116, 0.0092, 0.0087, 0.0087],
+        ),
+        (
+            Metric.PropClassifiedWChildren,
+            Rank.Genus,
+            [0.2424, 0.1801, 0.0404, 0.0396, 0.0313, 0.03],
+        ),
+        (
+            Metric.PropClassifiedWChildren,
+            Rank.Phylum,
+            [0.5110, 0.2645, 0.1887, 0.012, 0.0008, 0.0000],
+        ),
+        (
+            Metric.PropReadcount,
+            Rank.Species,
+            [0.1349, 0.0087, 0.0065, 0.0055, 0.0053, 0.0039],
+        ),
+        # not displayed on frontend, but consistent with data in Complete Results Table
+        (
+            Metric.PropReadcountWChildren,
+            Rank.Species,
+            [0.1349, 0.0231, 0.0087, 0.0069, 0.0065, 0.0065],
+        ),
+    ],
+)
+def test_normalize_results(samples, metric, rank, expected_top_6):
     """
-    These numbers should match the numbers displayed on the
-    classification results page (filtered=True): https://app.onecodex.com/analysis/6579e99943f84ad2
+    Matches numbers displayed on the classification results page (filtered=True):
+    https://app.onecodex.com/analysis/6579e99943f84ad2
     """
-    run = samples[0].primary_classification
+    collection = SampleCollection([samples[0]])
 
+    run = samples[0].primary_classification
     assert run.id == "6579e99943f84ad2"  # update golden output below if this ID changes
 
     assert run._classification_stats == {
@@ -62,55 +131,15 @@ def test_normalize_results(samples):
         "n_reads_total": 32742710,
     }
 
-    collection = SampleCollection([samples[0]])
-
-    df_abundance = collection.to_df(rank=Rank.Species, metric=Metric.AbundanceWChildren)
-    vals = df_abundance.values[0]
+    df = collection.to_df(rank=rank, metric=metric)
+    vals = df.values[0]
     vals.sort()
-    assert vals[::-1][:6].round(4).tolist() == [0.2439, 0.0685, 0.0646, 0.0324, 0.0324, 0.0287]
-    assert vals.sum().round(4) == 1.0
 
-    df_readcount = collection.to_df(rank=Rank.Species, metric=Metric.Readcount)
-    vals = df_readcount.values[0]
-    vals.sort()
-    assert vals[::-1][:6].round(4).tolist() == [4417519, 283510, 212457, 179055, 172214, 128158]
+    # Check top 6 values
+    assert vals[::-1][:6].round(4).tolist() == expected_top_6
 
-    df_readcount_w_children = collection.to_df(rank=Rank.Species, metric=Metric.ReadcountWChildren)
-    vals = df_readcount_w_children.values[0]
-    vals.sort()
-    assert vals[::-1][:6].round(4).tolist() == [4417519, 754966, 283510, 226485, 214160, 212457]
-
-    df_prop_classified_w_children = collection.to_df(
-        rank=Rank.Species, metric=Metric.PropClassifiedWChildren
-    )
-    vals = df_prop_classified_w_children.values[0]
-    vals.sort()
-    assert vals[::-1][:6].round(4).tolist() == [0.1801, 0.0308, 0.0116, 0.0092, 0.0087, 0.0087]
-
-    df_prop_classified_w_children = collection.to_df(
-        rank=Rank.Genus, metric=Metric.PropClassifiedWChildren
-    )
-    vals = df_prop_classified_w_children.values[0]
-    vals.sort()
-    assert vals[::-1][:6].round(4).tolist() == [0.2424, 0.1801, 0.0404, 0.0396, 0.0313, 0.03]
-
-    df_prop_classified_w_children = collection.to_df(
-        rank=Rank.Phylum, metric=Metric.PropClassifiedWChildren
-    )
-    vals = df_prop_classified_w_children.values[0]
-    vals.sort()
-    assert vals[::-1][:6].round(4).tolist() == [0.5110, 0.2645, 0.1887, 0.012, 0.0008, 0.0000]
-
-    df_prop_readcount = collection.to_df(rank=Rank.Species, metric=Metric.PropReadcount)
-    vals = df_prop_readcount.values[0]
-    vals.sort()
-    assert vals[::-1][:6].round(4).tolist() == [0.1349, 0.0087, 0.0065, 0.0055, 0.0053, 0.0039]
-
-    # not displayed on frontend, but consistent with data in Complete Results Table
-    df_prop_readcount = collection.to_df(rank=Rank.Species, metric=Metric.PropReadcountWChildren)
-    vals = df_prop_readcount.values[0]
-    vals.sort()
-    assert vals[::-1][:6].round(4).tolist() == [0.1349, 0.0231, 0.0087, 0.0069, 0.0065, 0.0065]
+    if metric is Metric.AbundanceWChildren and rank is Rank.Species:
+        assert vals.sum().round(4) == 1.0
 
 
 def test_automatic_rank(samples):
