@@ -11,6 +11,11 @@ from onecodex.lib.enums import Metric, Rank
 from onecodex.models.collection import SampleCollection
 
 
+def test_sample_collection_metric_warns(samples):
+    with pytest.warns(DeprecationWarning, match="Passing 'metric' to SampleCollection"):
+        SampleCollection(samples, metric="foo")
+
+
 def test_sample_collection_hashability(samples):
     # the entire sample collection is hashable
     assert len(set([samples])) == 1

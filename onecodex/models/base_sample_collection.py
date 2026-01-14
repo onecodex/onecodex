@@ -21,6 +21,8 @@ from onecodex.lib.enums import (
 from onecodex.models.analysis import Classifications, FunctionalProfiles
 from onecodex.models.sample import Samples
 
+from typing_extensions import deprecated, Annotated
+
 if TYPE_CHECKING:
     import pandas as pd
 
@@ -83,6 +85,12 @@ class BaseSampleCollection(
         objects: list[Samples] | list[Classifications],
         job: Jobs | None = None,
         skip_missing: bool = True,
+        metric: Annotated[
+            str | None,
+            deprecated(
+                "Pass to SampleCollection.to_df or SampleCollection.to_classification_df instead"
+            ),
+        ] = None,
     ):
         """Instantiate a new SampleCollection containing `Samples` or `Classifications` objects.
 
@@ -94,6 +102,10 @@ class BaseSampleCollection(
 
         skip_missing : bool, optional
             If an analysis was not successful, exclude it, warn, and keep going
+
+        metric (deprecated) :
+            Metric is now passed directly to to_df, to_classification, or any of the plotting /
+            stats functions. Providing a metric to SampleCollection() will now raise a TypeError.
 
         Examples
         --------
@@ -107,6 +119,17 @@ class BaseSampleCollection(
         To provide access to the list-like API of `ResourceList`, must also accept a list of
         unwrapped potion resources and a One Codex model.
         """
+
+        if metric is not None:
+            warnings.warn(
+                "Passing 'metric' to SampleCollection() is deprecated and will be "
+                "removed in a future version. Pass 'metric' directly to to_df(), "
+                "to_classification_df(), or plotting/stats methods instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
+        self._metric = metric
 
         if not all(
             [isinstance(obj, Samples) or isinstance(obj, Classifications) for obj in objects]
@@ -520,7 +543,20 @@ class BaseSampleCollection(
 
         Automatically determines the best metric to use. If more than half of the samples have
         abundance estimates, use AbundanceWChildren. Otherwise, use ReadcountWChildren.
+
+        Return the automatic metric, or the user-provided metric if set.
         """
+        """"""
+
+        if self._metric is not None:
+            warnings.warn(
+                "Using metric from SampleCollection is deprecated and will be removed in a future version. "
+                "Pass 'metric' directly to methods like to_df(), to_classification_df(), or "
+                "plotting/stats methods instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            return Metric.from_value(self._metric)
 
         metric_counts = {"abundance": 0, "readcount": 0, "readcount_w_children": 0}
 

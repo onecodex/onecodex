@@ -136,6 +136,10 @@ class SampleCollection(BaseSampleCollection):
         self._kwargs.update(kwargs)
         self.samples = samples
 
+        # for reverse-compatibility, should always be None in this case
+        # see onecodex.models.collection.BaseSampleCollection.__init__
+        self._metric = None
+
         # this will set self._res_list
         self._classification_fetch()
 
