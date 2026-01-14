@@ -9,7 +9,6 @@ from datetime import datetime
 from functools import cached_property, lru_cache
 from typing import TYPE_CHECKING, Any, Literal, Optional
 
-
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.enums import (
     AbundanceMetric,
@@ -26,7 +25,7 @@ if TYPE_CHECKING:
     import pandas as pd
 
     from onecodex.dataframes import ClassificationsDataFrame
-    from onecodex.models import Classifications
+    from onecodex.models import Classifications, Jobs, Samples
 
 
 @dataclass
@@ -79,7 +78,12 @@ class BaseSampleCollection(
 
         return Metric.from_value(metric), Rank.from_value(rank)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(
+        self,
+        objects: list[Samples] | list[Classifications],
+        job: Jobs | None = None,
+        skip_missing: bool = True,
+    ):
         """Instantiate a new SampleCollection containing `Samples` or `Classifications` objects.
 
         Parameters
@@ -103,10 +107,6 @@ class BaseSampleCollection(
         To provide access to the list-like API of `ResourceList`, must also accept a list of
         unwrapped potion resources and a One Codex model.
         """
-
-        job = kwargs.get("job", None)
-        skip_missing = kwargs.get("skip_missing", True)
-        objects = [*args[0]]
 
         if not all(
             [isinstance(obj, Samples) or isinstance(obj, Classifications) for obj in objects]
