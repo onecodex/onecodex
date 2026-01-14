@@ -41,9 +41,9 @@ def flush_buffer(
 
 
 def join_interleaved(
+    f_out: TextIO,
     f1: TextIO,
     f2: TextIO,
-    f_out: TextIO,
     strict: bool = False,
 ) -> None:
     readlines = True
@@ -109,4 +109,4 @@ def cli(fastq1: str, fastq2: str, output_fastq: str, strict: bool, use_gzip: boo
     f2 = open_fastq(fastq2, mode="rt")
     f_out = open_fastq(output_fastq, mode="wt", use_gzip=use_gzip)
 
-    join_interleaved(f1=f1, f2=f2, f_out=f_out, strict=strict)
+    join_interleaved(f_out=f_out, f1=f1, f2=f2, strict=strict)
