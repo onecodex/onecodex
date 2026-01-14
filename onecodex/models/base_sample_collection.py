@@ -544,7 +544,8 @@ class BaseSampleCollection(
         Automatically determines the best metric to use. If more than half of the samples have
         abundance estimates, use AbundanceWChildren. Otherwise, use ReadcountWChildren.
 
-        Return the automatic metric, or the user-provided metric if set.
+        If metric was passed during initialization of the SampleCollection; that value will be
+        used. This is for reverse-compatibility and will be deprecated in the future.
         """
         """"""
 
