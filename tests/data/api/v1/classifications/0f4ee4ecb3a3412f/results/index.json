@@ -109,8 +109,8 @@
             "name": "Bacteroides",
             "parent_tax_id": "815",
             "rank": "genus",
-            "readcount": 21,
-            "readcount_w_children": 23,
+            "readcount": 200,
+            "readcount_w_children": 200,
             "tax_id": "816"
         },
         {
