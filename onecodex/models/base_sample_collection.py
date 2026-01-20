@@ -7,7 +7,9 @@ from collections.abc import MutableSequence
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cached_property, lru_cache
-from typing import TYPE_CHECKING, Any, Literal, Optional
+from typing import TYPE_CHECKING, Any, Literal, Optional, overload
+
+from typing_extensions import Annotated, deprecated
 
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.enums import (
@@ -19,8 +21,6 @@ from onecodex.lib.enums import (
 )
 from onecodex.models.analysis import Classifications, FunctionalProfiles
 from onecodex.models.sample import Samples
-
-from typing_extensions import deprecated, Annotated
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -756,7 +756,7 @@ class BaseSampleCollection(
     def to_otu(
         self,
         biom_id: str | None = None,
-        include_ranks: list[str] = CANONICAL_RANKS,
+        include_ranks: tuple[str] = CANONICAL_RANKS,
         metric: Metric = Metric.Auto,
     ):
         """
@@ -859,7 +859,7 @@ class BaseSampleCollection(
     @overload
     def to_df(
         self,
-        analysis_type: Literal["classification"] = "classification",
+        analysis_type: AnalysisType.Classification,
         *,  # Force keyword arguments for clarity
         rank: Rank | str = Rank.Auto,
         top_n: Optional[int] = None,
@@ -877,7 +877,7 @@ class BaseSampleCollection(
     @overload
     def to_df(
         self,
-        analysis_type: Literal["functional"],
+        analysis_type: AnalysisType.Functional,
         *,
         annotation: str | FunctionalAnnotations = FunctionalAnnotations.Pathways,
         taxa_stratified: bool = True,
@@ -888,7 +888,7 @@ class BaseSampleCollection(
 
     # NOTE: analysis_type is typed as 'str' here to prevent
     # "unreachable code" errors in the else block.
-    def to_df(self, analysis_type: str = "classification", **kwargs) -> pd.DataFrame:
+    def to_df(self, analysis_type: str | AnalysisType = "classification", **kwargs) -> pd.DataFrame:
         """
         Transform Analyses of samples in a ``SampleCollection`` into a tabular DataFrame.
 
