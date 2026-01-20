@@ -31,22 +31,63 @@ class BaseEnum(str, Enum):
             raise OneCodexException(f"{val} is not valid value for {cls.__name__}")
 
 
-class AbundanceMetric(BaseEnum):
-    Abundance = "abundance"
-    AbundanceWChildren = "abundance_w_children"
-
-
 class Metric(BaseEnum):
-    """Metrics for taxonomic abundance data.
+    r"""Metrics for taxonomic abundance data.
 
-    Readcount: Number of reads assigned to a given taxon.
-    ReadcountWChildren: Read count for a taxon and all its taxonomic descendants.
-    PropReadcount: Readcount normalized by the number of classified microbial reads.
-    PropReadcountWChildren: ReadcountWChildren normalized by the number of classified microbial reads.
-    Abundance: Relative abundance estimate for a given taxon.
-    AbundanceWChildren: Abundance for a taxon and all its descendants.
-    NormalizedReadcount: readcount divided by the total of readcounts for all taxa minus hosts.
-    NormalizedReadcountWChildren: NormalizedReadcount for a taxon and all its descendants.
+    .. attribute:: Readcount
+
+       Number of reads assigned to a given taxon.
+
+    .. attribute:: ReadcountWChildren
+
+       Read count for a taxon and all its taxonomic descendants.
+
+    .. attribute:: PropReadcount
+
+       Readcount as a proportion of total reads in the sample.
+
+       .. math::
+
+          \frac{\text{readcount}}{\text{n\_reads\_total}}
+
+    .. attribute:: PropReadcountWChildren
+
+       ReadcountWChildren as a proportion of total reads in the sample.
+
+    .. attribute:: PropClassified
+
+       Readcount as a proportion of classified microbial reads.
+
+       .. math::
+
+          \frac{\text{readcount}}{\text{n\_mapped\_microbial\_reads}}
+
+       Where ``n_mapped_microbial_reads`` excludes host reads (typically human/mouse)
+       and nonspecific reads (root and cellular organisms).
+
+    .. attribute:: PropClassifiedWChildren
+
+       ReadcountWChildren as a proportion of classified microbial reads.
+
+    .. attribute:: Abundance
+
+       Relative abundance estimate for a given taxon, computed by the classifier.
+
+    .. attribute:: AbundanceWChildren
+
+       Abundance for a taxon and all its descendants.
+
+    .. attribute:: NormalizedReadcount
+
+       Readcount normalized by the sum of readcounts across all taxa in the sample.
+
+       .. math::
+
+          \frac{\text{readcount}}{\sum_{\text{taxa}} \text{readcount}}
+
+    .. attribute:: NormalizedReadcountWChildren
+
+       NormalizedReadcount for a taxon and all its descendants.
     """
 
     Auto = "auto"

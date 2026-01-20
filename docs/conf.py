@@ -20,7 +20,7 @@ version = __version__
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ["sphinx.ext.autodoc", "nbsphinx", "myst_parser", "sphinxext_altair.altairplot"]
+extensions = ["sphinx.ext.autodoc", "nbsphinx", "myst_parser", "sphinxext_altair.altairplot", "sphinx.ext.mathjax"]
 
 nbsphinx_execute = "always"
 nbsphinx_allow_errors = True
