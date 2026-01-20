@@ -109,36 +109,33 @@ class Metric(BaseEnum):
 
     @property
     def dtype(self):
-        dtype = {
-            "readcount": int,
-            "readcount_w_children": int,
-            "abundance": float,
-            "abundance_w_children": float,
-            "prop_readcount": float,
-            "prop_readcount_w_children": float,
-            "prop_classified": float,
-            "prop_classified_w_children": float,
-            "normalized_readcount": int,
-            "normalized_readcount_w_children": int,
-        }.get(self.value)
-        if dtype is None:
-            raise ValueError(f"Metric {self} does not have an associated dtype.")
-        return dtype
+        return {
+            Metric.Readcount: int,
+            Metric.ReadcountWChildren: int,
+            Metric.Abundance: float,
+            Metric.AbundanceWChildren: float,
+            Metric.PropReadcount: float,
+            Metric.PropReadcountWChildren: float,
+            Metric.PropClassified: float,
+            Metric.PropClassifiedWChildren: float,
+            Metric.NormalizedReadcount: float,
+            Metric.NormalizedReadcountWChildren: float,
+        }[self]
 
     @property
     def display_name(self) -> str:
         return {
-            "readcount": "Readcount",
-            "readcount_w_children": "Readcount With Children",
-            "abundance": "Relative Abundance",
-            "abundance_w_children": "Relative Abundance",
-            "prop_readcount": "Reads (Normalized)",
-            "prop_readcount_w_children": "Reads (Normalized)",
-            "prop_classified": "Classified Reads (Normalized)",
-            "prop_classified_w_children": "Classified Reads (Normalized)",
-            "normalized_readcount": "Normalized Readcount",
-            "normalized_readcount_w_children": "Normalized Readcount With Children",
-        }[self.value]
+            Metric.Readcount: "Readcount",
+            Metric.ReadcountWChildren: "Readcount With Children",
+            Metric.Abundance: "Relative Abundance",
+            Metric.AbundanceWChildren: "Relative Abundance",
+            Metric.PropReadcount: "Reads (Normalized)",
+            Metric.PropReadcountWChildren: "Reads (Normalized)",
+            Metric.PropClassified: "Classified Reads (Normalized)",
+            Metric.PropClassifiedWChildren: "Classified Reads (Normalized)",
+            Metric.NormalizedReadcount: "Normalized Readcount",
+            Metric.NormalizedReadcountWChildren: "Normalized Readcount With Children",
+        }[self]
 
 
 class AlphaDiversityMetric(BaseEnum):
