@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING, Any, Literal, Optional
 
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.enums import (
-    AbundanceMetric,
     AnalysisType,
     FunctionalAnnotations,
     FunctionalAnnotationsMetric,
@@ -472,7 +471,7 @@ class BaseSampleCollection(
 
         data = np.zeros((len(self._classifications), len(tax_info.index)), dtype=metric.dtype)
 
-        if AbundanceMetric.has_value(metric):
+        if metric.is_abundance_metric:
             data.fill(np.nan)
 
         for c_idx, c in enumerate(self._classifications):
@@ -529,7 +528,7 @@ class BaseSampleCollection(
         if isinstance(metric, str):
             metric = Metric.from_value(metric)
 
-        if AbundanceMetric.has_value(metric) or self.is_metagenomic:
+        if metric.is_abundance_metric or self.is_metagenomic:
             return Rank.Species
         else:
             return Rank.Genus

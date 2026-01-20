@@ -6,7 +6,7 @@ try:
 except ImportError:
     from enum import Enum
 
-__all__ = ["Metric", "AbundanceMetric", "AlphaDiversityMetric", "BetaDiversityMetric"]
+__all__ = ["Metric", "AlphaDiversityMetric", "BetaDiversityMetric"]
 
 from typing import TypeVar
 
@@ -104,7 +104,8 @@ class Metric(BaseEnum):
 
     @property
     def is_abundance_metric(self) -> bool:
-        return self in AbundanceMetric.values()
+        """Returns True if this metric is an abundance metric (Abundance or AbundanceWChildren)."""
+        return self in {Metric.Abundance, Metric.AbundanceWChildren}
 
     @property
     def is_normalized(self) -> bool:
