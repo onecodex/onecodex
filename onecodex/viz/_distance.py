@@ -356,7 +356,6 @@ class VizDistanceMixin(DistanceMixin):
 
         Parameters
         ----------
-
         rank : :class:`~onecodex.lib.enums.Rank`, optional
             Analysis will be restricted to abundances of taxa at the specified level.
             See :class:`~onecodex.lib.enums.Rank` for details.
