@@ -218,6 +218,7 @@ class Rank(BaseEnum):
             raise ValueError(f"Rank {self} has no level.")
         return _RANK_TO_LEVEL[self]
 
+
 _RANK_TO_LEVEL = {
     Rank.Species: 0,
     Rank.Genus: 1,
