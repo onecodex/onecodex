@@ -47,21 +47,23 @@ class VizHeatmapMixin(BaseSampleCollection):
 
         Parameters
         ----------
-        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+        rank : :class:`~onecodex.lib.enums.Rank`, optional
             Analysis will be restricted to abundances of taxa at the specified level.
-        metric: Metric
-            the taxonomic abundance metric to use. See onecodex.lib.enums.Metric for definitions
+            See :class:`~onecodex.lib.enums.Rank` for details.
+        metric : :class:`~onecodex.lib.enums.Metric`, optional
+            The taxonomic abundance metric to use. See :class:`~onecodex.lib.enums.Metric`
+            for definitions.
+        diversity_metric : :class:`~onecodex.lib.enums.BetaDiversityMetric`
+            Function to use when calculating the distance between two samples.
+            Note that 'cityblock' and 'manhattan' are equivalent metrics.
+        linkage :  :class:`~onecodex.lib.enums.Linkage`
+            The type of linkage to use when clustering axes.
         return_chart : `bool`, optional
             When True, return an `altair.Chart` object instead of displaying the resulting plot in
             the current notebook.
         haxis : `string`, optional
             The metadata field (or tuple containing multiple categorical fields) used to group
             samples together. Each group of samples will be clustered independently.
-        diversity_metric: BetaDiversityMetric
-            Function to use when calculating the distance between two samples.
-            Note that 'cityblock' and 'manhattan' are equivalent metrics.
-        linkage : {'average', 'single', 'complete', 'weighted', 'centroid', 'median'}
-            The type of linkage to use when clustering axes.
         top_n : `int`, optional
             Display the top N most abundant taxa in the entire cohort of samples.
         threshold : `float`

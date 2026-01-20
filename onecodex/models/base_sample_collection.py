@@ -952,7 +952,7 @@ class BaseSampleCollection(
 
         Parameters
         ----------
-        annotation : {onecodex.lib.enum.FunctionalAnnotations, str}, optional
+        annotation : :class:onecodex.lib.enum.FunctionalAnnotations, str}, optional
             Annotation data to return, defaults to `pathways`
         taxa_stratified : bool, optional
             Return taxonomically stratified data, defaults to `True`
@@ -1002,31 +1002,36 @@ class BaseSampleCollection(
 
         Parameters
         ----------
-        rank : {'auto', 'superkingdom', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+        rank : :class:`~onecodex.lib.enums.Rank`, optional
             Analysis will be restricted to abundances of taxa at the specified level.
+            See :class:`~onecodex.lib.enums.Rank` for details.
         top_n : `integer`, optional
             Return only the top N most abundant taxa.
-        metric: Metric
-            the taxonomic abundance metric to use. See onecodex.lib.enums.Metric for definitions
+        metric : :class:`~onecodex.lib.enums.Metric`, optional
+            The taxonomic abundance metric to use. See :class:`~onecodex.lib.enums.Metric`
+            for definitions.
         threshold : `float`, optional
             Return only taxa more abundant than this threshold in one or more samples.
         remove_zeros : `bool`, optional
             Do not return taxa that have zero abundance in every sample.
-        table_format : {'long', 'wide'}
+        include_host : `bool`, optional
+            Include host reads in the analysis.
+        table_format : {'long', 'wide'}, optional
             If wide, rows are classifications, cols are taxa, elements are counts. If long, rows are
             observations with three cols each: classification_id, tax_id, and count.
-        include_taxa_missing_rank : bool, optional
+        include_taxa_missing_rank : `bool`, optional
             Whether or not to include taxa that do not have a designated parent at `rank` (will be
             grouped into a "No <rank>" column).
-        fill_missing : bool, optional
-            Fill np.nan values
+        fill_missing : `bool`, optional
+            Fill np.nan values.
         filler : float, optional
-            Value with which to fill np.nans
+            Value with which to fill np.nans.
 
         Returns
         -------
-        `ClassificationsDataFrame`
+        :class:`~onecodex.dataframes.ClassificationsDataFrame`
         """
+
         return self._to_classification_df(
             rank=rank,
             metric=metric,

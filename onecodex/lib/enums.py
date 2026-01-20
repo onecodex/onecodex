@@ -34,6 +34,16 @@ class BaseEnum(str, Enum):
 class Metric(BaseEnum):
     r"""Metrics for taxonomic abundance data.
 
+    Taxonomic descendants refer to all taxa below a given taxon in the taxonomic hierarchy
+    (superkingdom > phylum > class > order > family > genus > species > strain). For example,
+    if a read maps to the species Escherichia coli, that read contributes to the readcount
+    for E. coli as well as the ``ReadcountWChildren`` for its genus (Escherichia), family
+    (Enterobacteriaceae), and all ancestor taxa up the hierarchy.
+
+    .. attribute:: Auto
+
+       Determine appropriate metric automatically (see :meth:`~onecodex.models.collection.SampleCollection.to_classification_df`).
+
     .. attribute:: Readcount
 
        Number of reads assigned to a given taxon.
@@ -62,8 +72,10 @@ class Metric(BaseEnum):
 
           \frac{\text{readcount}}{\text{n\_mapped\_microbial\_reads}}
 
-       Where ``n_mapped_microbial_reads`` excludes host reads (typically human/mouse)
-       and nonspecific reads (root and cellular organisms).
+       Where ``n_mapped_microbial_reads = n_mapped_reads - n_host_reads - n_nonspecific_reads``.
+       Host reads are those mapping to detected host organisms (typically tax IDs 9606 for human
+       and 10090 for mouse). Nonspecific reads are those mapping to tax IDs 1 (root) and 131567
+       (cellular organisms).
 
     .. attribute:: PropClassifiedWChildren
 
@@ -79,15 +91,22 @@ class Metric(BaseEnum):
 
     .. attribute:: NormalizedReadcount
 
-       Readcount normalized by the sum of readcounts across all taxa in the sample.
+       Readcount normalized by the sum of readcounts for taxa at the specified rank.
+       Values sum to 1.0 across taxa at that rank.
 
        .. math::
 
-          \frac{\text{readcount}}{\sum_{\text{taxa}} \text{readcount}}
+          \frac{\text{readcount}}{\sum_{\text{taxa at rank}} \text{readcount}}
 
     .. attribute:: NormalizedReadcountWChildren
 
-       NormalizedReadcount for a taxon and all its descendants.
+       ReadcountWChildren normalized by the sum of ReadcountWChildren for taxa at the
+       specified rank. Represents the proportion of reads that classified to the specified
+       rank or below. Values sum to 1.0 across taxa at that rank.
+
+       .. math::
+
+          \frac{\text{readcount\_w\_children}}{\sum_{\text{taxa at rank}} \text{readcount\_w\_children}}
     """
 
     Auto = "auto"
@@ -184,6 +203,8 @@ class Metric(BaseEnum):
 
 
 class AlphaDiversityMetric(BaseEnum):
+    """Supported alpha-diversity metrics."""
+
     Chao1 = "chao1"
     ObservedTaxa = "observed_taxa"
     Shannon = "shannon"
@@ -191,6 +212,8 @@ class AlphaDiversityMetric(BaseEnum):
 
 
 class BetaDiversityMetric(BaseEnum):
+    """Supported beta-diversity metrics."""
+
     Aitchison = "aitchison"
     BrayCurtis = "braycurtis"
     CityBlock = "cityblock"
@@ -202,6 +225,8 @@ class BetaDiversityMetric(BaseEnum):
 
 
 class Rank(BaseEnum):
+    """A taxonomic rank."""
+
     Auto = "auto"
     Class = "class"
     Family = "family"
@@ -232,6 +257,8 @@ _RANK_TO_LEVEL = {
 
 
 class Linkage(BaseEnum):
+    """Clustering linkages used for distance plots."""
+
     Average = "average"
     Single = "single"
     Complete = "complete"
@@ -241,6 +268,8 @@ class Linkage(BaseEnum):
 
 
 class OrdinationMethod(BaseEnum):
+    """Ordination methods supported by distance plotting methods."""
+
     Pcoa = "pcoa"
     Smacof = "smacof"
 
@@ -257,11 +286,15 @@ class BetaDiversityStatsTest(BaseEnum):
 
 
 class AnalysisType(BaseEnum):
+    """Analysis types supported by :meth:`~onecodex.models.collection.SampleCollection.to_df`."""
+
     Classification = "classification"
     Functional = "functional"
 
 
 class FunctionalAnnotations(BaseEnum):
+    """Types of functional annotations."""
+
     Pathways = "pathways"
     MetaCyc = "metacyc"
     EggNog = "eggnog"
@@ -273,6 +306,8 @@ class FunctionalAnnotations(BaseEnum):
 
 
 class FunctionalAnnotationsMetric(BaseEnum):
+    """Metrics used to quantify functional annotations."""
+
     Rpk = "rpk"
     Cpm = "cpm"
     Abundance = "abundance"

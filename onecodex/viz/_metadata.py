@@ -45,66 +45,55 @@ class VizMetadataMixin(BaseSampleCollection):
 
         Parameters
         ----------
-        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+        rank : :class:`~onecodex.lib.enums.Rank`, optional
             Analysis will be restricted to abundances of taxa at the specified level.
-
+            See :class:`~onecodex.lib.enums.Rank` for details.
+        metric : :class:`~onecodex.lib.enums.Metric`, optional
+            The taxonomic abundance metric to use. See :class:`~onecodex.lib.enums.Metric`
+            for definitions.
         haxis : `string`, optional
             The metadata field (or tuple containing multiple categorical fields) to be plotted on
             the horizontal axis.
-
-        vaxis : `string`, optional
+        vaxis: :class:`~onecodex.lib.enums.AlphaDiversityMetric` or `string` optional
             Data to be plotted on the vertical axis. Can be any one of the following:
-
             - A metadata field: the name of a metadata field containing numerical data
             - {'simpson', 'observed_taxa', 'shannon'}: an alpha diversity statistic to calculate for
               each sample. Note that Shannon diversity is calculated using log base ``e`` (natural
               log).
             - A taxon name: the name of a taxon in the analysis
             - A taxon ID: the ID of a taxon in the analysis
-
         title : `string`, optional
             Text label at the top of the plot.
-
         xlabel : `string`, optional
             Text label along the horizontal axis.
-
         ylabel : `string`, optional
             Text label along the vertical axis.
-
         plot_type : {'auto', 'boxplot', 'scatter'}
             By default, will determine plot type automatically based on the data. Otherwise, specify
             one of 'boxplot' or 'scatter' to set the type of plot manually.
-
         label : `string` or `callable`, optional
             A metadata field (or function) used to label each analysis. If passing a function, a
             dict containing the metadata for each analysis is passed as the first and only
             positional argument. The callable function must return a string.
-
         sort_x : `list` or `callable`, optional
             Either a list of sorted labels or a function that will be called with a list of x-axis labels
             as the only argument, and must return the same list in a user-specified order.
-
         width : `int` or `str`, optional
             Sets `altair.Chart.width`. If `"container"`, chart width will respond to the width of
             the HTML container it is rendered in.
-
         height : `int` or `str`, optional
             Sets `altair.Chart.height`. If `"container"`, chart height will respond to the height of
             the HTML container it is rendered in.
-
         facet_by : `string`, optional
             The metadata field used to facet samples by (i.e. to create a separate subplot for each
             group of samples).
-
         coerce_haxis_dates : `bool`, optional
             If ``True``, ``haxis`` field name(s) containing the word "date" (after splitting on
             underscores) will be coerced to datetime dtype. For example, the field "date_collected"
             will be coerced if ``coerce_haxis_dates`` is ``True``.
-
         secondary_haxis : str or tuple of str, optional
             The secondary metadata field (or tuple containing multiple categorical fields) to be
             plotted on the horizontal axis.
-
         match_taxonomy : `bool`, default=True
             Whether or not to consider taxonomic names when looking for metadata fields mapped to
             plot attributes including `vaxis`, `haxis`, `secondary_axis`, `facet_by`, & `label`

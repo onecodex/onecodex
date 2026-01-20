@@ -39,11 +39,12 @@ class VizPCAMixin(BaseSampleCollection):
 
         Parameters
         ----------
-        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+        rank : :class:`~onecodex.lib.enums.Rank`, optional
             Analysis will be restricted to abundances of taxa at the specified level.
-        normalize : 'auto' or `bool`, optional
-            Convert read counts to relative abundances such that each sample sums to 1.0. Setting
-            'auto' will choose automatically based on the data.
+            See :class:`~onecodex.lib.enums.Rank` for details.
+        metric : :class:`~onecodex.lib.enums.Metric`, optional
+            The taxonomic abundance metric to use. See :class:`~onecodex.lib.enums.Metric`
+            for definitions.
         org_vectors : `int`, optional
             Plot this many of the top-contributing eigenvectors from the PCA results.
         org_vectors_scale : `float`, optional

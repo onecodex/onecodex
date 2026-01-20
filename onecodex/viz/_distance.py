@@ -167,14 +167,16 @@ class VizDistanceMixin(DistanceMixin):
 
         Parameters
         ----------
-        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+        rank : :class:`~onecodex.lib.enums.Rank`, optional
             Analysis will be restricted to abundances of taxa at the specified level.
-        metric: Metric
-            the taxonomic abundance metric to use. See onecodex.lib.enums.Metric for definitions
-        diversity_metric : BetaDiversityMetric
+            See :class:`~onecodex.lib.enums.Rank` for details.
+        metric : :class:`~onecodex.lib.enums.Metric`, optional
+            The taxonomic abundance metric to use. See :class:`~onecodex.lib.enums.Metric`
+            for definitions.
+        diversity_metric : :class:`~onecodex.lib.enums.BetaDiversityMetric`
             Function to use when calculating the distance between two samples.
             Note that 'cityblock' and 'manhattan' are equivalent metrics.
-        linkage : {'average', 'single', 'complete', 'weighted', 'centroid', 'median'}
+        linkage :  :class:`~onecodex.lib.enums.Linkage`
             The type of linkage to use when clustering axes.
         title : `string`, optional
             Text label at the top of the plot.
@@ -354,14 +356,17 @@ class VizDistanceMixin(DistanceMixin):
 
         Parameters
         ----------
-        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+
+        rank : :class:`~onecodex.lib.enums.Rank`, optional
             Analysis will be restricted to abundances of taxa at the specified level.
-        metric: Metric
-            the taxonomic abundance metric to use. See onecodex.lib.enums.Metric for definitions
-        distance_metric : BetaDiversityMetric
+            See :class:`~onecodex.lib.enums.Rank` for details.
+        metric : :class:`~onecodex.lib.enums.Metric`, optional
+            The taxonomic abundance metric to use. See :class:`~onecodex.lib.enums.Metric`
+            for definitions.
+        diversity_metric : :class:`~onecodex.lib.enums.BetaDiversityMetric`
             Function to use when calculating the distance between two samples.
             Note that 'cityblock' and 'manhattan' are equivalent metrics.
-        method : {'pcoa', 'smacof'}
+        method : :class:`~onecodex.lib.enums.OrdinationMethod`
             Algorithm to use for ordination. PCoA uses eigenvalue decomposition and is not well
             suited to non-euclidean distance functions. SMACOF is an iterative optimization strategy
             that can be used as an alternative.

@@ -43,10 +43,12 @@ class VizBargraphMixin(BaseSampleCollection):
 
         Parameters
         ----------
-        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+        rank : :class:`~onecodex.lib.enums.Rank`, optional
             Analysis will be restricted to abundances of taxa at the specified level.
-        metric: Metric
-            the taxonomic abundance metric to use. See onecodex.lib.enums.Metric for definitions
+            See :class:`~onecodex.lib.enums.Rank` for details.
+        metric : :class:`~onecodex.lib.enums.Metric`, optional
+            The taxonomic abundance metric to use. See :class:`~onecodex.lib.enums.Metric`
+            for definitions.
         return_chart : `bool`, optional
             When True, return an `altair.Chart` object instead of displaying the resulting plot in
             the current notebook.
