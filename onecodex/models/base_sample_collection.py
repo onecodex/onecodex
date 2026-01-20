@@ -139,9 +139,7 @@ class BaseSampleCollection(
             )
 
         # are they all the same model?
-        object_classes = [type(obj) for obj in objects]
-
-        if len(set(object_classes)) > 1:
+        if len({type(obj) for obj in objects}) > 1:
             raise OneCodexException(
                 "SampleCollection can contain Samples or Classifications, but not both"
             )
