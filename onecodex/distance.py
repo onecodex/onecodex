@@ -30,14 +30,14 @@ class DistanceMixin(BaseSampleCollection, TaxonomyMixin):
 
         Parameters
         ----------
-        metric: Metric
-            The taxonomic abundance metric to use. See onecodex.lib.enums.Metric for definitions.
-        diversity_metric : AlphaDiversityMetric
-            The diversity metric to calculate. Note that Shannon diversity is calculated using log
-            base ``e`` (natural log).
-        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+        rank : :class:`~onecodex.lib.enums.Rank`, optional
             Analysis will be restricted to abundances of taxa at the specified level.
-
+            See :class:`~onecodex.lib.enums.Rank` for details.
+        metric: :class:`~onecodex.lib.enums.Metric`, optional
+            The taxonomic abundance metric to use. See :class:`~onecodex.lib.enums.Metric`
+            for definitions.
+        diversity_metric : :class:`~onecodex.lib.enums.AlphaDiversityMetric`
+            Function to use when calculating the distance between two samples.
 
         Returns
         -------
@@ -80,13 +80,14 @@ class DistanceMixin(BaseSampleCollection, TaxonomyMixin):
 
         Parameters
         ----------
-        metric: Metric
-            The taxonomic abundance metric to use. See onecodex.lib.enums.Metric for definitions.
-        diversity_metric : BetaDiversityMetric
-            The distance metric to calculate.
-            Note that 'cityblock' and 'manhattan' are equivalent metrics.
-        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+        rank : :class:`~onecodex.lib.enums.Rank`, optional
             Analysis will be restricted to abundances of taxa at the specified level.
+            See :class:`~onecodex.lib.enums.Rank` for details.
+        metric: :class:`~onecodex.lib.enums.Metric`, optional
+            The taxonomic abundance metric to use. See :class:`~onecodex.lib.enums.Metric`
+            for definitions.
+        diversity_metric : :class:`~onecodex.lib.enums.BetaDiversityMetric`
+            Function to use when calculating the distance between two samples.
 
         Returns
         -------
@@ -172,12 +173,14 @@ class DistanceMixin(BaseSampleCollection, TaxonomyMixin):
 
         Parameters
         ----------
-        metric: Metric
-            the taxonomic abundance metric to use. See onecodex.lib.enums.Metric for definitions
+        metric : :class:`~onecodex.lib.enums.Metric`, optional
+            The taxonomic abundance metric to use. See :class:`~onecodex.lib.enums.Metric`
+            for definitions.
+        rank : :class:`~onecodex.lib.enums.Rank`, optional
+            Analysis will be restricted to abundances of taxa at the specified level.
+            See :class:`~onecodex.lib.enums.Rank` for details.
         weighted : `bool`
             Calculate the weighted (True) or unweighted (False) distance metric.
-        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
-            Analysis will be restricted to abundances of taxa at the specified level.
 
         Returns
         -------
@@ -240,10 +243,12 @@ class DistanceMixin(BaseSampleCollection, TaxonomyMixin):
 
         Parameters
         ----------
-        metric: Metric
-            the taxonomic abundance metric to use. See onecodex.lib.enums.Metric for definitions
-        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+        metric : :class:`~onecodex.lib.enums.Metric`, optional
+            The taxonomic abundance metric to use. See :class:`~onecodex.lib.enums.Metric`
+            for definitions.
+        rank : :class:`~onecodex.lib.enums.Rank`, optional
             Analysis will be restricted to abundances of taxa at the specified level.
+            See :class:`~onecodex.lib.enums.Rank` for details.
 
         Returns
         -------
