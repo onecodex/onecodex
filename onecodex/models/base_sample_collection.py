@@ -855,25 +855,89 @@ class BaseSampleCollection(
 
         return otu
 
-    def to_df(self, analysis_type=AnalysisType.Classification, **kwargs):
+    # Overload 1: Classification
+    @overload
+    def to_df(
+        self,
+        analysis_type: Literal["classification"] = "classification",
+        *,  # Force keyword arguments for clarity
+        rank: Rank | str = Rank.Auto,
+        top_n: Optional[int] = None,
+        threshold: Optional[float] = None,
+        remove_zeros: bool = True,
+        include_host: bool = False,
+        table_format: Literal["wide", "long"] = "wide",
+        include_taxa_missing_rank: bool = False,
+        metric: str | Metric | FunctionalAnnotationsMetric = Metric.Auto,
+        fill_missing: bool = True,
+        filler: Any = 0,
+    ) -> pd.DataFrame: ...
+
+    # Overload 2: Functional
+    @overload
+    def to_df(
+        self,
+        analysis_type: Literal["functional"],
+        *,
+        annotation: str | FunctionalAnnotations = FunctionalAnnotations.Pathways,
+        taxa_stratified: bool = True,
+        metric: str | Metric | FunctionalAnnotationsMetric = Metric.Auto,
+        fill_missing: bool = True,
+        filler: Any = 0,
+    ) -> pd.DataFrame: ...
+
+    # NOTE: analysis_type is typed as 'str' here to prevent
+    # "unreachable code" errors in the else block.
+    def to_df(self, analysis_type: str = "classification", **kwargs) -> pd.DataFrame:
         """
-        Transform Analyses of samples in a `SampleCollection` into tabular format.
+        Transform Analyses of samples in a ``SampleCollection`` into a tabular DataFrame.
 
         Parameters
         ----------
-        analysis_type : {'classification', 'functional'}, optional
-            The `analysis_type` to aggregate, corresponding to AnalysisJob.analysis_type
-        kwargs : dict, optional
-             Keyword arguments specific to the `analysis_type`; see each individual function definition
+        analysis_type : {'classification', 'functional'}, default='classification'
+            The type of analysis to aggregate.
+        **kwargs
+            Keyword arguments passed to the specific aggregation method.
 
-        .. seealso:: to_classification_df
-        .. seealso:: to_functional_df
+            **Common Arguments:**
+
+            *   **metric** (*str | Metric*): The metric to aggregate (default: Metric.Auto).
+            *   **fill_missing** (*bool*): Whether to fill missing values (default: True).
+            *   **filler** (*Any*): Value to use for filling missing values (default: 0).
+
+            **If analysis_type='classification':**
+
+            *   **rank** (*Rank | str*): Taxonomic rank to aggregate at (default: Rank.Auto).
+            *   **top_n** (*int, optional*): Return only the top N taxa by abundance.
+            *   **threshold** (*float, optional*): Filter taxa below this abundance threshold.
+            *   **remove_zeros** (*bool*): Remove taxa with zero abundance (default: True).
+            *   **include_host** (*bool*): Include host reads in the output (default: False).
+            *   **table_format** (*{'wide', 'long'}*): The shape of the output DataFrame.
+            *   **include_taxa_missing_rank** (*bool*): Include taxa unspecified at the target rank.
+
+            **If analysis_type='functional':**
+
+            *   **annotation** (*str | FunctionalAnnotations*): The functional annotation database (default: Pathways).
+            *   **taxa_stratified** (*bool*): Whether to include taxonomic stratification (default: True).
+
+        Returns
+        -------
+        pd.DataFrame
+            A DataFrame containing the aggregated classification or functional results.
+
+        See Also
+        --------
+        to_classification_df : Underlying method for classification extraction.
+        to_functional_df : Underlying method for functional extraction.
         """
-        generate_df = {
-            AnalysisType.Classification: self.to_classification_df,
-            AnalysisType.Functional: self.to_functional_df,
-        }
-        return generate_df[AnalysisType(analysis_type)](**kwargs)
+
+        if analysis_type == "classification":
+            return self.to_classification_df(**kwargs)
+        elif analysis_type == "functional":
+            return self.to_functional_df(**kwargs)
+        else:
+            # This is now reachable type-wise because analysis_type is str
+            raise ValueError(f"Unknown analysis_type: {analysis_type}")
 
     def to_functional_df(
         self,

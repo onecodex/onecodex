@@ -125,6 +125,7 @@ class Metric(BaseEnum):
 
     @property
     def includes_children(self) -> bool:
+        """Returns True if this metric aggregates over its own taxonomic descendants (children)."""
         return self in (
             Metric.ReadcountWChildren,
             Metric.AbundanceWChildren,
@@ -151,6 +152,7 @@ class Metric(BaseEnum):
 
     @property
     def dtype(self):
+        """Returns the Python data type used to store this metric in a Numpy array or Pandas DataFrame."""
         return {
             Metric.Readcount: int,
             Metric.ReadcountWChildren: int,
@@ -166,6 +168,7 @@ class Metric(BaseEnum):
 
     @property
     def display_name(self) -> str:
+        """Returns the human-readable name used for this metric. Useful for plotting and exports."""
         return {
             Metric.Readcount: "Readcount",
             Metric.ReadcountWChildren: "Readcount With Children",
