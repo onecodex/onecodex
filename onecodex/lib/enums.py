@@ -176,14 +176,6 @@ class Rank(BaseEnum):
             raise ValueError(f"Rank {self} has no level.")
         return _RANK_TO_LEVEL[self]
 
-    @classmethod
-    def from_value(cls: type[T], val: str) -> T:
-        for member in cls:
-            if member.value == val:
-                return member
-        raise OneCodexException(f"{val} is not valid value for {cls.__name__}")
-
-
 _RANK_TO_LEVEL = {
     Rank.Species: 0,
     Rank.Genus: 1,
