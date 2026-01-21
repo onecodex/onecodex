@@ -140,6 +140,9 @@ class SampleCollection(BaseSampleCollection):
         # see onecodex.models.collection.BaseSampleCollection.__init__
         self._metric = None
 
+        # only collections of "Samples" are used in Custom Plots
+        self._oc_model = Samples
+
         # this will set self._res_list
         self._classification_fetch()
 

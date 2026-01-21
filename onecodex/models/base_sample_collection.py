@@ -137,25 +137,28 @@ class BaseSampleCollection(
 
         self._metric = metric
 
-        if not all(
-            [isinstance(obj, Samples) or isinstance(obj, Classifications) for obj in objects]
-        ):
+        object_types = list({type(obj) for obj in objects})
+
+        # validate that only one type of object was passed into the collection
+        if len(object_types) == 0:
+            oc_model = default_model
+        elif len(object_types) != 1:
+            raise OneCodexException(
+                "SampleCollection can only contain Samples or Classifications, but not both"
+            )
+        elif object_types[0] not in {Samples, Classifications}:
             raise OneCodexException(
                 "SampleCollection can only contain One Codex Samples or Classifications objects"
             )
-
-        # are they all the same model?
-        if len({type(obj) for obj in objects}) > 1:
-            raise OneCodexException(
-                "SampleCollection can contain Samples or Classifications, but not both"
-            )
+        else:
+            oc_model = object_types[0]
 
         self._kwargs = {
             "skip_missing": skip_missing,
             "job": job,
         }
 
-        self._oc_model = objects[0].__class__ if len(objects) > 0 else default_model
+        self._oc_model = oc_model
         self._res_list = objects
 
     def _check_valid_resource(self, other, check_for_dupes=True):
