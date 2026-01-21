@@ -129,18 +129,16 @@ class Metric(BaseEnum):
     @property
     def is_normalized(self) -> bool:
         """Return true if the metric has been normalized (ie proportionalized) in some way."""
-        return {
-            Metric.Abundance: True,
-            Metric.AbundanceWChildren: True,
-            Metric.PropReadcount: True,
-            Metric.PropReadcountWChildren: True,
-            Metric.PropClassified: True,
-            Metric.PropClassifiedWChildren: True,
-            Metric.NormalizedReadcount: True,
-            Metric.NormalizedReadcountWChildren: True,
-            Metric.Readcount: False,
-            Metric.ReadcountWChildren: False,
-        }[self]
+        return self in {
+            Metric.Abundance,
+            Metric.AbundanceWChildren,
+            Metric.PropReadcount,
+            Metric.PropReadcountWChildren,
+            Metric.PropClassified,
+            Metric.PropClassifiedWChildren,
+            Metric.NormalizedReadcount,
+            Metric.NormalizedReadcountWChildren,
+        }
 
     @property
     def includes_children(self) -> bool:
