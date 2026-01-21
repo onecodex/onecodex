@@ -8,12 +8,19 @@ pytest.importorskip("pandas")  # noqa
 
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.enums import Metric, Rank
+from onecodex.models import Classifications
 from onecodex.models.collection import SampleCollection
 
 
 def test_sample_collection_metric_warns(samples):
     with pytest.warns(DeprecationWarning, match="Passing 'metric' to SampleCollection"):
         SampleCollection(samples, metric="foo")
+
+
+def test_filtering_classifications_to_nothing(classifications):
+    empty_collection = classifications.filter(lambda x: False)
+    assert len(empty_collection) == 0
+    assert empty_collection._oc_model is Classifications
 
 
 def test_sample_collection_hashability(samples):

@@ -511,6 +511,11 @@ def samples(ocx, api_data) -> SampleCollection:
 
 
 @pytest.fixture
+def classifications(samples) -> SampleCollection:
+    return SampleCollection([s.primary_classification for s in samples])
+
+
+@pytest.fixture
 def samples_without_abundances(ocx, api_data) -> SampleCollection:
     """
     These samples have null values for `abundance` and `abundance_w_children`

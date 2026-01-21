@@ -92,6 +92,7 @@ class BaseSampleCollection(
                 "Pass to SampleCollection.to_df or SampleCollection.to_classification_df instead"
             ),
         ] = None,
+        default_model: Literal[Samples] | Literal[Classifications] = Samples,
     ):
         """Instantiate a new SampleCollection containing `Samples` or `Classifications` objects.
 
@@ -104,9 +105,13 @@ class BaseSampleCollection(
         skip_missing : bool, optional
             If an analysis was not successful, exclude it, warn, and keep going
 
+        default_model : (optional) Samples or Classification
+            The default model to use in case of an empty SampleCollection. Defaults to Samples.
+
         metric (deprecated) :
             Metric is now passed directly to to_df, to_classification, or any of the plotting /
             stats functions. Providing a metric to SampleCollection() will now raise a TypeError.
+
 
         Examples
         --------
@@ -145,13 +150,12 @@ class BaseSampleCollection(
                 "SampleCollection can contain Samples or Classifications, but not both"
             )
 
-        model = objects[0].__class__ if len(objects) > 0 else Samples
-
         self._kwargs = {
             "skip_missing": skip_missing,
             "job": job,
         }
-        self._oc_model = model
+
+        self._oc_model = objects[0].__class__ if len(objects) > 0 else default_model
         self._res_list = objects
 
     def _check_valid_resource(self, other, check_for_dupes=True):
@@ -290,8 +294,13 @@ class BaseSampleCollection(
 
         >>> new_collection = samples.filter(lambda s: s.filename.endswith('.fastq.gz'))
         """
+
         if callable(filter_func):
-            return self.__class__([obj for obj in self if filter_func(obj)], **self._kwargs)
+            return self.__class__(
+                [obj for obj in self if filter_func(obj)],
+                default_model=self._oc_model,
+                **self._kwargs,
+            )
         else:
             raise OneCodexException(
                 "Please pass a function to filter: {}".format(type(filter_func).__name__)
