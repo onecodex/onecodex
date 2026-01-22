@@ -336,7 +336,7 @@ class BaseSampleCollection(
 
         return classifications
 
-    @property
+    @cached_property
     def _classifications(self) -> list[Classifications]:
         """Transform a list of Samples or Classifications into a list of Classifications objects.
 
