@@ -4,6 +4,7 @@ import warnings
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional
 
+from onecodex.distance import DistanceMixin
 from onecodex.exceptions import OneCodexException, StatsException, StatsWarning
 from onecodex.lib.enums import (
     Metric,
@@ -13,6 +14,7 @@ from onecodex.lib.enums import (
     BetaDiversityMetric,
     BetaDiversityStatsTest,
 )
+from onecodex.models.base_sample_collection import BaseSampleCollection
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -64,7 +66,7 @@ class PosthocResults:
     statistics: Optional[pd.DataFrame] = None
 
 
-class StatsMixin:
+class StatsMixin(DistanceMixin, BaseSampleCollection):
     def alpha_diversity_stats(
         self,
         *,
@@ -97,11 +99,14 @@ class StatsMixin:
             Stats test to perform. If `'auto'`, `'mannwhitneyu'` will be chosen if there are two
             groups of unpaired data. `'wilcoxon'` will be chosen if there are two groups and
             `paired_by` is specified. `'kruskal'` will be chosen if there are more than 2 groups.
-        metric : {'shannon', 'simpson', 'observed_taxa'}, optional
-            The alpha diversity metric to calculate. Note that Shannon diversity is calculated using
-            log base ``e`` (natural log).
-        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+        rank : :class:`~onecodex.lib.enums.Rank`, optional
             Analysis will be restricted to abundances of taxa at the specified level.
+            See :class:`~onecodex.lib.enums.Rank` for details.
+        metric: :class:`~onecodex.lib.enums.Metric`, optional
+            The taxonomic abundance metric to use. See :class:`~onecodex.lib.enums.Metric`
+            for definitions.
+        diversity_metric : :class:`~onecodex.lib.enums.BetaDiversityMetric`
+            Function to use when calculating the distance between two samples.
         alpha : float, optional
             Threshold to determine statistical significance when `test="kruskal"`
             (e.g. p < `alpha`). Must be between 0 and 1 (exclusive). If the Kruskal-Wallis p-value
@@ -134,8 +139,7 @@ class StatsMixin:
         """
         self._assert_valid_alpha(alpha)
 
-        if metric == Metric.Auto:
-            metric = self.automatic_metric
+        metric, rank = self._parse_classification_config_args(metric=metric, rank=rank)
 
         group_by = self._tuplize(group_by)
         metadata_fields = [group_by]
@@ -156,18 +160,18 @@ class StatsMixin:
         paired_by_column_name = magic_fields.get(paired_by, None)
 
         # Compute alpha diversity
-        df.loc[:, metric] = self.alpha_diversity(
+        df.loc[:, diversity_metric] = self.alpha_diversity(
             diversity_metric=diversity_metric, metric=metric, rank=rank
         )
 
         # Drop NaN alpha diversity values
         prev_count = len(df)
-        df.dropna(subset=[metric], inplace=True)
+        df.dropna(subset=[diversity_metric], inplace=True)
         num_dropped = prev_count - len(df)
         if num_dropped > 0:
             warnings.warn(
                 f"{num_dropped} sample{'s were' if num_dropped > 1 else ' was'} excluded from the "
-                f"test as no {metric} value was calculated for "
+                f"test as no {diversity_metric} value was calculated for "
                 f"{'them' if num_dropped > 1 else 'it'}.",
                 StatsWarning,
             )
@@ -204,11 +208,11 @@ class StatsMixin:
             raise StatsException('`paired_by` may only be specified with `test="wilcoxon"`.')
 
         if test == AlphaDiversityStatsTest.Wilcoxon:
-            return self._wilcoxon(df, metric, group_by_column_name, paired_by_column_name)
+            return self._wilcoxon(df, diversity_metric, group_by_column_name, paired_by_column_name)
         elif test == AlphaDiversityStatsTest.Mannwhitneyu:
-            return self._mannwhitneyu(df, metric, group_by_column_name)
+            return self._mannwhitneyu(df, diversity_metric, group_by_column_name)
         elif test == AlphaDiversityStatsTest.Kruskal:
-            return self._kruskal(df, metric, group_by_column_name, alpha)
+            return self._kruskal(df, diversity_metric, group_by_column_name, alpha)
         else:
             raise OneCodexException(f"Stats test {test} is not supported.")
 
@@ -304,7 +308,7 @@ class StatsMixin:
     def _wilcoxon(
         self,
         df: pd.DataFrame,
-        metric: str,
+        diversity_metric: AlphaDiversityMetric,
         group_by_column_name: str,
         paired_by_column_name: Optional[str],
     ) -> AlphaDiversityStatsResults:
@@ -337,7 +341,7 @@ class StatsMixin:
         group2_df.set_index(paired_by_column_name, inplace=True)
         group2_df = group2_df.reindex(index=group1_df[paired_by_column_name])
 
-        result = wilcoxon(group1_df[metric], group2_df[metric])
+        result = wilcoxon(group1_df[diversity_metric], group2_df[diversity_metric])
 
         return AlphaDiversityStatsResults(
             test=AlphaDiversityStatsTest.Wilcoxon,
@@ -350,14 +354,14 @@ class StatsMixin:
         )
 
     def _mannwhitneyu(
-        self, df: pd.DataFrame, metric: str, group_by_column_name: str
+        self, df: pd.DataFrame, diversity_metric: AlphaDiversityMetric, group_by_column_name: str
     ) -> AlphaDiversityStatsResults:
         from scipy.stats import mannwhitneyu
 
         self._assert_exact_num_groups(df, group_by_column_name, 2)
 
         group_names, group_alpha_values = self._get_group_names_and_alpha_values(
-            df, metric, group_by_column_name
+            df, diversity_metric, group_by_column_name
         )
         result = mannwhitneyu(*group_alpha_values)
 
@@ -371,13 +375,17 @@ class StatsMixin:
         )
 
     def _kruskal(
-        self, df: pd.DataFrame, metric: str, group_by_column_name: str, alpha: float
+        self,
+        df: pd.DataFrame,
+        diversity_metric: AlphaDiversityMetric,
+        group_by_column_name: str,
+        alpha: float,
     ) -> AlphaDiversityStatsResults:
         from scikit_posthocs import posthoc_dunn
         from scipy.stats import kruskal
 
         group_names, group_alpha_values = self._get_group_names_and_alpha_values(
-            df, metric, group_by_column_name
+            df, diversity_metric, group_by_column_name
         )
         result = kruskal(*group_alpha_values)
 
@@ -385,7 +393,7 @@ class StatsMixin:
         if result.pvalue < alpha and len(group_names) > 2:
             posthoc = PosthocResults(
                 adjusted_pvalues=posthoc_dunn(
-                    df, val_col=metric, group_col=group_by_column_name, p_adjust="fdr_bh"
+                    df, val_col=diversity_metric, group_col=group_by_column_name, p_adjust="fdr_bh"
                 )
             )
 
@@ -421,11 +429,14 @@ class StatsMixin:
         group_by : str or tuple of str or list of str
             Metadata variable to group samples by. At least two groups are required. If `group_by`
             is a tuple or list, field values are joined with an underscore character ("_").
-        metric : {'braycurtis', 'jaccard', 'cityblock', 'manhattan', 'aitchison', 'unweighted_unifrac', 'weighted_unifrac'}, optional
-            The beta diversity distance metric to calculate. Note that 'cityblock' and 'manhattan'
-            are equivalent metrics.
-        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+        metric: :class:`~onecodex.lib.enums.Metric`, optional
+            The taxonomic abundance metric to use. See :class:`~onecodex.lib.enums.Metric`
+            for definitions.
+        diversity_metric : :class:`~onecodex.lib.enums.AlphaDiversityMetric`
+            Function to use when calculating the distance between two samples.
+        rank : :class:`~onecodex.lib.enums.Rank`, optional
             Analysis will be restricted to abundances of taxa at the specified level.
+            See :class:`~onecodex.lib.enums.Rank` for details.
         alpha : float, optional
             Threshold to determine statistical significance (e.g. p < `alpha`). Must be between 0
             and 1 (exclusive). If the p-value is significant and there are more than two groups,
@@ -460,6 +471,7 @@ class StatsMixin:
 
         """
         self._assert_valid_alpha(alpha)
+        metric, rank = self._parse_classification_config_args(metric=metric, rank=rank)
 
         # Munge the metadata first in case there's any errors
         group_by = self._tuplize(group_by)
@@ -487,9 +499,17 @@ class StatsMixin:
 
         # Compute beta diversity distance matrix and filter it to match the remaining IDs in the
         # metadata dataframe
-        dm = self.beta_diversity(diversity_metric=metric, rank=rank).filter(df.index, strict=True)
+        dm = self.beta_diversity(diversity_metric=diversity_metric, rank=rank).filter(
+            df.index, strict=True
+        )
 
-        return self._permanova(dm, df, group_by_column_name, alpha, num_permutations)
+        return self._permanova(
+            dm=dm,
+            df=df,
+            group_by_column_name=group_by_column_name,
+            alpha=alpha,
+            num_permutations=num_permutations,
+        )
 
     def _permanova(
         self,
