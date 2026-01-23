@@ -1,10 +1,6 @@
 from onecodex.exceptions import OneCodexException
 
-try:
-    # Python 3.11 changed `__str__`/`__format__` behavior for enums with mixed-in data types
-    from enum import ReprEnum as Enum
-except ImportError:
-    from enum import Enum
+from enum import Enum
 
 __all__ = ["Metric", "AlphaDiversityMetric", "BetaDiversityMetric"]
 
@@ -15,6 +11,12 @@ T = TypeVar("T", bound="BaseEnum")
 
 
 class BaseEnum(str, Enum):
+    def __repr__(self) -> str:
+        return str(self.value)
+
+    def __str__(self) -> str:
+        return str(self.value)
+
     @classmethod
     def has_value(cls, value):
         return value in cls.values()
