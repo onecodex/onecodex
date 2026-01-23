@@ -5,7 +5,7 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Optional, Union, Literal
 
-from onecodex.exceptions import OneCodexException, PlottingException
+from onecodex.exceptions import OneCodexException, NoTaxaException
 from onecodex.lib.enums import (
     AbundanceMetric,
     AnalysisType,
@@ -490,7 +490,7 @@ class AnalysisMixin(
                 tax_ids_to_keep.append(no_level_name)
 
             if len(tax_ids_to_keep) == 0:
-                raise PlottingException(
+                raise NoTaxaException(
                     f"There are no {rank.value}-level results for the selected samples. Please choose a different rank to plot."
                 )
 
