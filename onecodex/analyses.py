@@ -491,7 +491,7 @@ class AnalysisMixin(
 
             if len(tax_ids_to_keep) == 0:
                 raise NoTaxaException(
-                    f"There are no {rank.value}-level results for the selected samples. Please choose a different rank to plot."
+                    f"There are no {rank.value}-level results for the selected samples. Please choose a different taxonomic rank."
                 )
 
             df = df.loc[:, tax_ids_to_keep]
