@@ -595,6 +595,6 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
             num_permutations=result["number of permutations"],
             sample_size=result["sample size"],
             group_by_variable=group_by_column_name,
-            groups=group_names,
+            groups=set(group_names),
             posthoc=posthoc,
         )
