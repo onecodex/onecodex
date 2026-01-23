@@ -7,7 +7,7 @@ from collections.abc import MutableSequence
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cached_property, lru_cache
-from typing import TYPE_CHECKING, Any, Literal, Optional, overload
+from typing import TYPE_CHECKING, Any, Literal, Optional, Type, overload
 
 from typing_extensions import Annotated, deprecated
 
@@ -92,7 +92,7 @@ class BaseSampleCollection(
                 "Pass to SampleCollection.to_df or SampleCollection.to_classification_df instead"
             ),
         ] = None,
-        default_model: Literal[Samples] | Literal[Classifications] = Samples,
+        default_model: Type[Samples] | Type[Classifications] = Samples,
     ):
         """Instantiate a new SampleCollection containing `Samples` or `Classifications` objects.
 
