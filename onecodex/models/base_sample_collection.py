@@ -191,13 +191,11 @@ class BaseSampleCollection(
     def __contains__(self, other):
         return self._res_list.__contains__(other)
 
-    @property
-    def __repr__(self):
-        return self._res_list.__repr__
+    def __repr__(self) -> str:
+        return f"<SampleCollection of {len(self):,} {self._oc_model.__name__}: {self._res_list}>"
 
-    @property
-    def __len__(self):
-        return self._res_list.__len__
+    def __len__(self) -> int:
+        return len(self._res_list)
 
     def __getitem__(self, x):
         wrapped = self._res_list[x]
