@@ -256,7 +256,7 @@ def test_classifications(ocx, samples):
         samples._classifications
 
 
-def test_classification_fetch_sample_missing_primary_classification(ocx, samples):
+def test_classification_fetch_sample_missing_primary_classification_skip_missing_warns(samples):
     sample = samples._res_list[0]
     object.__setattr__(sample, "primary_classification", None)
 
@@ -264,6 +264,12 @@ def test_classification_fetch_sample_missing_primary_classification(ocx, samples
     with pytest.warns(UserWarning, match=msg):
         samples._classifications
 
+
+def test_classification_fetch_sample_missing_primary_classification_no_skip_missing_raises(samples):
+    sample = samples._res_list[0]
+    object.__setattr__(sample, "primary_classification", None)
+
+    msg = f"Classification not found.*{sample.id}"
     samples._kwargs["skip_missing"] = False
     with pytest.raises(OneCodexException, match=msg):
         samples._classifications
