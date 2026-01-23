@@ -163,7 +163,7 @@ class SampleCollection(BaseSampleCollection):
                 continue
 
             results = Classifications()
-            results.update(summary["api_results"])
+            results.update(summary.get("api_results"))
             results["id"] = summary["uuid"]
             results.id = summary["uuid"]
 
