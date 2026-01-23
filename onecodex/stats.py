@@ -105,7 +105,7 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
         metric: :class:`~onecodex.lib.enums.Metric`, optional
             The taxonomic abundance metric to use. See :class:`~onecodex.lib.enums.Metric`
             for definitions.
-        diversity_metric : :class:`~onecodex.lib.enums.BetaDiversityMetric`
+        diversity_metric : :class:`~onecodex.lib.enums.AlphaDiversityMetric`
             Function to use when calculating the distance between two samples.
         alpha : float, optional
             Threshold to determine statistical significance when `test="kruskal"`
