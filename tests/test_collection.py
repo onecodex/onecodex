@@ -244,16 +244,17 @@ def test_biom(ocx, api_data):
     assert json.loads(json.dumps(biom)) == biom  # tests json serialization
 
 
-def test_classifications(ocx, samples):
+def test_classifications(ocx, classifications):
     # should work with a list of classifications as input, not just samples
-    samples._oc_model = ocx.Classifications
-    samples._res_list = samples._classifications
-    assert len(samples._classifications) == len(samples)
+    assert classifications._oc_model == ocx.Classifications
 
+
+def test_classifications_warn_on_non_successful_classification(classifications):
+    # should work with a list of classifications as input, not just samples
     # should issue a warning if a classification did not succeed
-    object.__setattr__(samples._res_list[0], "success", False)
+    object.__setattr__(classifications._res_list[0], "success", False)
     with pytest.warns(UserWarning, match="not successful"):
-        samples._classifications
+        classifications._classifications
 
 
 def test_classification_fetch_sample_missing_primary_classification_skip_missing_warns(samples):
