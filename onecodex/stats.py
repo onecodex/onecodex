@@ -95,7 +95,7 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
             Metadata variable to pair samples in each group. May only be used with
             `test="wilcoxon"`. If `paired_by` is a tuple or list, field values are joined with an
             underscore character ("_").
-        test : {'auto', 'wilcoxon', 'mannwhitneyu', 'kruskal'}, optional
+        test : :class:`~onecodex.lib.enums.AlphaDiversityStatsTest`, optional
             Stats test to perform. If `'auto'`, `'mannwhitneyu'` will be chosen if there are two
             groups of unpaired data. `'wilcoxon'` will be chosen if there are two groups and
             `paired_by` is specified. `'kruskal'` will be chosen if there are more than 2 groups.
@@ -432,7 +432,7 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
         metric: :class:`~onecodex.lib.enums.Metric`, optional
             The taxonomic abundance metric to use. See :class:`~onecodex.lib.enums.Metric`
             for definitions.
-        diversity_metric : :class:`~onecodex.lib.enums.AlphaDiversityMetric`
+        diversity_metric : :class:`~onecodex.lib.enums.BetaDiversityMetric`
             Function to use when calculating the distance between two samples.
         rank : :class:`~onecodex.lib.enums.Rank`, optional
             Analysis will be restricted to abundances of taxa at the specified level.
