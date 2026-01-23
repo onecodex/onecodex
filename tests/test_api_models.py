@@ -478,18 +478,22 @@ def test_sample_pagination(ocx, custom_mock_requests):
         parsed_url = urlparse(request.url)
         params = parse_qs(parsed_url.query)
 
+        # Samples pagination should use cursor pagination
+        assert request.headers.get("X-Pagination-Style") == "cursor"
+
         # Get per_page from params, default to 200
-        page = int(params.get("page", [0])[0])
+        cursor = int(params.get("cursor", ["0"])[0])
         per_page = int(params.get("per_page", [200])[0])
 
-        # Return only per_page samples
-        start_idx = (page - 1) * per_page
-        end_idx = page * per_page
+        # Return only per_page samples, use naive cursor pagination
+        start_idx = cursor * per_page
+        end_idx = (cursor + 1) * per_page
         paginated_samples = all_samples[start_idx:end_idx]
-        total_samples = len(all_samples)
 
         # Build response headers
-        headers = {"Content-Type": "application/json", "X-Total-Count": str(total_samples)}
+        headers = {"Content-Type": "application/json"}
+        if len(paginated_samples) == per_page:
+            headers["X-Next-Cursor"] = str(cursor + 1)
         return (200, headers, json.dumps(paginated_samples))
 
     # Create custom mock data that uses our callback for the samples endpoint
