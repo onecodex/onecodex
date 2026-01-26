@@ -42,6 +42,12 @@ class PlottingException(OneCodexException):
     pass
 
 
+class NoTaxaException(OneCodexException):
+    """User-facing error for no taxa found for given combination of metrics selected."""
+
+    pass
+
+
 class PlottingWarning(UserWarning):
     """User-facing plotting warning for cases when the user may take action to resolve the issue."""
 

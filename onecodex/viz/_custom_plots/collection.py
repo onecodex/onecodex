@@ -16,6 +16,7 @@ from onecodex.exceptions import (
     PlottingException,
     PlottingWarning,
     ValidationError,
+    NoTaxaException,
 )
 from .enums import PlotRepr, PlotType
 from .metadata import metadata_record_to_label, deduplicate_labels, sort_metadata_records
@@ -203,7 +204,7 @@ class SampleCollection(BaseSampleCollection):
 
             try:
                 result = self._plot(params)
-            except (ValidationError, PlottingException) as e:
+            except (ValidationError, PlottingException, NoTaxaException) as e:
                 # Expected user error
                 return PlotResult(params=params, error=str(e))
             except alt.MaxRowsError:
