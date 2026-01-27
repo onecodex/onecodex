@@ -17,7 +17,7 @@ from onecodex.lib.enums import BetaDiversityMetric
     ],
 )
 def test_alpha_diversity(samples, metric, value):
-    divs = samples.alpha_diversity(metric=metric)
+    divs = samples.alpha_diversity(diversity_metric=metric, metric="abundance_w_children")
     assert isinstance(divs, pd.DataFrame)
     assert divs[metric].tolist() == value
 
@@ -25,13 +25,13 @@ def test_alpha_diversity(samples, metric, value):
 def test_alpha_diversity_exceptions(samples):
     # must be a metric that exists
     with pytest.raises(OneCodexException) as e:
-        samples.alpha_diversity("does_not_exist")
+        samples.alpha_diversity(diversity_metric="does_not_exist")
     assert "metric must be one of" in str(e.value)
 
 
 def test_alpha_diversity_warnings(samples):
     with pytest.warns(DeprecationWarning, match="`Chao1` is deprecated"):
-        samples.alpha_diversity(metric="chao1")
+        samples.alpha_diversity(diversity_metric="chao1")
 
 
 @pytest.mark.parametrize(
@@ -47,7 +47,8 @@ def test_alpha_diversity_warnings(samples):
     ],
 )
 def test_beta_diversity(samples, metric, value, kwargs):
-    dm = samples.beta_diversity(metric=metric, **kwargs)
+    assert samples.automatic_rank(metric="auto") == "species"
+    dm = samples.beta_diversity(rank="species", diversity_metric=metric, **kwargs)
     assert isinstance(dm, skbio.stats.distance._base.DistanceMatrix)
     assert dm.condensed_form().round(6).tolist() == value
 
@@ -57,7 +58,7 @@ def test_beta_diversity_braycurtis_nans(samples):
     mock_df.loc[:, :] = 0
 
     with mock.patch.object(samples, "to_df", return_value=mock_df):
-        dm = samples.beta_diversity(metric=BetaDiversityMetric.BrayCurtis)
+        dm = samples.beta_diversity(diversity_metric=BetaDiversityMetric.BrayCurtis)
 
     assert isinstance(dm, skbio.stats.distance._base.DistanceMatrix)
     assert (dm.condensed_form() == 0.0).all()
@@ -66,7 +67,7 @@ def test_beta_diversity_braycurtis_nans(samples):
 def test_beta_diversity_exceptions(samples):
     # must be a metric that exists
     with pytest.raises(OneCodexException) as e:
-        samples.beta_diversity("does_not_exist")
+        samples.beta_diversity(diversity_metric="does_not_exist")
     assert "metric must be one of" in str(e.value)
 
 
@@ -81,12 +82,13 @@ def test_unifrac(samples, value, weighted):
 
 
 # This tests that Unifrac calculations don't break when `root` has
-# more than one child by mockinga new node that is a direct child
+# more than one child by mocking a new node that is a direct child
 # of `root`. There's a bug in scikit-bio where it requires that
 # the root has only one child, which isn't true in our taxonomy.
 # See onecodex/distances.py for more details.
 def test_unifrac_tree(samples):
-    samples._classifications[0].results()["table"].append(
+    samples[0].primary_classification.results()  # seed _cached_results
+    samples[0].primary_classification._cached_result["table"].append(
         {
             "abundance": None,
             "name": "fake node",
@@ -97,8 +99,9 @@ def test_unifrac_tree(samples):
             "tax_id": "1000000000",
         }
     )
-    samples._collate_results(metric="readcount_w_children")
-    assert samples.to_df().shape[1] == 1081  # make sure our insert worked
+
+    df = samples.to_df(metric="readcount_w_children")
+    assert df.shape[1] == 1081  # make sure our insert worked
 
     dm = samples.unifrac()
     assert isinstance(dm, skbio.stats.distance._base.DistanceMatrix)

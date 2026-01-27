@@ -1,7 +1,7 @@
 import warnings
 from typing import Optional, Literal, Union
 
-from onecodex.lib.enums import AlphaDiversityMetric, Rank, BaseEnum
+from onecodex.lib.enums import AlphaDiversityMetric, Metric, Rank, BaseEnum
 from onecodex.exceptions import OneCodexException, PlottingException, PlottingWarning
 from onecodex.viz._primitives import (
     prepare_props,
@@ -17,10 +17,14 @@ class PlotType(BaseEnum):
     Scatter = "scatter"
 
 
-class VizMetadataMixin(object):
+from onecodex.models.collection import BaseSampleCollection
+
+
+class VizMetadataMixin(BaseSampleCollection):
     def plot_metadata(
         self,
-        rank=Rank.Auto,
+        rank: Union[Rank, str] = Rank.Auto,
+        metric: Union[Metric, str] = Metric.Auto,
         haxis="Label",
         vaxis=AlphaDiversityMetric.Shannon,
         title=None,
@@ -41,66 +45,55 @@ class VizMetadataMixin(object):
 
         Parameters
         ----------
-        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+        rank : :class:`~onecodex.lib.enums.Rank`, optional
             Analysis will be restricted to abundances of taxa at the specified level.
-
+            See :class:`~onecodex.lib.enums.Rank` for details.
+        metric : :class:`~onecodex.lib.enums.Metric`, optional
+            The taxonomic abundance metric to use. See :class:`~onecodex.lib.enums.Metric`
+            for definitions.
         haxis : `string`, optional
             The metadata field (or tuple containing multiple categorical fields) to be plotted on
             the horizontal axis.
-
-        vaxis : `string`, optional
+        vaxis: :class:`~onecodex.lib.enums.AlphaDiversityMetric` or `string` optional
             Data to be plotted on the vertical axis. Can be any one of the following:
-
             - A metadata field: the name of a metadata field containing numerical data
             - {'simpson', 'observed_taxa', 'shannon'}: an alpha diversity statistic to calculate for
               each sample. Note that Shannon diversity is calculated using log base ``e`` (natural
               log).
             - A taxon name: the name of a taxon in the analysis
             - A taxon ID: the ID of a taxon in the analysis
-
         title : `string`, optional
             Text label at the top of the plot.
-
         xlabel : `string`, optional
             Text label along the horizontal axis.
-
         ylabel : `string`, optional
             Text label along the vertical axis.
-
         plot_type : {'auto', 'boxplot', 'scatter'}
             By default, will determine plot type automatically based on the data. Otherwise, specify
             one of 'boxplot' or 'scatter' to set the type of plot manually.
-
         label : `string` or `callable`, optional
             A metadata field (or function) used to label each analysis. If passing a function, a
             dict containing the metadata for each analysis is passed as the first and only
             positional argument. The callable function must return a string.
-
         sort_x : `list` or `callable`, optional
             Either a list of sorted labels or a function that will be called with a list of x-axis labels
             as the only argument, and must return the same list in a user-specified order.
-
         width : `int` or `str`, optional
             Sets `altair.Chart.width`. If `"container"`, chart width will respond to the width of
             the HTML container it is rendered in.
-
         height : `int` or `str`, optional
             Sets `altair.Chart.height`. If `"container"`, chart height will respond to the height of
             the HTML container it is rendered in.
-
         facet_by : `string`, optional
             The metadata field used to facet samples by (i.e. to create a separate subplot for each
             group of samples).
-
         coerce_haxis_dates : `bool`, optional
             If ``True``, ``haxis`` field name(s) containing the word "date" (after splitting on
             underscores) will be coerced to datetime dtype. For example, the field "date_collected"
             will be coerced if ``coerce_haxis_dates`` is ``True``.
-
         secondary_haxis : str or tuple of str, optional
             The secondary metadata field (or tuple containing multiple categorical fields) to be
             plotted on the horizontal axis.
-
         match_taxonomy : `bool`, default=True
             Whether or not to consider taxonomic names when looking for metadata fields mapped to
             plot attributes including `vaxis`, `haxis`, `secondary_axis`, `facet_by`, & `label`
@@ -116,8 +109,13 @@ class VizMetadataMixin(object):
         import altair as alt
         import pandas as pd
 
-        if rank is None:
-            raise OneCodexException("Please specify a rank or 'auto' to choose automatically")
+        metric, rank = self._parse_classification_config_args(metric=metric, rank=rank)
+
+        if len(self._classifications) == 0:
+            raise PlottingException(
+                "There are too few samples for metadata plots after filtering. Please select 1 or "
+                "more samples to plot."
+            )
 
         if not PlotType.has_value(plot_type):
             raise OneCodexException("Plot type must be one of: auto, boxplot, scatter")
@@ -125,11 +123,7 @@ class VizMetadataMixin(object):
         if haxis == secondary_haxis:
             raise OneCodexException("`haxis` and `secondary_haxis` cannot be the same field(s).")
 
-        if len(self._results) == 0:
-            raise PlottingException(
-                "There are too few samples for metadata plots after filtering. Please select 1 or "
-                "more samples to plot."
-            )
+        results_df = self.to_classification_df(metric=metric, rank=rank)
 
         # alpha diversity is only allowed on vertical axis--horizontal can be magically mapped
         metadata_fields = [haxis, "Label"]
@@ -139,21 +133,27 @@ class VizMetadataMixin(object):
             metadata_fields.append(secondary_haxis)
 
         metadata_results = self._metadata_fetch(
-            metadata_fields, label=label, match_taxonomy=match_taxonomy
+            metadata_fields, results_df=results_df, label=label, match_taxonomy=match_taxonomy
         )
         df = metadata_results.df
         magic_fields = metadata_results.renamed_fields
 
-        exclude_classifications_without_abundances = True
+        exclude_classifications_without_abundances = metric.is_abundance_metric
+
         if AlphaDiversityMetric.has_value(vaxis):
-            df.loc[:, vaxis] = self.alpha_diversity(vaxis, rank=rank)
+            df.loc[:, vaxis] = self.alpha_diversity(
+                diversity_metric=vaxis, metric=metric, rank=rank
+            )
             magic_fields[vaxis] = vaxis
             df.dropna(subset=[magic_fields[vaxis]], inplace=True)
         else:
             # if it's not alpha diversity, vertical axis can also be magically mapped
-            vert_metadata_results = self._metadata_fetch([vaxis], match_taxonomy=match_taxonomy)
+            vert_metadata_results = self._metadata_fetch(
+                [vaxis], match_taxonomy=match_taxonomy, results_df=results_df
+            )
             vert_df = vert_metadata_results.df
             vert_magic_fields = vert_metadata_results.renamed_fields
+
             exclude_classifications_without_abundances = (
                 vaxis in vert_metadata_results.taxonomy_fields
             )

@@ -10,6 +10,8 @@ from onecodex.lib.auth import BearerTokenAuth
 from onecodex.utils import collapse_user, init_sentry, get_requests_session
 from onecodex.version import __version__
 
+from typing import TYPE_CHECKING, Type
+
 
 log = logging.getLogger("onecodex")
 
@@ -50,6 +52,48 @@ class Api(object):
 
     Instantiates a Potion-Client object under the hood for making requests.
     """
+
+    # Because models are added dynamically at runtime, static analysis tools will not know about
+    # them. So we add some hints
+
+    if TYPE_CHECKING:
+        from onecodex.models import (
+            Samples as _Samples,
+            Metadata as _Metadata,
+            Classifications as _Classifications,
+            Analyses as _Analyses,
+            Alignments as _Alignments,
+            FunctionalProfiles as _FunctionalProfiles,
+            Panels as _Panels,
+            Users as _Users,
+            Projects as _Projects,
+            Tags as _Tags,
+            Jobs as _Jobs,
+            Documents as _Documents,
+            Assets as _Assets,
+            AnnotationSets as _AnnotationSets,
+            Assemblies as _Assemblies,
+            Genomes as _Genomes,
+            Taxa as _Taxa,
+        )
+
+        Samples: Type[_Samples]
+        Metadata: Type[_Metadata]
+        Classifications: Type[_Classifications]
+        Analyses: Type[_Analyses]
+        Alignments: Type[_Alignments]
+        FunctionalProfiles: Type[_FunctionalProfiles]
+        Panels: Type[_Panels]
+        Users: Type[_Users]
+        Projects: Type[_Projects]
+        Tags: Type[_Tags]
+        Jobs: Type[_Jobs]
+        Documents: Type[_Documents]
+        Assets: Type[_Assets]
+        AnnotationSets: Type[_AnnotationSets]
+        Assemblies: Type[_Assemblies]
+        Genomes: Type[_Genomes]
+        Taxa: Type[_Taxa]
 
     def __init__(
         self,
