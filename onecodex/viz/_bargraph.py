@@ -1,3 +1,5 @@
+from typing import Union
+
 from onecodex.exceptions import OneCodexException, PlottingException
 from onecodex.lib.enums import Link, Metric, Rank
 from onecodex.viz._primitives import (
@@ -10,12 +12,14 @@ from onecodex.viz._primitives import (
     escape_chart_fields,
 )
 
+from onecodex.models.base_sample_collection import BaseSampleCollection
 
-class VizBargraphMixin(object):
+
+class VizBargraphMixin(BaseSampleCollection):
     def plot_bargraph(
         self,
-        rank=Rank.Auto,
-        normalize="auto",
+        rank: Union[Rank, str] = Rank.Auto,
+        metric: Union[Metric, str] = Metric.Auto,
         top_n="auto",
         threshold="auto",
         title=None,
@@ -39,11 +43,12 @@ class VizBargraphMixin(object):
 
         Parameters
         ----------
-        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+        rank : :class:`~onecodex.lib.enums.Rank`, optional
             Analysis will be restricted to abundances of taxa at the specified level.
-        normalize : 'auto' or `bool`, optional
-            Convert read counts to relative abundances such that each sample sums to 1.0. Setting
-            'auto' will choose automatically based on the data.
+            See :class:`~onecodex.lib.enums.Rank` for details.
+        metric : :class:`~onecodex.lib.enums.Metric`, optional
+            The taxonomic abundance metric to use. See :class:`~onecodex.lib.enums.Metric`
+            for definitions.
         return_chart : `bool`, optional
             When True, return an `altair.Chart` object instead of displaying the resulting plot in
             the current notebook.
@@ -97,20 +102,8 @@ class VizBargraphMixin(object):
         # Deferred imports
         import altair as alt
 
-        if rank is None:
-            raise OneCodexException("Please specify a rank or 'auto' to choose automatically")
-
         if not (threshold or top_n):
             raise OneCodexException("Please specify at least one of: threshold, top_n")
-
-        if len(self._results) < 1:
-            raise PlottingException(
-                "There are too few samples for bargraph plots after filtering. Please select 1 or "
-                "more samples to plot."
-            )
-
-        if not normalize and self._guess_normalized():
-            raise OneCodexException("Data has already been normalized and this cannot be undone.")
 
         if group_by:
             if not all(kwarg is None for kwarg in (tooltip, haxis, label, sort_x)):
@@ -121,38 +114,38 @@ class VizBargraphMixin(object):
                 raise OneCodexException(
                     f"Metadata field {group_by} not found. Choose from: {', '.join(self.metadata.keys())}"
                 )
-            if (
-                self._metric in {Metric.Readcount, Metric.ReadcountWChildren}
-                and self._guess_normalized()
-            ):
-                raise OneCodexException(
-                    "`group_by` may not be used with readcounts that have already been normalized."
-                )
+
+        metric, rank = self._parse_classification_config_args(metric=metric, rank=rank)
 
         if include_taxa_missing_rank is None:
-            include_taxa_missing_rank = self._metric in {
-                Metric.ReadcountWChildren,
-                Metric.AbundanceWChildren,
-            }
+            include_taxa_missing_rank = metric.includes_children
+
+        if len(self._classifications) == 0:
+            raise PlottingException(
+                "There are too few samples for bargraph plots after filtering. "
+                "Please select 1 or more samples to plot."
+            )
 
         # We're intentionally *not* normalizing or filtering by top_n/threshold in to_df() in case
         # group_by was passed. Grouping samples needs to happen *before* normalization.
-        df = self.to_df(
+        metric, rank = self._parse_classification_config_args(metric=metric, rank=rank)
+        df = self.to_classification_df(
             rank=rank,
-            top_n=None,
-            threshold=None,
-            normalize=None,
+            metric=metric,
             include_taxa_missing_rank=include_taxa_missing_rank,
         )
-        pretty_metric_name = self.metric
+
+        pretty_metric_name = self._display_name_for_metric(metric=metric)
 
         if group_by:
+            # calculate per-group mean of each taxon
+
             df = df.fillna(0.0).join(self.metadata[group_by]).groupby(group_by, dropna=False).mean()
+
             # Nicer display for missing metadata values than `null`
             df.index = df.index.fillna("N/A")
             pretty_metric_name = f"Mean {pretty_metric_name}"
 
-        if normalize and (not self._guess_normalized() or group_by):
             # Replace nans with zeros for samples that have a total abundance of zero.
             df = df.div(df.sum(axis=1), axis=0).fillna(0.0)
 
@@ -174,7 +167,7 @@ class VizBargraphMixin(object):
         if top_n:
             df = df.loc[:, df.mean().sort_values(ascending=False).iloc[:top_n].index]
 
-        if include_other and normalize:
+        if include_other:
             # if there are no abundances in the dataframe, df.apply will yield
             # a single item that has `None` as its name. Therefore, we must
             # check if row.name is None AND whether or not the row name is
@@ -211,7 +204,7 @@ class VizBargraphMixin(object):
             # takes metadata columns and returns a dataframe with just those columns
             # renames columns in the case where columns are taxids
             metadata_results = self._metadata_fetch(
-                tooltip, label=label, match_taxonomy=match_taxonomy
+                tooltip, results_df=df, label=label, match_taxonomy=match_taxonomy
             )
             magic_metadata = metadata_results.df
             magic_fields = metadata_results.renamed_fields
@@ -288,7 +281,8 @@ class VizBargraphMixin(object):
             encode_kwargs["href"] = "url:N"
 
         y_scale_kwargs = {"zero": True, "nice": False}
-        if normalize:
+
+        if metric.is_normalized:
             y_scale_kwargs["domain"] = [0, 1]
 
         chart = (

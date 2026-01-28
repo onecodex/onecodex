@@ -1,21 +1,43 @@
+from __future__ import annotations
+
 import warnings
+from typing import TYPE_CHECKING
 
 from onecodex.exceptions import OneCodexException
+from onecodex.lib.enums import (
+    AlphaDiversityMetric,
+    BetaDiversityMetric,
+    Metric,
+    Rank,
+)
+from onecodex.models.base_sample_collection import BaseSampleCollection
 from onecodex.taxonomy import TaxonomyMixin
-from onecodex.lib.enums import AlphaDiversityMetric, BetaDiversityMetric, Rank
+
+if TYPE_CHECKING:
+    import pandas as pd
+    import skbio.stats.distance.DistanceMatrix
+    import sklearn.metrics.DistanceMetric
 
 
-class DistanceMixin(TaxonomyMixin):
-    def alpha_diversity(self, metric=AlphaDiversityMetric.Shannon, rank=Rank.Auto):
+class DistanceMixin(BaseSampleCollection, TaxonomyMixin):
+    def alpha_diversity(
+        self,
+        metric: Metric = Metric.Auto,
+        rank=Rank.Auto,
+        diversity_metric: AlphaDiversityMetric = AlphaDiversityMetric.Shannon,
+    ) -> pd.DataFrame:
         """Calculate the diversity within a community.
 
         Parameters
         ----------
-        metric : {'simpson', 'observed_taxa', 'shannon'}
-            The diversity metric to calculate. Note that Shannon diversity is calculated using log
-            base ``e`` (natural log).
-        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+        rank : :class:`~onecodex.lib.enums.Rank`, optional
             Analysis will be restricted to abundances of taxa at the specified level.
+            See :class:`~onecodex.lib.enums.Rank` for details.
+        metric: :class:`~onecodex.lib.enums.Metric`, optional
+            The taxonomic abundance metric to use. See :class:`~onecodex.lib.enums.Metric`
+            for definitions.
+        diversity_metric : :class:`~onecodex.lib.enums.AlphaDiversityMetric`
+            Function to use when calculating the distance between two samples.
 
         Returns
         -------
@@ -24,36 +46,48 @@ class DistanceMixin(TaxonomyMixin):
         import pandas as pd
         import skbio.diversity
 
-        if not AlphaDiversityMetric.has_value(metric):
+        if not AlphaDiversityMetric.has_value(diversity_metric):
             raise OneCodexException(
                 "For alpha diversity, metric must be one of: {}".format(
                     ", ".join(AlphaDiversityMetric.values())
                 )
             )
 
-        if metric == "chao1":
+        if diversity_metric == AlphaDiversityMetric.Chao1:
             warnings.warn(
                 "`Chao1` is deprecated and will be removed in a future release. Please use `observed_taxa` instead.",
                 DeprecationWarning,
             )
 
-        df = self.to_df(rank=rank, normalize=self._guess_normalized())
+        metric, rank = self._parse_classification_config_args(metric=metric, rank=rank)
+        df = self.to_df(rank=rank, metric=metric)
 
-        skbio_metric = "sobs" if metric == "observed_taxa" else metric
+        # special-case mapping to skbio value
+        skbio_metric = (
+            "sobs" if diversity_metric == AlphaDiversityMetric.ObservedTaxa else diversity_metric
+        )
         output = skbio.diversity.alpha_diversity(skbio_metric, df.values, df.index, validate=False)
 
-        return pd.DataFrame(output, columns=[metric])
+        return pd.DataFrame(output, columns=[diversity_metric])
 
-    def beta_diversity(self, metric=BetaDiversityMetric.BrayCurtis, rank=Rank.Auto):
+    def beta_diversity(
+        self,
+        metric: Metric = Metric.Auto,
+        rank: Rank = Rank.Auto,
+        diversity_metric: BetaDiversityMetric = BetaDiversityMetric.BrayCurtis,
+    ) -> skbio.stats.distance.DistanceMatrix:
         """Calculate the diversity between two communities.
 
         Parameters
         ----------
-        metric : {'jaccard', 'braycurtis', 'cityblock', 'manhattan', 'aitchison'}
-            The distance metric to calculate.
-            Note that 'cityblock' and 'manhattan' are equivalent metrics.
-        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+        rank : :class:`~onecodex.lib.enums.Rank`, optional
             Analysis will be restricted to abundances of taxa at the specified level.
+            See :class:`~onecodex.lib.enums.Rank` for details.
+        metric: :class:`~onecodex.lib.enums.Metric`, optional
+            The taxonomic abundance metric to use. See :class:`~onecodex.lib.enums.Metric`
+            for definitions.
+        diversity_metric : :class:`~onecodex.lib.enums.BetaDiversityMetric`
+            Function to use when calculating the distance between two samples.
 
         Returns
         -------
@@ -61,29 +95,32 @@ class DistanceMixin(TaxonomyMixin):
         """
         import skbio.diversity
 
-        if not BetaDiversityMetric.has_value(metric):
+        if not BetaDiversityMetric.has_value(diversity_metric):
             raise OneCodexException(
                 "For beta diversity, metric must be one of: {}".format(
                     ", ".join(BetaDiversityMetric.values())
                 )
             )
 
-        if metric == BetaDiversityMetric.WeightedUnifrac:
-            return self.unifrac(weighted=True, rank=rank)
-        elif metric == BetaDiversityMetric.UnweightedUnifrac:
-            return self.unifrac(weighted=False, rank=rank)
-        elif metric == BetaDiversityMetric.Aitchison:
-            return self.aitchison_distance(rank=rank)
+        if diversity_metric == BetaDiversityMetric.WeightedUnifrac:
+            return self.unifrac(weighted=True, metric=metric, rank=rank)
+        elif diversity_metric == BetaDiversityMetric.UnweightedUnifrac:
+            return self.unifrac(weighted=False, metric=metric, rank=rank)
+        elif diversity_metric == BetaDiversityMetric.Aitchison:
+            return self.aitchison_distance(metric=metric, rank=rank)
 
-        df = self.to_df(rank=rank, normalize=self._guess_normalized())
+        metric, rank = self._parse_classification_config_args(metric=metric, rank=rank)
+        df = self.to_df(rank=rank, metric=metric)
 
-        if metric == BetaDiversityMetric.Jaccard:
+        if diversity_metric == BetaDiversityMetric.Jaccard:
             df = df > 0  # Jaccard requires a boolean matrix, otherwise it throws a warning
 
         # NOTE: see #291 for a discussion on using these metrics with normalized read counts. we are
         # explicitly disabling skbio's check for a counts matrix to allow normalized data to make
         # its way into this function.
-        skbio_metric = "cityblock" if metric == "manhattan" else metric
+        skbio_metric = (
+            "cityblock" if diversity_metric == BetaDiversityMetric.Manhattan else diversity_metric
+        )
         return skbio.diversity.beta_diversity(
             skbio_metric,
             df.values,
@@ -92,7 +129,12 @@ class DistanceMixin(TaxonomyMixin):
             pairwise_func=self._pairwise_distances,
         )
 
-    def _pairwise_distances(self, abundances, metric):
+    def _pairwise_distances(
+        self,
+        abundances,
+        # must be called metric and not diversity_metric (this gets called by skbio)
+        metric: sklearn.metrics.DistanceMetric,
+    ) -> skbio.stats.distance.DistanceMatrix:
         import numpy as np
         from scipy.spatial.distance import pdist, squareform
 
@@ -123,7 +165,7 @@ class DistanceMixin(TaxonomyMixin):
 
         return distance_matrix
 
-    def unifrac(self, weighted=True, rank=Rank.Auto):
+    def unifrac(self, metric: Metric = Metric.Auto, rank: Rank = Rank.Auto, weighted: bool = True):
         """Calculate the UniFrac beta diversity metric.
 
         UniFrac takes into account the relatedness of community members. Weighted UniFrac considers
@@ -131,28 +173,33 @@ class DistanceMixin(TaxonomyMixin):
 
         Parameters
         ----------
+        metric : :class:`~onecodex.lib.enums.Metric`, optional
+            The taxonomic abundance metric to use. See :class:`~onecodex.lib.enums.Metric`
+            for definitions.
+        rank : :class:`~onecodex.lib.enums.Rank`, optional
+            Analysis will be restricted to abundances of taxa at the specified level.
+            See :class:`~onecodex.lib.enums.Rank` for details.
         weighted : `bool`
             Calculate the weighted (True) or unweighted (False) distance metric.
-        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
-            Analysis will be restricted to abundances of taxa at the specified level.
 
         Returns
         -------
         skbio.stats.distance.DistanceMatrix, a distance matrix.
         """
         import skbio.diversity
+        from skbio.tree import TreeNode
 
-        df = self.to_df(rank=rank, normalize=self._guess_normalized(), fill_missing=True)
+        metric, rank = self._parse_classification_config_args(metric=metric, rank=rank)
+        df = self.to_df(rank=rank, metric=metric, fill_missing=True)
 
-        ocx_rank = df.ocx_rank
         # The scikit-bio implementations of phylogenetic metrics require integer counts
-        if self._guess_normalized():
+        if metric.is_normalized:
             df = df * 10e9
 
         tax_ids = df.keys().tolist()
 
         tree = self.tree_build()
-        tree = self.tree_prune_rank(tree, rank=ocx_rank)
+        tree = self.tree_prune_rank(tree, rank=rank)
 
         # `scikit-bio` requires that the tree root has no more than 2
         # children, otherwise it considers it "unrooted".
@@ -161,7 +208,6 @@ class DistanceMixin(TaxonomyMixin):
         #
         # Our taxonomy root regularly has more than 2 children, so we
         # add a fake parent of `root` to the tree here.
-        from skbio.tree import TreeNode
 
         new_tree = TreeNode(name="fake root")
         new_tree.rank = "no rank"
@@ -186,7 +232,9 @@ class DistanceMixin(TaxonomyMixin):
                 taxa=tax_ids,
             )
 
-    def aitchison_distance(self, rank=Rank.Auto):
+    def aitchison_distance(
+        self, metric: Metric = Metric.Auto, rank: Rank = Rank.Auto
+    ) -> skbio.stats.distance.DistanceMatrix:
         """Calculate the Aitchison distance between samples.
 
         Aitchison distance is the Euclidean distance between centre logratio-normalized samples (abundances).
@@ -195,21 +243,25 @@ class DistanceMixin(TaxonomyMixin):
 
         Parameters
         ----------
-        rank : {'auto', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'}, optional
+        metric : :class:`~onecodex.lib.enums.Metric`, optional
+            The taxonomic abundance metric to use. See :class:`~onecodex.lib.enums.Metric`
+            for definitions.
+        rank : :class:`~onecodex.lib.enums.Rank`, optional
             Analysis will be restricted to abundances of taxa at the specified level.
+            See :class:`~onecodex.lib.enums.Rank` for details.
 
         Returns
         -------
         skbio.stats.distance.DistanceMatrix, a distance matrix.
         """
         import numpy as np
-        from skbio.stats.composition import multi_replace, clr
-        from sklearn.metrics.pairwise import euclidean_distances
+        from skbio.stats.composition import clr, multi_replace
         from skbio.stats.distance import DistanceMatrix
+        from sklearn.metrics.pairwise import euclidean_distances
 
-        df = self.to_df(
-            rank=rank, normalize=self._guess_normalized()
-        )  # get a dataframe of abundances
+        metric, rank = self._parse_classification_config_args(metric=metric, rank=rank)
+        df = self.to_df(metric=metric, rank=rank)
+
         df_n0 = multi_replace(df)  # replace 0s with positive small numbers
         df_n0_clr = clr(df_n0)  # clr-normalize
         aitchison_array = euclidean_distances(df_n0_clr, df_n0_clr)  # get the euclidean distances
