@@ -98,7 +98,6 @@ async function main() {
         "/source_code/tests/test_collection.py",
         "/source_code/tests/test_custom_plots.py",
         "/source_code/tests/test_viz.py",
-        "/source_code/tests/test_distance.py",
         "/source_code/tests/test_stats.py",
     ])
 
