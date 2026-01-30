@@ -6,6 +6,13 @@ async function main() {
   pyodide.FS.mount(pyodide.FS.filesystems.NODEFS, { root: "../" }, "/source_code");
 
   await pyodide.loadPackage("micropip");
+
+  // Installing libs from pyproject.toml
+  //
+  // Some are just DQL libs (like ruff) and are not needed for running tests.
+  //
+  // There is a special hack for scikit-bio. It has an int overflow bug and the fix
+  // is not released yet.
   await pyodide.runPythonAsync(`
     import tomllib
     from pathlib import Path
@@ -51,6 +58,7 @@ async function main() {
             await micropip.install(package)
   `);
 
+  // Mocking some libraries
   pyodide.runPython(`
     import sys, types
 
@@ -80,6 +88,7 @@ async function main() {
     sys.modules["biom"].Table = NoOp
   `);
 
+  // Actually running the tests
   await pyodide.runPythonAsync(`
     import sys
     import os
