@@ -3,7 +3,7 @@ import { loadPyodide } from "pyodide";
 async function main() {
   let pyodide = await loadPyodide();
   pyodide.FS.mkdir("/source_code");
-  pyodide.FS.mount(pyodide.FS.filesystems.NODEFS, { root: "../" }, "/source_code");
+  pyodide.FS.mount(pyodide.FS.filesystems.NODEFS, { root: "../../" }, "/source_code");
 
   await pyodide.loadPackage("micropip");
 
@@ -38,7 +38,6 @@ async function main() {
                 return False
         return True
 
-    await micropip.install("h5py")
     await micropip.install(
         "https://static.onecodex.com/app/pyodide/v0.29.0/"
         "scikit_bio-0.7.1.post7-cp313-cp313-pyodide_2025_0_wasm32.whl",
@@ -74,12 +73,13 @@ async function main() {
             return NoOp()
 
     mocked_modules = [
-        "filelock",
+        "array_api_compat",
         "biom",
+        "filelock",
+        "h5py",
+        "nbformat",
         "sentry_sdk",
         "sqlite3",
-        "array_api_compat",
-        "nbformat",
     ]
 
     for module in mocked_modules:
