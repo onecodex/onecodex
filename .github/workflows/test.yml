@@ -97,10 +97,10 @@ jobs:
           node-version: "22"
       - name: Install dependencies
         run: npm ci
-        working-directory: wasm_test_runner
+        working-directory: tests/wasm_test_runner
       - name: Run WASM tests
         run: npm run main
-        working-directory: wasm_test_runner
+        working-directory: tests/wasm_test_runner
 
   import-times:
     runs-on: ubuntu-latest
