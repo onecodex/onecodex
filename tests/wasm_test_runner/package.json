@@ -1,0 +1,16 @@
+{
+  "name": "ocx_wasm_test_runner",
+  "version": "1.0.0",
+  "description": "A helper to run onecodex lib's tests using WASM runtime.",
+  "license": "MIT",
+  "author": "One Codex",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "main": "node .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "pyodide": "^0.29.3"
+  }
+}
