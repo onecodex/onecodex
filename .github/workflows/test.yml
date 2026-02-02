@@ -98,7 +98,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
         working-directory: tests/wasm_test_runner
-      - name: Run WASM tests
+      - name: Run some tests using WASM env
         run: npm run main
         working-directory: tests/wasm_test_runner
 
