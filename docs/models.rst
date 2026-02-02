@@ -26,7 +26,7 @@ Models
 ``FunctionalProfiles``
 ======================
 
-.. autoclass:: onecodex.models.misc.FunctionalProfiles
+.. autoclass:: onecodex.models.analysis.FunctionalProfiles
    :members:
    :show-inheritance:
 
