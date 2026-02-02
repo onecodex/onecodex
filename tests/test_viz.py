@@ -1106,3 +1106,10 @@ def test_plot_bargraph_include_taxa_missing_rank(
         normalize=None,
         include_taxa_missing_rank=expected_include_taxa_missing_rank,
     )
+
+
+def test_which_fails_in_wasm():
+    a = np.intp((32 - 1) ** 2 - 1)
+    b = np.intp(2)
+
+    assert a * b > 0
