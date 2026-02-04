@@ -226,12 +226,21 @@ async def _fetch_with_retries(
     # retries or large response payloads. It also generates console errors about setting request
     # headers that are blocked by the browser.
     for attempt in range(retries + 1):
-        resp = await asyncio.wait_for(pyfetch(url, method=method, headers=headers), timeout=timeout)
-        if attempt < retries and resp.status in status_forcelist:
-            delay = backoff_factor * (2**attempt)  # exponential backoff
-            await asyncio.sleep(delay)
-        else:
-            return resp
+        try:
+            resp = await asyncio.wait_for(
+                pyfetch(url, method=method, headers=headers), timeout=timeout
+            )
+            if attempt < retries and resp.status in status_forcelist:
+                delay = backoff_factor * (2**attempt)  # exponential backoff
+                await asyncio.sleep(delay)
+            else:
+                return resp
+        except TimeoutError:
+            if attempt < retries:
+                delay = backoff_factor * (2**attempt)  # exponential backoff
+                await asyncio.sleep(delay)
+            else:
+                raise
 
 
 __all__ = ["init", "plot"]
