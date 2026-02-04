@@ -20,7 +20,7 @@ from onecodex.models.helpers import (
 # This Pydantic magic callable needs to be removed
 _EXCLUDE_PYDANTIC_CALLABLES = {"model_post_init"}
 
-DEFAULT_PAGE_SIZE = 200
+DEFAULT_PAGE_SIZE = 100
 
 
 class AllowedMethods(TypedDict, total=False):
@@ -342,31 +342,49 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
         # n (and not instantiate all the available which is what would happen if we just sliced)
         instances = []
 
+        # TODO: This feels like a hack and should be moved up into the model/allowed_methods attribute
+        instances_suffix = ""
+        if instances_route == "instances_public":
+            instances_suffix = "/public"
+        elif instances_route == "instances_organization":
+            instances_suffix = "/organization"
+
+        use_cursor_pagination = getattr(cls, "_use_cursor_pagination", False)
+
         page = 1
+        next_cursor = None
         while True:
-            # TODO: This feels like a hack and should be moved up into the model/allowed_methods attribute
-            instances_suffix = ""
-            if instances_route == "instances_public":
-                instances_suffix = "/public"
-            elif instances_route == "instances_organization":
-                instances_suffix = "/organization"
+            headers = {}
+            params = {
+                "where": json.dumps(where),
+                "sort": json.dumps(sort),
+                "per_page": DEFAULT_PAGE_SIZE,
+                "expand": "all",
+            }
+            if use_cursor_pagination:
+                headers["X-Pagination-Style"] = "cursor"
+                if next_cursor:
+                    params["cursor"] = next_cursor
+            else:
+                params["page"] = page
 
             resp = cls._client.get(
                 f"{cls._api._base_url}{cls._resource_path}{instances_suffix}",
-                params={
-                    "where": json.dumps(where),
-                    "sort": json.dumps(sort),
-                    "page": page,
-                    "per_page": DEFAULT_PAGE_SIZE,
-                    "expand": "all",
-                },
+                params=params,
+                headers=headers,
             )
             resp.raise_for_status()
             instances.extend(cls.model_validate(r) for r in resp.json())
             n_instances = len(instances)
             if limit is not None and n_instances >= limit:
                 break
-            if n_instances >= int(resp.headers.get("X-Total-Count", 0)):
+
+            if use_cursor_pagination:
+                if "X-Next-Cursor" not in resp.headers:
+                    break
+                else:
+                    next_cursor = resp.headers["X-Next-Cursor"]
+            elif n_instances >= int(resp.headers.get("X-Total-Count", 0)):
                 break
             page += 1
 

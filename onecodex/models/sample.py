@@ -72,10 +72,12 @@ class Metadata(OneCodexBase, MetadataSchema):
     _allowed_methods = {
         "update": MetadataPatchSchema,
     }
+    _use_cursor_pagination = True
 
 
 class _SampleSchema(SampleSchema):
     _resource_path = "/api/v1/samples"
+    _use_cursor_pagination = True
 
     # Use ApiRef for all reference fields
     owner: Union[Users, ApiRef]
