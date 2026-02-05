@@ -512,7 +512,7 @@ def test_sample_pagination(ocx, custom_mock_requests):
         with mock.patch("onecodex.models.base.DEFAULT_PAGE_SIZE", 10):
             samples = ocx.Samples.all()
             assert len(samples) == 80
-            assert len(responses.calls) == 8
+            assert len(responses.calls) == 9
 
 
 def test_invalid_sample(ocx, custom_mock_requests):
