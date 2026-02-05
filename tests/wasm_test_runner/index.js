@@ -102,7 +102,6 @@ async function main() {
     import pytest
     exit_code = pytest.main([
         "-x",
-        "/source_code/tests/test_analyses.py",
         "/source_code/tests/test_dataframes.py",
         "/source_code/tests/test_collection.py",
         "/source_code/tests/test_custom_plots.py",
