@@ -4,6 +4,57 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.0.0] - 2026-02-09
+
+This release contains breaking changes to plotting and classification results functions such as how `SampleCollection` is instantiated and how `metric`, `diversity_metric`, and `rank` are passed to `SampleCollection.to_df` and plotting functions.
+
+Previously, `metric` and `normalize` were determined when a `SampleCollection` was instantiated. Now, those parameters are passed to `.to_df` and plotting functions separately, allowing users to change metrics at plot time.
+
+**Example:**
+
+```python
+##
+# in 0.19.x
+collection = onecodex.models.SampleCollection(samples, metric='readcount_w_children', normalize=True)
+# produce a dataframe using readcount_w_children as the metric
+collection.to_df()
+# to plot a different metric, create a new SampleCollection
+collection = onecodex.models.SampleCollection(samples, metric='abundance_w_children')
+collection.plot_bargraph()
+
+##
+# in 1.0.0
+collection = onecodex.models.SampleCollection(samples)
+collection.to_df(metric='normalized_readcount_w_children')
+# switch metrics without re-instantiating
+collection.plot_bargraph(metric='abundance_w_children')
+# for backwards compatibility, the following still works but prints a warning
+collection = onecodex.models.SampleCollection(samples, metric='readcount_w_children')
+# defaults to the metric provided when the collection was created
+collection.to_df()
+```
+
+### Added
+- `metric` is now an argument for all plot and stats functions. By default, it is `auto`, which is determined by `SampleCollection.automatic_metric` based on existing logic
+- `SampleCollection.__repr__` has been updated to differentiate it from lists: `<SampleCollection[Samples] length=60 : [<Samples 0b2d0b5397324841: "SRR4408293.fastq">, ...`
+- Added type annotations to `onecodex.Api()` so that models are now known to static analyzers (e.g., `ocx.Samples`)
+- `SampleCollection.automatic_rank` now returns the best default `onecodex.enums.Rank` to use based on the contained results
+- `SampleCollection.automatic_metric` now returns the best `onecodex.enums.Metric` value to use based on the contained results
+
+### Changed
+- You can change plotting metrics without re-instantiating the `SampleCollection`
+- In alpha- and beta-diversity related functions (e.g., `plot_mds`), the argument `metric` was changed to either `diversity_metric` or `distance_metric`. The `metric` argument in those functions now corresponds to the abundance metric (see `onecodex.enums.Metric`)
+
+### Removed
+- `ClassificationDataframe.ocx` has been removed
+- `SampleCollection()` no longer takes `metric` or `normalize` arguments. Those have been merged into a single `metric=` argument that takes a string or `onecodex.enums.Metric` enum value, which is now passed into dataframe and plotting functions directly
+- `normalize` has been removed. Normalized metrics are now available as individual `Metric` enum values
+- Removed `test-python3-w-simple-json` from CI. It randomly started breaking. We don't think we need it anymore since we've moved away from Potion
+
+### Fixed
+- `readcount` being used instead of the intended metric when clustering samples for PCA/Heatmap when plotting from a `SampleCollection`
+- Plot title and table export column names have been updated to be more specific and match custom plots
+
 ## [v0.19.5] - 2026-02-06
 
 ### Changed
