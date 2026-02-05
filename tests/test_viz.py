@@ -387,10 +387,10 @@ def test_plot_pca_missing_abundances(ocx, api_data, samples, samples_without_abu
     assert len(samples._classification_ids_without_abundances) == 3
 
     with pytest.warns(PlottingWarning, match=r"3 sample\(s\) have no abundances calculated"):
-        samples.plot_pca(metric="abundance")
+        samples.plot_pca(metric="abundance", return_chart=True)
 
     # non abundance-based metric, no warning
-    samples.plot_pca(metric="readcount")
+    samples.plot_pca(metric="readcount", return_chart=True)
 
 
 def test_plot_pca_exceptions(samples):
@@ -696,7 +696,7 @@ def test_plot_mds_missing_abundances(ocx, api_data, samples, samples_without_abu
     assert len(samples._classification_ids_without_abundances) == 2
 
     with pytest.warns(PlottingWarning, match=r"2 sample\(s\) have no abundances calculated"):
-        samples.plot_mds(metric="abundance")
+        samples.plot_mds(metric="abundance", return_chart=True)
 
 
 def test_plot_pcoa(samples):
