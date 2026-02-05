@@ -44,6 +44,7 @@ collection.to_df()
 ### Changed
 - You can change plotting metrics without re-instantiating the `SampleCollection`
 - In alpha- and beta-diversity related functions (e.g., `plot_mds`), the argument `metric` was changed to either `diversity_metric` or `distance_metric`. The `metric` argument in those functions now corresponds to the abundance metric (see `onecodex.enums.Metric`)
+- `onecodex.notebooks.report` functions no longer raise a `OneCodexException` if used outside of IPython.
 
 ### Removed
 - `ClassificationDataframe.ocx` has been removed
