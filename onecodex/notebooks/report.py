@@ -1,4 +1,5 @@
 import datetime
+import warnings
 
 from onecodex.exceptions import OneCodexException
 
@@ -189,7 +190,9 @@ class legend(object):
                 ipy = get_ipython()
                 self.fignum = ipy.meta.get("figure_count", 0) + 1
             except NameError:
-                raise OneCodexException("Must be run from within IPython")
+                warnings.warn(
+                    "Report functionality does not work outside of IPython/Jupyter", UserWarning
+                )
 
             ipy.meta["figure_count"] = self.fignum
         else:
@@ -277,12 +280,13 @@ class reference(object):
             ipy = get_ipython()
             self.ref_list = ipy.meta.get("references", {})
         except NameError:
-            raise OneCodexException("Must be run from within IPython")
+            warnings.warn(
+                "Report functionality does not work outside of IPython/Jupyter", UserWarning
+            )
 
         if text:
             # has this reference already been cited?
             for ref_label, (ref_num, ref_text) in self.ref_list.items():
-                print(ref_label, ref_num, ref_text)
                 if text == ref_text:
                     if label and label != ref_label:
                         raise OneCodexException(
@@ -344,7 +348,9 @@ class bibliography(object):
             ipy = get_ipython()
             ref_list = ipy.meta.get("references", {})
         except NameError:
-            raise OneCodexException("Must be run from within IPython")
+            warnings.warn(
+                "Report functionality does not work outside of IPython/Jupyter", UserWarning
+            )
 
         self.ref_list = ref_list
 

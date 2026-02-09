@@ -11,7 +11,10 @@ from onecodex.viz._primitives import (
 )
 
 
-class VizFunctionalHeatmapMixin(object):
+from onecodex.models.base_sample_collection import BaseSampleCollection
+
+
+class VizFunctionalHeatmapMixin(BaseSampleCollection):
     def plot_functional_heatmap(
         self,
         top_n=10,
@@ -34,13 +37,13 @@ class VizFunctionalHeatmapMixin(object):
         ----------
         top_n : `int`, optional
             Display the top N most abundant or covered functions in the entire cohort of samples.
-        annotation : `FunctionalAnnotations` or `str`, optional
-            {'go', 'eggnog', 'ko', 'ec', 'pfam', 'pathways'}
+        annotation : :class:`onecodex.lib.enums.FunctionalAnnotations` or `str`, optional
+            {'go', 'eggnog', 'ec', 'pfam', 'pathways'}
             Annotation sub-database used to group gene families by.
-        metric : `FunctionalAnnotationsMetric` or `str`, optional
+        metric : :class:`onecodex.lib.enums.FunctionalAnnotationsMetric` or `str`, optional
             {'cpm', 'rpk', 'abundance', 'coverage'}
             Normalization or value to display.
-            If annotation is one of 'go', 'eggnog', 'ko', 'ec' or 'pfam', then available metrics include
+            If annotation is one of 'go', 'eggnog', 'ec' or 'pfam', then available metrics include
                 'rpk' (read counts normalized by kilobase of gene length), or
                 'cpm' (relative copy of gene depth, normalized to a million RPK total).
             If pathways are selected for annotation, then available metrics include
@@ -133,12 +136,13 @@ class VizFunctionalHeatmapMixin(object):
         }
 
         metadata["functional_profile_id"] = [
-            sample_id_to_functional_profile_id.get(sample_id) for sample_id in metadata["sample_id"]
+            sample_id_to_functional_profile_id[sample_id]
+            if sample_id in sample_id_to_functional_profile_id
+            else None
+            for sample_id in metadata["sample_id"]
         ]
 
-        metadata = metadata.dropna(subset=["functional_profile_id"]).set_index(
-            "functional_profile_id"
-        )
+        metadata = metadata.set_index("functional_profile_id")
 
         df = df.join(metadata, validate="one_to_one", how="left")
 

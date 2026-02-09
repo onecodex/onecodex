@@ -50,6 +50,13 @@ def test_sample_int_id(ocx, api_data):
     assert sample.id == "0111111111111110"
 
 
+def test_samples_without_abundances(samples_without_abundances):
+    for sample in samples_without_abundances:
+        results = sample.primary_classification.results()
+        for row in results["table"]:
+            assert row.get("abundance") is None, sample.primary_classification.id
+
+
 def test_sample_get(ocx, api_data):
     sample = ocx.Samples.get("761bc54b97f64980")
     assert sample.size == 302369471
@@ -456,14 +463,14 @@ def test_sample_preupload(ocx, upload_mocks, api_data):
 def test_sample_pagination_with_limit(ocx, api_data):
     samples = ocx.Samples.where(limit=1)
     assert len(samples) == 1
-    assert samples[0].id == "7428cca4a3a04a8e"
+    assert samples[0].id == "7428cca4nocaffe1"
 
     samples = ocx.Samples.where(limit=2)
     assert len(samples) == 2
-    assert samples[1].id == "014deb3cfcd94630"
+    assert samples[1].id == "7428cca4nocaffe2"
 
     samples = ocx.Samples.all()
-    assert len(samples) == 77
+    assert len(samples) == 80
 
 
 def test_sample_pagination(ocx, custom_mock_requests):
@@ -504,8 +511,8 @@ def test_sample_pagination(ocx, custom_mock_requests):
     with custom_mock_requests(mock_data):
         with mock.patch("onecodex.models.base.DEFAULT_PAGE_SIZE", 10):
             samples = ocx.Samples.all()
-            assert len(samples) == 77
-            assert len(responses.calls) == 8
+            assert len(samples) == 80
+            assert len(responses.calls) == 9
 
 
 def test_invalid_sample(ocx, custom_mock_requests):

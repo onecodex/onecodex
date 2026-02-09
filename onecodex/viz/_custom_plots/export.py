@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 METRIC_COLUMNS = [
     "Reads",
     "Mean Reads",
-    "Reads (Normalized)",
+    "Readcount With Children",
     "Relative Abundance",
     "Mean Relative Abundance",
 ]

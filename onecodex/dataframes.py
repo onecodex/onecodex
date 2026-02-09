@@ -1,7 +1,5 @@
 import pandas as pd
 
-from onecodex.analyses import AnalysisMixin
-
 
 class ClassificationsDataFrame(pd.DataFrame):
     """A DataFrame containing additional One Codex metadata.
@@ -47,6 +45,7 @@ class ClassificationsDataFrame(pd.DataFrame):
         "ocx_taxonomy",
         "ocx_metadata",
         "ocx_normalized",
+        "ocx_threshold",
         "ocx_classification_ids_without_abundances",
     ]
 
@@ -62,6 +61,7 @@ class ClassificationsDataFrame(pd.DataFrame):
         ocx_taxonomy=None,
         ocx_metadata=None,
         ocx_normalized=None,
+        ocx_threshold=None,
         ocx_classification_ids_without_abundances=None,
     ):
         self.ocx_rank = ocx_rank
@@ -69,6 +69,7 @@ class ClassificationsDataFrame(pd.DataFrame):
         self.ocx_taxonomy = ocx_taxonomy
         self.ocx_metadata = ocx_metadata
         self.ocx_normalized = ocx_normalized
+        self.ocx_threshold = ocx_threshold
         self.ocx_classification_ids_without_abundances = ocx_classification_ids_without_abundances
 
         super().__init__(data=data, index=index, columns=columns, dtype=dtype, copy=copy)
@@ -220,54 +221,3 @@ class FunctionalSeries(pd.Series):
     @property
     def _constructor_expanddim(self):
         return FunctionalDataFrame
-
-
-@pd.api.extensions.register_dataframe_accessor("ocx")
-class OneCodexAccessor(AnalysisMixin):
-    """A pandas accessor object with One Codex methods and metadata.
-
-    Accessor object alllowing access of `AnalysisMixin` methods from the 'ocx' namespace of a
-    `ClassificationsDataFrame`.
-
-    Notes
-    -----
-    When instantiated, the accessor will prune the taxonomic tree back to contain only taxa
-    referenced in the classification results (i.e., self._results). Similarly, metadata is sliced
-    such that it contains only those `Classifications.id` in the results. This is because users may
-    filter or modify the classification results to remove classification results (i.e., rows) or
-    taxa (i.e., cols) from the `ClassificationsDataFrame` before accessing this namespace.
-    """
-
-    def __init__(self, pandas_obj):
-        self.metadata = pandas_obj.ocx_metadata
-        self._results = pandas_obj
-        # copy data from the ClassificationsDataFrame to a new instance of AnalysisMethods
-        if isinstance(pandas_obj, ClassificationsDataFrame):
-            self.taxonomy = pandas_obj.ocx_taxonomy
-            self._normalized = pandas_obj.ocx_normalized
-            self._metric = pandas_obj.ocx_metric
-            self._rank = pandas_obj.ocx_rank
-
-            self._ocx_classification_ids_without_abundances = (
-                pandas_obj.ocx_classification_ids_without_abundances
-            )
-
-            # prune back _taxonomy df to contain only taxa and parents
-            # in the ClassificationsDataFrame
-            tree = self.tree_build()
-
-            if "classification_id" in self._results.columns and "tax_id" in self._results.columns:
-                tree = self.tree_prune_tax_ids(tree, self._results["tax_id"].drop_duplicates())
-
-                # similarly restrict _metadata df to contain only data relevant to samples in the df
-                self.metadata = self.metadata.loc[
-                    self._results["classification_id"].drop_duplicates()
-                ]
-            else:
-                tree = self.tree_prune_tax_ids(tree, self._results.columns)
-                self.metadata = self.metadata.loc[self._results.index]
-
-            tax_ids_to_keep = [x.name for x in tree.traverse()]
-            self.taxonomy = self.taxonomy.loc[tax_ids_to_keep]
-        elif isinstance(pandas_obj, FunctionalDataFrame):
-            self.feature_name_map = pandas_obj.ocx_feature_name_map
