@@ -238,10 +238,12 @@ class Samples(OneCodexBase, _SampleSchema, ResourceDownloadMixin):
         Parameters
         ----------
         metadata : `dict`, optional
+
         tags : `list`, optional
             A list of optional tags to create. Tags must be passed as dictionaries with a single key
             `name` and the tag name, e.g., {"name": "my tag"}. New tags will be created on-the-fly
             as needed.
+
         project : `string`, optional
             UUID of project to associate this sample with.
         """
@@ -278,19 +280,26 @@ class Samples(OneCodexBase, _SampleSchema, ResourceDownloadMixin):
             A single path to a file on the system, or a tuple containing a pairs of paths. Tuple
             values  will be interleaved as paired-end reads and both files should contain the same
             number of records. Paths to single files will be uploaded as-is.
+
         metadata : `dict`, optional
+
         tags : `list`, optional
             A list of optional tags to create. Tags must be passed as dictionaries with a single key
             `name` and the tag name, e.g., {"name": "my tag"}. New tags will be created on-the-fly
             as needed.
+
         project : `string`, optional
             UUID of project to associate this sample with.
+
         coerce_ascii : `bool`, optional
             If true, rename unicode filenames to ASCII and issue warning.
+
         progressbar : `click.progressbar`, optional
             If passed, display a progress bar using Click.
+
         sample_id : `string`, optional
             If passed, will upload the file(s) to the sample with that id. Only works if the sample was pre-uploaded
+
         external_sample_id : `string`, optional
             If passed, will upload the file(s) to the sample with that metadata external id. Only works if the sample was pre-uploaded
 

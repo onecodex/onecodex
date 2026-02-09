@@ -37,45 +37,58 @@ class VizFunctionalHeatmapMixin(BaseSampleCollection):
         ----------
         top_n : `int`, optional
             Display the top N most abundant or covered functions in the entire cohort of samples.
+
         annotation : :class:`onecodex.lib.enums.FunctionalAnnotations` or `str`, optional
             {'go', 'eggnog', 'ec', 'pfam', 'pathways'}
             Annotation sub-database used to group gene families by.
+
         metric : :class:`onecodex.lib.enums.FunctionalAnnotationsMetric` or `str`, optional
             {'cpm', 'rpk', 'abundance', 'coverage'}
             Normalization or value to display.
-            If annotation is one of 'go', 'eggnog', 'ec' or 'pfam', then available metrics include
-                'rpk' (read counts normalized by kilobase of gene length), or
-                'cpm' (relative copy of gene depth, normalized to a million RPK total).
-            If pathways are selected for annotation, then available metrics include
-                'abundance' (summed copy numbers of reactions' constituent enzymes)
-                'coverage' (probabilistic measure of a complete metabolic pathway,
-                    where 1 is high confidence that a complete pathway is covered, and 0 is low confidence)
+            - If annotation is one of 'go', 'eggnog', 'ec' or 'pfam', then available metrics include
+            'rpk' (read counts normalized by kilobase of gene length), or
+            'cpm' (relative copy of gene depth, normalized to a million RPK total).
+            - If pathways are selected for annotation, then available metrics include 'abundance'
+            (summed copy numbers of reactions' constituent enzymes) 'coverage' (probabilistic
+            measure of a complete metabolic pathway, where 1 is high confidence that a complete
+            pathway is covered, and 0 is low confidence)
+
         sort_x : `list` or `callable`, optional
             Either a list of sorted labels or a function that will be called with a list of x-axis labels
             as the only argument, and must return the same list in a user-specified order.
+
         label : `str` or `callable`, optional
             A metadata field (or function) used to label each analysis. If passing a function, a
             dict containing the metadata for each analysis is passed as the first and only
             positional argument. The callable function must return a string.
+
         function_label : `str`, optional
             {'name', 'id' }
             Used to label functions. Defaults to `name`.
+
         haxis : `string`, optional
             The metadata field (or tuple containing multiple categorical fields) used to facet
             samples.
+
         return_chart : `bool`, optional
             When True, return an `altair.Chart` object instead of displaying the resulting plot in
             the current notebook.
+
         xlabel : `str, optional
             Text label along the horizontal axis.
+
         ylabel : `str, optional
             Text label along the vertical axis.
+
         title : `str`, optional
             Text label at the top of the plot.
+
         width : `float` or `str` or `dict`, optional
             Set `altair.Chart.width`.
+
         height : `float` or `str` or `dict`, optional
             Set `altair.Chart.height`.
+
         """
         # Deferred imports
         import altair as alt
