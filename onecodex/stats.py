@@ -38,7 +38,7 @@ class AlphaDiversityStatsResults:
     - `groups`: names of the groups defined by `group_by_variable`
     - `paired_by_variable`: name of the variable used to pair samples by (if the data were
     paired)
-    - `posthoc`: :class:`~onecodex.status.PosthocResults`
+    - `posthoc`: :class:`~onecodex.stats.PosthocResults`
     """
 
     test: AlphaDiversityStatsTest
@@ -71,7 +71,7 @@ class BetaDiversityStatsResults:
     - `sample_size`: number of samples used in the test after filtering
     - `group_by_variable`: name of the variable used to group samples by
     - `groups`: names of the groups defined by `group_by_variable`
-    - `posthoc`: :class:`~onecodex.status.PosthocResults`
+    - `posthoc`: :class:`~onecodex.stats.PosthocResults`
     """
 
     test: BetaDiversityStatsTest
@@ -480,7 +480,7 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
 
         Returns
         -------
-        :class:`~onecodex.status.BetaDiversityStatsResults`
+        :class:`~onecodex.stats.BetaDiversityStatsResults`
 
         See Also
         --------
