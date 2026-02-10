@@ -1,15 +1,13 @@
-name: Publish Github Pages
-
+name: Build Docs (+ publish on master)
 on:
   push:
     branches: [master]
-
+  pull_request:
 # Cancel any in-progress job or run
 # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#concurrency
 concurrency:
   group: gh-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
   pages:
     runs-on: ubuntu-24.04
@@ -31,4 +29,4 @@ jobs:
           documentation_path: ./docs
           requirements_path: ./docs/requirements.txt
           cache: true
-          publish: true
+          publish: ${{ github.ref == 'refs/heads/master' }}
