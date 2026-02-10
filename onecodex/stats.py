@@ -62,7 +62,7 @@ class AlphaDiversityStatsResults:
 
 @dataclass(frozen=True)
 class BetaDiversityStatsResults:
-    """A dataclass for storing the results of ra beta diversity test.
+    """A dataclass for storing the results of a beta diversity test.
 
     - `test`: stats test that was performed
     - `statistic`: PERMANOVA pseudo-F test statistic
@@ -94,7 +94,7 @@ class PosthocResults:
     index and columns are sorted group names.
     - `adjusted_pvalues`: `pd.DataFrame` containing pairwise PERMANOVA *adjusted*
     p-values. p-values are adjusted for false discovery rate using Benjamini-Hochberg.
-    The index columns are sorted group names.
+    The index and columns are sorted group names.
     """
 
     adjusted_pvalues: pd.DataFrame
