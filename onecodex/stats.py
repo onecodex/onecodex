@@ -28,6 +28,19 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class AlphaDiversityStatsResults:
+    """A dataclass for storing the results of an alpha diversity stats test.
+
+    - `test`: stats test that was performed
+    - `statistic`: computed test statistic (e.g. U statistic if `test="mannwhitneyu"`)
+    - `pvalue`: computed p-value
+    - `sample_size`: number of samples used in the test after filtering
+    - `group_by_variable`: name of the variable used to group samples by
+    - `groups`: names of the groups defined by `group_by_variable`
+    - `paired_by_variable`: name of the variable used to pair samples by (if the data were
+    paired)
+    - `posthoc`: :class:`~onecodex.stats.PosthocResults`
+    """
+
     test: AlphaDiversityStatsTest
     statistic: float
     pvalue: float
@@ -49,6 +62,18 @@ class AlphaDiversityStatsResults:
 
 @dataclass(frozen=True)
 class BetaDiversityStatsResults:
+    """A dataclass for storing the results of a beta diversity test.
+
+    - `test`: stats test that was performed
+    - `statistic`: PERMANOVA pseudo-F test statistic
+    - `pvalue`: p-value based on `num_permutations`
+    - `num_permutations`: number of permutations used to compute `pvalue`
+    - `sample_size`: number of samples used in the test after filtering
+    - `group_by_variable`: name of the variable used to group samples by
+    - `groups`: names of the groups defined by `group_by_variable`
+    - `posthoc`: :class:`~onecodex.stats.PosthocResults`
+    """
+
     test: BetaDiversityStatsTest
     statistic: float
     pvalue: float
@@ -61,6 +86,17 @@ class BetaDiversityStatsResults:
 
 @dataclass(frozen=True)
 class PosthocResults:
+    """A dataclass for storing results from the post-host correction of a statistical test.
+
+    - `statistics`: `pd.DataFrame` containing pairwise PERMANOVA pseudo-F statistics. The
+    index and columns are sorted group names.
+    - `pvalues`: `pd.DataFrame` containing pairwise PERMANOVA *unadjusted* p-values. The
+    index and columns are sorted group names.
+    - `adjusted_pvalues`: `pd.DataFrame` containing pairwise PERMANOVA *adjusted*
+    p-values. p-values are adjusted for false discovery rate using Benjamini-Hochberg.
+    The index and columns are sorted group names.
+    """
+
     adjusted_pvalues: pd.DataFrame
     pvalues: Optional[pd.DataFrame] = None
     statistics: Optional[pd.DataFrame] = None
@@ -91,22 +127,28 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
         group_by : str or tuple of str or list of str
             Metadata variable to group samples by. At least two groups are required. If `group_by`
             is a tuple or list, field values are joined with an underscore character ("_").
+
         paired_by : str or tuple of str or list of str, optional
             Metadata variable to pair samples in each group. May only be used with
             `test="wilcoxon"`. If `paired_by` is a tuple or list, field values are joined with an
             underscore character ("_").
+
         test : :class:`~onecodex.lib.enums.AlphaDiversityStatsTest`, optional
             Stats test to perform. If `'auto'`, `'mannwhitneyu'` will be chosen if there are two
             groups of unpaired data. `'wilcoxon'` will be chosen if there are two groups and
             `paired_by` is specified. `'kruskal'` will be chosen if there are more than 2 groups.
+
         rank : :class:`~onecodex.lib.enums.Rank`, optional
             Analysis will be restricted to abundances of taxa at the specified level.
             See :class:`~onecodex.lib.enums.Rank` for details.
+
         metric: :class:`~onecodex.lib.enums.Metric`, optional
             The taxonomic abundance metric to use. See :class:`~onecodex.lib.enums.Metric`
             for definitions.
+
         diversity_metric : :class:`~onecodex.lib.enums.AlphaDiversityMetric`
             Function to use when calculating the distance between two samples.
+
         alpha : float, optional
             Threshold to determine statistical significance when `test="kruskal"`
             (e.g. p < `alpha`). Must be between 0 and 1 (exclusive). If the Kruskal-Wallis p-value
@@ -114,20 +156,7 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
 
         Returns
         -------
-        AlphaDiversityStatsResults
-            A dataclass with these attributes:
-            - `test`: stats test that was performed
-            - `statistic`: computed test statistic (e.g. U statistic if `test="mannwhitneyu"`)
-            - `pvalue`: computed p-value
-            - `sample_size`: number of samples used in the test after filtering
-            - `group_by_variable`: name of the variable used to group samples by
-            - `groups`: names of the groups defined by `group_by_variable`
-            - `paired_by_variable`: name of the variable used to pair samples by (if the data were
-              paired)
-            - `posthoc`: A dataclass with these attributes (if posthoc results were computed):
-              - `adjusted_pvalues`: `pd.DataFrame` containing Dunn test *adjusted* p-values.
-                p-values are adjusted for false discovery rate using Benjamini-Hochberg. The index
-                and columns are sorted group names.
+        :class:`~onecodex.stats.AlphaDiversityStatsResults`
 
         See Also
         --------
@@ -429,40 +458,29 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
         group_by : str or tuple of str or list of str
             Metadata variable to group samples by. At least two groups are required. If `group_by`
             is a tuple or list, field values are joined with an underscore character ("_").
+
         metric: :class:`~onecodex.lib.enums.Metric`, optional
             The taxonomic abundance metric to use. See :class:`~onecodex.lib.enums.Metric`
             for definitions.
+
         diversity_metric : :class:`~onecodex.lib.enums.BetaDiversityMetric`
             Function to use when calculating the distance between two samples.
+
         rank : :class:`~onecodex.lib.enums.Rank`, optional
             Analysis will be restricted to abundances of taxa at the specified level.
             See :class:`~onecodex.lib.enums.Rank` for details.
+
         alpha : float, optional
             Threshold to determine statistical significance (e.g. p < `alpha`). Must be between 0
             and 1 (exclusive). If the p-value is significant and there are more than two groups,
             posthoc pairwise PERMANOVA tests are performed.
+
         num_permutations : int, optional
             Number of permutations to use when computing the p-value.
 
         Returns
         -------
-        BetaDiversityStatsResults
-            A dataclass with these attributes:
-            - `test`: stats test that was performed
-            - `statistic`: PERMANOVA pseudo-F test statistic
-            - `pvalue`: p-value based on `num_permutations`
-            - `num_permutations`: number of permutations used to compute `pvalue`
-            - `sample_size`: number of samples used in the test after filtering
-            - `group_by_variable`: name of the variable used to group samples by
-            - `groups`: names of the groups defined by `group_by_variable`
-            - `posthoc`: A dataclass with these attributes (if posthoc results were computed):
-              - `statistics`: `pd.DataFrame` containing pairwise PERMANOVA pseudo-F statistics. The
-                index and columns are sorted group names.
-              - `pvalues`: `pd.DataFrame` containing pairwise PERMANOVA *unadjusted* p-values. The
-                index and columns are sorted group names.
-              - `adjusted_pvalues`: `pd.DataFrame` containing pairwise PERMANOVA *adjusted*
-                p-values. p-values are adjusted for false discovery rate using Benjamini-Hochberg.
-                The index columns are sorted group names.
+        :class:`~onecodex.stats.BetaDiversityStatsResults`
 
         See Also
         --------
