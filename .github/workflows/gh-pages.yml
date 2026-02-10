@@ -11,10 +11,7 @@ concurrency:
 jobs:
   pages:
     runs-on: ubuntu-24.04
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+    environment: ${{ github.ref == 'refs/heads/master' && 'github-pages' || null }}
     permissions:
       pages: write
       id-token: write
