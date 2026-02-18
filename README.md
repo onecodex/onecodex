@@ -3,7 +3,9 @@
 [![test](https://github.com/onecodex/onecodex/actions/workflows/test.yml/badge.svg)](https://github.com/onecodex/onecodex/actions/workflows/test.yml)
 [![pre-commit](https://github.com/onecodex/onecodex/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/onecodex/onecodex/actions/workflows/pre-commit.yml)
 
-Command line interface (CLI) and Python client library for interacting with the One Codex v1 API ([API docs](https://docs.onecodex.com)).
+Command line interface (CLI) and Python client library for interacting with the One Codex v1 API.
+
+**Documentation: [API](https://docs.onecodex.com) | [Python](https://onecodex.github.io/onecodex/)**
 
 MAINTAINERS: [@clausmith](https://github.com/clausmith), [@boydgreenfield](https://github.com/boydgreenfield)
 
