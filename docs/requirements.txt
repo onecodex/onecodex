@@ -3,4 +3,5 @@ nbsphinx
 sphinx-rtd-theme
 myst-parser
 sphinxext-altair
+sphinx-llms-txt
 -e .[all,reports]
