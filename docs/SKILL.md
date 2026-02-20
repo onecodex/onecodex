@@ -219,8 +219,8 @@ samples = ocx.Samples.where(...)
 # SLOW
 samples = [ ocx.Samples.get(_id) for _id in subset_ids ]
 
-# FAST
-samples = ocx.Samples.where({'id': { '$in': subset_ids }})
+# NOTE: filtering by id with $in is not supported; fetch by ID individually if needed
+# samples = ocx.Samples.where({'id': { '$in': subset_ids }})  # does NOT work
 
 classifications = [s.primary_classification for s in samples]
 
@@ -612,7 +612,7 @@ df_genus = samples.to_classification_df(
 )
 
 # Long format for statistical analysis
-df_long = samples.to_classification_df(long_format=True)
+df_long = samples.to_classification_df(table_format="long")
 # Columns: classification_id, tax_id, abundance, tax_name
 ```
 
