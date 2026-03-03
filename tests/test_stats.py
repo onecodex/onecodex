@@ -8,7 +8,12 @@ import pandas as pd
 import skbio
 
 from onecodex.exceptions import OneCodexException, StatsException, StatsWarning
-from onecodex.lib.enums import AlphaDiversityMetric, AlphaDiversityStatsTest, BetaDiversityStatsTest
+from onecodex.lib.enums import (
+    AlphaDiversityMetric,
+    AlphaDiversityStatsTest,
+    BetaDiversityStatsTest,
+    Metric,
+)
 from onecodex.models.collection import SampleCollection
 from onecodex.stats import AlphaDiversityStatsResults, PosthocResults
 
@@ -48,8 +53,14 @@ def test_missing_group_by_data(samples, method, group_by, num_groups):
 @pytest.mark.parametrize(
     "method,kwargs",
     [
-        ("alpha_diversity_stats", {"diversity_metric": AlphaDiversityMetric.ObservedTaxa}),
-        ("beta_diversity_stats", {}),
+        (
+            "alpha_diversity_stats",
+            {
+                "diversity_metric": AlphaDiversityMetric.ObservedTaxa,
+                "metric": Metric.AbundanceWChildren,
+            },
+        ),
+        ("beta_diversity_stats", {"metric": Metric.AbundanceWChildren}),
     ],
 )
 def test_samples_missing_abundances(samples_without_abundances, method, kwargs):
@@ -59,6 +70,31 @@ def test_samples_missing_abundances(samples_without_abundances, method, kwargs):
     with (
         pytest.warns(StatsWarning, match="3 samples.*missing abundance"),
         pytest.raises(StatsException, match="`group_by` must have at least 2 groups.*found 0"),
+    ):
+        getattr(samples_without_abundances, method)(group_by="col", **kwargs)
+
+
+@pytest.mark.parametrize(
+    "method,kwargs",
+    [
+        (
+            "alpha_diversity_stats",
+            {
+                "diversity_metric": AlphaDiversityMetric.ObservedTaxa,
+                "metric": Metric.ReadcountWChildren,
+            },
+        ),
+        ("beta_diversity_stats", {"metric": Metric.ReadcountWChildren}),
+    ],
+)
+def test_samples_missing_abundance_readcount_metric(samples_without_abundances, method, kwargs):
+    """If using a non abundance-based metric; no warning about missing abundances should be issued"""
+    for sample, col in zip(samples_without_abundances, ["a", "b", "a"]):
+        sample.metadata.custom["col"] = col
+
+    with (
+        pytest.warns(StatsWarning, match="1 sample was excluded*"),
+        pytest.raises(StatsException, match="`group_by` must have at least 2 groups.*found 1"),
     ):
         getattr(samples_without_abundances, method)(group_by="col", **kwargs)
 

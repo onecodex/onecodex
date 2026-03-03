@@ -213,7 +213,8 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
             df = self._drop_missing_data(df, paired_by_column_name, "paired_by")
 
         # Drop samples missing abundance data
-        df = self._drop_classifications_without_abundances(df)
+        if metric.is_abundance_metric:
+            df = self._drop_classifications_without_abundances(df)
 
         # Drop groups of size < 2
         # NOTE: it's important to do this filtering *after* the other filters in case those filters
@@ -506,7 +507,8 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
         df = self._drop_missing_data(df, group_by_column_name, "group_by")
 
         # Drop samples missing abundance data
-        df = self._drop_classifications_without_abundances(df)
+        if metric.is_abundance_metric:
+            df = self._drop_classifications_without_abundances(df)
 
         # Drop groups of size < 2
         # NOTE: it's important to do this filtering *after* the other filters in case those filters
