@@ -543,7 +543,7 @@ def test_plot_distance_excludes_classifications_without_abundances(
     all_samples = samples + samples_without_abundances
 
     with pytest.warns(UserWarning):
-        chart = all_samples.plot_distance(return_chart=True)
+        chart = all_samples.plot_distance(return_chart=True, metric=Metric.AbundanceWChildren)
 
     classification_ids = set(chart.hconcat[1].data["classification_id"].values)
 
