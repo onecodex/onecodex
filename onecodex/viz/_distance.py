@@ -4,6 +4,7 @@ import warnings
 from itertools import chain
 from typing import TYPE_CHECKING, Callable, Union
 
+from onecodex.dataframes import ClassificationsDataFrame
 from onecodex.distance import DistanceMixin
 from onecodex.exceptions import OneCodexException, PlottingException, PlottingWarning
 from onecodex.lib.enums import BetaDiversityMetric, Linkage, Metric, OrdinationMethod, Rank
@@ -77,7 +78,7 @@ class VizDistanceMixin(DistanceMixin):
 
     def _cluster_by_sample(
         self,
-        results_df: pd.DataFrame,
+        results_df: ClassificationsDataFrame,
         diversity_metric: BetaDiversityMetric = BetaDiversityMetric.BrayCurtis,
         linkage=Linkage.Average,
         exclude_classifications_without_abundances=False,
