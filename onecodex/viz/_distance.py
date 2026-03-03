@@ -65,7 +65,7 @@ class VizDistanceMixin(DistanceMixin):
                 "distance_metric must be one of: {}".format(", ".join(BetaDiversityMetric.values()))
             )
 
-        if exclude_classifications_without_abundances:
+        if metric.is_abundance_metric and exclude_classifications_without_abundances:
             ids = [
                 classification_id
                 for classification_id in distances.ids
@@ -87,7 +87,7 @@ class VizDistanceMixin(DistanceMixin):
         from scipy.spatial.distance import squareform
         from sklearn.metrics.pairwise import euclidean_distances
 
-        if exclude_classifications_without_abundances:
+        if results_df.ocx_metric.is_abundance_metric and exclude_classifications_without_abundances:
             # subset in case we're plotting a facet
             classification_ids_without_abundances = [
                 x for x in self._classification_ids_without_abundances if x in results_df.index
@@ -265,7 +265,7 @@ class VizDistanceMixin(DistanceMixin):
             exclude_classifications_without_abundances=True,
         )
 
-        if self._classification_ids_without_abundances:
+        if metric.is_abundance_metric and self._classification_ids_without_abundances:
             warnings.warn(
                 f"{len(self._classification_ids_without_abundances)} sample(s) have no abundances "
                 "calculated and have been omitted from the distance heatmap.",

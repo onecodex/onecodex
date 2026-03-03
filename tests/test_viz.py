@@ -554,6 +554,20 @@ def test_plot_distance_excludes_classifications_without_abundances(
     assert len(classification_ids ^ {s.primary_classification.id for s in samples}) == 0
 
 
+def test_plot_distance_handles_classifications_without_abundances_different_metric(
+    ocx, api_data, samples, samples_without_abundances
+):
+    # does not emit a warning
+    chart = samples_without_abundances.plot_distance(
+        metric="readcount_w_children", return_chart=True
+    )
+
+    classification_ids = set(chart.hconcat[1].data["classification_id"].values)
+
+    # all analyses are present
+    assert len(classification_ids) == len(samples_without_abundances)
+
+
 def test_plot_distance_min_with_abundances(ocx, api_data, samples, samples_without_abundances):
     # We should raise a PlottingException if we don't have >= 2 samples with abundances calculated
     with pytest.raises(PlottingException) as e:
