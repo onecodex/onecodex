@@ -115,7 +115,10 @@ class VizDistanceMixin(DistanceMixin):
         scipy_tree = hierarchy.dendrogram(clustering, no_plot=True)
         ids_in_order = [df.index[int(x)] for x in scipy_tree["ivl"]]
 
-        if not exclude_classifications_without_abundances:
+        if (
+            results_df.ocx_metric.is_abundance_metric
+            and not exclude_classifications_without_abundances
+        ):
             ids_in_order += self._classification_ids_without_abundances
 
         return {
