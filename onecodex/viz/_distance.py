@@ -4,6 +4,7 @@ import warnings
 from itertools import chain
 from typing import TYPE_CHECKING, Callable, Union
 
+from onecodex.dataframes import ClassificationsDataFrame
 from onecodex.distance import DistanceMixin
 from onecodex.exceptions import OneCodexException, PlottingException, PlottingWarning
 from onecodex.lib.enums import BetaDiversityMetric, Linkage, Metric, OrdinationMethod, Rank
@@ -65,7 +66,7 @@ class VizDistanceMixin(DistanceMixin):
                 "distance_metric must be one of: {}".format(", ".join(BetaDiversityMetric.values()))
             )
 
-        if exclude_classifications_without_abundances:
+        if metric.is_abundance_metric and exclude_classifications_without_abundances:
             ids = [
                 classification_id
                 for classification_id in distances.ids
@@ -77,7 +78,7 @@ class VizDistanceMixin(DistanceMixin):
 
     def _cluster_by_sample(
         self,
-        results_df: pd.DataFrame,
+        results_df: ClassificationsDataFrame,
         diversity_metric: BetaDiversityMetric = BetaDiversityMetric.BrayCurtis,
         linkage=Linkage.Average,
         exclude_classifications_without_abundances=False,
@@ -87,7 +88,7 @@ class VizDistanceMixin(DistanceMixin):
         from scipy.spatial.distance import squareform
         from sklearn.metrics.pairwise import euclidean_distances
 
-        if exclude_classifications_without_abundances:
+        if results_df.ocx_metric.is_abundance_metric and exclude_classifications_without_abundances:
             # subset in case we're plotting a facet
             classification_ids_without_abundances = [
                 x for x in self._classification_ids_without_abundances if x in results_df.index
@@ -114,7 +115,10 @@ class VizDistanceMixin(DistanceMixin):
         scipy_tree = hierarchy.dendrogram(clustering, no_plot=True)
         ids_in_order = [df.index[int(x)] for x in scipy_tree["ivl"]]
 
-        if not exclude_classifications_without_abundances:
+        if (
+            results_df.ocx_metric.is_abundance_metric
+            and not exclude_classifications_without_abundances
+        ):
             ids_in_order += self._classification_ids_without_abundances
 
         return {
@@ -265,7 +269,7 @@ class VizDistanceMixin(DistanceMixin):
             exclude_classifications_without_abundances=True,
         )
 
-        if self._classification_ids_without_abundances:
+        if metric.is_abundance_metric and self._classification_ids_without_abundances:
             warnings.warn(
                 f"{len(self._classification_ids_without_abundances)} sample(s) have no abundances "
                 "calculated and have been omitted from the distance heatmap.",
