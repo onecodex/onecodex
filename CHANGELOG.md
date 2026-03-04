@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.0.1] - 2026-03-04
+
+### Fixed
+
+- Samples without abundances were filtered out of heatmaps and stats functions
+  when using non-abundance metrics
+
 ## [v1.0.0] - 2026-02-09
 
 This release contains breaking changes to plotting and classification results functions such as how `SampleCollection` is instantiated and how `metric`, `diversity_metric`, and `rank` are passed to `SampleCollection.to_df` and plotting functions.
