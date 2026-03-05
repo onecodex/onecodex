@@ -4,7 +4,6 @@ import warnings
 from itertools import chain
 from typing import TYPE_CHECKING, Callable, Union
 
-from onecodex.dataframes import ClassificationsDataFrame
 from onecodex.distance import DistanceMixin
 from onecodex.exceptions import OneCodexException, PlottingException, PlottingWarning
 from onecodex.lib.enums import BetaDiversityMetric, Linkage, Metric, OrdinationMethod, Rank
@@ -18,6 +17,8 @@ from onecodex.viz._primitives import (
 
 if TYPE_CHECKING:
     import pandas as pd
+
+    from onecodex.dataframes import ClassificationsDataFrame
 
 
 class VizDistanceMixin(DistanceMixin):
