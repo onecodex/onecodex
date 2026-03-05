@@ -26,6 +26,7 @@ extensions = [
     "myst_parser",
     "sphinxext_altair.altairplot",
     "sphinx.ext.mathjax",
+    "sphinx_llms_txt",
 ]
 
 nbsphinx_execute = "always"
@@ -46,6 +47,7 @@ html_theme_options = {"collapse_navigation": True, "navigation_depth": 2}
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_static_path = ["_static"]
+html_extra_path = ["SKILL.md"]
 
 # Set default options for autodoc directives
 autodoc_default_options = {

@@ -28,6 +28,7 @@ client, see the :doc:`readme`. You can find the source code on `GitHub
    Models <models>
    Enums <enums>
    notebooks
+   LLM Reference <skill>
 
    GitHub <https://github.com/onecodex/onecodex>
 
