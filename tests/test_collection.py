@@ -6,7 +6,9 @@ import pytest
 
 pytest.importorskip("pandas")  # noqa
 
-from onecodex.exceptions import OneCodexException
+from unittest.mock import patch
+
+from onecodex.exceptions import OneCodexException, NoTaxaException
 from onecodex.lib.enums import Metric, Rank
 from onecodex.models import Classifications
 from onecodex.models.collection import SampleCollection
@@ -362,3 +364,28 @@ def test_automatic_metric_majority_rules(samples, samples_without_abundances):
 
 def test_automatic_metric_majority_lacking_abundance_estimates(samples, samples_without_abundances):
     assert samples_without_abundances.automatic_metric == Metric.NormalizedReadcountWChildren
+
+
+def test_to_classification_df_no_taxa_exception(samples):
+    original_results, tax_info = samples._collate_results(
+        metric="readcount_w_children",
+        include_host=False,
+    )
+
+    species_tax_ids = [
+        tax_id
+        for tax_id in original_results.columns
+        if samples.taxonomy.loc[tax_id, "rank"] == "species"
+    ]
+    results_without_species = original_results.drop(columns=species_tax_ids)
+
+    with patch.object(type(samples), "_collate_results") as mock_results:
+        mock_results.return_value = (results_without_species, tax_info)
+
+        with pytest.raises(
+            NoTaxaException, match="There are no species-level results for the selected samples"
+        ):
+            samples.to_classification_df(rank="species")
+
+        # Different rank does not raise exception
+        samples.to_classification_df(rank="genus")

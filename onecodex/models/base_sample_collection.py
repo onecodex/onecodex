@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, Literal, Optional, Type, overload
 
 from typing_extensions import Annotated, deprecated
 
-from onecodex.exceptions import OneCodexException
+from onecodex.exceptions import NoTaxaException, OneCodexException
 from onecodex.lib.enums import (
     AnalysisType,
     FunctionalAnnotations,
@@ -1125,7 +1125,10 @@ class BaseSampleCollection(
                 tax_ids_to_keep.append(no_level_name)
 
             if len(tax_ids_to_keep) == 0:
-                raise OneCodexException(f"No taxa kept--is rank ({rank.value}) correct?")
+                raise NoTaxaException(
+                    f"There are no {rank.value}-level results for the selected samples. "
+                    "Please choose a different taxonomic rank."
+                )
 
             df = df.loc[:, tax_ids_to_keep]
 
