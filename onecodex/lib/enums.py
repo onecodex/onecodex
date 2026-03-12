@@ -285,6 +285,15 @@ class BetaDiversityStatsTest(BaseEnum):
     Permanova = "permanova"
 
 
+class PosthocStatsTest(BaseEnum):
+    Dunn = "dunn"
+    PairwisePermanova = "pairwise_permanova"
+
+
+class AdjustmentMethod(BaseEnum):
+    BenjaminiHochberg = "benjamini_hochberg"
+
+
 class AnalysisType(BaseEnum):
     """Analysis types supported by :meth:`~onecodex.models.collection.SampleCollection.to_df`."""
 

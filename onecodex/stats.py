@@ -13,6 +13,8 @@ from onecodex.lib.enums import (
     AlphaDiversityStatsTest,
     BetaDiversityMetric,
     BetaDiversityStatsTest,
+    AdjustmentMethod,
+    PosthocStatsTest,
 )
 from onecodex.models.base_sample_collection import BaseSampleCollection
 
@@ -21,34 +23,44 @@ if TYPE_CHECKING:
     import skbio
 
 
-# TODO when min Python version is >=3.10, create a base class with
-# @dataclass(frozen=True, kw_only=True) and have AlphaDiversityStatsResults and
-# BetaDiversityStatsResults inherit from it
+@dataclass(frozen=True, kw_only=True)
+class StatsResults:
+    statistic: float
+    pvalue: float
+    alpha: float
+    sample_size: int
+    group_by_variable: str
+    group_sizes: dict[str, int]
+    posthoc: Optional[PosthocResults] = None
+
+    @property
+    def groups(self) -> set[str]:
+        warnings.warn(
+            "`groups` is deprecated and will be removed in a future release. Please use "
+            "`group_sizes` instead.",
+            DeprecationWarning,
+        )
+        return set(self.group_sizes)
 
 
-@dataclass(frozen=True)
-class AlphaDiversityStatsResults:
+@dataclass(frozen=True, kw_only=True)
+class AlphaDiversityStatsResults(StatsResults):
     """A dataclass for storing the results of an alpha diversity stats test.
 
     - `test`: stats test that was performed
     - `statistic`: computed test statistic (e.g. U statistic if `test="mannwhitneyu"`)
     - `pvalue`: computed p-value
+    - `alpha`: threshold to determine statistical significance when `test="kruskal"`
     - `sample_size`: number of samples used in the test after filtering
     - `group_by_variable`: name of the variable used to group samples by
-    - `groups`: names of the groups defined by `group_by_variable`
+    - `group_sizes`: dict mapping group name to sample size in each group
     - `paired_by_variable`: name of the variable used to pair samples by (if the data were
     paired)
     - `posthoc`: :class:`~onecodex.stats.PosthocResults`
     """
 
     test: AlphaDiversityStatsTest
-    statistic: float
-    pvalue: float
-    sample_size: int
-    group_by_variable: str
-    groups: set[str]
     paired_by_variable: Optional[str] = None
-    posthoc: Optional[PosthocResults] = None
 
     @property
     def posthoc_df(self) -> Optional[pd.DataFrame]:
@@ -60,43 +72,41 @@ class AlphaDiversityStatsResults:
         return self.posthoc.adjusted_pvalues if self.posthoc else None
 
 
-@dataclass(frozen=True)
-class BetaDiversityStatsResults:
+@dataclass(frozen=True, kw_only=True)
+class BetaDiversityStatsResults(StatsResults):
     """A dataclass for storing the results of a beta diversity test.
 
     - `test`: stats test that was performed
     - `statistic`: PERMANOVA pseudo-F test statistic
     - `pvalue`: p-value based on `num_permutations`
+    - `alpha`: threshold to determine statistical significance
     - `num_permutations`: number of permutations used to compute `pvalue`
     - `sample_size`: number of samples used in the test after filtering
     - `group_by_variable`: name of the variable used to group samples by
-    - `groups`: names of the groups defined by `group_by_variable`
+    - `group_sizes`: dict mapping group name to sample size in each group
     - `posthoc`: :class:`~onecodex.stats.PosthocResults`
     """
 
     test: BetaDiversityStatsTest
-    statistic: float
-    pvalue: float
     num_permutations: int
-    sample_size: int
-    group_by_variable: str
-    groups: set[str]
-    posthoc: Optional[PosthocResults] = None
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class PosthocResults:
-    """A dataclass for storing results from the post-host correction of a statistical test.
+    """A dataclass for storing results from the posthoc correction of a statistical test.
 
-    - `statistics`: `pd.DataFrame` containing pairwise PERMANOVA pseudo-F statistics. The
-    index and columns are sorted group names.
-    - `pvalues`: `pd.DataFrame` containing pairwise PERMANOVA *unadjusted* p-values. The
-    index and columns are sorted group names.
-    - `adjusted_pvalues`: `pd.DataFrame` containing pairwise PERMANOVA *adjusted*
-    p-values. p-values are adjusted for false discovery rate using Benjamini-Hochberg.
-    The index and columns are sorted group names.
+    - `test`: posthoc stats test that was performed
+    - `adjustment_method`: method used to adjust p-values to control the false discovery rate
+    - `statistics`: `pd.DataFrame` containing pairwise test statistics. The index and columns are
+    sorted group names.
+    - `pvalues`: `pd.DataFrame` containing *unadjusted* p-values. The index and columns are sorted
+    group names.
+    - `adjusted_pvalues`: `pd.DataFrame` containing *adjusted* p-values. p-values are adjusted for
+    false discovery rate using Benjamini-Hochberg. The index and columns are sorted group names.
     """
 
+    test: PosthocStatsTest
+    adjustment_method: AdjustmentMethod
     adjusted_pvalues: pd.DataFrame
     pvalues: Optional[pd.DataFrame] = None
     statistics: Optional[pd.DataFrame] = None
@@ -246,9 +256,11 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
             raise StatsException('`paired_by` may only be specified with `test="wilcoxon"`.')
 
         if test == AlphaDiversityStatsTest.Wilcoxon:
-            return self._wilcoxon(df, diversity_metric, group_by_column_name, paired_by_column_name)
+            return self._wilcoxon(
+                df, diversity_metric, group_by_column_name, paired_by_column_name, alpha
+            )
         elif test == AlphaDiversityStatsTest.Mannwhitneyu:
-            return self._mannwhitneyu(df, diversity_metric, group_by_column_name)
+            return self._mannwhitneyu(df, diversity_metric, group_by_column_name, alpha)
         elif test == AlphaDiversityStatsTest.Kruskal:
             return self._kruskal(df, diversity_metric, group_by_column_name, alpha)
         else:
@@ -342,16 +354,16 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
                 f"filtering (found {num_groups})."
             )
 
-    def _get_group_names_and_alpha_values(
+    def _get_group_sizes_and_alpha_values(
         self, df: pd.DataFrame, metric: str, group_by_column_name: str
-    ) -> tuple[set[str], list[pd.Series]]:
-        group_names = set()
+    ) -> tuple[dict[str, int], list[pd.Series]]:
+        group_sizes = {}
         group_alpha_values = []
         for group_name, group_df in df.groupby(group_by_column_name):
-            group_names.add(group_name)
+            group_sizes[group_name] = len(group_df)
             group_alpha_values.append(group_df[metric])
 
-        return group_names, group_alpha_values
+        return group_sizes, group_alpha_values
 
     def _wilcoxon(
         self,
@@ -359,6 +371,7 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
         diversity_metric: AlphaDiversityMetric,
         group_by_column_name: str,
         paired_by_column_name: Optional[str],
+        alpha: float,
     ) -> AlphaDiversityStatsResults:
         from scipy.stats import wilcoxon
 
@@ -395,20 +408,25 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
             test=AlphaDiversityStatsTest.Wilcoxon,
             statistic=result.statistic,
             pvalue=result.pvalue,
+            alpha=alpha,
             sample_size=len(df),
             group_by_variable=group_by_column_name,
-            groups={group1_name, group2_name},
+            group_sizes={group1_name: len(group1_df), group2_name: len(group2_df)},
             paired_by_variable=paired_by_column_name,
         )
 
     def _mannwhitneyu(
-        self, df: pd.DataFrame, diversity_metric: AlphaDiversityMetric, group_by_column_name: str
+        self,
+        df: pd.DataFrame,
+        diversity_metric: AlphaDiversityMetric,
+        group_by_column_name: str,
+        alpha: float,
     ) -> AlphaDiversityStatsResults:
         from scipy.stats import mannwhitneyu
 
         self._assert_exact_num_groups(df, group_by_column_name, 2)
 
-        group_names, group_alpha_values = self._get_group_names_and_alpha_values(
+        group_sizes, group_alpha_values = self._get_group_sizes_and_alpha_values(
             df, diversity_metric, group_by_column_name
         )
         result = mannwhitneyu(*group_alpha_values)
@@ -417,9 +435,10 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
             test=AlphaDiversityStatsTest.Mannwhitneyu,
             statistic=result.statistic,
             pvalue=result.pvalue,
+            alpha=alpha,
             sample_size=len(df),
             group_by_variable=group_by_column_name,
-            groups=group_names,
+            group_sizes=group_sizes,
         )
 
     def _kruskal(
@@ -432,26 +451,29 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
         from scikit_posthocs import posthoc_dunn
         from scipy.stats import kruskal
 
-        group_names, group_alpha_values = self._get_group_names_and_alpha_values(
+        group_sizes, group_alpha_values = self._get_group_sizes_and_alpha_values(
             df, diversity_metric, group_by_column_name
         )
         result = kruskal(*group_alpha_values)
 
         posthoc = None
-        if result.pvalue < alpha and len(group_names) > 2:
+        if result.pvalue < alpha and len(group_sizes) > 2:
             posthoc = PosthocResults(
+                test=PosthocStatsTest.Dunn,
+                adjustment_method=AdjustmentMethod.BenjaminiHochberg,
                 adjusted_pvalues=posthoc_dunn(
                     df, val_col=diversity_metric, group_col=group_by_column_name, p_adjust="fdr_bh"
-                )
+                ),
             )
 
         return AlphaDiversityStatsResults(
             test=AlphaDiversityStatsTest.Kruskal,
             statistic=result.statistic,
             pvalue=result.pvalue,
+            alpha=alpha,
             sample_size=len(df),
             group_by_variable=group_by_column_name,
-            groups=group_names,
+            group_sizes=group_sizes,
             posthoc=posthoc,
         )
 
@@ -570,7 +592,7 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
         from scipy.stats import false_discovery_control
         from skbio.stats.distance import permanova
 
-        group_names = {name for name, _ in df.groupby(group_by_column_name)}
+        group_sizes = {name: len(group_df) for name, group_df in df.groupby(group_by_column_name)}
         result = permanova(dm, df, column=group_by_column_name, permutations=num_permutations)
 
         posthoc = None
@@ -585,7 +607,7 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
             # g1 x   1   2
             # g2 x   x   3
             # g3 x   x   x
-            group_names = sorted(group_names)
+            group_names = sorted(group_sizes)
             upper_triangle_statistics = []
             upper_triangle_pvalues = []
             for group1, group2 in itertools.combinations(group_names, 2):
@@ -627,6 +649,8 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
             np.fill_diagonal(adjusted_pvalues, 1.0)
 
             posthoc = PosthocResults(
+                test=PosthocStatsTest.PairwisePermanova,
+                adjustment_method=AdjustmentMethod.BenjaminiHochberg,
                 statistics=pd.DataFrame(statistics, index=group_names, columns=group_names),
                 pvalues=pd.DataFrame(pvalues, index=group_names, columns=group_names),
                 adjusted_pvalues=pd.DataFrame(
@@ -638,9 +662,10 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
             test=BetaDiversityStatsTest.Permanova,
             statistic=result["test statistic"],
             pvalue=result["p-value"],
+            alpha=alpha,
             num_permutations=result["number of permutations"],
             sample_size=result["sample size"],
             group_by_variable=group_by_column_name,
-            groups=set(group_names),
+            group_sizes=group_sizes,
             posthoc=posthoc,
         )
