@@ -113,6 +113,7 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
         diversity_metric: AlphaDiversityMetric = AlphaDiversityMetric.Shannon,
         rank: Rank = Rank.Auto,
         alpha: float = 0.05,
+        require_classification_version_match: bool = True,
     ) -> AlphaDiversityStatsResults:
         """Perform a test for significant differences between groups of alpha diversity values.
 
@@ -153,6 +154,10 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
             Threshold to determine statistical significance when `test="kruskal"`
             (e.g. p < `alpha`). Must be between 0 and 1 (exclusive). If the Kruskal-Wallis p-value
             is significant and there are more than two groups, a posthoc Dunn test is performed.
+
+        require_classification_version_match : bool, optional
+            If ``True``, require the same primary classification job ID across all samples included
+            in the test.
 
         Returns
         -------
@@ -223,6 +228,9 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
         df = self._drop_group_sizes_smaller_than(df, group_by_column_name, 2)
 
         self._assert_min_num_groups(df, group_by_column_name, 2)
+
+        if require_classification_version_match:
+            self._assert_single_database_version(df)
 
         if test == AlphaDiversityStatsTest.Auto:
             num_groups = df[group_by_column_name].nunique()
@@ -312,6 +320,16 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
             raise StatsException(
                 f"`group_by` must have at least {min_num_groups} groups to test between after "
                 f"filtering (found {num_groups})."
+            )
+
+    def _assert_single_database_version(self, df: pd.DataFrame):
+        classification_ids = set(df.index)
+        job_ids = {c.job.id for c in self._classifications if c.id in classification_ids}
+        if len(job_ids) > 1:
+            raise StatsException(
+                "To prevent the possibility of false results due to differences in database "
+                "versions, running statistical tests is disabled for collections of samples "
+                "with different database versions as their primary classifications."
             )
 
     def _assert_exact_num_groups(
@@ -446,6 +464,7 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
         rank: Rank = Rank.Auto,
         alpha: float = 0.05,
         num_permutations: int = 999,
+        require_classification_version_match: bool = True,
     ) -> BetaDiversityStatsResults:
         """Test for significant differences between groups of samples based on their distances.
 
@@ -478,6 +497,10 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
 
         num_permutations : int, optional
             Number of permutations to use when computing the p-value.
+
+        require_classification_version_match : bool, optional
+            If ``True``, require the same primary classification job ID across all samples included
+            in the test.
 
         Returns
         -------
@@ -516,6 +539,9 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
         df = self._drop_group_sizes_smaller_than(df, group_by_column_name, 2)
 
         self._assert_min_num_groups(df, group_by_column_name, 2)
+
+        if require_classification_version_match:
+            self._assert_single_database_version(df)
 
         # Compute beta diversity distance matrix and filter it to match the remaining IDs in the
         # metadata dataframe

@@ -115,6 +115,33 @@ def test_not_enough_groups(samples, method, values, num_groups):
         getattr(samples, method)(group_by="col", rank="genus")
 
 
+@pytest.mark.parametrize("method", ["alpha_diversity_stats", "beta_diversity_stats"])
+@pytest.mark.parametrize("require_classification_version_match", [True, False])
+@pytest.mark.filterwarnings("ignore:.*multiple analysis types.*:UserWarning")
+def test_require_classification_version_match(
+    ocx, api_data, samples, method, require_classification_version_match
+):
+    # This sample has a different job ID than the others in `samples`
+    samples.append(ocx.Samples.get("0ecac25ec0004fe4"))
+
+    # We need to set the metadata in order to reach the error we're trying to trigger
+    for sample, val in zip(samples, ["a", "b", "a", "b"]):
+        sample.metadata.custom["col"] = val
+
+    kwargs = dict(
+        group_by="col",
+        rank="genus",
+        metric="readcount_w_children",
+        require_classification_version_match=require_classification_version_match,
+    )
+
+    if require_classification_version_match:
+        with pytest.raises(StatsException, match="different database versions"):
+            getattr(samples, method)(**kwargs)
+    else:
+        getattr(samples, method)(**kwargs)
+
+
 @pytest.mark.parametrize("paired_by", [1, 4.2, False, b"", (42,), [-1.0], ("wheat", 43)])
 def test_alpha_diversity_stats_invalid_paired_by(samples, paired_by):
     with pytest.raises(OneCodexException, match="type str"):
@@ -193,7 +220,11 @@ def test_alpha_diversity_stats_auto_test(ocx, api_data, samples, groups, paired_
 
     with pytest.warns(UserWarning):  # unrelated -> multiple DBs
         results = samples.alpha_diversity_stats(
-            metric="readcount_w_children", group_by="group", paired_by=paired_by, rank="genus"
+            metric="readcount_w_children",
+            group_by="group",
+            paired_by=paired_by,
+            rank="genus",
+            require_classification_version_match=False,
         )
     assert results.test == test
 
