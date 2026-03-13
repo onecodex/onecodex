@@ -17,7 +17,7 @@ from onecodex.lib.enums import (
     PosthocStatsTest,
 )
 from onecodex.models.collection import SampleCollection
-from onecodex.stats import AlphaDiversityStatsResults, BetaDiversityStatsResults, PosthocResults
+from onecodex.stats import AlphaDiversityStatsResults, BetaDiversityStatsResults
 
 
 @pytest.mark.parametrize("method", ["alpha_diversity_stats", "beta_diversity_stats"])
@@ -366,41 +366,6 @@ def test_kruskal(samples):
     labels = pd.Index(["g1", "g2", "g3"])
     assert (results.posthoc.adjusted_pvalues.index == labels).all()
     assert (results.posthoc.adjusted_pvalues.columns == labels).all()
-
-
-def test_alpha_diversity_stats_results_posthoc_df_property():
-    results = AlphaDiversityStatsResults(
-        test=AlphaDiversityStatsTest.Mannwhitneyu,
-        statistic=6.0,
-        pvalue=0.2,
-        alpha=0.05,
-        sample_size=5,
-        group_by_variable="group",
-        group_sizes={"g1": 2, "g2": 3},
-        posthoc=None,
-    )
-
-    with pytest.warns(DeprecationWarning):
-        assert results.posthoc_df is None
-
-    pvals = pd.DataFrame([[1.0, 0.2], [0.2, 1.0]], index=["g1", "g2"], columns=["g1", "g2"])
-    results = AlphaDiversityStatsResults(
-        test=AlphaDiversityStatsTest.Mannwhitneyu,
-        statistic=6.0,
-        pvalue=0.2,
-        alpha=0.05,
-        sample_size=5,
-        group_by_variable="group",
-        group_sizes={"g1": 2, "g2": 3},
-        posthoc=PosthocResults(
-            test=PosthocStatsTest.Dunn,
-            adjustment_method=AdjustmentMethod.BenjaminiHochberg,
-            adjusted_pvalues=pvals,
-        ),
-    )
-
-    with pytest.warns(DeprecationWarning):
-        assert results.posthoc_df.equals(pvals)
 
 
 def test_permanova(samples):

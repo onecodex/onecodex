@@ -57,15 +57,6 @@ class AlphaDiversityStatsResults(StatsResults):
     test: AlphaDiversityStatsTest
     paired_by_variable: Optional[str] = None
 
-    @property
-    def posthoc_df(self) -> Optional[pd.DataFrame]:
-        warnings.warn(
-            "`posthoc_df` is deprecated and will be removed in a future release. Please use "
-            "`posthoc.adjusted_pvalues` instead.",
-            DeprecationWarning,
-        )
-        return self.posthoc.adjusted_pvalues if self.posthoc else None
-
 
 @dataclass(frozen=True, kw_only=True)
 class BetaDiversityStatsResults(StatsResults):
