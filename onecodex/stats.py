@@ -35,11 +35,6 @@ class StatsResults:
 
     @property
     def groups(self) -> set[str]:
-        warnings.warn(
-            "`groups` is deprecated and will be removed in a future release. Please use "
-            "`group_sizes` instead.",
-            DeprecationWarning,
-        )
         return set(self.group_sizes)
 
 
@@ -50,7 +45,7 @@ class AlphaDiversityStatsResults(StatsResults):
     - `test`: stats test that was performed
     - `statistic`: computed test statistic (e.g. U statistic if `test="mannwhitneyu"`)
     - `pvalue`: computed p-value
-    - `alpha`: threshold to determine statistical significance when `test="kruskal"`
+    - `alpha`: p-value threshold used to determine whether to run a posthoc test when `test="kruskal"`
     - `sample_size`: number of samples used in the test after filtering
     - `group_by_variable`: name of the variable used to group samples by
     - `group_sizes`: dict mapping group name to sample size in each group
@@ -79,7 +74,7 @@ class BetaDiversityStatsResults(StatsResults):
     - `test`: stats test that was performed
     - `statistic`: PERMANOVA pseudo-F test statistic
     - `pvalue`: p-value based on `num_permutations`
-    - `alpha`: threshold to determine statistical significance
+    - `alpha`: p-value threshold used to determine whether to run a posthoc test
     - `num_permutations`: number of permutations used to compute `pvalue`
     - `sample_size`: number of samples used in the test after filtering
     - `group_by_variable`: name of the variable used to group samples by
@@ -93,7 +88,7 @@ class BetaDiversityStatsResults(StatsResults):
 
 @dataclass(frozen=True, kw_only=True)
 class PosthocResults:
-    """A dataclass for storing results from the posthoc correction of a statistical test.
+    """A dataclass for storing results from a posthoc statistical test.
 
     - `test`: posthoc stats test that was performed
     - `adjustment_method`: method used to adjust p-values to control the false discovery rate
@@ -102,7 +97,7 @@ class PosthocResults:
     - `pvalues`: `pd.DataFrame` containing *unadjusted* p-values. The index and columns are sorted
     group names.
     - `adjusted_pvalues`: `pd.DataFrame` containing *adjusted* p-values. p-values are adjusted for
-    false discovery rate using Benjamini-Hochberg. The index and columns are sorted group names.
+    false discovery rate using `adjustment_method`. The index and columns are sorted group names.
     """
 
     test: PosthocStatsTest
@@ -354,7 +349,7 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
                 f"filtering (found {num_groups})."
             )
 
-    def _get_group_sizes_and_alpha_values(
+    def _get_group_sizes_and_alpha_diversity_values(
         self, df: pd.DataFrame, metric: str, group_by_column_name: str
     ) -> tuple[dict[str, int], list[pd.Series]]:
         group_sizes = {}
@@ -426,7 +421,7 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
 
         self._assert_exact_num_groups(df, group_by_column_name, 2)
 
-        group_sizes, group_alpha_values = self._get_group_sizes_and_alpha_values(
+        group_sizes, group_alpha_values = self._get_group_sizes_and_alpha_diversity_values(
             df, diversity_metric, group_by_column_name
         )
         result = mannwhitneyu(*group_alpha_values)
@@ -451,7 +446,7 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
         from scikit_posthocs import posthoc_dunn
         from scipy.stats import kruskal
 
-        group_sizes, group_alpha_values = self._get_group_sizes_and_alpha_values(
+        group_sizes, group_alpha_values = self._get_group_sizes_and_alpha_diversity_values(
             df, diversity_metric, group_by_column_name
         )
         result = kruskal(*group_alpha_values)

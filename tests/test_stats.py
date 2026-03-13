@@ -467,32 +467,35 @@ def test_permanova(samples):
             assert (np.round(data[upper_triangle_indices], 3) == adjusted_pvalues).all()
 
 
-def test_alpha_diversity_stats_results_deprecated_groups():
-    results = AlphaDiversityStatsResults(
-        test=AlphaDiversityStatsTest.Mannwhitneyu,
-        statistic=6.0,
-        pvalue=0.2,
-        alpha=0.05,
-        sample_size=5,
-        group_by_variable="group",
-        group_sizes={"g1": 2, "g2": 3},
-    )
-
-    with pytest.warns(DeprecationWarning, match="group_sizes"):
-        assert results.groups == {"g1", "g2"}
-
-
-def test_beta_diversity_stats_results_deprecated_groups():
-    results = BetaDiversityStatsResults(
-        test=BetaDiversityStatsTest.Permanova,
-        statistic=1.0,
-        pvalue=0.05,
-        alpha=0.05,
-        num_permutations=999,
-        sample_size=6,
-        group_by_variable="group",
-        group_sizes={"g1": 2, "g2": 2, "g3": 2},
-    )
-
-    with pytest.warns(DeprecationWarning, match="group_sizes"):
-        assert results.groups == {"g1", "g2", "g3"}
+@pytest.mark.parametrize(
+    "results,expected_groups",
+    [
+        (
+            AlphaDiversityStatsResults(
+                test=AlphaDiversityStatsTest.Mannwhitneyu,
+                statistic=6.0,
+                pvalue=0.2,
+                alpha=0.05,
+                sample_size=5,
+                group_by_variable="group",
+                group_sizes={"g1": 2, "g2": 3},
+            ),
+            {"g1", "g2"},
+        ),
+        (
+            BetaDiversityStatsResults(
+                test=BetaDiversityStatsTest.Permanova,
+                statistic=1.0,
+                pvalue=0.05,
+                alpha=0.05,
+                num_permutations=999,
+                sample_size=6,
+                group_by_variable="group",
+                group_sizes={"g1": 2, "g2": 2, "g3": 2},
+            ),
+            {"g1", "g2", "g3"},
+        ),
+    ],
+)
+def test_stats_results_groups(results, expected_groups):
+    assert results.groups == expected_groups
