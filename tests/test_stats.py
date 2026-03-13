@@ -9,13 +9,15 @@ import skbio
 
 from onecodex.exceptions import OneCodexException, StatsException, StatsWarning
 from onecodex.lib.enums import (
+    AdjustmentMethod,
     AlphaDiversityMetric,
     AlphaDiversityStatsTest,
     BetaDiversityStatsTest,
     Metric,
+    PosthocStatsTest,
 )
 from onecodex.models.collection import SampleCollection
-from onecodex.stats import AlphaDiversityStatsResults, PosthocResults
+from onecodex.stats import AlphaDiversityStatsResults, BetaDiversityStatsResults, PosthocResults
 
 
 @pytest.mark.parametrize("method", ["alpha_diversity_stats", "beta_diversity_stats"])
@@ -247,7 +249,7 @@ def test_wilcoxon_missing_paired_by(samples):
     df = pd.DataFrame({"group": ["g1", "g2", "g1", "g2"], "shannon": [1, 2, 3, 4]})
 
     with pytest.raises(StatsException, match="paired_by.*wilcoxon"):
-        samples._wilcoxon(df, "shannon", "group", None)
+        samples._wilcoxon(df, "shannon", "group", None, 0.05)
 
 
 @pytest.mark.parametrize(
@@ -287,7 +289,7 @@ def test_wilcoxon_errors(samples, group, pair, metric, match):
     df = pd.DataFrame({"group": group, "pair": pair, "metric": metric})
 
     with pytest.raises(StatsException, match=match):
-        samples._wilcoxon(df, "metric", "group", "pair")
+        samples._wilcoxon(df, "metric", "group", "pair", 0.05)
 
 
 def test_wilcoxon(samples):
@@ -299,16 +301,17 @@ def test_wilcoxon(samples):
         }
     )
 
-    results = samples._wilcoxon(df, "metric", "group", "pair")
+    results = samples._wilcoxon(df, "metric", "group", "pair", 0.05)
 
     # Results verified manually with `scipy.stats.wilcoxon`
     assert results == AlphaDiversityStatsResults(
         test=AlphaDiversityStatsTest.Wilcoxon,
         statistic=1.0,
         pvalue=0.5,
+        alpha=0.05,
         sample_size=6,
         group_by_variable="group",
-        groups={"g1", "g2"},
+        group_sizes={"g1": 3, "g2": 3},
         paired_by_variable="pair",
     )
 
@@ -317,7 +320,7 @@ def test_mannwhitneyu_wrong_number_of_groups(samples):
     df = pd.DataFrame({"group": ["g1", "g2", "g3", "g1", "g2"], "shannon": [1, 2, 3, 4, 5]})
 
     with pytest.raises(StatsException, match="`group_by` must have exactly 2 groups"):
-        samples._mannwhitneyu(df, "shannon", "group")
+        samples._mannwhitneyu(df, "shannon", "group", 0.05)
 
 
 def test_mannwhitneyu(samples):
@@ -325,16 +328,17 @@ def test_mannwhitneyu(samples):
         {"group": ["g1", "g2", "g1", "g2", "g2"], "shannon": [42.0, 0.0, 45.7, 1.2, 2.3]}
     )
 
-    results = samples._mannwhitneyu(df, "shannon", "group")
+    results = samples._mannwhitneyu(df, "shannon", "group", 0.05)
 
     # Results verified manually with `scipy.stats.mannwhitneyu`
     assert results == AlphaDiversityStatsResults(
         test=AlphaDiversityStatsTest.Mannwhitneyu,
         statistic=6.0,
         pvalue=0.2,
+        alpha=0.05,
         sample_size=5,
         group_by_variable="group",
-        groups={"g1", "g2"},
+        group_sizes={"g1": 2, "g2": 3},
     )
 
 
@@ -349,12 +353,16 @@ def test_kruskal(samples):
     assert results.test == AlphaDiversityStatsTest.Kruskal
     assert results.statistic.round(3) == 3.714
     assert results.pvalue.round(3) == 0.156
+    assert results.alpha == 0.05
     assert results.sample_size == 6
     assert results.group_by_variable == "group"
-    assert results.groups == {"g1", "g2", "g3"}
+    assert results.group_sizes == {"g1": 2, "g2": 2, "g3": 2}
     assert results.posthoc is None
 
     results = samples._kruskal(df, "shannon", "group", 0.2)
+    assert results.alpha == 0.2
+    assert results.posthoc.test == PosthocStatsTest.Dunn
+    assert results.posthoc.adjustment_method == AdjustmentMethod.BenjaminiHochberg
     labels = pd.Index(["g1", "g2", "g3"])
     assert (results.posthoc.adjusted_pvalues.index == labels).all()
     assert (results.posthoc.adjusted_pvalues.columns == labels).all()
@@ -365,9 +373,10 @@ def test_alpha_diversity_stats_results_posthoc_df_property():
         test=AlphaDiversityStatsTest.Mannwhitneyu,
         statistic=6.0,
         pvalue=0.2,
+        alpha=0.05,
         sample_size=5,
         group_by_variable="group",
-        groups={"g1", "g2"},
+        group_sizes={"g1": 2, "g2": 3},
         posthoc=None,
     )
 
@@ -379,10 +388,15 @@ def test_alpha_diversity_stats_results_posthoc_df_property():
         test=AlphaDiversityStatsTest.Mannwhitneyu,
         statistic=6.0,
         pvalue=0.2,
+        alpha=0.05,
         sample_size=5,
         group_by_variable="group",
-        groups={"g1", "g2"},
-        posthoc=PosthocResults(adjusted_pvalues=pvals),
+        group_sizes={"g1": 2, "g2": 3},
+        posthoc=PosthocResults(
+            test=PosthocStatsTest.Dunn,
+            adjustment_method=AdjustmentMethod.BenjaminiHochberg,
+            adjusted_pvalues=pvals,
+        ),
     )
 
     with pytest.warns(DeprecationWarning):
@@ -411,14 +425,19 @@ def test_permanova(samples):
     assert results.test == BetaDiversityStatsTest.Permanova
     assert results.statistic.round(3) == 587.588
     assert results.pvalue.round(3) == 0.048
+    assert results.alpha == 0.04
     assert results.num_permutations == 999
     assert results.sample_size == 6
     assert results.group_by_variable == "group"
-    assert results.groups == {"g1", "g2", "g3"}
+    assert results.group_sizes == {"g1": 2, "g2": 2, "g3": 2}
     assert results.posthoc is None
 
     np.random.seed(0)
-    posthoc = samples._permanova(dm, df, "group", 0.05, 999).posthoc
+    results_with_posthoc = samples._permanova(dm, df, "group", 0.05, 999)
+    assert results_with_posthoc.alpha == 0.05
+    posthoc = results_with_posthoc.posthoc
+    assert posthoc.test == PosthocStatsTest.PairwisePermanova
+    assert posthoc.adjustment_method == AdjustmentMethod.BenjaminiHochberg
     labels = pd.Index(["g1", "g2", "g3"])
     for attr in "statistics", "pvalues", "adjusted_pvalues":
         df = getattr(posthoc, attr)
@@ -446,3 +465,37 @@ def test_permanova(samples):
 
             adjusted_pvalues = [0.352, 0.352, 0.352]
             assert (np.round(data[upper_triangle_indices], 3) == adjusted_pvalues).all()
+
+
+@pytest.mark.parametrize(
+    "results,expected_groups",
+    [
+        (
+            AlphaDiversityStatsResults(
+                test=AlphaDiversityStatsTest.Mannwhitneyu,
+                statistic=6.0,
+                pvalue=0.2,
+                alpha=0.05,
+                sample_size=5,
+                group_by_variable="group",
+                group_sizes={"g1": 2, "g2": 3},
+            ),
+            {"g1", "g2"},
+        ),
+        (
+            BetaDiversityStatsResults(
+                test=BetaDiversityStatsTest.Permanova,
+                statistic=1.0,
+                pvalue=0.05,
+                alpha=0.05,
+                num_permutations=999,
+                sample_size=6,
+                group_by_variable="group",
+                group_sizes={"g1": 2, "g2": 2, "g3": 2},
+            ),
+            {"g1", "g2", "g3"},
+        ),
+    ],
+)
+def test_stats_results_groups(results, expected_groups):
+    assert results.groups == expected_groups
