@@ -7,11 +7,18 @@ import pandas as pd
 import pytest
 
 from onecodex.exceptions import ValidationError
-from onecodex.lib.enums import Metric
+from onecodex.lib.enums import (
+    AdjustmentMethod,
+    AlphaDiversityStatsTest,
+    BetaDiversityStatsTest,
+    Metric,
+    PosthocStatsTest,
+)
+from onecodex.stats import AlphaDiversityStatsResults, BetaDiversityStatsResults, PosthocResults
 from onecodex.viz._custom_plots.collection import SampleCollection, Samples
 from onecodex.viz._custom_plots.enums import ExportFormat, PlotRepr, PlotType
 from onecodex.viz._custom_plots.metadata import _get_metadata_field_value
-from onecodex.viz._custom_plots.models import PlotParams
+from onecodex.viz._custom_plots.models import PlotParams, StatsParams, StatsResult
 from onecodex.viz._custom_plots.utils import get_plot_title
 
 
@@ -25,87 +32,75 @@ def load_classification_results_json(classification_uuid: str) -> dict | list:
         return json.load(f)
 
 
+JOB_UUID = "a1b2c3d4e5f6a7b8"
+
+
+def make_sample(
+    *,
+    classification_uuid: str,
+    job_uuid: str = JOB_UUID,
+    job_name: str = "OCX DB",
+    functional_profile: dict | None = None,
+    **extra_metadata,
+) -> Samples:
+    sample_uuid = generate_id()
+    classification_id = generate_id()
+    return Samples(
+        {
+            "uuid": sample_uuid,
+            "metadata": {
+                "sample_id": sample_uuid,
+                "metadata_id": generate_id(),
+                "classification_id": classification_id,
+                **extra_metadata,
+            },
+            "primary_classification": {
+                "uuid": classification_id,
+                "job_uuid": job_uuid,
+                "job_name": job_name,
+                "api_results": load_classification_results_json(classification_uuid),
+            },
+            "functional_profile": functional_profile,
+        }
+    )
+
+
 @pytest.fixture
 def sample_collection() -> SampleCollection:
-    sample1_uuid = generate_id()
-    classification1_uuid = "0f4ee4ecb3a3412f"
-    sample1 = Samples(
-        {
-            "uuid": sample1_uuid,
-            "metadata": {
-                "sample_id": sample1_uuid,
-                "metadata_id": generate_id(),
-                "classification_id": classification1_uuid,
-                "filename": "sample1.fastq",
-                "sample_name": "Sample 1",
-                "sample_type": "Isolate",
-                "library_type": "WGS",
-                "platform": "Illumina",
-                "cohort": "C1",
-                "Bacteroides": None,
-                "whitespace_field": " value 1",
-            },
-            "primary_classification": {
-                "uuid": classification1_uuid,
-                "job_name": "OCX DB",
-                "api_results": load_classification_results_json(classification1_uuid),
-            },
-            "functional_profile": None,
-        }
+    sample1 = make_sample(
+        classification_uuid="0f4ee4ecb3a3412f",
+        filename="sample1.fastq",
+        sample_name="Sample 1",
+        sample_type="Isolate",
+        library_type="WGS",
+        platform="Illumina",
+        cohort="C1",
+        Bacteroides=None,
+        whitespace_field=" value 1",
     )
 
-    sample2_uuid = generate_id()
-    classification2_uuid = "bef0bc57dd7f4c43"
-    sample2 = Samples(
-        {
-            "uuid": sample2_uuid,
-            "metadata": {
-                "sample_id": sample2_uuid,
-                "metadata_id": generate_id(),
-                "classification_id": classification2_uuid,
-                "filename": "sample2.fastq",
-                "sample_name": "Sample 2",
-                "sample_type": "Other",
-                "library_type": "WGS",
-                "platform": "Illumina",
-                "cohort": "C2",
-                "Bacteroides": None,
-                "whitespace_field": "value 2\t",
-            },
-            "primary_classification": {
-                "uuid": classification2_uuid,
-                "job_name": "OCX DB",
-                "api_results": load_classification_results_json(classification2_uuid),
-            },
-            "functional_profile": None,
-        }
+    sample2 = make_sample(
+        classification_uuid="bef0bc57dd7f4c43",
+        filename="sample2.fastq",
+        sample_name="Sample 2",
+        sample_type="Other",
+        library_type="WGS",
+        platform="Illumina",
+        cohort="C2",
+        Bacteroides=None,
+        whitespace_field="value 2\t",
     )
 
-    sample3_uuid = generate_id()
-    classification3_uuid = "fadd35dd60074a5c"
-    sample3 = Samples(
-        {
-            "uuid": sample3_uuid,
-            "metadata": {
-                "sample_id": sample3_uuid,
-                "metadata_id": generate_id(),
-                "classification_id": classification3_uuid,
-                "filename": "sample3.fastq",
-                "sample_name": "Sample 3",
-                "sample_type": "Metagenomic",
-                "library_type": "Other",
-                "platform": "Other",
-                "cohort": "C1",
-                "Bacteroides": None,
-                "whitespace_field": "  \tvalue 3  ",
-            },
-            "primary_classification": {
-                "uuid": classification3_uuid,
-                "job_name": "OCX DB",
-                "api_results": load_classification_results_json(classification3_uuid),
-            },
-            "functional_profile": None,
-        }
+    sample3 = make_sample(
+        classification_uuid="fadd35dd60074a5c",
+        filename="sample3.fastq",
+        sample_name="Sample 3",
+        sample_type="Metagenomic",
+        library_type="Other",
+        platform="Other",
+        cohort="C1",
+        Bacteroides=None,
+        whitespace_field="  \tvalue 3  ",
     )
 
     return SampleCollection([sample1, sample2, sample3])
@@ -461,3 +456,288 @@ def test_get_plot_title(default_plot_params_payload, params, start):
     )
     title = get_plot_title(params)
     assert title == f"{start} plot of My Project samples"
+
+
+CLASSIFICATION_UUIDS = ["0f4ee4ecb3a3412f", "bef0bc57dd7f4c43", "fadd35dd60074a5c"]
+
+
+@pytest.fixture
+def stats_sample_collection() -> SampleCollection:
+    samples = []
+    for i, (cls_uuid, cohort, site) in enumerate(
+        [
+            (CLASSIFICATION_UUIDS[0], "A", "X"),
+            (CLASSIFICATION_UUIDS[1], "A", "X"),
+            (CLASSIFICATION_UUIDS[2], "B", "Y"),
+            (CLASSIFICATION_UUIDS[0], "B", "Y"),
+        ]
+    ):
+        samples.append(
+            make_sample(
+                classification_uuid=cls_uuid,
+                sample_name=f"Sample {i}",
+                cohort=cohort,
+                site=site,
+            )
+        )
+    return SampleCollection(samples)
+
+
+def test_stats_alpha_diversity(stats_sample_collection):
+    params = StatsParams(
+        group_by="cohort",
+        stats_type="alpha_diversity",
+        metric="readcount_w_children",
+        rank="species",
+    )
+
+    result = stats_sample_collection.stats(params)
+
+    assert result.error is None
+    assert isinstance(result.results, AlphaDiversityStatsResults)
+    assert result.results.test == AlphaDiversityStatsTest.Mannwhitneyu
+    assert result.results.group_sizes == {"A": 2, "B": 2}
+    assert result.results.sample_size == 4
+
+
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
+def test_stats_beta_diversity(stats_sample_collection):
+    params = StatsParams(
+        group_by="cohort",
+        stats_type="beta_diversity",
+        metric="readcount_w_children",
+        rank="species",
+    )
+
+    result = stats_sample_collection.stats(params)
+
+    assert result.error is None
+    assert isinstance(result.results, BetaDiversityStatsResults)
+    assert result.results.test == BetaDiversityStatsTest.Permanova
+    assert result.results.group_sizes == {"A": 2, "B": 2}
+    assert result.results.sample_size == 4
+    assert result.results.num_permutations > 0
+
+
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
+def test_stats_auto_metric_resolution(stats_sample_collection):
+    params = StatsParams(
+        group_by="cohort",
+        stats_type="beta_diversity",
+        rank="genus",
+    )
+    assert params.metric == Metric.Auto
+
+    result = stats_sample_collection.stats(params)
+
+    assert result.error is None
+    assert result.params.metric == stats_sample_collection.automatic_metric
+    assert result.params.metric != Metric.Auto
+
+
+def test_stats_secondary_group_by(stats_sample_collection):
+    params = StatsParams(
+        group_by="cohort",
+        secondary_group_by="site",
+        stats_type="alpha_diversity",
+        metric="readcount_w_children",
+        rank="species",
+    )
+
+    result = stats_sample_collection.stats(params)
+
+    assert result.error is None
+    assert result.results.group_by_variable == "cohort_site"
+
+
+def test_stats_filter_by(stats_sample_collection):
+    params = StatsParams(
+        group_by="cohort",
+        stats_type="alpha_diversity",
+        metric="readcount_w_children",
+        rank="species",
+        filter_by="cohort",
+        filter_value=["A"],
+    )
+
+    result = stats_sample_collection.stats(params)
+
+    assert result.error is not None
+    assert "at least 2 groups" in result.error
+
+
+def test_stats_warning_becomes_error(stats_sample_collection):
+    params = StatsParams(
+        group_by="cohort",
+        stats_type="alpha_diversity",
+        metric="abundance_w_children",
+        rank="species",
+    )
+
+    result = stats_sample_collection.stats(params)
+
+    assert result.error is not None
+    assert result.results is None
+
+
+def test_stats_invalid_metadata_field(stats_sample_collection):
+    params = StatsParams(
+        group_by="nonexistent_field",
+        stats_type="alpha_diversity",
+        metric="readcount_w_children",
+        rank="species",
+    )
+
+    result = stats_sample_collection.stats(params)
+
+    assert result.error is not None
+    assert "does not exist" in result.error
+    assert result.results is None
+
+
+@pytest.mark.parametrize(
+    "attr",
+    ["group_by", "secondary_group_by", "filter_by", "paired_by"],
+)
+def test_validate_stats_params_invalid_metadata_field(stats_sample_collection, attr):
+    kwargs = {"group_by": "cohort", attr: "foo"}
+    params = StatsParams(
+        stats_type="alpha_diversity",
+        metric="readcount_w_children",
+        rank="species",
+        **kwargs,
+    )
+
+    with pytest.raises(ValidationError, match="metadata field 'foo' does not exist"):
+        stats_sample_collection._validate_stats_params(params)
+
+
+def test_validate_stats_params_no_classifications():
+    samples = [
+        Samples(
+            {
+                "uuid": generate_id(),
+                "metadata": {
+                    "sample_id": generate_id(),
+                    "metadata_id": generate_id(),
+                    "classification_id": generate_id(),
+                },
+                "primary_classification": None,
+                "functional_profile": None,
+            }
+        )
+    ]
+    collection = SampleCollection(samples)
+    params = StatsParams(group_by="cohort", stats_type="alpha_diversity")
+
+    with pytest.raises(ValidationError, match="Classification results are not available"):
+        collection._validate_stats_params(params)
+
+
+def test_stats_to_dict_alpha(stats_sample_collection):
+    params = StatsParams(
+        group_by="cohort",
+        stats_type="alpha_diversity",
+        metric="readcount_w_children",
+        rank="species",
+    )
+
+    result = stats_sample_collection.stats(params)
+    d = result.to_dict()
+
+    assert d["error"] is None
+    assert d["params"]["group_by"] == "cohort"
+    assert d["params"]["stats_type"] == "alpha_diversity"
+    assert d["results"]["test"] == "mannwhitneyu"
+    assert isinstance(d["results"]["statistic"], float)
+    assert isinstance(d["results"]["pvalue"], float)
+    assert d["results"]["group_sizes"] == {"A": 2, "B": 2}
+    assert d["results"]["paired_by_variable"] is None
+    assert "num_permutations" not in d["results"]
+
+
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
+def test_stats_to_dict_beta(stats_sample_collection):
+    params = StatsParams(
+        group_by="cohort",
+        stats_type="beta_diversity",
+        metric="readcount_w_children",
+        rank="species",
+    )
+
+    result = stats_sample_collection.stats(params)
+    d = result.to_dict()
+
+    assert d["error"] is None
+    assert d["results"]["test"] == "permanova"
+    assert isinstance(d["results"]["num_permutations"], int)
+    assert "paired_by_variable" not in d["results"]
+
+
+def test_stats_to_dict_error(stats_sample_collection):
+    params = StatsParams(
+        group_by="nonexistent_field",
+        stats_type="alpha_diversity",
+    )
+
+    result = stats_sample_collection.stats(params)
+    d = result.to_dict()
+
+    assert d["results"] is None
+    assert d["error"] is not None
+
+
+def test_stats_to_dict_with_posthoc():
+    groups = ["g1", "g2", "g3"]
+    adjusted_pvalues = pd.DataFrame(
+        [[1.0, 0.02, 0.04], [0.02, 1.0, 0.03], [0.04, 0.03, 1.0]],
+        index=groups,
+        columns=groups,
+    )
+    pvalues = pd.DataFrame(
+        [[1.0, 0.01, 0.02], [0.01, 1.0, 0.015], [0.02, 0.015, 1.0]],
+        index=groups,
+        columns=groups,
+    )
+    statistics = pd.DataFrame(
+        [[np.nan, 5.0, 3.0], [5.0, np.nan, 4.0], [3.0, 4.0, np.nan]],
+        index=groups,
+        columns=groups,
+    )
+
+    posthoc = PosthocResults(
+        test=PosthocStatsTest.Dunn,
+        adjustment_method=AdjustmentMethod.BenjaminiHochberg,
+        adjusted_pvalues=adjusted_pvalues,
+        pvalues=pvalues,
+        statistics=statistics,
+    )
+    stats_results = AlphaDiversityStatsResults(
+        test=AlphaDiversityStatsTest.Kruskal,
+        statistic=10.5,
+        pvalue=0.005,
+        alpha=0.05,
+        sample_size=12,
+        group_by_variable="cohort",
+        group_sizes={"g1": 4, "g2": 4, "g3": 4},
+        posthoc=posthoc,
+    )
+    params = StatsParams(group_by="cohort", stats_type="alpha_diversity")
+    result = StatsResult(params=params, results=stats_results)
+
+    d = result.to_dict()
+    posthoc_dict = d["results"]["posthoc"]
+
+    assert posthoc_dict["test"] == "dunn"
+    assert posthoc_dict["adjustment_method"] == "benjamini_hochberg"
+
+    assert posthoc_dict["adjusted_pvalues"]["g1"]["g2"] == 0.02
+    assert posthoc_dict["adjusted_pvalues"]["g2"]["g1"] == 0.02
+    assert posthoc_dict["adjusted_pvalues"]["g1"]["g3"] == 0.04
+
+    assert posthoc_dict["pvalues"]["g1"]["g2"] == 0.01
+    assert posthoc_dict["pvalues"]["g2"]["g3"] == 0.015
+
+    assert posthoc_dict["statistics"]["g1"]["g2"] == 5.0
+    assert posthoc_dict["statistics"]["g2"]["g3"] == 4.0
+    assert np.isnan(posthoc_dict["statistics"]["g1"]["g1"])

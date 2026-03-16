@@ -8,7 +8,7 @@ from onecodex.viz import configure_onecodex_theme
 from onecodex.exceptions import OneCodexException
 from .collection import SampleCollection, Samples
 from .enums import PlotType, SamplesFilter, SuggestionType
-from .models import PlotParams
+from .models import BaseParams, PlotParams, StatsParams
 from .utils import AsyncRateLimiter
 
 if TYPE_CHECKING:
@@ -23,13 +23,12 @@ def init():
     configure_onecodex_theme()
 
 
-async def plot(
-    params: JsProxy,
+async def _get_collection(
+    params: BaseParams,
+    filter_: SamplesFilter,
     csrf_token: str,
-    progress_callback: Callable[[str, float], None] = lambda msg, pct: None,
-) -> dict:
-    params = PlotParams.model_validate(_convert_jsnull_to_none(params.to_py()))
-
+    progress_callback: Callable[[str, float], None],
+) -> SampleCollection:
     uuid = None
     type_ = None
     if params.tag:
@@ -41,31 +40,52 @@ async def plot(
     else:
         raise OneCodexException("Neither a tag nor project UUID was provided.")
 
+    # Cache the SampleCollection, keyed by (<tag_or_project_uuid>, <filter>)
+    key = (uuid, filter_)
+    if key in CUSTOM_PLOTS_CACHE:
+        return CUSTOM_PLOTS_CACHE[key]
+
+    samples = await _fetch_samples(
+        type_=type_,
+        uuid=uuid,
+        filter_=filter_,
+        csrf_token=csrf_token,
+        progress_callback=progress_callback,
+    )
+    collection = SampleCollection(samples)
+    CUSTOM_PLOTS_CACHE[key] = collection
+    return collection
+
+
+async def plot(
+    params: JsProxy,
+    csrf_token: str,
+    progress_callback: Callable[[str, float], None] = lambda msg, pct: None,
+) -> dict:
+    params = PlotParams.model_validate(_convert_jsnull_to_none(params.to_py()))
+
     filter_ = (
         SamplesFilter.WithFunctionalResults
         if params.plot_type == PlotType.Functional
         else SamplesFilter.WithClassifications
     )
+    collection = await _get_collection(params, filter_, csrf_token, progress_callback)
 
-    # Cache the SampleCollection, keyed by (<tag_or_project_uuid>, <filter>)
-    key = (uuid, filter_)
-    if key in CUSTOM_PLOTS_CACHE:
-        collection = CUSTOM_PLOTS_CACHE[key]
-    else:
-        samples = await _fetch_samples(
-            type_=type_,
-            uuid=uuid,
-            filter_=filter_,
-            csrf_token=csrf_token,
-            progress_callback=progress_callback,
-        )
-        collection = SampleCollection(samples)
-        CUSTOM_PLOTS_CACHE[key] = collection
+    return collection.plot(params).to_dict()
 
-    # Now that we have a SampleCollection, do the actual plotting
-    result = collection.plot(params)
 
-    return result.to_dict()
+async def stats(
+    params: JsProxy,
+    csrf_token: str,
+    progress_callback: Callable[[str, float], None] = lambda msg, pct: None,
+) -> dict:
+    params = StatsParams.model_validate(_convert_jsnull_to_none(params.to_py()))
+
+    collection = await _get_collection(
+        params, SamplesFilter.WithClassifications, csrf_token, progress_callback
+    )
+
+    return collection.stats(params).to_dict()
 
 
 def _convert_jsnull_to_none(obj: Any) -> Any:
@@ -240,4 +260,4 @@ async def _fetch_with_retries(
                 raise
 
 
-__all__ = ["init", "plot"]
+__all__ = ["init", "plot", "stats"]
