@@ -33,6 +33,7 @@ class BaseParams(BaseModel):
     beta_metric: BetaDiversityMetric = BetaDiversityMetric.BrayCurtis
     rank: Rank = Rank.Species
 
+    group_by: str | None = None
     secondary_group_by: str | None = None
     filter_by: str | None = None
     filter_value: list[str] = []
@@ -46,7 +47,6 @@ class PlotParams(BaseParams):
 
     top_n: int = 10
     facet_by: str | None = None
-    group_by: str | None = None
     label_by: list[str] = []
     sort_by: str | None = None
 
@@ -61,6 +61,12 @@ class PlotParams(BaseParams):
         if not value:
             return ["sample_name"]
         return value
+
+
+class StatsParams(BaseParams):
+    stats_type: StatsType = StatsType.AlphaDiversity
+    group_by: str  # `group_by` is required by all stats tests
+    paired_by: str | None = None
 
 
 @dataclass(kw_only=True)
@@ -83,30 +89,34 @@ class PlotResult:
         }
 
 
-class StatsParams(BaseParams):
-    stats_type: StatsType = StatsType.AlphaDiversity
-    group_by: str
-    paired_by: str | None = None
-
-
 @dataclass(kw_only=True)
 class StatsResult:
     params: StatsParams
-    results: AlphaDiversityStatsResults | BetaDiversityStatsResults | None = None
+    alpha_diversity_results: AlphaDiversityStatsResults | None = None
+    beta_diversity_results: BetaDiversityStatsResults | None = None
     error: str | None = None
 
     def to_dict(self) -> dict:
         return {
             "params": self.params.model_dump(),
-            "results": _stats_results_to_dict(self.results) if self.results is not None else None,
+            "alpha_diversity_results": (
+                _alpha_diversity_results_to_dict(self.alpha_diversity_results)
+                if self.alpha_diversity_results is not None
+                else None
+            ),
+            "beta_diversity_results": (
+                _beta_diversity_results_to_dict(self.beta_diversity_results)
+                if self.beta_diversity_results is not None
+                else None
+            ),
             "error": self.error,
         }
 
 
-def _stats_results_to_dict(
+def _base_stats_results_to_dict(
     results: AlphaDiversityStatsResults | BetaDiversityStatsResults,
 ) -> dict:
-    result = {
+    return {
         "test": str(results.test),
         "statistic": results.statistic,
         "pvalue": results.pvalue,
@@ -114,30 +124,34 @@ def _stats_results_to_dict(
         "sample_size": results.sample_size,
         "group_by_variable": results.group_by_variable,
         "group_sizes": results.group_sizes,
+        "posthoc": _posthoc_to_dict(results.posthoc) if results.posthoc is not None else None,
     }
 
-    if isinstance(results, AlphaDiversityStatsResults):
-        result["paired_by_variable"] = results.paired_by_variable
-    elif isinstance(results, BetaDiversityStatsResults):
-        result["num_permutations"] = results.num_permutations
 
-    if results.posthoc is not None:
-        result["posthoc"] = _posthoc_to_dict(results.posthoc)
+def _alpha_diversity_results_to_dict(results: AlphaDiversityStatsResults) -> dict:
+    return {
+        **_base_stats_results_to_dict(results),
+        "paired_by_variable": results.paired_by_variable,
+    }
 
-    return result
+
+def _beta_diversity_results_to_dict(results: BetaDiversityStatsResults) -> dict:
+    return {
+        **_base_stats_results_to_dict(results),
+        "num_permutations": results.num_permutations,
+    }
 
 
 def _posthoc_to_dict(posthoc: PosthocResults) -> dict:
-    result = {
+    return {
         "test": str(posthoc.test),
         "adjustment_method": str(posthoc.adjustment_method),
         "adjusted_pvalues": _posthoc_df_to_dict(posthoc.adjusted_pvalues),
+        "pvalues": _posthoc_df_to_dict(posthoc.pvalues) if posthoc.pvalues is not None else None,
+        "statistics": (
+            _posthoc_df_to_dict(posthoc.statistics) if posthoc.statistics is not None else None
+        ),
     }
-    if posthoc.pvalues is not None:
-        result["pvalues"] = _posthoc_df_to_dict(posthoc.pvalues)
-    if posthoc.statistics is not None:
-        result["statistics"] = _posthoc_df_to_dict(posthoc.statistics)
-    return result
 
 
 def _posthoc_df_to_dict(df: pd.DataFrame) -> dict[str, dict[str, float]]:

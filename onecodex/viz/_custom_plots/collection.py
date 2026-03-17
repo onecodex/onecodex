@@ -597,24 +597,24 @@ class SampleCollection(BaseSampleCollection):
 
         match params.stats_type:
             case StatsType.AlphaDiversity:
-                stats_results = self.alpha_diversity_stats(
+                alpha_diversity_results = self.alpha_diversity_stats(
                     group_by=group_by,
                     paired_by=params.paired_by,
                     metric=params.metric,
                     diversity_metric=params.alpha_metric,
                     rank=params.rank,
                 )
+                return StatsResult(params=params, alpha_diversity_results=alpha_diversity_results)
             case StatsType.BetaDiversity:
-                stats_results = self.beta_diversity_stats(
+                beta_diversity_results = self.beta_diversity_stats(
                     group_by=group_by,
                     metric=params.metric,
                     diversity_metric=params.beta_metric,
                     rank=params.rank,
                 )
+                return StatsResult(params=params, beta_diversity_results=beta_diversity_results)
             case _:
                 raise OneCodexException(f"Unknown stats type: {params.stats_type}")
-
-        return StatsResult(params=params, results=stats_results)
 
     def _validate_stats_params(self, params: StatsParams):
         if not self._classifications:

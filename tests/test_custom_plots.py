@@ -494,10 +494,11 @@ def test_stats_alpha_diversity(stats_sample_collection):
     result = stats_sample_collection.stats(params)
 
     assert result.error is None
-    assert isinstance(result.results, AlphaDiversityStatsResults)
-    assert result.results.test == AlphaDiversityStatsTest.Mannwhitneyu
-    assert result.results.group_sizes == {"A": 2, "B": 2}
-    assert result.results.sample_size == 4
+    assert result.beta_diversity_results is None
+    assert isinstance(result.alpha_diversity_results, AlphaDiversityStatsResults)
+    assert result.alpha_diversity_results.test == AlphaDiversityStatsTest.Mannwhitneyu
+    assert result.alpha_diversity_results.group_sizes == {"A": 2, "B": 2}
+    assert result.alpha_diversity_results.sample_size == 4
 
 
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
@@ -512,11 +513,12 @@ def test_stats_beta_diversity(stats_sample_collection):
     result = stats_sample_collection.stats(params)
 
     assert result.error is None
-    assert isinstance(result.results, BetaDiversityStatsResults)
-    assert result.results.test == BetaDiversityStatsTest.Permanova
-    assert result.results.group_sizes == {"A": 2, "B": 2}
-    assert result.results.sample_size == 4
-    assert result.results.num_permutations > 0
+    assert result.alpha_diversity_results is None
+    assert isinstance(result.beta_diversity_results, BetaDiversityStatsResults)
+    assert result.beta_diversity_results.test == BetaDiversityStatsTest.Permanova
+    assert result.beta_diversity_results.group_sizes == {"A": 2, "B": 2}
+    assert result.beta_diversity_results.sample_size == 4
+    assert result.beta_diversity_results.num_permutations > 0
 
 
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
@@ -547,7 +549,7 @@ def test_stats_secondary_group_by(stats_sample_collection):
     result = stats_sample_collection.stats(params)
 
     assert result.error is None
-    assert result.results.group_by_variable == "cohort_site"
+    assert result.alpha_diversity_results.group_by_variable == "cohort_site"
 
 
 def test_stats_filter_by(stats_sample_collection):
@@ -577,7 +579,8 @@ def test_stats_warning_becomes_error(stats_sample_collection):
     result = stats_sample_collection.stats(params)
 
     assert result.error is not None
-    assert result.results is None
+    assert result.alpha_diversity_results is None
+    assert result.beta_diversity_results is None
 
 
 def test_stats_invalid_metadata_field(stats_sample_collection):
@@ -592,7 +595,8 @@ def test_stats_invalid_metadata_field(stats_sample_collection):
 
     assert result.error is not None
     assert "does not exist" in result.error
-    assert result.results is None
+    assert result.alpha_diversity_results is None
+    assert result.beta_diversity_results is None
 
 
 @pytest.mark.parametrize(
@@ -648,12 +652,13 @@ def test_stats_to_dict_alpha(stats_sample_collection):
     assert d["error"] is None
     assert d["params"]["group_by"] == "cohort"
     assert d["params"]["stats_type"] == "alpha_diversity"
-    assert d["results"]["test"] == "mannwhitneyu"
-    assert isinstance(d["results"]["statistic"], float)
-    assert isinstance(d["results"]["pvalue"], float)
-    assert d["results"]["group_sizes"] == {"A": 2, "B": 2}
-    assert d["results"]["paired_by_variable"] is None
-    assert "num_permutations" not in d["results"]
+    assert d["beta_diversity_results"] is None
+    assert d["alpha_diversity_results"]["test"] == "mannwhitneyu"
+    assert isinstance(d["alpha_diversity_results"]["statistic"], float)
+    assert isinstance(d["alpha_diversity_results"]["pvalue"], float)
+    assert d["alpha_diversity_results"]["group_sizes"] == {"A": 2, "B": 2}
+    assert d["alpha_diversity_results"]["paired_by_variable"] is None
+    assert "num_permutations" not in d["alpha_diversity_results"]
 
 
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
@@ -669,9 +674,10 @@ def test_stats_to_dict_beta(stats_sample_collection):
     d = result.to_dict()
 
     assert d["error"] is None
-    assert d["results"]["test"] == "permanova"
-    assert isinstance(d["results"]["num_permutations"], int)
-    assert "paired_by_variable" not in d["results"]
+    assert d["alpha_diversity_results"] is None
+    assert d["beta_diversity_results"]["test"] == "permanova"
+    assert isinstance(d["beta_diversity_results"]["num_permutations"], int)
+    assert "paired_by_variable" not in d["beta_diversity_results"]
 
 
 def test_stats_to_dict_error(stats_sample_collection):
@@ -683,7 +689,8 @@ def test_stats_to_dict_error(stats_sample_collection):
     result = stats_sample_collection.stats(params)
     d = result.to_dict()
 
-    assert d["results"] is None
+    assert d["alpha_diversity_results"] is None
+    assert d["beta_diversity_results"] is None
     assert d["error"] is not None
 
 
@@ -723,10 +730,10 @@ def test_stats_to_dict_with_posthoc():
         posthoc=posthoc,
     )
     params = StatsParams(group_by="cohort", stats_type="alpha_diversity")
-    result = StatsResult(params=params, results=stats_results)
+    result = StatsResult(params=params, alpha_diversity_results=stats_results)
 
     d = result.to_dict()
-    posthoc_dict = d["results"]["posthoc"]
+    posthoc_dict = d["alpha_diversity_results"]["posthoc"]
 
     assert posthoc_dict["test"] == "dunn"
     assert posthoc_dict["adjustment_method"] == "benjamini_hochberg"
