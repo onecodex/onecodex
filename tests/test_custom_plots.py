@@ -230,44 +230,41 @@ def test_plot_does_not_match_on_taxonomy(sample_collection, default_plot_params_
 @pytest.mark.parametrize(
     "params,columns",
     [
-        (
-            {"plot_type": "taxa", "plot_repr": "bargraph", "metric": "readcount"},
-            {"Tax Name", "Sample 1", "Sample 2", "Sample 3"},
-        ),
-        (
-            {"plot_type": "taxa", "plot_repr": "bargraph", "metric": "readcount_w_children"},
-            {"Tax Name", "Sample 1", "Sample 2", "Sample 3"},
-        ),
-        (
-            {
-                "plot_type": "taxa",
-                "plot_repr": "bargraph",
-                "metric": "readcount",
-                "group_by": "library_type",
-            },
-            {"Tax Name", "WGS", "Other"},
-        ),
-        (
-            {
-                "plot_type": "taxa",
-                "plot_repr": "bargraph",
-                "metric": "readcount_w_children",
-                "group_by": "library_type",
-            },
-            {"Tax Name", "WGS", "Other"},
-        ),
+        *[
+            (
+                {"plot_type": "taxa", "plot_repr": "bargraph", "metric": metric},
+                {"Tax Name", "Sample 1", "Sample 2", "Sample 3"},
+            )
+            for metric in [
+                Metric.Readcount,
+                Metric.ReadcountWChildren,
+                Metric.NormalizedReadcount,
+                Metric.NormalizedReadcountWChildren,
+                Metric.Abundance,
+                Metric.AbundanceWChildren,
+            ]
+        ],
+        *[
+            (
+                {
+                    "plot_type": "taxa",
+                    "plot_repr": "bargraph",
+                    "metric": metric,
+                    "group_by": "library_type",
+                },
+                {"Tax Name", "WGS", "Other"},
+            )
+            for metric in [
+                Metric.Readcount,
+                Metric.ReadcountWChildren,
+                Metric.NormalizedReadcount,
+                Metric.NormalizedReadcountWChildren,
+                Metric.Abundance,
+            ]
+        ],
         (
             {"plot_type": "taxa", "plot_repr": "heatmap", "metric": "abundance"},
             {"Tax Name", "Sample 1", "Sample 2", "Sample 3"},
-        ),
-        (
-            {
-                "plot_type": "taxa",
-                "plot_repr": "bargraph",
-                "metric": "abundance",
-                "group_by": "library_type",
-            },
-            {"Tax Name", "WGS", "Other"},
         ),
         (
             {
