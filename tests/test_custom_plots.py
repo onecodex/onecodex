@@ -231,8 +231,30 @@ def test_plot_does_not_match_on_taxonomy(sample_collection, default_plot_params_
     "params,columns",
     [
         (
+            {"plot_type": "taxa", "plot_repr": "bargraph", "metric": "readcount"},
+            {"Tax Name", "Sample 1", "Sample 2", "Sample 3"},
+        ),
+        (
             {"plot_type": "taxa", "plot_repr": "bargraph", "metric": "readcount_w_children"},
             {"Tax Name", "Sample 1", "Sample 2", "Sample 3"},
+        ),
+        (
+            {
+                "plot_type": "taxa",
+                "plot_repr": "bargraph",
+                "metric": "readcount",
+                "group_by": "library_type",
+            },
+            {"Tax Name", "WGS", "Other"},
+        ),
+        (
+            {
+                "plot_type": "taxa",
+                "plot_repr": "bargraph",
+                "metric": "readcount_w_children",
+                "group_by": "library_type",
+            },
+            {"Tax Name", "WGS", "Other"},
         ),
         (
             {"plot_type": "taxa", "plot_repr": "heatmap", "metric": "abundance"},
