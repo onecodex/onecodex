@@ -13,14 +13,6 @@ if TYPE_CHECKING:
 
     from .models import PlotParams
 
-METRIC_COLUMNS = [
-    "Reads",
-    "Mean Reads",
-    "Readcount With Children",
-    "Relative Abundance",
-    "Mean Relative Abundance",
-]
-
 
 def export_chart_data(params: PlotParams, chart: alt.Chart) -> bytes | None:
     """Export chart data to CSV or XLSX."""
@@ -39,12 +31,11 @@ def _extract_chart_data(params: PlotParams, chart: alt.Chart) -> pd.DataFrame:
         df.drop("url", axis=1, inplace=True)
 
     if params.plot_type == PlotType.Taxa:
-        values_col = None
-        for col_name in METRIC_COLUMNS:
-            if col_name in df.columns:
-                values_col = col_name
+        values_col = params.metric.display_name
+        if params.group_by:
+            values_col = f"Mean {values_col}"
 
-        if not values_col:
+        if values_col not in df.columns:
             raise OneCodexException("Cannot export chart data: unexpected or missing metric column")
 
         columns = "Label"
