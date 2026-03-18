@@ -153,8 +153,21 @@ class Api(object):
         elif api_key:
             auth = HTTPBasicAuth(api_key, "")
 
+        telemetry_enabled = telemetry is True or (
+            telemetry is None and os.environ.get("ONE_CODEX_AUTO_TELEMETRY", False)
+        )
+
+        ocx_client_user_agent = {
+            "onecodex_version": __version__,
+            "requests_version": requests.__version__,
+            "python_version": sys.version.split()[0] if telemetry_enabled else None,
+            "os": platform.system() if telemetry_enabled else None,
+            "os_version": platform.release() if telemetry_enabled else None,
+        }
+
         headers = {
-            "User-Agent": f"python-requests/{requests.__version__} onecodex/{__version__} Python/{sys.version.split()[0]} ({platform.system()} {platform.release()})"
+            "User-Agent": f"onecodex/{__version__}",
+            "X-OneCodex-Client-User-Agent": json.dumps(ocx_client_user_agent),
         }
 
         if kwargs.get("experimental", False):
@@ -174,9 +187,7 @@ class Api(object):
             configure_onecodex_theme()
 
         # Optionally configure Sentry
-        if telemetry is True or (
-            telemetry is None and os.environ.get("ONE_CODEX_AUTO_TELEMETRY", False)
-        ):
+        if telemetry_enabled:
             init_sentry(user_context={"email": self._fetch_account_email()})
             self._telemetry = True
         else:
