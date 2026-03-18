@@ -36,7 +36,9 @@ def _extract_chart_data(params: PlotParams, chart: alt.Chart) -> pd.DataFrame:
             values_col = f"Mean {values_col}"
 
         if values_col not in df.columns:
-            raise OneCodexException("Cannot export chart data: unexpected or missing metric column")
+            raise OneCodexException(
+                f"Cannot export chart data: unexpected or missing metric column '{values_col}'"
+            )
 
         columns = "Label"
         if params.group_by:
