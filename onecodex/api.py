@@ -3,6 +3,8 @@ import filelock
 import json
 import logging
 import os
+import platform
+import sys
 from requests.auth import HTTPBasicAuth
 import warnings
 
@@ -150,7 +152,9 @@ class Api(object):
         elif api_key:
             auth = HTTPBasicAuth(api_key, "")
 
-        headers = {"X-OneCodex-Client-User-Agent": __version__}
+        headers = {
+            "X-OneCodex-Client-User-Agent": f"{__version__} Python/{sys.version.split()[0]} ({platform.system()} {platform.release()})"
+        }
 
         if kwargs.get("experimental", False):
             warnings.warn(
