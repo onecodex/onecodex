@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import platform
+import requests
 import sys
 from requests.auth import HTTPBasicAuth
 import warnings
@@ -153,7 +154,7 @@ class Api(object):
             auth = HTTPBasicAuth(api_key, "")
 
         headers = {
-            "X-OneCodex-Client-User-Agent": f"{__version__} Python/{sys.version.split()[0]} ({platform.system()} {platform.release()})"
+            "User-Agent": f"python-requests/{requests.__version__} onecodex/{__version__} Python/{sys.version.split()[0]} ({platform.system()} {platform.release()})"
         }
 
         if kwargs.get("experimental", False):
