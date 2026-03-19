@@ -26,7 +26,7 @@ from onecodex.models import SampleCollection as BaseSampleCollection
 from .enums import PlotRepr, PlotType, StatsType
 from .export import export_chart_data
 from .metadata import deduplicate_labels, metadata_record_to_label, sort_metadata_records
-from .models import PlotParams, PlotResult, StatsParams, StatsResult
+from .models import PlotParams, PlotResults, StatsParams, StatsResults
 from .utils import get_plot_title
 
 METADATA_FIELD_PLOT_PARAMS = [
@@ -232,7 +232,7 @@ class SampleCollection(BaseSampleCollection):
 
         return functional_results
 
-    def plot(self, params: PlotParams) -> PlotResult:
+    def plot(self, params: PlotParams) -> PlotResults:
         import altair as alt
 
         result = None
@@ -243,9 +243,9 @@ class SampleCollection(BaseSampleCollection):
                 result = self._plot(params)
             except (ValidationError, PlottingException, NoTaxaException) as e:
                 # Expected user error
-                return PlotResult(params=params, error=str(e))
+                return PlotResults(params=params, error=str(e))
             except alt.MaxRowsError:
-                return PlotResult(
+                return PlotResults(
                     params=params,
                     error="The selected dataset is too large to plot. Please try a different plot type or select a fewer number of samples.",
                 )
@@ -258,7 +258,7 @@ class SampleCollection(BaseSampleCollection):
 
         return result
 
-    def _plot(self, params: PlotParams) -> PlotResult:
+    def _plot(self, params: PlotParams) -> PlotResults:
         self._validate_plot_params(params)
 
         if params.filter_by and params.filter_value:
@@ -437,7 +437,7 @@ class SampleCollection(BaseSampleCollection):
             if isinstance(chart["config"].get("axis"), dict):
                 chart["config"]["axis"].pop("grid", None)
 
-        return PlotResult(
+        return PlotResults(
             params=params,
             chart=chart,
             x_axis_label_links=x_axis_label_links,
@@ -569,7 +569,7 @@ class SampleCollection(BaseSampleCollection):
 
         return _sort_x_func
 
-    def stats(self, params: StatsParams) -> StatsResult:
+    def stats(self, params: StatsParams) -> StatsResults:
         with warnings.catch_warnings():
             # Turn StatsWarning into an exception (run stats in "strict" mode)
             warnings.filterwarnings("error", category=StatsWarning)
@@ -578,10 +578,10 @@ class SampleCollection(BaseSampleCollection):
                 result = self._stats(params)
             except (ValidationError, StatsException, StatsWarning, NoTaxaException) as e:
                 # Expected user error
-                return StatsResult(params=params, error=str(e))
+                return StatsResults(params=params, error=str(e))
         return result
 
-    def _stats(self, params: StatsParams) -> StatsResult:
+    def _stats(self, params: StatsParams) -> StatsResults:
         self._validate_stats_params(params)
 
         if params.filter_by and params.filter_value:
@@ -604,7 +604,7 @@ class SampleCollection(BaseSampleCollection):
                     diversity_metric=params.alpha_metric,
                     rank=params.rank,
                 )
-                return StatsResult(params=params, alpha_diversity_results=alpha_diversity_results)
+                return StatsResults(params=params, alpha_diversity_results=alpha_diversity_results)
             case StatsType.BetaDiversity:
                 beta_diversity_results = self.beta_diversity_stats(
                     group_by=group_by,
@@ -612,7 +612,7 @@ class SampleCollection(BaseSampleCollection):
                     diversity_metric=params.beta_metric,
                     rank=params.rank,
                 )
-                return StatsResult(params=params, beta_diversity_results=beta_diversity_results)
+                return StatsResults(params=params, beta_diversity_results=beta_diversity_results)
             case _:
                 raise OneCodexException(f"Unknown stats type: {params.stats_type}")
 
