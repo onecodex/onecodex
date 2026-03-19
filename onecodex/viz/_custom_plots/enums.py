@@ -21,6 +21,11 @@ class ExportFormat(BaseEnum):
     Xlsx = "xlsx"
 
 
+class StatsType(BaseEnum):
+    AlphaDiversity = "alpha_diversity"
+    BetaDiversity = "beta_diversity"
+
+
 class SuggestionType(BaseEnum):
     Project = "project"
     Tag = "tag"

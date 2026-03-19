@@ -10,6 +10,8 @@ from onecodex.exceptions import (
     OneCodexException,
     PlottingException,
     PlottingWarning,
+    StatsException,
+    StatsWarning,
     ValidationError,
     NoTaxaException,
 )
@@ -21,10 +23,10 @@ from onecodex.lib.enums import (
 )
 from onecodex.models import SampleCollection as BaseSampleCollection
 
-from .enums import PlotRepr, PlotType
+from .enums import PlotRepr, PlotType, StatsType
 from .export import export_chart_data
 from .metadata import deduplicate_labels, metadata_record_to_label, sort_metadata_records
-from .models import PlotParams, PlotResult
+from .models import PlotParams, PlotResult, StatsParams, StatsResult
 from .utils import get_plot_title
 
 METADATA_FIELD_PLOT_PARAMS = [
@@ -34,6 +36,13 @@ METADATA_FIELD_PLOT_PARAMS = [
     "filter_by",
     "label_by",
     "sort_by",
+]
+
+METADATA_FIELD_STATS_PARAMS = [
+    "group_by",
+    "secondary_group_by",
+    "filter_by",
+    "paired_by",
 ]
 
 
@@ -68,7 +77,8 @@ class Samples:
 
 
 class Jobs:
-    def __init__(self, name: str):
+    def __init__(self, *, id: str, name: str):
+        self.id = id
         self.name = name
 
 
@@ -199,7 +209,7 @@ class SampleCollection(BaseSampleCollection):
             results["id"] = summary["uuid"]
             results.id = summary["uuid"]
             results.sample = sample
-            results.job = Jobs(name=summary["job_name"])
+            results.job = Jobs(id=summary["job_uuid"], name=summary["job_name"])
 
             sample.primary_classification = results
 
@@ -558,3 +568,65 @@ class SampleCollection(BaseSampleCollection):
             return [label_func(x) for x in sorted_records]
 
         return _sort_x_func
+
+    def stats(self, params: StatsParams) -> StatsResult:
+        with warnings.catch_warnings():
+            # Turn StatsWarning into an exception (run stats in "strict" mode)
+            warnings.filterwarnings("error", category=StatsWarning)
+
+            try:
+                result = self._stats(params)
+            except (ValidationError, StatsException, StatsWarning, NoTaxaException) as e:
+                # Expected user error
+                return StatsResult(params=params, error=str(e))
+        return result
+
+    def _stats(self, params: StatsParams) -> StatsResult:
+        self._validate_stats_params(params)
+
+        if params.filter_by and params.filter_value:
+            self = self._filter_by_metadata(params.filter_by, params.filter_value)
+
+        if params.metric == Metric.Auto:
+            params = params.model_copy(update={"metric": self.automatic_metric})
+
+        if params.secondary_group_by:
+            group_by = (params.group_by, params.secondary_group_by)
+        else:
+            group_by = params.group_by
+
+        match params.stats_type:
+            case StatsType.AlphaDiversity:
+                alpha_diversity_results = self.alpha_diversity_stats(
+                    group_by=group_by,
+                    paired_by=params.paired_by,
+                    metric=params.metric,
+                    diversity_metric=params.alpha_metric,
+                    rank=params.rank,
+                )
+                return StatsResult(params=params, alpha_diversity_results=alpha_diversity_results)
+            case StatsType.BetaDiversity:
+                beta_diversity_results = self.beta_diversity_stats(
+                    group_by=group_by,
+                    metric=params.metric,
+                    diversity_metric=params.beta_metric,
+                    rank=params.rank,
+                )
+                return StatsResult(params=params, beta_diversity_results=beta_diversity_results)
+            case _:
+                raise OneCodexException(f"Unknown stats type: {params.stats_type}")
+
+    def _validate_stats_params(self, params: StatsParams):
+        if not self._classifications:
+            raise ValidationError(
+                "Classification results are not available for any of the selected samples."
+            )
+
+        for attr in METADATA_FIELD_STATS_PARAMS:
+            field_value = getattr(params, attr)
+            if field_value is not None and field_value not in self.metadata.columns:
+                attr_display_name = attr.replace("_", " ").title()
+                raise ValidationError(
+                    f"The metadata field {field_value!r} does not exist. Please select a valid "
+                    f"metadata field in the {attr_display_name} dropdown."
+                )
