@@ -70,7 +70,7 @@ class StatsParams(BaseParams):
 
 
 @dataclass(kw_only=True)
-class PlotResult:
+class PlotResults:
     params: PlotParams
     chart: dict | None = None
     x_axis_label_links: dict[str, str] = field(default_factory=dict)
@@ -90,7 +90,7 @@ class PlotResult:
 
 
 @dataclass(kw_only=True)
-class StatsResult:
+class StatsResults:
     params: StatsParams
     alpha_diversity_results: AlphaDiversityStatsResults | None = None
     beta_diversity_results: BetaDiversityStatsResults | None = None

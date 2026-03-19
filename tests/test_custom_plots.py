@@ -18,7 +18,7 @@ from onecodex.stats import AlphaDiversityStatsResults, BetaDiversityStatsResults
 from onecodex.viz._custom_plots.collection import SampleCollection, Samples
 from onecodex.viz._custom_plots.enums import ExportFormat, PlotRepr, PlotType
 from onecodex.viz._custom_plots.metadata import _get_metadata_field_value
-from onecodex.viz._custom_plots.models import PlotParams, StatsParams, StatsResult
+from onecodex.viz._custom_plots.models import PlotParams, StatsParams, StatsResults
 from onecodex.viz._custom_plots.utils import get_plot_title
 
 
@@ -749,7 +749,7 @@ def test_stats_to_dict_with_posthoc():
         posthoc=posthoc,
     )
     params = StatsParams(group_by="cohort", stats_type="alpha_diversity")
-    result = StatsResult(params=params, alpha_diversity_results=stats_results)
+    result = StatsResults(params=params, alpha_diversity_results=stats_results)
 
     d = result.to_dict()
     posthoc_dict = d["alpha_diversity_results"]["posthoc"]
