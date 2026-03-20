@@ -1,5 +1,9 @@
-from onecodex.models.base import OneCodexBase
+from typing import List, Optional, Union
+
+from onecodex.models.base import OneCodexBase, ApiRef
 from onecodex.models.helpers import ResourceDownloadMixin
+from onecodex.models.misc import Jobs, Tags, Users
+from onecodex.models.sample import Samples
 from onecodex.models.schemas.genome import (
     TaxonSchema,
     GenomeSchema,
@@ -10,7 +14,31 @@ from onecodex.models.schemas.genome import (
 # NOTE: these models are only accessible via `X-OneCodex-Api-Experimental` as of 10/2/2025
 
 
-class AnnotationSets(OneCodexBase, AnnotationSetSchema, ResourceDownloadMixin):
+class _AssemblySchema(AssemblySchema):
+    genome: Optional[Union["Genomes", ApiRef]]
+    input_samples: Optional[Union[List[Samples], List[ApiRef]]]
+    job: Optional[Union[Jobs, ApiRef]]
+    owner: Union[Users, ApiRef]
+    primary_annotation_set: Optional[Union["AnnotationSets", ApiRef]]
+
+
+class _AnnotationSetSchema(AnnotationSetSchema):
+    assembly: Union["Assemblies", ApiRef]
+    job: Optional[Union[Jobs, ApiRef]]
+
+
+class _TaxonSchema(TaxonSchema):
+    parent: Optional[Union["Taxa", ApiRef]]
+
+
+class _GenomeSchema(GenomeSchema):
+    assemblies: Union[List["Assemblies"], List[ApiRef]]
+    primary_assembly: Optional[Union["Assemblies", ApiRef]]
+    tags: Union[List[Tags], List[ApiRef]]
+    taxon: Union["Taxa", ApiRef]
+
+
+class AnnotationSets(OneCodexBase, _AnnotationSetSchema, ResourceDownloadMixin):
     _resource_path = "/api/v1/annotation_sets"
 
     def download(self, path=None, file_obj=None, progressbar=False):
@@ -83,7 +111,7 @@ class AnnotationSets(OneCodexBase, AnnotationSetSchema, ResourceDownloadMixin):
         )
 
 
-class Assemblies(OneCodexBase, AssemblySchema, ResourceDownloadMixin):
+class Assemblies(OneCodexBase, _AssemblySchema, ResourceDownloadMixin):
     _resource_path = "/api/v1/assemblies"
 
     def download(self, path=None, file_obj=None, progressbar=False):
@@ -120,14 +148,14 @@ class Assemblies(OneCodexBase, AssemblySchema, ResourceDownloadMixin):
         )
 
 
-class Genomes(OneCodexBase, GenomeSchema):
+class Genomes(OneCodexBase, _GenomeSchema):
     _resource_path = "/api/v1/genomes"
 
     def __repr__(self):
         return f"<Genome {self.id} {self.taxon.name} ({self.name})>"
 
 
-class Taxa(OneCodexBase, TaxonSchema):
+class Taxa(OneCodexBase, _TaxonSchema):
     _resource_path = "/api/v1/taxa"
 
     def __repr__(self):

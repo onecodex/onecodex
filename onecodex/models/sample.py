@@ -52,7 +52,7 @@ def get_project(project):
     return project
 
 
-class MetadataSchema(MetadataSchema):
+class _MetadataSchema(MetadataSchema):
     # Use ApiRef for the circular reference
     sample: Union["Samples", ApiRef]
     updated_at: Optional[datetime] = None
@@ -67,7 +67,7 @@ class MetadataSchema(MetadataSchema):
         return str(v.value) if hasattr(v, "value") else v
 
 
-class Metadata(OneCodexBase, MetadataSchema):
+class Metadata(OneCodexBase, _MetadataSchema):
     _resource_path = "/api/v1/metadata"
     _allowed_methods = {
         "update": MetadataPatchSchema,

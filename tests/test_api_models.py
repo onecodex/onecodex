@@ -39,6 +39,95 @@ def test_model_classes(ocx, api_data):
     assert ocx.FunctionalProfiles
 
 
+def test_experimental_expanded_models_hydrate_properly():
+    with pytest.warns(UserWarning, match="Experimental API mode enabled"):
+        # Based on ocx fixture
+        ocx = Api(
+            api_key="1eab4217d30d42849dbde0cd1bb94e39",
+            base_url="http://localhost:3000",
+            experimental=True,
+        )
+
+    user = {"$uri": "/api/v1/users/user123456789abc", "email": "user@example.com"}
+    job = {
+        "$uri": "/api/v1/jobs/job123456789abcd",
+        "analysis_type": "assembly",
+        "created_at": "2025-10-02T00:00:00+00:00",
+        "job_args_schema": {},
+        "name": "Assembly job",
+        "public": False,
+    }
+    sample = {
+        "$uri": "/api/v1/samples/sample123456789",
+        "created_at": "2025-10-02T00:00:00+00:00",
+        "filename": "reads.fastq.gz",
+        "metadata": {"$ref": "/api/v1/metadata/meta123456789ab"},
+        "owner": {"$ref": "/api/v1/users/user123456789abc"},
+        "primary_classification": None,
+        "project": None,
+        "size": 123,
+        "status": "available",
+        "tags": [],
+        "visibility": "private",
+    }
+    annotation_set = {
+        "$uri": "/api/v1/annotation_sets/ann123456789abcd",
+        "assembly": {"$ref": "/api/v1/assemblies/asm123456789abcd"},
+        "created_at": "2025-10-02T00:00:00+00:00",
+        "job": job,
+    }
+    assembly = {
+        "$uri": "/api/v1/assemblies/asm123456789abcd",
+        "created_at": "2025-10-02T00:00:00+00:00",
+        "filename": "assembly.fasta",
+        "genome": {"$ref": "/api/v1/genomes/gen123456789abcd"},
+        "input_samples": [sample],
+        "job": job,
+        "owner": user,
+        "primary_annotation_set": annotation_set,
+        "size": 456,
+        "visibility": "private",
+    }
+    genome = ocx.Genomes.model_validate(
+        {
+            "$uri": "/api/v1/genomes/gen123456789abcd",
+            "assemblies": [assembly],
+            "created_at": "2025-10-02T00:00:00+00:00",
+            "description": "Test genome",
+            "name": "Genome 1",
+            "primary_assembly": assembly,
+            "tags": [{"$uri": "/api/v1/tags/tag123456789abcd", "name": "reference"}],
+            "taxon": {
+                "$uri": "/api/v1/taxa/tax123456789abcd",
+                "created_at": "2025-10-02T00:00:00+00:00",
+                "name": "Bacillus subtilis",
+                "parent": {
+                    "$uri": "/api/v1/taxa/tax223456789abcd",
+                    "created_at": "2025-10-02T00:00:00+00:00",
+                    "name": "Bacillus",
+                    "parent": None,
+                    "rank": "genus",
+                    "taxon_id": "1386",
+                },
+                "rank": "species",
+                "taxon_id": "1423",
+            },
+        }
+    )
+
+    assert isinstance(genome.primary_assembly, onecodex.models.Assemblies)
+    assert isinstance(genome.assemblies[0], onecodex.models.Assemblies)
+    assert isinstance(genome.taxon, onecodex.models.Taxa)
+    assert isinstance(genome.taxon.parent, onecodex.models.Taxa)
+    assert isinstance(genome.tags[0], onecodex.models.Tags)
+    assert isinstance(genome.primary_assembly.owner, onecodex.models.Users)
+    assert isinstance(genome.primary_assembly.job, onecodex.models.Jobs)
+    assert isinstance(genome.primary_assembly.input_samples[0], onecodex.models.Samples)
+    assert isinstance(
+        genome.primary_assembly.primary_annotation_set, onecodex.models.AnnotationSets
+    )
+
+
 def test_sample_int_id(ocx, api_data):
     """
     Ensure that uuids do not get coerced into integers in the off chance that
