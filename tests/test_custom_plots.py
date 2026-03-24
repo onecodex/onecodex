@@ -18,7 +18,7 @@ from onecodex.stats import AlphaDiversityStatsResults, BetaDiversityStatsResults
 from onecodex.viz._custom_plots.collection import SampleCollection, Samples
 from onecodex.viz._custom_plots.enums import ExportFormat, PlotRepr, PlotType
 from onecodex.viz._custom_plots.metadata import _get_metadata_field_value
-from onecodex.viz._custom_plots.models import PlotParams, StatsParams, StatsResults
+from onecodex.viz._custom_plots.models import PlotParams, PlotResults, StatsParams, StatsResults
 from onecodex.viz._custom_plots.utils import get_plot_title
 
 
@@ -494,6 +494,7 @@ def stats_sample_collection() -> SampleCollection:
         samples.append(
             make_sample(
                 classification_uuid=cls_uuid,
+                filename=f"sample{i}.fastq",
                 sample_name=f"Sample {i}",
                 cohort=cohort,
                 site=site,
@@ -504,6 +505,7 @@ def stats_sample_collection() -> SampleCollection:
 
 def test_stats_alpha_diversity(stats_sample_collection):
     params = StatsParams(
+        source_name="My Source",
         group_by="cohort",
         stats_type="alpha_diversity",
         metric="readcount_w_children",
@@ -518,6 +520,14 @@ def test_stats_alpha_diversity(stats_sample_collection):
     assert result.alpha_diversity_results.test == AlphaDiversityStatsTest.Mannwhitneyu
     assert result.alpha_diversity_results.group_sizes == {"A": 2, "B": 2}
     assert result.alpha_diversity_results.sample_size == 4
+
+    assert isinstance(result.plot_results, PlotResults)
+    assert result.plot_results.params.plot_type == PlotType.Alpha
+    assert result.plot_results.params.plot_repr is None
+    assert result.plot_results.params.source_name == params.source_name
+    assert result.plot_results.params.metric == params.metric
+    assert result.plot_results.params.rank == params.rank
+    assert result.plot_results.params.group_by == params.group_by
 
 
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
@@ -538,6 +548,7 @@ def test_stats_beta_diversity(stats_sample_collection):
     assert result.beta_diversity_results.group_sizes == {"A": 2, "B": 2}
     assert result.beta_diversity_results.sample_size == 4
     assert result.beta_diversity_results.num_permutations > 0
+    assert result.plot_results is None
 
 
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
@@ -571,6 +582,29 @@ def test_stats_secondary_group_by(stats_sample_collection):
     assert result.alpha_diversity_results.group_by_variable == "cohort_site"
 
 
+def test_stats_alpha_diversity_forwards_shared_params_to_plot(stats_sample_collection):
+    params = StatsParams(
+        group_by="cohort",
+        secondary_group_by="site",
+        stats_type="alpha_diversity",
+        metric="readcount_w_children",
+        rank="species",
+        alpha_metric="simpson",
+    )
+
+    result = stats_sample_collection.stats(params)
+
+    assert result.plot_results is not None
+    plot_params = result.plot_results.params
+    assert plot_params.plot_type == PlotType.Alpha
+    assert plot_params.plot_repr is None
+    assert plot_params.group_by == "cohort"
+    assert plot_params.secondary_group_by == "site"
+    assert plot_params.metric == params.metric
+    assert plot_params.rank == params.rank
+    assert plot_params.alpha_metric == params.alpha_metric
+
+
 def test_stats_filter_by(stats_sample_collection):
     params = StatsParams(
         group_by="cohort",
@@ -600,6 +634,7 @@ def test_stats_warning_becomes_error(stats_sample_collection):
     assert result.error is not None
     assert result.alpha_diversity_results is None
     assert result.beta_diversity_results is None
+    assert result.plot_results is None
 
 
 def test_stats_invalid_metadata_field(stats_sample_collection):
@@ -616,6 +651,7 @@ def test_stats_invalid_metadata_field(stats_sample_collection):
     assert "does not exist" in result.error
     assert result.alpha_diversity_results is None
     assert result.beta_diversity_results is None
+    assert result.plot_results is None
 
 
 @pytest.mark.parametrize(
@@ -679,6 +715,10 @@ def test_stats_to_dict_alpha(stats_sample_collection):
     assert d["alpha_diversity_results"]["paired_by_variable"] is None
     assert "num_permutations" not in d["alpha_diversity_results"]
 
+    assert d["plot_results"] is not None
+    assert d["plot_results"]["params"]["plot_type"] == "alpha"
+    assert d["plot_results"]["params"]["plot_repr"] is None
+
 
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
 def test_stats_to_dict_beta(stats_sample_collection):
@@ -697,6 +737,7 @@ def test_stats_to_dict_beta(stats_sample_collection):
     assert d["beta_diversity_results"]["test"] == "permanova"
     assert isinstance(d["beta_diversity_results"]["num_permutations"], int)
     assert "paired_by_variable" not in d["beta_diversity_results"]
+    assert d["plot_results"] is None
 
 
 def test_stats_to_dict_error(stats_sample_collection):
@@ -710,6 +751,7 @@ def test_stats_to_dict_error(stats_sample_collection):
 
     assert d["alpha_diversity_results"] is None
     assert d["beta_diversity_results"] is None
+    assert d["plot_results"] is None
     assert d["error"] is not None
 
 

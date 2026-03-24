@@ -10,10 +10,10 @@ class PlotType(BaseEnum):
 
 class PlotRepr(BaseEnum):
     Bargraph = "bargraph"
+    Heatmap = "heatmap"
     Pcoa = "pcoa"
     Pca = "pca"
     Distance = "distance"
-    Heatmap = "heatmap"
 
 
 class ExportFormat(BaseEnum):
