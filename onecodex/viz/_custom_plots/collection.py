@@ -26,7 +26,7 @@ from onecodex.models import SampleCollection as BaseSampleCollection
 from .enums import PlotRepr, PlotType, StatsType
 from .export import export_chart_data
 from .metadata import deduplicate_labels, metadata_record_to_label, sort_metadata_records
-from .models import PlotParams, PlotResults, StatsParams, StatsResults
+from .models import BaseParams, PlotParams, PlotResults, StatsParams, StatsResults
 from .utils import get_plot_title
 
 METADATA_FIELD_PLOT_PARAMS = [
@@ -575,11 +575,20 @@ class SampleCollection(BaseSampleCollection):
             warnings.filterwarnings("error", category=StatsWarning)
 
             try:
-                result = self._stats(params)
+                stats_results = self._stats(params)
             except (ValidationError, StatsException, StatsWarning, NoTaxaException) as e:
                 # Expected user error
                 return StatsResults(params=params, error=str(e))
-        return result
+
+        if params.stats_type == StatsType.AlphaDiversity:
+            plot_params = PlotParams(
+                **params.model_dump(include=set(BaseParams.model_fields)),
+                plot_type=PlotType.Alpha,
+                plot_repr=None,
+            )
+            stats_results.plot_results = self.plot(plot_params)
+
+        return stats_results
 
     def _stats(self, params: StatsParams) -> StatsResults:
         self._validate_stats_params(params)

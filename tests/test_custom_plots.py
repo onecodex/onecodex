@@ -9,16 +9,22 @@ import pytest
 from onecodex.exceptions import ValidationError
 from onecodex.lib.enums import (
     AdjustmentMethod,
+    AlphaDiversityMetric,
     AlphaDiversityStatsTest,
+    BetaDiversityMetric,
     BetaDiversityStatsTest,
+    FunctionalAnnotations,
+    FunctionalAnnotationsMetric,
+    FunctionalLabel,
     Metric,
     PosthocStatsTest,
+    Rank,
 )
 from onecodex.stats import AlphaDiversityStatsResults, BetaDiversityStatsResults, PosthocResults
 from onecodex.viz._custom_plots.collection import SampleCollection, Samples
-from onecodex.viz._custom_plots.enums import ExportFormat, PlotRepr, PlotType
+from onecodex.viz._custom_plots.enums import ExportFormat, PlotRepr, PlotType, StatsType
 from onecodex.viz._custom_plots.metadata import _get_metadata_field_value
-from onecodex.viz._custom_plots.models import PlotParams, StatsParams, StatsResults
+from onecodex.viz._custom_plots.models import PlotParams, PlotResults, StatsParams, StatsResults
 from onecodex.viz._custom_plots.utils import get_plot_title
 
 
@@ -112,14 +118,14 @@ def default_plot_params_payload() -> dict:
         "tag": None,
         "project": None,
         "source_name": "Source",
-        "plot_type": "taxa",
-        "plot_repr": "bargraph",
-        "metric": "auto",
-        "alpha_metric": "shannon",
-        "beta_metric": "braycurtis",
+        "plot_type": PlotType.Taxa,
+        "plot_repr": PlotRepr.Bargraph,
+        "metric": Metric.Auto,
+        "alpha_metric": AlphaDiversityMetric.Shannon,
+        "beta_metric": BetaDiversityMetric.BrayCurtis,
         "export_format": None,
         "top_n": 10,
-        "rank": "auto",
+        "rank": Rank.Auto,
         "facet_by": None,
         "group_by": None,
         "secondary_group_by": None,
@@ -127,39 +133,47 @@ def default_plot_params_payload() -> dict:
         "filter_value": [],
         "label_by": [],
         "sort_by": None,
-        "functional_annotation": "pathways",
-        "functional_metric": "rpk",
-        "functional_pathways_metric": "rpk",
+        "functional_annotation": FunctionalAnnotations.Pathways,
+        "functional_metric": FunctionalAnnotationsMetric.Rpk,
+        "functional_pathways_metric": FunctionalAnnotationsMetric.Rpk,
         "functional_top_n": 10,
-        "functional_label": "name",
+        "functional_label": FunctionalLabel.Name,
     }
 
 
 @pytest.mark.parametrize(
     "params",
     [
-        {"plot_type": "taxa", "plot_repr": "bargraph"},
+        {"plot_type": PlotType.Taxa, "plot_repr": PlotRepr.Bargraph},
         {
-            "plot_type": "taxa",
-            "plot_repr": "bargraph",
+            "plot_type": PlotType.Taxa,
+            "plot_repr": PlotRepr.Bargraph,
             "filter_by": "cohort",
             "filter_value": ["C1"],
         },
-        {"plot_type": "taxa", "plot_repr": "heatmap", "metric": "normalized_readcount_w_children"},
-        {"plot_type": "alpha", "metric": "normalized_readcount_w_children"},
         {
-            "plot_type": "alpha",
+            "plot_type": PlotType.Taxa,
+            "plot_repr": PlotRepr.Heatmap,
+            "metric": Metric.NormalizedReadcountWChildren,
+        },
+        {"plot_type": PlotType.Alpha, "metric": Metric.NormalizedReadcountWChildren},
+        {
+            "plot_type": PlotType.Alpha,
             "group_by": "cohort",
             "secondary_group_by": "sample_type",
-            "metric": "normalized_readcount_w_children",
+            "metric": Metric.NormalizedReadcountWChildren,
         },
-        {"plot_type": "beta", "plot_repr": "pca", "metric": "normalized_readcount_w_children"},
-        {"plot_type": "beta", "plot_repr": "pcoa"},
-        {"plot_type": "beta", "plot_repr": "distance"},
-        {"metric": "auto"},
+        {
+            "plot_type": PlotType.Beta,
+            "plot_repr": PlotRepr.Pca,
+            "metric": Metric.NormalizedReadcountWChildren,
+        },
+        {"plot_type": PlotType.Beta, "plot_repr": PlotRepr.Pcoa},
+        {"plot_type": PlotType.Beta, "plot_repr": PlotRepr.Distance},
+        {"metric": Metric.Auto},
         {"export_format": None},
-        {"export_format": "csv"},
-        {"export_format": "xlsx"},
+        {"export_format": ExportFormat.Csv},
+        {"export_format": ExportFormat.Xlsx},
     ],
 )
 def test_plot(sample_collection, default_plot_params_payload, params):
@@ -202,17 +216,17 @@ def test_plot_does_not_match_on_taxonomy(sample_collection, default_plot_params_
     params = PlotParams.model_validate(
         default_plot_params_payload
         | {
-            "plot_type": "beta",
-            "plot_repr": "pca",
+            "plot_type": PlotType.Beta,
+            "plot_repr": PlotRepr.Pca,
             "facet_by": "Bacteroides",  # all are None
             "filter_by": "cohort",
             "filter_value": ["C1", "C2"],
-            "rank": "genus",
-            "metric": "readcount_w_children",
+            "rank": Rank.Genus,
+            "metric": Metric.ReadcountWChildren,
         }
     )
 
-    df = sample_collection.to_df(rank="genus", metric="readcount_w_children")
+    df = sample_collection.to_df(rank=Rank.Genus, metric=Metric.ReadcountWChildren)
 
     # make sure this taxon is actually there
     assert (sample_collection.taxonomy["name"] == "Bacteroides").sum() == 1
@@ -227,7 +241,7 @@ def test_plot_does_not_match_on_taxonomy(sample_collection, default_plot_params_
     [
         *[
             (
-                {"plot_type": "taxa", "plot_repr": "bargraph", "metric": metric},
+                {"plot_type": PlotType.Taxa, "plot_repr": PlotRepr.Bargraph, "metric": metric},
                 {"Tax Name", "Sample 1", "Sample 2", "Sample 3"},
             )
             for metric in [
@@ -242,8 +256,8 @@ def test_plot_does_not_match_on_taxonomy(sample_collection, default_plot_params_
         *[
             (
                 {
-                    "plot_type": "taxa",
-                    "plot_repr": "bargraph",
+                    "plot_type": PlotType.Taxa,
+                    "plot_repr": PlotRepr.Bargraph,
                     "metric": metric,
                     "group_by": "library_type",
                 },
@@ -258,78 +272,82 @@ def test_plot_does_not_match_on_taxonomy(sample_collection, default_plot_params_
             ]
         ],
         (
-            {"plot_type": "taxa", "plot_repr": "heatmap", "metric": "abundance"},
+            {"plot_type": PlotType.Taxa, "plot_repr": PlotRepr.Heatmap, "metric": Metric.Abundance},
             {"Tax Name", "Sample 1", "Sample 2", "Sample 3"},
         ),
         (
             {
-                "plot_type": "alpha",
-                "metric": "readcount",
-                "alpha_metric": "shannon",
+                "plot_type": PlotType.Alpha,
+                "metric": Metric.Readcount,
+                "alpha_metric": AlphaDiversityMetric.Shannon,
             },
             {"Sample", "Classification ID", "Shannon"},
         ),
         (
             {
-                "plot_type": "alpha",
-                "metric": "abundance",
-                "alpha_metric": "observed_taxa",
+                "plot_type": PlotType.Alpha,
+                "metric": Metric.Abundance,
+                "alpha_metric": AlphaDiversityMetric.ObservedTaxa,
             },
             {"Sample", "Classification ID", "Observed Taxa"},
         ),
         (
             {
-                "plot_type": "alpha",
+                "plot_type": PlotType.Alpha,
                 "group_by": "cohort",
-                "metric": "readcount",
-                "alpha_metric": "shannon",
+                "metric": Metric.Readcount,
+                "alpha_metric": AlphaDiversityMetric.Shannon,
             },
             {"Sample", "cohort", "Shannon"},
         ),
         (
             {
-                "plot_type": "alpha",
+                "plot_type": PlotType.Alpha,
                 "facet_by": "cohort",
                 "group_by": "platform",
-                "metric": "readcount",
-                "alpha_metric": "shannon",
+                "metric": Metric.Readcount,
+                "alpha_metric": AlphaDiversityMetric.Shannon,
             },
             {"Sample", "platform", "cohort", "Shannon"},
         ),
         (
             {
-                "plot_type": "alpha",
+                "plot_type": PlotType.Alpha,
                 "group_by": "platform",
                 "secondary_group_by": "cohort",
-                "metric": "readcount",
-                "alpha_metric": "shannon",
+                "metric": Metric.Readcount,
+                "alpha_metric": AlphaDiversityMetric.Shannon,
             },
             {"Sample", "platform", "cohort", "Shannon"},
         ),
         (
             {
-                "plot_type": "alpha",
+                "plot_type": PlotType.Alpha,
                 "facet_by": "cohort",
                 "group_by": "platform",
                 "secondary_group_by": "cohort",
-                "metric": "readcount",
-                "alpha_metric": "shannon",
+                "metric": Metric.Readcount,
+                "alpha_metric": AlphaDiversityMetric.Shannon,
             },
             {"Sample", "platform", "cohort", "Shannon"},
         ),
         (
-            {"plot_type": "beta", "plot_repr": "pca", "metric": "readcount_w_children"},
+            {
+                "plot_type": PlotType.Beta,
+                "plot_repr": PlotRepr.Pca,
+                "metric": Metric.ReadcountWChildren,
+            },
             {"Sample", "Classification ID", "PC1", "PC2"},
         ),
         (
-            {"plot_type": "beta", "plot_repr": "pcoa", "metric": "abundance"},
+            {"plot_type": PlotType.Beta, "plot_repr": PlotRepr.Pcoa, "metric": Metric.Abundance},
             {"Sample", "Classification ID", "PC1", "PC2"},
         ),
         (
             {
-                "plot_type": "beta",
-                "plot_repr": "distance",
-                "metric": "readcount_w_children",
+                "plot_type": PlotType.Beta,
+                "plot_repr": PlotRepr.Distance,
+                "metric": Metric.ReadcountWChildren,
             },
             {"Sample", "Sample 1", "Sample 2", "Sample 3"},
         ),
@@ -337,7 +355,7 @@ def test_plot_does_not_match_on_taxonomy(sample_collection, default_plot_params_
 )
 def test_export_chart_data(sample_collection, default_plot_params_payload, params, columns):
     params = PlotParams.model_validate(
-        default_plot_params_payload | params | {"export_format": "csv"}
+        default_plot_params_payload | params | {"export_format": ExportFormat.Csv}
     )
 
     result = sample_collection.plot(params)
@@ -352,7 +370,9 @@ def test_export_chart_data(sample_collection, default_plot_params_payload, param
 def test_validate_plot_params_no_functional_profiles(
     sample_collection, default_plot_params_payload
 ):
-    params = PlotParams.model_validate(default_plot_params_payload | {"plot_type": "functional"})
+    params = PlotParams.model_validate(
+        default_plot_params_payload | {"plot_type": PlotType.Functional}
+    )
 
     with pytest.raises(ValidationError, match="Functional Analysis has not been run"):
         sample_collection._validate_plot_params(params)
@@ -460,12 +480,12 @@ def test_get_metadata_field_value(metadata, field, expected):
 @pytest.mark.parametrize(
     "params,start",
     [
-        ({"metric": "readcount"}, "Readcount"),
-        ({"metric": "readcount_w_children"}, "Readcount with children"),
-        ({"metric": "normalized_readcount"}, "Normalized readcount"),
-        ({"metric": "normalized_readcount_w_children"}, "Normalized readcount with children"),
-        ({"metric": "abundance"}, "Relative abundance"),
-        ({"metric": "abundance_w_children"}, "Relative abundance"),
+        ({"metric": Metric.Readcount}, "Readcount"),
+        ({"metric": Metric.ReadcountWChildren}, "Readcount with children"),
+        ({"metric": Metric.NormalizedReadcount}, "Normalized readcount"),
+        ({"metric": Metric.NormalizedReadcountWChildren}, "Normalized readcount with children"),
+        ({"metric": Metric.Abundance}, "Relative abundance"),
+        ({"metric": Metric.AbundanceWChildren}, "Relative abundance"),
         ({"facet_by": "Cohort"}, "Cohort"),
     ],
 )
@@ -494,6 +514,7 @@ def stats_sample_collection() -> SampleCollection:
         samples.append(
             make_sample(
                 classification_uuid=cls_uuid,
+                filename=f"sample{i}.fastq",
                 sample_name=f"Sample {i}",
                 cohort=cohort,
                 site=site,
@@ -504,10 +525,11 @@ def stats_sample_collection() -> SampleCollection:
 
 def test_stats_alpha_diversity(stats_sample_collection):
     params = StatsParams(
+        source_name="My Source",
         group_by="cohort",
-        stats_type="alpha_diversity",
-        metric="readcount_w_children",
-        rank="species",
+        stats_type=StatsType.AlphaDiversity,
+        metric=Metric.ReadcountWChildren,
+        rank=Rank.Species,
     )
 
     result = stats_sample_collection.stats(params)
@@ -519,14 +541,22 @@ def test_stats_alpha_diversity(stats_sample_collection):
     assert result.alpha_diversity_results.group_sizes == {"A": 2, "B": 2}
     assert result.alpha_diversity_results.sample_size == 4
 
+    assert isinstance(result.plot_results, PlotResults)
+    assert result.plot_results.params.plot_type == PlotType.Alpha
+    assert result.plot_results.params.plot_repr is None
+    assert result.plot_results.params.source_name == params.source_name
+    assert result.plot_results.params.metric == params.metric
+    assert result.plot_results.params.rank == params.rank
+    assert result.plot_results.params.group_by == params.group_by
+
 
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
 def test_stats_beta_diversity(stats_sample_collection):
     params = StatsParams(
         group_by="cohort",
-        stats_type="beta_diversity",
-        metric="readcount_w_children",
-        rank="species",
+        stats_type=StatsType.BetaDiversity,
+        metric=Metric.ReadcountWChildren,
+        rank=Rank.Species,
     )
 
     result = stats_sample_collection.stats(params)
@@ -538,14 +568,15 @@ def test_stats_beta_diversity(stats_sample_collection):
     assert result.beta_diversity_results.group_sizes == {"A": 2, "B": 2}
     assert result.beta_diversity_results.sample_size == 4
     assert result.beta_diversity_results.num_permutations > 0
+    assert result.plot_results is None
 
 
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
 def test_stats_auto_metric_resolution(stats_sample_collection):
     params = StatsParams(
         group_by="cohort",
-        stats_type="beta_diversity",
-        rank="genus",
+        stats_type=StatsType.BetaDiversity,
+        rank=Rank.Genus,
     )
     assert params.metric == Metric.Auto
 
@@ -560,9 +591,9 @@ def test_stats_secondary_group_by(stats_sample_collection):
     params = StatsParams(
         group_by="cohort",
         secondary_group_by="site",
-        stats_type="alpha_diversity",
-        metric="readcount_w_children",
-        rank="species",
+        stats_type=StatsType.AlphaDiversity,
+        metric=Metric.ReadcountWChildren,
+        rank=Rank.Species,
     )
 
     result = stats_sample_collection.stats(params)
@@ -571,12 +602,35 @@ def test_stats_secondary_group_by(stats_sample_collection):
     assert result.alpha_diversity_results.group_by_variable == "cohort_site"
 
 
+def test_stats_alpha_diversity_forwards_shared_params_to_plot(stats_sample_collection):
+    params = StatsParams(
+        group_by="cohort",
+        secondary_group_by="site",
+        stats_type=StatsType.AlphaDiversity,
+        metric=Metric.ReadcountWChildren,
+        rank=Rank.Species,
+        alpha_metric=AlphaDiversityMetric.Simpson,
+    )
+
+    result = stats_sample_collection.stats(params)
+
+    assert result.plot_results is not None
+    plot_params = result.plot_results.params
+    assert plot_params.plot_type == PlotType.Alpha
+    assert plot_params.plot_repr is None
+    assert plot_params.group_by == "cohort"
+    assert plot_params.secondary_group_by == "site"
+    assert plot_params.metric == params.metric
+    assert plot_params.rank == params.rank
+    assert plot_params.alpha_metric == params.alpha_metric
+
+
 def test_stats_filter_by(stats_sample_collection):
     params = StatsParams(
         group_by="cohort",
-        stats_type="alpha_diversity",
-        metric="readcount_w_children",
-        rank="species",
+        stats_type=StatsType.AlphaDiversity,
+        metric=Metric.ReadcountWChildren,
+        rank=Rank.Species,
         filter_by="cohort",
         filter_value=["A"],
     )
@@ -590,9 +644,9 @@ def test_stats_filter_by(stats_sample_collection):
 def test_stats_warning_becomes_error(stats_sample_collection):
     params = StatsParams(
         group_by="cohort",
-        stats_type="alpha_diversity",
-        metric="abundance_w_children",
-        rank="species",
+        stats_type=StatsType.AlphaDiversity,
+        metric=Metric.AbundanceWChildren,
+        rank=Rank.Species,
     )
 
     result = stats_sample_collection.stats(params)
@@ -600,14 +654,15 @@ def test_stats_warning_becomes_error(stats_sample_collection):
     assert result.error is not None
     assert result.alpha_diversity_results is None
     assert result.beta_diversity_results is None
+    assert result.plot_results is None
 
 
 def test_stats_invalid_metadata_field(stats_sample_collection):
     params = StatsParams(
         group_by="nonexistent_field",
-        stats_type="alpha_diversity",
-        metric="readcount_w_children",
-        rank="species",
+        stats_type=StatsType.AlphaDiversity,
+        metric=Metric.ReadcountWChildren,
+        rank=Rank.Species,
     )
 
     result = stats_sample_collection.stats(params)
@@ -616,6 +671,7 @@ def test_stats_invalid_metadata_field(stats_sample_collection):
     assert "does not exist" in result.error
     assert result.alpha_diversity_results is None
     assert result.beta_diversity_results is None
+    assert result.plot_results is None
 
 
 @pytest.mark.parametrize(
@@ -625,9 +681,9 @@ def test_stats_invalid_metadata_field(stats_sample_collection):
 def test_validate_stats_params_invalid_metadata_field(stats_sample_collection, attr):
     kwargs = {"group_by": "cohort", attr: "foo"}
     params = StatsParams(
-        stats_type="alpha_diversity",
-        metric="readcount_w_children",
-        rank="species",
+        stats_type=StatsType.AlphaDiversity,
+        metric=Metric.ReadcountWChildren,
+        rank=Rank.Species,
         **kwargs,
     )
 
@@ -651,7 +707,7 @@ def test_validate_stats_params_no_classifications():
         )
     ]
     collection = SampleCollection(samples)
-    params = StatsParams(group_by="cohort", stats_type="alpha_diversity")
+    params = StatsParams(group_by="cohort", stats_type=StatsType.AlphaDiversity)
 
     with pytest.raises(ValidationError, match="Classification results are not available"):
         collection._validate_stats_params(params)
@@ -660,9 +716,9 @@ def test_validate_stats_params_no_classifications():
 def test_stats_to_dict_alpha(stats_sample_collection):
     params = StatsParams(
         group_by="cohort",
-        stats_type="alpha_diversity",
-        metric="readcount_w_children",
-        rank="species",
+        stats_type=StatsType.AlphaDiversity,
+        metric=Metric.ReadcountWChildren,
+        rank=Rank.Species,
     )
 
     result = stats_sample_collection.stats(params)
@@ -679,14 +735,18 @@ def test_stats_to_dict_alpha(stats_sample_collection):
     assert d["alpha_diversity_results"]["paired_by_variable"] is None
     assert "num_permutations" not in d["alpha_diversity_results"]
 
+    assert d["plot_results"] is not None
+    assert d["plot_results"]["params"]["plot_type"] == "alpha"
+    assert d["plot_results"]["params"]["plot_repr"] is None
+
 
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
 def test_stats_to_dict_beta(stats_sample_collection):
     params = StatsParams(
         group_by="cohort",
-        stats_type="beta_diversity",
-        metric="readcount_w_children",
-        rank="species",
+        stats_type=StatsType.BetaDiversity,
+        metric=Metric.ReadcountWChildren,
+        rank=Rank.Species,
     )
 
     result = stats_sample_collection.stats(params)
@@ -697,12 +757,13 @@ def test_stats_to_dict_beta(stats_sample_collection):
     assert d["beta_diversity_results"]["test"] == "permanova"
     assert isinstance(d["beta_diversity_results"]["num_permutations"], int)
     assert "paired_by_variable" not in d["beta_diversity_results"]
+    assert d["plot_results"] is None
 
 
 def test_stats_to_dict_error(stats_sample_collection):
     params = StatsParams(
         group_by="nonexistent_field",
-        stats_type="alpha_diversity",
+        stats_type=StatsType.AlphaDiversity,
     )
 
     result = stats_sample_collection.stats(params)
@@ -710,6 +771,7 @@ def test_stats_to_dict_error(stats_sample_collection):
 
     assert d["alpha_diversity_results"] is None
     assert d["beta_diversity_results"] is None
+    assert d["plot_results"] is None
     assert d["error"] is not None
 
 
@@ -748,7 +810,7 @@ def test_stats_to_dict_with_posthoc():
         group_sizes={"g1": 4, "g2": 4, "g3": 4},
         posthoc=posthoc,
     )
-    params = StatsParams(group_by="cohort", stats_type="alpha_diversity")
+    params = StatsParams(group_by="cohort", stats_type=StatsType.AlphaDiversity)
     result = StatsResults(params=params, alpha_diversity_results=stats_results)
 
     d = result.to_dict()

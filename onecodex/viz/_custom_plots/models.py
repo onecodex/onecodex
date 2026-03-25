@@ -25,6 +25,7 @@ from .enums import ExportFormat, PlotType, PlotRepr, StatsType
 class BaseParams(BaseModel):
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=False)
 
+    source_name: str = ""
     tag: str | None = None
     project: str | None = None
 
@@ -40,7 +41,6 @@ class BaseParams(BaseModel):
 
 
 class PlotParams(BaseParams):
-    source_name: str = ""
     plot_type: PlotType = PlotType.Taxa
     plot_repr: PlotRepr | None = PlotRepr.Bargraph
     export_format: ExportFormat | None = None
@@ -94,6 +94,7 @@ class StatsResults:
     params: StatsParams
     alpha_diversity_results: AlphaDiversityStatsResults | None = None
     beta_diversity_results: BetaDiversityStatsResults | None = None
+    plot_results: PlotResults | None = None
     error: str | None = None
 
     def to_dict(self) -> dict:
@@ -109,6 +110,7 @@ class StatsResults:
                 if self.beta_diversity_results is not None
                 else None
             ),
+            "plot_results": self.plot_results.to_dict() if self.plot_results is not None else None,
             "error": self.error,
         }
 
