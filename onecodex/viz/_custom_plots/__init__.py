@@ -117,10 +117,15 @@ async def _fetch_ndjson(url: str, headers: dict | None = None) -> list[dict[str,
         raise HttpStatusError(status=202, status_text="Analysis results not ready", url=url)
     resp.raise_for_status()
 
-    text = (
-        await resp.string()
-    )  # NDJSON (already decompressed if gzip since browsers do that automatically)
-    return [orjson.loads(line) for line in text.splitlines() if line.strip()]
+    try:
+        text = (
+            await resp.string()
+        )  # NDJSON (already decompressed if gzip since browsers do that automatically)
+        return [orjson.loads(line) for line in text.splitlines() if line.strip()]
+    except AttributeError:
+        # Converting pyfetch exceptions to Python exceptions sometimes fails with AttributeError
+        # Raising a OneCodexException that will get handled gracefully
+        raise OneCodexException("Cannot load samples, please try again later")
 
 
 async def _fetch_batch_sample_results(base_url: str, data: list[dict], headers: dict | None = None):
