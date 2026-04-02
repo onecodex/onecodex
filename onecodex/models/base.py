@@ -396,6 +396,10 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
                 raise OneCodexException(
                     "Expected callable for filter, got: {}".format(type(filter_func).__name__)
                 )
+
+        if limit is not None:
+            instances = instances[:limit]
+
         return instances
 
     @classmethod
