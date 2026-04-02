@@ -1062,3 +1062,10 @@ def test_plot_bargraph_include_taxa_missing_rank(
         include_taxa_missing_rank=expected_include_taxa_missing_rank,
         metric=metric,
     )
+
+
+def test_plot_bargraph_to_calc_total_if_metric_is_not_normalized(samples):
+    chart = samples.plot_bargraph(return_chart=True, metric=Metric.Readcount)
+    df = chart.data
+    other_values = df[df["tax_id"] == "Other"]["Readcount"]
+    assert all([x >= 0.0 for x in other_values])

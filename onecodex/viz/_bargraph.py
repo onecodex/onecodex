@@ -2,17 +2,16 @@ from typing import Union
 
 from onecodex.exceptions import OneCodexException, PlottingException
 from onecodex.lib.enums import Link, Metric, Rank
+from onecodex.models.base_sample_collection import BaseSampleCollection
 from onecodex.viz._primitives import (
+    escape_chart_fields,
     get_classification_url,
     get_ncbi_taxonomy_browser_url,
     get_unique_column,
     interleave_palette,
     prepare_props,
     sort_helper,
-    escape_chart_fields,
 )
-
-from onecodex.models.base_sample_collection import BaseSampleCollection
 
 
 class VizBargraphMixin(BaseSampleCollection):
@@ -161,6 +160,10 @@ class VizBargraphMixin(BaseSampleCollection):
         elif top_n != "auto" and threshold == "auto":
             threshold = None
 
+        # We will need this when calculating "Other" column
+        # Do not iterate over it. It should be access only in `apply_callback`
+        row_totals = iter(df.sum(axis=1))
+
         if threshold:
             df = df.loc[:, df.max() >= threshold]
 
@@ -168,12 +171,17 @@ class VizBargraphMixin(BaseSampleCollection):
             df = df.loc[:, df.mean().sort_values(ascending=False).iloc[:top_n].index]
 
         if include_other:
-            # if there are no abundances in the dataframe, df.apply will yield
-            # a single item that has `None` as its name. Therefore, we must
-            # check if row.name is None AND whether or not the row name is
-            # in empty_rows
+
+            def apply_callback(row):
+                total = next(row_totals)
+                # if there are no abundances in the dataframe, df.apply will yield
+                # a single item that has `None` as its name. Therefore, we must
+                # check if row.name is None AND whether or not the row name is
+                # in empty_rows
+                return 0.0 if (row.name is None or row.name in empty_rows) else total - row.sum()
+
             df["Other"] = df.apply(
-                lambda row: 0.0 if (row.name is None or row.name in empty_rows) else 1 - row.sum(),
+                apply_callback,
                 axis=1,
             )
 
@@ -228,9 +236,9 @@ class VizBargraphMixin(BaseSampleCollection):
 
         # add taxa names
         df[tax_name_column] = df[tax_id_column].apply(
-            lambda t: "{} ({})".format(self.taxonomy["name"][t], t)
-            if t in self.taxonomy["name"]
-            else t
+            lambda t: (
+                "{} ({})".format(self.taxonomy["name"][t], t) if t in self.taxonomy["name"] else t
+            )
         )
 
         #
