@@ -617,6 +617,56 @@ def test_invalid_sample(ocx, custom_mock_requests):
         assert sample is None
 
 
+def test_limit_truncates_results_assemblies(ocx, custom_mock_requests):
+    assemblies = [
+        {
+            "$uri": f"/api/v1/assemblies/asm{i:016d}",
+            "created_at": "2025-10-02T00:00:00+00:00",
+            "filename": f"assembly_{i}.fasta",
+            "genome": None,
+            "input_samples": [],
+            "job": None,
+            "owner": {"$ref": "/api/v1/users/user123456789abc"},
+            "primary_annotation_set": None,
+            "size": 100,
+            "visibility": "private",
+        }
+        for i in range(5)
+    ]
+
+    mock_data = {
+        "GET::api/v1/assemblies": assemblies,
+    }
+
+    with custom_mock_requests(mock_data):
+        assert len(ocx.Assemblies.all(limit=2)) == 2
+        assert len(ocx.Assemblies.all()) == 5
+
+
+def test_limit_truncates_results_genomes(ocx, custom_mock_requests):
+    genomes = [
+        {
+            "$uri": f"/api/v1/genomes/gen{i:016d}",
+            "created_at": "2025-10-02T00:00:00+00:00",
+            "assemblies": [],
+            "description": f"Genome {i}",
+            "name": f"genome_{i}",
+            "primary_assembly": None,
+            "tags": [],
+            "taxon": {"$ref": "/api/v1/taxa/tax123456789abcd"},
+        }
+        for i in range(5)
+    ]
+
+    mock_data = {
+        "GET::api/v1/genomes": genomes,
+    }
+
+    with custom_mock_requests(mock_data):
+        assert len(ocx.Genomes.all(limit=2)) == 2
+        assert len(ocx.Genomes.all()) == 5
+
+
 def test_sample_updates(ocx, api_data):
     project = ocx.Projects.get("4b53797444f846c4")
 
