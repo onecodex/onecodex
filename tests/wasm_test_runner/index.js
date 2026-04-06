@@ -43,6 +43,7 @@ async function main() {
         "scikit_bio-0.7.1.post7-cp313-cp313-pyodide_2025_0_wasm32.whl",
         deps=False,
     )
+    await micropip.install("array_api_compat")  # required scikit-bio dependency
 
     for package in project_cfg["dependency-groups"]["dev"]:
         if should_install(package):
@@ -73,7 +74,6 @@ async function main() {
             return NoOp()
 
     mocked_modules = [
-        "array_api_compat",
         "biom",
         "filelock",
         "h5py",

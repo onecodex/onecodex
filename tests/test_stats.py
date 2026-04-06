@@ -17,24 +17,33 @@ from onecodex.lib.enums import (
     PosthocStatsTest,
 )
 from onecodex.models.collection import SampleCollection
-from onecodex.stats import AlphaDiversityStatsResults, BetaDiversityStatsResults
+from onecodex.stats import (
+    AlphaDiversityStatsResults,
+    AncombcResults,
+    BetaDiversityStatsResults,
+)
+
+ANCOMBC_MAIN_RESULTS_COLUMNS = {"Log2(FC)", "SE", "W", "pvalue", "qvalue", "Signif"}
+ANCOMBC_MAIN_RESULTS_INDEX_NAMES = ["Taxon", "Covariate"]
+ANCOMBC_GLOBAL_RESULTS_INDEX_NAME = "Taxon"
+ANCOMBC_GLOBAL_RESULTS_COLUMNS = {"W", "pvalue", "qvalue", "Signif"}
 
 
-@pytest.mark.parametrize("method", ["alpha_diversity_stats", "beta_diversity_stats"])
+@pytest.mark.parametrize("method", ["alpha_diversity_stats", "beta_diversity_stats", "_ancombc"])
 @pytest.mark.parametrize("alpha", [-1, 0, 1, 1.1, 2])
 def test_invalid_alpha(samples, method, alpha):
     with pytest.raises(StatsException, match="`alpha` must be between 0 and 1"):
         getattr(samples, method)(group_by="wheat", alpha=alpha)
 
 
-@pytest.mark.parametrize("method", ["alpha_diversity_stats", "beta_diversity_stats"])
+@pytest.mark.parametrize("method", ["alpha_diversity_stats", "beta_diversity_stats", "_ancombc"])
 @pytest.mark.parametrize("fields", [1, 4.2, False, b"", (42,), [-1.0], ("wheat", 43)])
 def test_invalid_metadata_fields(samples, method, fields):
     with pytest.raises(OneCodexException, match="type str"):
         getattr(samples, method)(group_by=fields)
 
 
-@pytest.mark.parametrize("method", ["alpha_diversity_stats", "beta_diversity_stats"])
+@pytest.mark.parametrize("method", ["alpha_diversity_stats", "beta_diversity_stats", "_ancombc"])
 @pytest.mark.parametrize(
     "group_by,num_groups", [("col1", 1), (("col1", "col2"), 0), (["col1", "col2"], 0)]
 )
@@ -63,6 +72,7 @@ def test_missing_group_by_data(samples, method, group_by, num_groups):
             },
         ),
         ("beta_diversity_stats", {"metric": Metric.AbundanceWChildren}),
+        ("_ancombc", {"metric": Metric.AbundanceWChildren}),
     ],
 )
 def test_samples_missing_abundances(samples_without_abundances, method, kwargs):
@@ -87,6 +97,7 @@ def test_samples_missing_abundances(samples_without_abundances, method, kwargs):
             },
         ),
         ("beta_diversity_stats", {"metric": Metric.ReadcountWChildren}),
+        ("_ancombc", {"metric": Metric.ReadcountWChildren}),
     ],
 )
 def test_samples_missing_abundance_readcount_metric(samples_without_abundances, method, kwargs):
@@ -101,7 +112,7 @@ def test_samples_missing_abundance_readcount_metric(samples_without_abundances, 
         getattr(samples_without_abundances, method)(group_by="col", **kwargs)
 
 
-@pytest.mark.parametrize("method", ["alpha_diversity_stats", "beta_diversity_stats"])
+@pytest.mark.parametrize("method", ["alpha_diversity_stats", "beta_diversity_stats", "_ancombc"])
 @pytest.mark.parametrize(
     "values,num_groups",
     [(["one_value", "one_value", "one_value"], 1), (["all", "different", "values"], 0)],
@@ -117,7 +128,7 @@ def test_not_enough_groups(samples, method, values, num_groups):
         getattr(samples, method)(group_by="col", rank="genus")
 
 
-@pytest.mark.parametrize("method", ["alpha_diversity_stats", "beta_diversity_stats"])
+@pytest.mark.parametrize("method", ["alpha_diversity_stats", "beta_diversity_stats", "_ancombc"])
 @pytest.mark.parametrize("require_classification_version_match", [True, False])
 @pytest.mark.filterwarnings("ignore:.*multiple analysis types.*:UserWarning")
 def test_require_classification_version_match(
@@ -464,3 +475,203 @@ def test_permanova(samples):
 )
 def test_stats_results_groups(results, expected_groups):
     assert results.groups == expected_groups
+
+
+def test_rename_tax_ids(samples):
+    taxa_df = pd.DataFrame(
+        {"tax1": [10, 20], "tax2": [30, 40], "unknown": [50, 60]}, index=["s1", "s2"]
+    )
+
+    with mock.patch.object(
+        type(samples),
+        "taxonomy",
+        new_callable=mock.PropertyMock,
+        return_value={"name": {"tax1": "Bacteroides", "tax2": "Prevotella"}},
+    ):
+        result = samples._rename_tax_ids(taxa_df)
+
+    assert list(result.columns) == ["Bacteroides (tax1)", "Prevotella (tax2)", "unknown"]
+    assert result.values.tolist() == taxa_df.values.tolist()
+
+
+def test_drop_samples_with_zero_abundance(samples):
+    metadata_df = pd.DataFrame({"group": ["a", "b", "c"]}, index=["s1", "s2", "s3"])
+    taxa_df = pd.DataFrame({"t1": [1, 0, 3], "t2": [4, 0, 6]}, index=["s1", "s2", "s3"])
+
+    with pytest.warns(StatsWarning, match="1 sample was excluded.*zero abundance"):
+        result = samples._drop_samples_with_zero_abundance(metadata_df, taxa_df)
+
+    assert list(result.index) == ["s1", "s3"]
+
+
+def test_drop_samples_with_zero_abundance_none_dropped(samples):
+    metadata_df = pd.DataFrame({"group": ["a", "b"]}, index=["s1", "s2"])
+    taxa_df = pd.DataFrame({"t1": [1, 2], "t2": [3, 4]}, index=["s1", "s2"])
+
+    result = samples._drop_samples_with_zero_abundance(metadata_df, taxa_df)
+
+    assert list(result.index) == ["s1", "s2"]
+
+
+def test_assert_min_num_groups_for_global_test(samples):
+    df = pd.DataFrame({"group": ["a", "b", "a", "b"]})
+
+    with pytest.raises(StatsException, match="include_global_test.*at least 3 groups"):
+        samples._assert_min_num_groups_for_global_test(df, "group")
+
+
+def _assert_ancombc_covariates(
+    main_results, group_by_variable, reference_group, non_reference_groups
+):
+    covariates = set(main_results.index.get_level_values("Covariate").unique())
+    expected_covariates = {"Intercept"} | {
+        f"{group_by_variable}: {g} vs {reference_group} (reference)" for g in non_reference_groups
+    }
+    assert covariates == expected_covariates
+
+
+def test_ancombc(ocx, api_data, samples):
+    samples.extend([ocx.Samples.get("cc18208d98ad48b3"), ocx.Samples.get("5445740666134eee")])
+
+    for sample, group in zip(samples, ["a", "b", "a", "b", "a"]):
+        sample.metadata.custom["group"] = group
+
+    results = samples._ancombc(group_by="group", metric="readcount_w_children", rank="genus")
+
+    assert isinstance(results, AncombcResults)
+    assert results.reference_group == "a"
+    assert results.alpha == 0.05
+    assert results.adjustment_method == AdjustmentMethod.BenjaminiHochberg
+    assert results.sample_size == 5
+    assert results.group_by_variable == "group"
+    assert results.group_sizes == {"a": 3, "b": 2}
+    assert results.global_results is None
+    assert set(results.main_results.columns) == ANCOMBC_MAIN_RESULTS_COLUMNS
+    assert results.main_results.index.names == ANCOMBC_MAIN_RESULTS_INDEX_NAMES
+    assert len(results.main_results) > 0
+    _assert_ancombc_covariates(results.main_results, "group", "a", ["b"])
+
+
+def test_ancombc_composite_group_by(ocx, api_data, samples):
+    samples.extend([ocx.Samples.get("cc18208d98ad48b3"), ocx.Samples.get("5445740666134eee")])
+
+    for sample, c1, c2 in zip(samples, ["x", "x", "y", "y", "x"], ["1", "1", "2", "2", "1"]):
+        sample.metadata.custom["col1"] = c1
+        sample.metadata.custom["col2"] = c2
+
+    results = samples._ancombc(
+        group_by=("col1", "col2"), metric="readcount_w_children", rank="genus"
+    )
+
+    assert results.group_by_variable == "col1_col2"
+    assert results.group_sizes == {"x_1": 3, "y_2": 2}
+    assert results.reference_group == "x_1"
+    assert set(results.main_results.columns) == ANCOMBC_MAIN_RESULTS_COLUMNS
+    assert results.main_results.index.names == ANCOMBC_MAIN_RESULTS_INDEX_NAMES
+    _assert_ancombc_covariates(results.main_results, "col1_col2", "x_1", ["y_2"])
+
+
+def test_ancombc_explicit_reference_group(ocx, api_data, samples):
+    samples.extend([ocx.Samples.get("cc18208d98ad48b3"), ocx.Samples.get("5445740666134eee")])
+
+    for sample, group in zip(samples, ["a", "b", "a", "b", "a"]):
+        sample.metadata.custom["group"] = group
+
+    results = samples._ancombc(
+        group_by="group",
+        reference_group="b",
+        metric="readcount_w_children",
+        rank="genus",
+    )
+
+    assert results.reference_group == "b"
+    _assert_ancombc_covariates(results.main_results, "group", "b", ["a"])
+
+
+def test_ancombc_invalid_reference_group(ocx, api_data, samples):
+    samples.extend([ocx.Samples.get("cc18208d98ad48b3"), ocx.Samples.get("5445740666134eee")])
+
+    for sample, group in zip(samples, ["a", "b", "a", "b", "a"]):
+        sample.metadata.custom["group"] = group
+
+    with pytest.raises(StatsException, match="reference_group.*group name"):
+        samples._ancombc(
+            group_by="group",
+            reference_group="nonexistent",
+            metric="readcount_w_children",
+            rank="genus",
+        )
+
+
+def test_ancombc_with_global_test(ocx, api_data, samples):
+    samples.extend(
+        [
+            ocx.Samples.get("cc18208d98ad48b3"),
+            ocx.Samples.get("5445740666134eee"),
+            ocx.Samples.get("0ecac25ec0004fe4"),
+        ]
+    )
+
+    for sample, group in zip(samples, ["a", "b", "c", "a", "b", "c"]):
+        sample.metadata.custom["group"] = group
+
+    with pytest.warns(UserWarning):
+        results = samples._ancombc(
+            group_by="group",
+            include_global_test=True,
+            metric="readcount_w_children",
+            rank="genus",
+            require_classification_version_match=False,
+        )
+
+    assert results.reference_group == "a"
+    assert results.group_sizes == {"a": 2, "b": 2, "c": 2}
+    assert set(results.main_results.columns) == ANCOMBC_MAIN_RESULTS_COLUMNS
+    assert results.main_results.index.names == ANCOMBC_MAIN_RESULTS_INDEX_NAMES
+    _assert_ancombc_covariates(results.main_results, "group", "a", ["b", "c"])
+    assert results.global_results is not None
+    assert results.global_results.index.name == ANCOMBC_GLOBAL_RESULTS_INDEX_NAME
+    assert set(results.global_results.columns) == ANCOMBC_GLOBAL_RESULTS_COLUMNS
+
+
+def test_ancombc_global_test_too_few_groups(ocx, api_data, samples):
+    samples.extend([ocx.Samples.get("cc18208d98ad48b3"), ocx.Samples.get("5445740666134eee")])
+
+    for sample, group in zip(samples, ["a", "b", "a", "b", "a"]):
+        sample.metadata.custom["group"] = group
+
+    with pytest.raises(StatsException, match="include_global_test.*at least 3 groups"):
+        samples._ancombc(
+            group_by="group",
+            include_global_test=True,
+            metric="readcount_w_children",
+            rank="genus",
+        )
+
+
+def test_ancombc_three_groups(ocx, api_data, samples):
+    samples.extend(
+        [
+            ocx.Samples.get("cc18208d98ad48b3"),
+            ocx.Samples.get("5445740666134eee"),
+            ocx.Samples.get("0ecac25ec0004fe4"),
+        ]
+    )
+
+    for sample, group in zip(samples, ["a", "b", "c", "a", "b", "c"]):
+        sample.metadata.custom["group"] = group
+
+    with pytest.warns(UserWarning):
+        results = samples._ancombc(
+            group_by="group",
+            metric="readcount_w_children",
+            rank="genus",
+            require_classification_version_match=False,
+        )
+
+    assert results.reference_group == "a"
+    assert results.sample_size == 6
+    assert results.group_sizes == {"a": 2, "b": 2, "c": 2}
+    assert set(results.main_results.columns) == ANCOMBC_MAIN_RESULTS_COLUMNS
+    assert results.main_results.index.names == ANCOMBC_MAIN_RESULTS_INDEX_NAMES
+    _assert_ancombc_covariates(results.main_results, "group", "a", ["b", "c"])
