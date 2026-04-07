@@ -494,21 +494,21 @@ def test_rename_tax_ids(samples):
     assert result.values.tolist() == taxa_df.values.tolist()
 
 
-def test_drop_samples_with_zero_abundance(samples):
+def test_drop_samples_with_all_zeros(samples):
     metadata_df = pd.DataFrame({"group": ["a", "b", "c"]}, index=["s1", "s2", "s3"])
     taxa_df = pd.DataFrame({"t1": [1, 0, 3], "t2": [4, 0, 6]}, index=["s1", "s2", "s3"])
 
     with pytest.warns(StatsWarning, match="1 sample was excluded.*zero abundance"):
-        result = samples._drop_samples_with_zero_abundance(metadata_df, taxa_df)
+        result = samples._drop_samples_with_all_zeros(metadata_df, taxa_df, Metric.Abundance)
 
     assert list(result.index) == ["s1", "s3"]
 
 
-def test_drop_samples_with_zero_abundance_none_dropped(samples):
+def test_drop_samples_with_all_zeros_none_dropped(samples):
     metadata_df = pd.DataFrame({"group": ["a", "b"]}, index=["s1", "s2"])
     taxa_df = pd.DataFrame({"t1": [1, 2], "t2": [3, 4]}, index=["s1", "s2"])
 
-    result = samples._drop_samples_with_zero_abundance(metadata_df, taxa_df)
+    result = samples._drop_samples_with_all_zeros(metadata_df, taxa_df, Metric.Abundance)
 
     assert list(result.index) == ["s1", "s2"]
 

@@ -779,7 +779,7 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
         taxa_df = self._rename_tax_ids(taxa_df)
 
         # `multi_replace()` will error on rows that are all zeros
-        metadata_df = self._drop_samples_with_zero_abundance(metadata_df, taxa_df)
+        metadata_df = self._drop_samples_with_all_zeros(metadata_df, taxa_df, metric)
 
         # Drop groups of size < 2
         # NOTE: it's important to do this filtering *after* the other filters in case those filters
@@ -824,7 +824,9 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
         # valid formula term and a metadata column lookup (skbio's `grouping` parameter is
         # used for both). Using patsy's quoting, e.g. `Q('foo bar')`, doesn't work with the
         # `grouping` parameter.
-        ancombc_col = "__ancombc_group__"
+        ancombc_col = "__ancombc_variable__"
+        while ancombc_col in metadata_df.columns:
+            ancombc_col = f"_{ancombc_col}_"
         ancombc_metadata = metadata_df.rename(columns={group_by_column_name: ancombc_col})
         ancombc_results = ancombc(
             multi_replace_df,
@@ -840,7 +842,7 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
             main_results, global_results = ancombc_results
             global_results = global_results.rename_axis(index={"FeatureID": "Taxon"})
 
-        # Rename the __ancombc_group__ value in the Covariate column back to the original column
+        # Rename the __ancombc_variable__ value in the Covariate column back to the original column
         # name, and reformat the value to be easier to read
         main_results = main_results.rename_axis(index={"FeatureID": "Taxon"}).rename(
             index=lambda covariate: self._rename_ancombc_covariate(
@@ -867,8 +869,8 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
             else tax_id
         )
 
-    def _drop_samples_with_zero_abundance(
-        self, metadata_df: pd.DataFrame, taxa_df: pd.DataFrame
+    def _drop_samples_with_all_zeros(
+        self, metadata_df: pd.DataFrame, taxa_df: pd.DataFrame, metric: Metric
     ) -> pd.DataFrame:
         prev_count = len(metadata_df)
         metadata_df = metadata_df.loc[(taxa_df != 0).any(axis=1)]
@@ -876,8 +878,8 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
         if num_dropped > 0:
             warnings.warn(
                 f"{num_dropped} sample{'s were' if num_dropped > 1 else ' was'} excluded from the "
-                f"test as {'they' if num_dropped > 1 else 'it'} had zero abundance across all "
-                f"taxa.",
+                f"test as {'they' if num_dropped > 1 else 'it'} had zero {metric} values across "
+                f"all taxa.",
                 StatsWarning,
             )
         return metadata_df
@@ -901,7 +903,7 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
         group_by_column_name: str,
         reference_group: str,
     ) -> str:
-        # Format is "__ancombc_group__[T.<group_name>]". Reformat to
+        # Format is "__ancombc_variable__[T.<group_name>]". Reformat to
         # "<group_by_column_name>: <group_name> vs <reference_group> (reference)"
         m = re.fullmatch(rf"{re.escape(ancombc_col)}\[T\.(.+)\]", covariate)
         if m:
