@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional
 
 from onecodex.distance import DistanceMixin
-from onecodex.exceptions import OneCodexException, StatsException, StatsWarning
+from onecodex.exceptions import OneCodexException, PlottingException, StatsException, StatsWarning
 from onecodex.lib.enums import (
     Metric,
     Rank,
@@ -18,8 +18,10 @@ from onecodex.lib.enums import (
     PosthocStatsTest,
 )
 from onecodex.models.base_sample_collection import BaseSampleCollection
+from onecodex.viz._primitives import prepare_props
 
 if TYPE_CHECKING:
+    import altair as alt
     import pandas as pd
     import skbio
 
@@ -127,6 +129,98 @@ class AncombcResults(StatsResults):
     global_results: pd.DataFrame | None = None
     reference_group: str
     adjustment_method: AdjustmentMethod
+
+    def plot(
+        self,
+        title: str | None = None,
+        width: int | str | None = None,
+        height: int | str | None = None,
+        return_chart: bool = False,
+    ) -> alt.FacetChart | None:
+        """Plot ANCOM-BC results as bargraphs faceted by group.
+
+        A bargraph of log2-fold change is generated for each significantly different taxon, faceted
+        by group.
+
+        Parameters
+        ----------
+        title : str, optional
+            Text label at the top of the chart.
+
+        width : int or str, optional
+            The width of the chart. Can be `"container"` for responsive sizing.
+
+        height : int or str, optional
+            The height of the chart. Can be `"container"` for responsive sizing.
+
+        return_chart : bool, optional
+            When `True`, return an `altair.FacetChart` object instead of displaying the resulting
+            chart in the current notebook.
+
+        Returns
+        -------
+        alt.FacetChart or None
+            If `return_chart` is `True`, the Altair chart is returned, otherwise `None` is returned
+            and the chart is displayed in the current notebook.
+
+        """
+        import altair as alt
+
+        df = self.main_results.query('Covariate != "Intercept" & Signif == True')
+
+        if len(df) == 0:
+            raise PlottingException(
+                "ANCOM-BC did not detect any statistically significant results."
+            )
+
+        df = df.reset_index()
+
+        df["Difference from reference"] = "No change"
+        df.loc[(df["Log2(FC)"] < 0), "Difference from reference"] = "Decreased"
+        df.loc[(df["Log2(FC)"] > 0), "Difference from reference"] = "Increased"
+
+        color_domain = ["Decreased", "Increased"]
+        color_range = ["#CC3300", "#0033CC"]
+
+        # Symmetric x-axis domain around zero, with a minimum extent of ±0.5. Log2(FC) of 0.5 is
+        # sometimes considered "biologically relevant", which is why we use this minimum threshold.
+        x_extent = max(df["Log2(FC)"].abs().max(), 0.5)
+
+        base = alt.Chart(df)
+
+        bars = base.mark_bar().encode(
+            x=alt.X("Log2(FC):Q", title="Log2(FC)", scale=alt.Scale(domain=[-x_extent, x_extent])),
+            y=alt.Y("Taxon:O", title="Taxon"),
+            color=alt.Color(
+                "Difference from reference:N",
+                scale=alt.Scale(domain=color_domain, range=color_range),
+            ),
+            tooltip=["Taxon", "Comparison", "Log2(FC)", "pvalue", "qvalue"],
+        )
+
+        # Dashed vertical reference line at x=0
+        rule = base.mark_rule(color="black", strokeDash=[5, 5]).encode(x=alt.datum(0))
+
+        inner_props = prepare_props(width=width, height=height)
+        if "height" not in inner_props:
+            # By default, make each bar's height uniform across facets (even if facets have a
+            # different number of bars)
+            inner_props["height"] = alt.Step(10)
+
+        chart = (
+            alt.layer(bars, rule)
+            .properties(**inner_props)
+            .facet(
+                row=alt.Row(
+                    "Comparison:N", title=None, header=alt.Header(labelOrient="top", labelAngle=0)
+                )
+            )
+            .resolve_scale(x="independent", y="independent")
+        )
+
+        chart = chart.properties(**prepare_props(title=title))
+
+        return chart if return_chart else chart.display()
 
 
 class StatsMixin(DistanceMixin, BaseSampleCollection):

@@ -3,11 +3,12 @@ import pytest
 
 pytest.importorskip("pandas")  # noqa
 
+import altair as alt
 import numpy as np
 import pandas as pd
 import skbio
 
-from onecodex.exceptions import OneCodexException, StatsException, StatsWarning
+from onecodex.exceptions import OneCodexException, PlottingException, StatsException, StatsWarning
 from onecodex.lib.enums import (
     AdjustmentMethod,
     AlphaDiversityMetric,
@@ -681,3 +682,102 @@ def test_ancombc_three_groups(ocx, api_data, samples):
     assert set(results.main_results.columns) == ANCOMBC_MAIN_RESULTS_COLUMNS
     assert results.main_results.index.names == ANCOMBC_MAIN_RESULTS_INDEX_NAMES
     _assert_ancombc_covariates(results.main_results, "group", "a", ["b", "c"])
+
+
+def _make_ancombc_results(rows):
+    """Build an AncombcResults from (Taxon, Covariate, Comparison, Log2FC, Signif) tuples."""
+    index = pd.MultiIndex.from_tuples([(r[0], r[1]) for r in rows], names=["Taxon", "Covariate"])
+    main_results = pd.DataFrame(
+        [
+            {
+                "Comparison": r[2],
+                "Log2(FC)": r[3],
+                "SE": 0.3,
+                "W": 2.0,
+                "pvalue": 0.01,
+                "qvalue": 0.02,
+                "Signif": r[4],
+            }
+            for r in rows
+        ],
+        index=index,
+    )
+    return AncombcResults(
+        main_results=main_results,
+        reference_group="ref",
+        adjustment_method=AdjustmentMethod.BenjaminiHochberg,
+        alpha=0.05,
+        sample_size=10,
+        group_by_variable="group",
+        group_sizes={"ref": 5, "treat": 5},
+    )
+
+
+def test_ancombc_results_plot():
+    rows = [
+        ("TaxonA", "Intercept", "Intercept", 1.0, True),
+        ("TaxonB", "Intercept", "Intercept", -0.5, False),
+        ("TaxonA", "group[T.b]", "group: b vs ref (reference)", 1.5, True),
+        ("TaxonA", "group[T.c]", "group: c vs ref (reference)", -0.9, True),
+        ("TaxonB", "group[T.b]", "group: b vs ref (reference)", -1.0, True),
+        ("TaxonB", "group[T.c]", "group: c vs ref (reference)", 0.3, False),
+    ]
+    results = _make_ancombc_results(rows)
+    chart = results.plot(return_chart=True)
+    spec = chart.to_dict()
+    data = pd.DataFrame(spec["datasets"][spec["data"]["name"]])
+
+    assert isinstance(chart, alt.FacetChart)
+
+    # Faceted by Comparison with independent x and y scales
+    assert spec["facet"]["row"]["field"] == "Comparison"
+    assert spec["resolve"]["scale"]["x"] == "independent"
+    assert spec["resolve"]["scale"]["y"] == "independent"
+
+    # Default height uses step sizing
+    assert spec["spec"]["height"] == {"step": 10}
+
+    # Intercept rows are excluded
+    assert "Intercept" not in data["Comparison"].values
+
+    # Non-significant rows are excluded
+    assert set(data["Taxon"][data["Comparison"] == "group: c vs ref (reference)"]) == {"TaxonA"}
+
+    # Both non-Intercept comparisons are present
+    assert set(data["Comparison"].unique()) == {
+        "group: b vs ref (reference)",
+        "group: c vs ref (reference)",
+    }
+
+    # Color encoding
+    bars = spec["spec"]["layer"][0]
+    assert bars["encoding"]["color"]["field"] == "Difference from reference"
+    assert len(bars["encoding"]["color"]["scale"]["domain"]) == 2
+    assert len(bars["encoding"]["color"]["scale"]["range"]) == 2
+
+
+def test_ancombc_results_plot_no_significant_results():
+    rows = [
+        ("TaxonA", "Intercept", "Intercept", 1.0, True),
+        ("TaxonA", "group[T.treat]", "group: treat vs ref (reference)", 0.2, False),
+    ]
+    results = _make_ancombc_results(rows)
+
+    with pytest.raises(PlottingException, match="any statistically significant results"):
+        results.plot(return_chart=True)
+
+
+def test_ancombc_results_plot_props():
+    rows = [
+        ("TaxonA", "Intercept", "Intercept", 1.0, True),
+        ("TaxonA", "group[T.treat]", "group: treat vs ref (reference)", 1.2, True),
+    ]
+    results = _make_ancombc_results(rows)
+
+    spec_no_title = results.plot(return_chart=True).to_dict()
+    assert "title" not in spec_no_title
+
+    spec = results.plot(title="My Title", width=400, height=200, return_chart=True).to_dict()
+    assert spec["title"] == "My Title"
+    assert spec["spec"]["width"] == 400
+    assert spec["spec"]["height"] == 200
