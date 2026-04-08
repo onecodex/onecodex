@@ -233,21 +233,25 @@ class SampleCollection(BaseSampleCollection):
         return functional_results
 
     def plot(self, params: PlotParams) -> PlotResults:
+        result = self._run_with_plot_error_handling(lambda: self._plot(params))
+        if result.params is None:
+            result.params = params
+        return result
+
+    def _run_with_plot_error_handling(self, fn: Callable[[], PlotResults]) -> PlotResults:
         import altair as alt
 
-        result = None
         with warnings.catch_warnings(record=True) as captured_warnings:
             warnings.simplefilter("always", PlottingWarning)
 
             try:
-                result = self._plot(params)
+                result = fn()
             except (ValidationError, PlottingException, NoTaxaException) as e:
-                # Expected user error
-                return PlotResults(params=params, error=str(e))
+                return PlotResults(error=str(e))
             except alt.MaxRowsError:
                 return PlotResults(
-                    params=params,
-                    error="The selected dataset is too large to plot. Please try a different plot type or select a fewer number of samples.",
+                    error="The selected dataset is too large to plot. Please try a different plot "
+                    "type or select a fewer number of samples.",
                 )
 
         for warning in captured_warnings:
@@ -587,6 +591,15 @@ class SampleCollection(BaseSampleCollection):
                 plot_repr=None,
             )
             stats_results.plot_results = self.plot(plot_params)
+        elif (
+            params.stats_type == StatsType.Ancombc
+            and len(stats_results.ancombc_results.significant_main_results) > 0
+        ):
+            stats_results.plot_results = self._run_with_plot_error_handling(
+                lambda: PlotResults(
+                    chart=stats_results.ancombc_results.plot(return_chart=True).to_dict()
+                )
+            )
 
         return stats_results
 
@@ -622,6 +635,14 @@ class SampleCollection(BaseSampleCollection):
                     rank=params.rank,
                 )
                 return StatsResults(params=params, beta_diversity_results=beta_diversity_results)
+            case StatsType.Ancombc:
+                ancombc_results = self._ancombc(
+                    group_by=group_by,
+                    reference_group=params.reference_group,
+                    metric=params.metric,
+                    rank=params.rank,
+                )
+                return StatsResults(params=params, ancombc_results=ancombc_results)
             case _:
                 raise OneCodexException(f"Unknown stats type: {params.stats_type}")
 

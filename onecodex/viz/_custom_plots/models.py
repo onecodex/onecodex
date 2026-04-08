@@ -14,7 +14,12 @@ from onecodex.lib.enums import (
     AlphaDiversityMetric,
     BetaDiversityMetric,
 )
-from onecodex.stats import AlphaDiversityStatsResults, BetaDiversityStatsResults, PosthocResults
+from onecodex.stats import (
+    AlphaDiversityStatsResults,
+    AncombcResults,
+    BetaDiversityStatsResults,
+    PosthocResults,
+)
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -67,11 +72,12 @@ class StatsParams(BaseParams):
     stats_type: StatsType = StatsType.AlphaDiversity
     group_by: str  # `group_by` is required by all stats tests
     paired_by: str | None = None
+    reference_group: str | None = None
 
 
 @dataclass(kw_only=True)
 class PlotResults:
-    params: PlotParams
+    params: PlotParams | None = None
     chart: dict | None = None
     x_axis_label_links: dict[str, str] = field(default_factory=dict)
     error: str | None = None
@@ -80,7 +86,7 @@ class PlotResults:
 
     def to_dict(self) -> dict:
         return {
-            "params": self.params.model_dump(),
+            "params": self.params.model_dump() if self.params is not None else None,
             "chart": self.chart,
             "x_axis_label_links": self.x_axis_label_links,
             "error": self.error,
@@ -94,6 +100,7 @@ class StatsResults:
     params: StatsParams
     alpha_diversity_results: AlphaDiversityStatsResults | None = None
     beta_diversity_results: BetaDiversityStatsResults | None = None
+    ancombc_results: AncombcResults | None = None
     plot_results: PlotResults | None = None
     error: str | None = None
 
@@ -108,6 +115,11 @@ class StatsResults:
             "beta_diversity_results": (
                 _beta_diversity_results_to_dict(self.beta_diversity_results)
                 if self.beta_diversity_results is not None
+                else None
+            ),
+            "ancombc_results": (
+                _ancombc_results_to_dict(self.ancombc_results)
+                if self.ancombc_results is not None
                 else None
             ),
             "plot_results": self.plot_results.to_dict() if self.plot_results is not None else None,
@@ -161,4 +173,21 @@ def _posthoc_df_to_dict(df: pd.DataFrame) -> dict[str, dict[str, float]]:
     return {
         str(row_name): {str(col_name): value for col_name, value in row.items()}
         for row_name, row in df.iterrows()
+    }
+
+
+def _ancombc_results_to_dict(results: AncombcResults) -> dict:
+    return {
+        "main_results": results.main_results.reset_index().to_dict(orient="records"),
+        "global_results": (
+            results.global_results.reset_index().to_dict(orient="records")
+            if results.global_results is not None
+            else None
+        ),
+        "reference_group": results.reference_group,
+        "adjustment_method": str(results.adjustment_method),
+        "alpha": results.alpha,
+        "sample_size": results.sample_size,
+        "group_by_variable": results.group_by_variable,
+        "group_sizes": results.group_sizes,
     }

@@ -24,6 +24,7 @@ class ExportFormat(BaseEnum):
 class StatsType(BaseEnum):
     AlphaDiversity = "alpha_diversity"
     BetaDiversity = "beta_diversity"
+    Ancombc = "ancombc"
 
 
 class SuggestionType(BaseEnum):
