@@ -541,7 +541,7 @@ def test_ancombc(ocx, api_data, samples):
     assert isinstance(results, AncombcResults)
     assert results.reference_group == "a"
     assert results.alpha == 0.05
-    assert results.adjustment_method == AdjustmentMethod.BenjaminiHochberg
+    assert results.adjustment_method == AdjustmentMethod.HolmBonferroni
     assert results.sample_size == 5
     assert results.group_by_variable == "group"
     assert results.group_sizes == {"a": 3, "b": 2}

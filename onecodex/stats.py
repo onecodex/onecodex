@@ -834,7 +834,7 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
             formula=ancombc_col,
             grouping=ancombc_col if include_global_test else None,
             alpha=alpha,
-            p_adjust="fdr_bh",
+            p_adjust="holm-bonferroni",
         )
         main_results = ancombc_results
         global_results = None
@@ -856,7 +856,7 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
             global_results=global_results,
             reference_group=reference_group,
             alpha=alpha,
-            adjustment_method=AdjustmentMethod.BenjaminiHochberg,
+            adjustment_method=AdjustmentMethod.HolmBonferroni,
             sample_size=len(metadata_df),
             group_by_variable=group_by_column_name,
             group_sizes=self._get_group_sizes(metadata_df, group_by_column_name),
