@@ -1,14 +1,15 @@
 from onecodex.models.analysis import (
-    Classifications,
-    Analyses,
     Alignments,
+    Analyses,
+    Classifications,
     FunctionalProfiles,
+    Mlsts,
     Panels,
 )
-from onecodex.models.sample import Metadata, Samples
 from onecodex.models.collection import SampleCollection
-from onecodex.models.misc import Users, Projects, Tags, Jobs, Documents, Assets
 from onecodex.models.genome import AnnotationSets, Assemblies, Genomes, Taxa
+from onecodex.models.misc import Assets, Documents, Jobs, Projects, Tags, Users
+from onecodex.models.sample import Metadata, Samples
 
 # Model registry for dynamic resolution based on resource paths
 _MODEL_REGISTRY = {}
@@ -37,6 +38,7 @@ register_model(Analyses)
 register_model(Alignments)
 register_model(FunctionalProfiles)
 register_model(Panels)
+register_model(Mlsts)
 register_model(Users)
 register_model(Projects)
 register_model(Tags)
@@ -56,6 +58,7 @@ Analyses.model_rebuild()
 Alignments.model_rebuild()
 FunctionalProfiles.model_rebuild()
 Panels.model_rebuild()
+Mlsts.model_rebuild()
 Users.model_rebuild()
 Projects.model_rebuild()
 Tags.model_rebuild()
@@ -77,6 +80,7 @@ __all__ = [
     "Alignments",
     "FunctionalProfiles",
     "Panels",
+    "Mlsts",
     "Analyses",
     "Jobs",
     "Documents",
