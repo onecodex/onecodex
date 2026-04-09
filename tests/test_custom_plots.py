@@ -841,14 +841,20 @@ def _make_ancombc_main_results():
     index = pd.MultiIndex.from_tuples(
         [
             ("Taxon A", "Intercept"),
-            ("Taxon A", "cohort: B vs A (reference)"),
+            ("Taxon A", "cohort[T.B]"),
             ("Taxon B", "Intercept"),
-            ("Taxon B", "cohort: B vs A (reference)"),
+            ("Taxon B", "cohort[T.B]"),
         ],
         names=["Taxon", "Covariate"],
     )
     return pd.DataFrame(
         {
+            "Comparison": [
+                "Intercept",
+                "cohort: B vs A (reference)",
+                "Intercept",
+                "cohort: B vs A (reference)",
+            ],
             "Log2(FC)": [0.0, 1.5, 0.0, -2.0],
             "SE": [0.1, 0.2, 0.1, 0.3],
             "W": [0.0, 7.5, 0.0, -6.7],
@@ -974,13 +980,12 @@ def test_stats_to_dict_ancombc():
     assert isinstance(records, list)
     assert len(records) == 4
     assert all(
-        {"Taxon", "Covariate", "Log2(FC)", "SE", "W", "pvalue", "qvalue", "Signif"} == set(r.keys())
+        {"Taxon", "Covariate", "Comparison", "Log2(FC)", "SE", "W", "pvalue", "qvalue", "Signif"}
+        == set(r.keys())
         for r in records
     )
     sig_record = next(
-        r
-        for r in records
-        if r["Taxon"] == "Taxon A" and r["Covariate"] == "cohort: B vs A (reference)"
+        r for r in records if r["Taxon"] == "Taxon A" and r["Covariate"] == "cohort[T.B]"
     )
     assert sig_record["Log2(FC)"] == 1.5
     assert sig_record["Signif"] is True

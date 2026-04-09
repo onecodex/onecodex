@@ -77,7 +77,7 @@ class StatsParams(BaseParams):
 
 @dataclass(kw_only=True)
 class PlotResults:
-    params: PlotParams | None = None
+    params: PlotParams | None = None  # should only be None for ANCOM-BC results plots
     chart: dict | None = None
     x_axis_label_links: dict[str, str] = field(default_factory=dict)
     error: str | None = None

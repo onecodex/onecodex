@@ -238,14 +238,14 @@ class SampleCollection(BaseSampleCollection):
             result.params = params
         return result
 
-    def _run_with_plot_error_handling(self, fn: Callable[[], PlotResults]) -> PlotResults:
+    def _run_with_plot_error_handling(self, plot_fn: Callable[[], PlotResults]) -> PlotResults:
         import altair as alt
 
         with warnings.catch_warnings(record=True) as captured_warnings:
             warnings.simplefilter("always", PlottingWarning)
 
             try:
-                result = fn()
+                result = plot_fn()
             except (ValidationError, PlottingException, NoTaxaException) as e:
                 return PlotResults(error=str(e))
             except alt.MaxRowsError:
