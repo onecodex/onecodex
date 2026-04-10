@@ -1,13 +1,14 @@
 from __future__ import annotations
+
 from typing import Any, Optional, Union
-from pydantic import Field, ConfigDict
+
+from pydantic import ConfigDict, Field
 
 from onecodex.models.base import ApiRef
 from onecodex.models.schemas.base import URIModel
-from onecodex.models.schemas.types import RFC3339Datetime
-
 from onecodex.models.schemas.misc import CostSchema, JobSchema
 from onecodex.models.schemas.sample import SampleSchema
+from onecodex.models.schemas.types import RFC3339Datetime
 
 
 class BaseAnalysisSchema(URIModel):
@@ -54,4 +55,8 @@ class FunctionalRunSchema(BaseAnalysisSchema):
 
 
 class PanelSchema(BaseAnalysisSchema):
+    pass
+
+
+class MlstSchema(BaseAnalysisSchema):
     pass
