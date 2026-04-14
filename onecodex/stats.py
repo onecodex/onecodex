@@ -108,11 +108,12 @@ class AncombcResults(StatsResults):
     """A dataclass for storing the results of an ANCOM-BC differential abundance test.
 
     - `main_results`: `pd.DataFrame` containing ANCOM-BC test results for each taxon, including
-    log2-fold change (with standard error), W-statistic, p-value, adjusted p-value, and whether or
-    not the result is statistically significant. See `skbio.stats.composition.ancombc` for details.
+    log2-fold change (with standard error), W-statistic, p-value, adjusted p-value (i.e. q-value),
+    and whether or not the result is statistically significant. See
+    `skbio.stats.composition.ancombc` for details.
     - `global_results`: `pd.DataFrame` containing global ANCOM-BC test results for each taxon,
-    including W-statistic, p-value, adjusted p-value, and whether or not the result is statistically
-    significant. See `skbio.stats.composition.ancombc` for details.
+    including W-statistic, p-value, adjusted p-value (i.e. q-value), and whether or not the result
+    is statistically significant. See `skbio.stats.composition.ancombc` for details.
     - `reference_group`: Group name used as the reference. All other groups are compared to this
     reference group.
     - `adjustment_method`: method used to adjust p-values to control the false discovery rate
@@ -704,10 +705,13 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
     ) -> AncombcResults:
         """Perform a test for differentially abundant taxa using ANCOM-BC.
 
-        Readcounts are normalized and zeros are replaced using multiplicative replacement. Results
-        indicate taxa that are significantly different in abundance across the grouping variable of
-        interest, as well as each taxon's log2-fold change (with standard error), W-statistic,
-        p-value, and adjusted p-value.
+        Zeros are replaced using multiplicative replacement if `metric` is normalized
+        (i.e. proportionalized) data, otherwise a pseudocount of 1 is added if `metric` is
+        unnormalized (i.e. count) data.
+
+        Results indicate taxa that are significantly different in abundance across the grouping
+        variable of interest, as well as each taxon's log2-fold change (with standard error),
+        W-statistic, p-value, and adjusted p-value (i.e. q-value).
 
         This method is **experimental** and breaking API changes may occur.
 
@@ -722,7 +726,7 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
             to this reference group. If not specified, the first alphabetically sorted group name
             will be used as the reference.
 
-        metric: :class:`~onecodex.lib.enums.Metric`, optional
+        metric : :class:`~onecodex.lib.enums.Metric`, optional
             The taxonomic abundance metric to use. See :class:`~onecodex.lib.enums.Metric`
             for definitions.
 
@@ -815,10 +819,14 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
         # Filter the taxa dataframe to match the remaining IDs in the metadata dataframe
         taxa_df = taxa_df.loc[metadata_df.index]
 
-        # Need to use pseudocounts or `multi_replace()` because ANCOM-BC can't handle zeros
-        multi_replace_df = pd.DataFrame(
-            multi_replace(taxa_df), columns=taxa_df.columns, index=taxa_df.index
-        )
+        # ANCOM-BC can't handle zeros. Use multiplicative replacement for normalized
+        # (i.e. proportionalized) data, or a pseudocount for unnormalized (i.e. count) data.
+        if metric.is_normalized:
+            zero_replaced_df = pd.DataFrame(
+                multi_replace(taxa_df), columns=taxa_df.columns, index=taxa_df.index
+            )
+        else:
+            zero_replaced_df = taxa_df + 1
 
         # Use a safe internal column name for the patsy formula so that it works as both a
         # valid formula term and a metadata column lookup (skbio's `grouping` parameter is
@@ -828,8 +836,9 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
         while ancombc_col in metadata_df.columns:
             ancombc_col = f"_{ancombc_col}_"
         ancombc_metadata = metadata_df.rename(columns={group_by_column_name: ancombc_col})
+
         ancombc_results = ancombc(
-            multi_replace_df,
+            zero_replaced_df,
             ancombc_metadata,
             formula=ancombc_col,
             grouping=ancombc_col if include_global_test else None,
@@ -842,14 +851,23 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
             main_results, global_results = ancombc_results
             global_results = global_results.rename_axis(index={"FeatureID": "Taxon"})
 
-        # Rename the __ancombc_variable__ value in the Covariate column back to the original column
-        # name, and reformat the value to be easier to read
-        main_results = main_results.rename_axis(index={"FeatureID": "Taxon"}).rename(
-            index=lambda covariate: self._rename_ancombc_covariate(
+        main_results = main_results.rename_axis(index={"FeatureID": "Taxon"})
+
+        # Add a Comparison column with human-readable descriptions (e.g.
+        # "group: b vs a (reference)"), and rename __ancombc_variable__ back to the group-by
+        # column name in the Covariate column
+        comparisons = main_results.index.get_level_values("Covariate").map(
+            lambda covariate: self._human_readable_comparison(
                 covariate, ancombc_col, group_by_column_name, reference_group
+            )
+        )
+        main_results = main_results.rename(
+            index=lambda covariate: self._restore_ancombc_covariate(
+                covariate, ancombc_col, group_by_column_name
             ),
             level="Covariate",
         )
+        main_results.insert(0, "Comparison", comparisons.values)
 
         return AncombcResults(
             main_results=main_results,
@@ -896,7 +914,23 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
                 "filtering."
             )
 
-    def _rename_ancombc_covariate(
+    def _match_ancombc_covariate(self, covariate: str, ancombc_col: str) -> re.Match | None:
+        return re.fullmatch(rf"{re.escape(ancombc_col)}\[T\.(.+)\]", covariate)
+
+    def _restore_ancombc_covariate(
+        self,
+        covariate: str,
+        ancombc_col: str,
+        group_by_column_name: str,
+    ) -> str:
+        # Format is "__ancombc_variable__[T.<group_name>]". Restore to
+        # "<group_by_column_name>[T.<group_name>]"
+        m = self._match_ancombc_covariate(covariate, ancombc_col)
+        if m:
+            return f"{group_by_column_name}[T.{m.group(1)}]"
+        return covariate
+
+    def _human_readable_comparison(
         self,
         covariate: str,
         ancombc_col: str,
@@ -905,7 +939,7 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
     ) -> str:
         # Format is "__ancombc_variable__[T.<group_name>]". Reformat to
         # "<group_by_column_name>: <group_name> vs <reference_group> (reference)"
-        m = re.fullmatch(rf"{re.escape(ancombc_col)}\[T\.(.+)\]", covariate)
+        m = self._match_ancombc_covariate(covariate, ancombc_col)
         if m:
             return f"{group_by_column_name}: {m.group(1)} vs {reference_group} (reference)"
         return covariate

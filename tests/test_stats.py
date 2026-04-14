@@ -23,7 +23,7 @@ from onecodex.stats import (
     BetaDiversityStatsResults,
 )
 
-ANCOMBC_MAIN_RESULTS_COLUMNS = {"Log2(FC)", "SE", "W", "pvalue", "qvalue", "Signif"}
+ANCOMBC_MAIN_RESULTS_COLUMNS = {"Comparison", "Log2(FC)", "SE", "W", "pvalue", "qvalue", "Signif"}
 ANCOMBC_MAIN_RESULTS_INDEX_NAMES = ["Taxon", "Covariate"]
 ANCOMBC_GLOBAL_RESULTS_INDEX_NAME = "Taxon"
 ANCOMBC_GLOBAL_RESULTS_COLUMNS = {"W", "pvalue", "qvalue", "Signif"}
@@ -525,9 +525,15 @@ def _assert_ancombc_covariates(
 ):
     covariates = set(main_results.index.get_level_values("Covariate").unique())
     expected_covariates = {"Intercept"} | {
-        f"{group_by_variable}: {g} vs {reference_group} (reference)" for g in non_reference_groups
+        f"{group_by_variable}[T.{g}]" for g in non_reference_groups
     }
     assert covariates == expected_covariates
+
+    comparisons = set(main_results["Comparison"].unique())
+    expected_comparisons = {"Intercept"} | {
+        f"{group_by_variable}: {g} vs {reference_group} (reference)" for g in non_reference_groups
+    }
+    assert comparisons == expected_comparisons
 
 
 def test_ancombc(ocx, api_data, samples):
