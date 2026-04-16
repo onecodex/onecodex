@@ -598,7 +598,8 @@ class BaseSampleCollection(
         classification_ids_without_abundances = []
         for classification in self._classifications:
             has_abundances = False
-            for row in classification.results()["table"]:
+            # fetch faw results because that's more likely to be cached by _collate_results
+            for row in classification.results(raw=True)["table"]:
                 if row.get("abundance_w_children") is not None or row.get("abundance") is not None:
                     has_abundances = True
                     break
