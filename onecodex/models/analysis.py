@@ -36,6 +36,13 @@ class _AnalysesBase(OneCodexBase):
     def __hash__(self) -> int:
         return hash(self.id)
 
+    def __eq__(self, other: object) -> bool:
+        # Required alongside __hash__: lru_cache uses __eq__ to check for cache hits, and
+        # Pydantic's default __eq__ compares __dict__ which recurses infinitely on nested models.
+        if not isinstance(other, _AnalysesBase):
+            return NotImplemented
+        return self.id == other.id
+
     def results(self, json: bool = True):
         """Fetch the results of an Analyses resource.
 

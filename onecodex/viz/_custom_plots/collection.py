@@ -91,7 +91,13 @@ class Classifications(dict):
     success: Literal[True] = True
     job: Jobs
 
-    def results(self) -> "Classifications":
+    def results(self, raw: bool = False) -> "Classifications":
+        """
+        Mirrors onecodex.models.analysis.Classifications which has a raw argument (default=False).
+
+        However, the data we retrieve from the CPITB endpoint matches what would be
+        retrieved if raw=True
+        """
         return self
 
 

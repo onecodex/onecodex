@@ -174,6 +174,43 @@ API_DATA = {
             },
         ]
     },
+    "GET::api/v1/classifications/45a573fb7833449a/raw_results": {
+        "table": [
+            {
+                "abundance": None,
+                "name": "root",
+                "parent_tax_id": None,
+                "rank": "no rank",
+                "readcount": 0,
+                "readcount_w_children": 3,
+                "raw_readcount": 0,
+                "raw_readcount_w_children": 3,
+                "tax_id": "1",
+            },
+            {
+                "abundance": None,
+                "name": "Staphylococcus",
+                "parent_tax_id": "1",
+                "rank": "genus",
+                "readcount": 0,
+                "readcount_w_children": 3,
+                "raw_readcount": 0,
+                "raw_readcount_w_children": 3,
+                "tax_id": "1279",
+            },
+            {
+                "abundance": 1,
+                "name": "Staphylococcus sp. HGB0015",
+                "parent_tax_id": "1279",
+                "rank": "species",
+                "readcount": 3,
+                "readcount_w_children": 3,
+                "raw_readcount": 3,
+                "raw_readcount_w_children": 3,
+                "tax_id": "1078083",
+            },
+        ]
+    },
     "GET::api/v1/classifications/593601a797914cbf/results": {
         "table": [
             {
@@ -201,6 +238,43 @@ API_DATA = {
                 "rank": "species",
                 "readcount": 80,
                 "readcount_w_children": 80,
+                "tax_id": "1078083",
+            },
+        ]
+    },
+    "GET::api/v1/classifications/593601a797914cbf/raw_results": {
+        "table": [
+            {
+                "abundance": None,
+                "name": "root",
+                "parent_tax_id": None,
+                "rank": "no rank",
+                "readcount": 0,
+                "readcount_w_children": 3,
+                "raw_readcount": 0,
+                "raw_readcount_w_children": 3,
+                "tax_id": "1",
+            },
+            {
+                "abundance": None,
+                "name": "Staphylococcus",
+                "parent_tax_id": "1",
+                "rank": "genus",
+                "readcount": 0,
+                "readcount_w_children": 80,
+                "raw_readcount": 0,
+                "raw_readcount_w_children": 80,
+                "tax_id": "1279",
+            },
+            {
+                "abundance": 1,
+                "name": "Staphylococcus sp. HGB0015",
+                "parent_tax_id": "1279",
+                "rank": "species",
+                "readcount": 80,
+                "readcount_w_children": 80,
+                "raw_readcount": 80,
+                "raw_readcount_w_children": 80,
                 "tax_id": "1078083",
             },
         ]

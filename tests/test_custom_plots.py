@@ -39,7 +39,7 @@ def generate_id() -> str:
 
 
 def load_classification_results_json(classification_uuid: str) -> dict | list:
-    filepath = f"tests/data/api/v1/classifications/{classification_uuid}/results/index.json"
+    filepath = f"tests/data/api/v1/classifications/{classification_uuid}/raw_results/index.json"
     with open(filepath, "r") as f:
         return json.load(f)
 
