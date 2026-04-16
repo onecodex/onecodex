@@ -292,6 +292,7 @@ class PosthocStatsTest(BaseEnum):
 
 class AdjustmentMethod(BaseEnum):
     BenjaminiHochberg = "benjamini_hochberg"
+    HolmBonferroni = "holm_bonferroni"
 
 
 class AnalysisType(BaseEnum):

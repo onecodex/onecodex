@@ -1,5 +1,6 @@
 from __future__ import annotations
 import itertools
+import re
 import warnings
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional
@@ -25,13 +26,10 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True, kw_only=True)
 class StatsResults:
-    statistic: float
-    pvalue: float
     alpha: float
     sample_size: int
     group_by_variable: str
     group_sizes: dict[str, int]
-    posthoc: Optional[PosthocResults] = None
 
     @property
     def groups(self) -> set[str]:
@@ -39,7 +37,14 @@ class StatsResults:
 
 
 @dataclass(frozen=True, kw_only=True)
-class AlphaDiversityStatsResults(StatsResults):
+class DiversityStatsResults(StatsResults):
+    statistic: float
+    pvalue: float
+    posthoc: Optional[PosthocResults] = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class AlphaDiversityStatsResults(DiversityStatsResults):
     """A dataclass for storing the results of an alpha diversity stats test.
 
     - `test`: stats test that was performed
@@ -59,7 +64,7 @@ class AlphaDiversityStatsResults(StatsResults):
 
 
 @dataclass(frozen=True, kw_only=True)
-class BetaDiversityStatsResults(StatsResults):
+class BetaDiversityStatsResults(DiversityStatsResults):
     """A dataclass for storing the results of a beta diversity test.
 
     - `test`: stats test that was performed
@@ -96,6 +101,32 @@ class PosthocResults:
     adjusted_pvalues: pd.DataFrame
     pvalues: Optional[pd.DataFrame] = None
     statistics: Optional[pd.DataFrame] = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class AncombcResults(StatsResults):
+    """A dataclass for storing the results of an ANCOM-BC differential abundance test.
+
+    - `main_results`: `pd.DataFrame` containing ANCOM-BC test results for each taxon, including
+    log2-fold change (with standard error), W-statistic, p-value, adjusted p-value (i.e. q-value),
+    and whether or not the result is statistically significant. See
+    `skbio.stats.composition.ancombc` for details.
+    - `global_results`: `pd.DataFrame` containing global ANCOM-BC test results for each taxon,
+    including W-statistic, p-value, adjusted p-value (i.e. q-value), and whether or not the result
+    is statistically significant. See `skbio.stats.composition.ancombc` for details.
+    - `reference_group`: Group name used as the reference. All other groups are compared to this
+    reference group.
+    - `adjustment_method`: method used to adjust p-values to control the false discovery rate
+    - `alpha`: p-value threshold used to determine statistical significance
+    - `sample_size`: number of samples used in the test after filtering
+    - `group_by_variable`: name of the variable used to group samples by
+    - `group_sizes`: dict mapping group name to sample size in each group
+    """
+
+    main_results: pd.DataFrame
+    global_results: pd.DataFrame | None = None
+    reference_group: str
+    adjustment_method: AdjustmentMethod
 
 
 class StatsMixin(DistanceMixin, BaseSampleCollection):
@@ -220,7 +251,6 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
         # Drop groups of size < 2
         # NOTE: it's important to do this filtering *after* the other filters in case those filters
         # change the group sizes.
-
         df = self._drop_group_sizes_smaller_than(df, group_by_column_name, 2)
 
         self._assert_min_num_groups(df, group_by_column_name, 2)
@@ -339,6 +369,12 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
                 f"`group_by` must have exactly {exact_num_groups} groups to test between after "
                 f"filtering (found {num_groups})."
             )
+
+    def _get_group_sizes(self, df: pd.DataFrame, group_by_column_name: str) -> dict[str, int]:
+        return {
+            name: len(group_df)
+            for name, group_df in df.groupby(group_by_column_name, observed=True)
+        }
 
     def _get_group_sizes_and_alpha_diversity_values(
         self, df: pd.DataFrame, metric: str, group_by_column_name: str
@@ -578,7 +614,7 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
         from scipy.stats import false_discovery_control
         from skbio.stats.distance import permanova
 
-        group_sizes = {name: len(group_df) for name, group_df in df.groupby(group_by_column_name)}
+        group_sizes = self._get_group_sizes(df, group_by_column_name)
         result = permanova(dm, df, column=group_by_column_name, permutations=num_permutations)
 
         posthoc = None
@@ -655,3 +691,255 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
             group_sizes=group_sizes,
             posthoc=posthoc,
         )
+
+    def _ancombc(
+        self,
+        *,
+        group_by: str | tuple[str, ...] | list[str],
+        reference_group: str | None = None,
+        metric: Metric = Metric.Auto,
+        rank: Rank = Rank.Auto,
+        alpha: float = 0.05,
+        include_global_test: bool = False,
+        require_classification_version_match: bool = True,
+    ) -> AncombcResults:
+        """Perform a test for differentially abundant taxa using ANCOM-BC.
+
+        Zeros are replaced using multiplicative replacement if `metric` is normalized
+        (i.e. proportionalized) data, otherwise a pseudocount of 1 is added if `metric` is
+        unnormalized (i.e. count) data.
+
+        Results indicate taxa that are significantly different in abundance across the grouping
+        variable of interest, as well as each taxon's log2-fold change (with standard error),
+        W-statistic, p-value, and adjusted p-value (i.e. q-value).
+
+        This method is **experimental** and breaking API changes may occur.
+
+        Parameters
+        ----------
+        group_by : str or tuple of str or list of str
+            Metadata variable to group samples by. At least two groups are required. If `group_by`
+            is a tuple or list, field values are joined with an underscore character ("_").
+
+        reference_group : str, optional
+            Metadata variable group name to use as the reference. All other groups will be compared
+            to this reference group. If not specified, the first alphabetically sorted group name
+            will be used as the reference.
+
+        metric : :class:`~onecodex.lib.enums.Metric`, optional
+            The taxonomic abundance metric to use. See :class:`~onecodex.lib.enums.Metric`
+            for definitions.
+
+        rank : :class:`~onecodex.lib.enums.Rank`, optional
+            Analysis will be restricted to abundances of taxa at the specified level.
+            See :class:`~onecodex.lib.enums.Rank` for details.
+
+        alpha : float, optional
+            Threshold to determine statistical significance (e.g. p < `alpha`). Must be between 0
+            and 1 (exclusive).
+
+        include_global_test : bool, optional
+            If ``True``, include global ANCOM-BC results in addition to the main results. A global
+            test can only be run if there are at least 3 groups.
+
+        require_classification_version_match : bool, optional
+            If ``True``, require the same primary classification job ID across all samples included
+            in the test.
+
+        Returns
+        -------
+        :class:`~onecodex.stats.AncombcResults`
+
+        See Also
+        --------
+        skbio.stats.composition.ancombc
+        skbio.stats.composition.multi_replace
+
+        """
+        import pandas as pd
+        from skbio.stats.composition import ancombc, multi_replace
+
+        self._assert_valid_alpha(alpha)
+        metric, rank = self._parse_classification_config_args(metric=metric, rank=rank)
+
+        # Munge the metadata first in case there's any errors
+        group_by = self._tuplize(group_by)
+        metadata_results = self._metadata_fetch(
+            [group_by],
+            results_df=self.to_classification_df(rank=rank, metric=metric),
+            coerce_missing_composite_fields=False,
+        )
+        metadata_df = metadata_results.df
+        group_by_column_name = metadata_results.renamed_fields[group_by]
+
+        # Drop samples with missing group_by data
+        metadata_df = self._drop_missing_data(metadata_df, group_by_column_name, "group_by")
+
+        # Drop samples missing abundance data
+        if metric.is_abundance_metric:
+            metadata_df = self._drop_classifications_without_abundances(metadata_df)
+
+        taxa_df = self.to_classification_df(rank=rank, metric=metric)
+        taxa_df = self._rename_tax_ids(taxa_df)
+
+        # `multi_replace()` will error on rows that are all zeros
+        metadata_df = self._drop_samples_with_all_zeros(metadata_df, taxa_df, metric)
+
+        # Drop groups of size < 2
+        # NOTE: it's important to do this filtering *after* the other filters in case those filters
+        # change the group sizes
+        metadata_df = self._drop_group_sizes_smaller_than(metadata_df, group_by_column_name, 2)
+
+        self._assert_min_num_groups(metadata_df, group_by_column_name, 2)
+
+        if require_classification_version_match:
+            self._assert_single_database_version(metadata_df)
+
+        group_names = sorted(metadata_df[group_by_column_name].unique())
+        if reference_group:
+            if reference_group not in group_names:
+                raise StatsException(
+                    f"`reference_group` must be a group name defined by `group_by`. Valid group "
+                    f"names after filtering: {', '.join(group_names)}"
+                )
+        else:
+            reference_group = metadata_df[group_by_column_name].min()
+
+        # Reference group must be the first group
+        group_names.remove(reference_group)
+        group_names = [reference_group] + group_names
+        metadata_df[group_by_column_name] = pd.Categorical(
+            metadata_df[group_by_column_name], categories=group_names, ordered=True
+        )
+
+        # ANCOM-BC can only run a global test if there's at least 3 groups
+        if include_global_test:
+            self._assert_min_num_groups_for_global_test(metadata_df, group_by_column_name)
+
+        # Filter the taxa dataframe to match the remaining IDs in the metadata dataframe
+        taxa_df = taxa_df.loc[metadata_df.index]
+
+        # ANCOM-BC can't handle zeros. Use multiplicative replacement for normalized
+        # (i.e. proportionalized) data, or a pseudocount for unnormalized (i.e. count) data.
+        if metric.is_normalized:
+            zero_replaced_df = pd.DataFrame(
+                multi_replace(taxa_df), columns=taxa_df.columns, index=taxa_df.index
+            )
+        else:
+            zero_replaced_df = taxa_df + 1
+
+        # Use a safe internal column name for the patsy formula so that it works as both a
+        # valid formula term and a metadata column lookup (skbio's `grouping` parameter is
+        # used for both). Using patsy's quoting, e.g. `Q('foo bar')`, doesn't work with the
+        # `grouping` parameter.
+        ancombc_col = "__ancombc_variable__"
+        while ancombc_col in metadata_df.columns:
+            ancombc_col = f"_{ancombc_col}_"
+        ancombc_metadata = metadata_df.rename(columns={group_by_column_name: ancombc_col})
+
+        ancombc_results = ancombc(
+            zero_replaced_df,
+            ancombc_metadata,
+            formula=ancombc_col,
+            grouping=ancombc_col if include_global_test else None,
+            alpha=alpha,
+            p_adjust="holm-bonferroni",
+        )
+        main_results = ancombc_results
+        global_results = None
+        if include_global_test:
+            main_results, global_results = ancombc_results
+            global_results = global_results.rename_axis(index={"FeatureID": "Taxon"})
+
+        main_results = main_results.rename_axis(index={"FeatureID": "Taxon"})
+
+        # Add a Comparison column with human-readable descriptions (e.g.
+        # "group: b vs a (reference)"), and rename __ancombc_variable__ back to the group-by
+        # column name in the Covariate column
+        comparisons = main_results.index.get_level_values("Covariate").map(
+            lambda covariate: self._human_readable_comparison(
+                covariate, ancombc_col, group_by_column_name, reference_group
+            )
+        )
+        main_results = main_results.rename(
+            index=lambda covariate: self._restore_ancombc_covariate(
+                covariate, ancombc_col, group_by_column_name
+            ),
+            level="Covariate",
+        )
+        main_results.insert(0, "Comparison", comparisons.values)
+
+        return AncombcResults(
+            main_results=main_results,
+            global_results=global_results,
+            reference_group=reference_group,
+            alpha=alpha,
+            adjustment_method=AdjustmentMethod.HolmBonferroni,
+            sample_size=len(metadata_df),
+            group_by_variable=group_by_column_name,
+            group_sizes=self._get_group_sizes(metadata_df, group_by_column_name),
+        )
+
+    def _rename_tax_ids(self, taxa_df: pd.DataFrame) -> pd.DataFrame:
+        return taxa_df.rename(
+            columns=lambda tax_id: f"{self.taxonomy['name'][tax_id]} ({tax_id})"
+            if tax_id in self.taxonomy["name"]
+            else tax_id
+        )
+
+    def _drop_samples_with_all_zeros(
+        self, metadata_df: pd.DataFrame, taxa_df: pd.DataFrame, metric: Metric
+    ) -> pd.DataFrame:
+        prev_count = len(metadata_df)
+        metadata_df = metadata_df.loc[(taxa_df != 0).any(axis=1)]
+        num_dropped = prev_count - len(metadata_df)
+        if num_dropped > 0:
+            warnings.warn(
+                f"{num_dropped} sample{'s were' if num_dropped > 1 else ' was'} excluded from the "
+                f"test as {'they' if num_dropped > 1 else 'it'} had zero {metric} values across "
+                f"all taxa.",
+                StatsWarning,
+            )
+        return metadata_df
+
+    def _assert_min_num_groups_for_global_test(
+        self, metadata_df: pd.DataFrame, group_by_column_name: str
+    ):
+        try:
+            self._assert_min_num_groups(metadata_df, group_by_column_name, 3)
+        except StatsException:
+            # Raise a more specific error message
+            raise StatsException(
+                "`include_global_test=True` may only be used if there are at least 3 groups after "
+                "filtering."
+            )
+
+    def _match_ancombc_covariate(self, covariate: str, ancombc_col: str) -> re.Match | None:
+        return re.fullmatch(rf"{re.escape(ancombc_col)}\[T\.(.+)\]", covariate)
+
+    def _restore_ancombc_covariate(
+        self,
+        covariate: str,
+        ancombc_col: str,
+        group_by_column_name: str,
+    ) -> str:
+        # Format is "__ancombc_variable__[T.<group_name>]". Restore to
+        # "<group_by_column_name>[T.<group_name>]"
+        m = self._match_ancombc_covariate(covariate, ancombc_col)
+        if m:
+            return f"{group_by_column_name}[T.{m.group(1)}]"
+        return covariate
+
+    def _human_readable_comparison(
+        self,
+        covariate: str,
+        ancombc_col: str,
+        group_by_column_name: str,
+        reference_group: str,
+    ) -> str:
+        # Format is "__ancombc_variable__[T.<group_name>]". Reformat to
+        # "<group_by_column_name>: <group_name> vs <reference_group> (reference)"
+        m = self._match_ancombc_covariate(covariate, ancombc_col)
+        if m:
+            return f"{group_by_column_name}: {m.group(1)} vs {reference_group} (reference)"
+        return covariate
