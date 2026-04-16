@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, Literal, Optional, Type, overload
 
 from typing_extensions import Annotated, deprecated
 
-from onecodex.exceptions import NoTaxaException, OneCodexException
+from onecodex.exceptions import NoTaxaException, OneCodexException, PlottingWarning
 from onecodex.lib.enums import (
     AnalysisType,
     FunctionalAnnotations,
@@ -441,6 +441,16 @@ class BaseSampleCollection(
 
         if metric == Metric.Auto:
             metric = self.automatic_metric
+
+        if metric.is_readcount_metric and (
+            0 < len(self._classification_ids_without_abundances) < len(self._classifications)
+        ):
+            warnings.warn(
+                f"{len(self._classification_ids_without_abundances)} sample(s) have no abundances "
+                "calculated. Readcount values may not be comparable across samples when abundance "
+                "status is mixed. Consider using a RawReadcount metric instead.",
+                PlottingWarning,
+            )
 
         # getting classification IDs is 15% of execution time
         classification_ids = [c.id for c in self._classifications]

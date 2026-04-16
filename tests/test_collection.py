@@ -382,6 +382,53 @@ def test_automatic_metric_majority_lacking_abundance_estimates(samples, samples_
     assert samples_without_abundances.automatic_metric == Metric.NormalizedReadcountWChildren
 
 
+@pytest.mark.parametrize(
+    "metric",
+    [
+        Metric.Readcount,
+        Metric.ReadcountWChildren,
+        Metric.PropReadcount,
+        Metric.PropReadcountWChildren,
+        Metric.PropClassified,
+        Metric.PropClassifiedWChildren,
+        Metric.NormalizedReadcount,
+        Metric.NormalizedReadcountWChildren,
+    ],
+)
+def test_mixed_abundance_status_warns_for_readcount_metrics(
+    samples, samples_without_abundances, metric
+):
+    """Readcount metrics should warn when the collection has mixed abundance status."""
+    from onecodex.exceptions import PlottingWarning
+
+    mixed = samples + samples_without_abundances[:1]
+    with pytest.warns(PlottingWarning, match="no abundances calculated"):
+        mixed.to_df(metric=metric)
+
+
+@pytest.mark.parametrize(
+    "metric",
+    [
+        Metric.RawReadcount,
+        Metric.RawReadcountWChildren,
+        Metric.NormalizedRawReadcount,
+        Metric.NormalizedRawReadcountWChildren,
+    ],
+)
+def test_mixed_abundance_status_no_warning_for_raw_metrics(
+    samples, samples_without_abundances, metric
+):
+    """Raw readcount metrics should not warn even when abundance status is mixed."""
+    import warnings as _warnings
+
+    from onecodex.exceptions import PlottingWarning
+
+    mixed = samples + samples_without_abundances[:1]
+    with _warnings.catch_warnings():
+        _warnings.simplefilter("error", PlottingWarning)
+        mixed.to_df(metric=metric)  # should not raise
+
+
 def test_to_classification_df_no_taxa_exception(samples):
     original_results, tax_info = samples._collate_results(
         metric="readcount_w_children",

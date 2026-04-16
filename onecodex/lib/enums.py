@@ -162,6 +162,25 @@ class Metric(BaseEnum):
         return self in {Metric.Abundance, Metric.AbundanceWChildren}
 
     @property
+    def is_readcount_metric(self) -> bool:
+        """True for metrics based on filtered readcounts (readcount/readcount_w_children).
+
+        The API computes these values differently depending on whether a sample has abundances,
+        so they are not comparable across samples with mixed abundance status. Raw readcount
+        metrics (RawReadcount, NormalizedRawReadcount, etc.) are not affected.
+        """
+        return self in {
+            Metric.Readcount,
+            Metric.ReadcountWChildren,
+            Metric.PropReadcount,
+            Metric.PropReadcountWChildren,
+            Metric.PropClassified,
+            Metric.PropClassifiedWChildren,
+            Metric.NormalizedReadcount,
+            Metric.NormalizedReadcountWChildren,
+        }
+
+    @property
     def is_normalized(self) -> bool:
         """Return true if the metric has been normalized (ie proportionalized) in some way."""
         return self in {
