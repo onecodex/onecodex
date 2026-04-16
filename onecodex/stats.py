@@ -185,14 +185,25 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
         )
 
         df = metadata_results.df
-        magic_fields = metadata_results.renamed_fields
-        group_by_column_name = magic_fields[group_by]
-        paired_by_column_name = magic_fields.get(paired_by, None)
+        group_by_column_name = metadata_results.renamed_fields[group_by]
+        paired_by_column_name = metadata_results.renamed_fields.get(paired_by, None)
+
+        # Drop samples with missing group_by data
+        df = self._drop_missing_data(df, group_by_column_name, "group_by")
+
+        if paired_by_column_name:
+            # Drop samples with missing paired_by data
+            df = self._drop_missing_data(df, paired_by_column_name, "paired_by")
+
+        # Drop samples missing abundance data
+        if metric.is_abundance_metric:
+            df = self._drop_classifications_without_abundances(df)
 
         # Compute alpha diversity
-        df.loc[:, diversity_metric] = self.alpha_diversity(
+        alpha_diversity_df = self.alpha_diversity(
             diversity_metric=diversity_metric, metric=metric, rank=rank
         )
+        df.loc[:, diversity_metric] = alpha_diversity_df.loc[df.index, diversity_metric]
 
         # Drop NaN alpha diversity values
         prev_count = len(df)
@@ -206,21 +217,9 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
                 StatsWarning,
             )
 
-        # Drop samples with missing group_by data
-        df = self._drop_missing_data(df, group_by_column_name, "group_by")
-
-        if paired_by_column_name:
-            # Drop samples with missing paired_by data
-            df = self._drop_missing_data(df, paired_by_column_name, "paired_by")
-
-        # Drop samples missing abundance data
-        if metric.is_abundance_metric:
-            df = self._drop_classifications_without_abundances(df)
-
         # Drop groups of size < 2
         # NOTE: it's important to do this filtering *after* the other filters in case those filters
         # change the group sizes.
-
         df = self._drop_group_sizes_smaller_than(df, group_by_column_name, 2)
 
         self._assert_min_num_groups(df, group_by_column_name, 2)
@@ -531,8 +530,7 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
             coerce_missing_composite_fields=False,
         )
         df = metadata_results.df
-        magic_fields = metadata_results.renamed_fields
-        group_by_column_name = magic_fields[group_by]
+        group_by_column_name = metadata_results.renamed_fields[group_by]
 
         # Drop samples with missing group_by data
         df = self._drop_missing_data(df, group_by_column_name, "group_by")

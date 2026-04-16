@@ -150,6 +150,23 @@ def test_alpha_diversity_stats_invalid_paired_by(samples, paired_by):
         samples.alpha_diversity_stats(group_by="wheat", paired_by=paired_by)
 
 
+def test_alpha_diversity_stats_samples_missing_abundances_dropped_before_nan_values(
+    samples_without_abundances,
+):
+    """Samples without abundances are dropped before dropping NaN alpha diversity values"""
+    for sample, col in zip(samples_without_abundances, ["a", "b", "a"]):
+        sample.metadata.custom["col"] = col
+
+    with pytest.warns(StatsWarning, match="3 samples were excluded.*missing abundance"):
+        with pytest.raises(StatsException, match="`group_by` must have at least 2 groups.*found 0"):
+            samples_without_abundances.alpha_diversity_stats(
+                group_by="col",
+                # shannon must be passed to properly test this case
+                diversity_metric=AlphaDiversityMetric.Shannon,
+                metric=Metric.AbundanceWChildren,
+            )
+
+
 def test_alpha_diversity_stats_missing_alpha_diversity_values(samples):
     for sample, val in zip(samples, ["a", "b", "a"]):
         sample.metadata.custom["col"] = val
