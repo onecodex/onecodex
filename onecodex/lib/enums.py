@@ -109,6 +109,10 @@ class Metric(BaseEnum):
        .. math::
 
           \frac{\text{readcount\_w\_children}}{\sum_{\text{taxa at rank}} \text{readcount\_w\_children}}
+
+
+    # TODO: Add RawReadcount(WChildren)
+
     """
 
     Auto = "auto"
@@ -122,6 +126,9 @@ class Metric(BaseEnum):
     AbundanceWChildren = "abundance_w_children"
     NormalizedReadcount = "normalized_readcount"
     NormalizedReadcountWChildren = "normalized_readcount_w_children"
+
+    RawReadcount = "raw_readcount"
+    RawReadcountWChildren = "raw_readcount_w_children"
 
     @property
     def is_abundance_metric(self) -> bool:
@@ -151,6 +158,7 @@ class Metric(BaseEnum):
             Metric.PropReadcountWChildren,
             Metric.NormalizedReadcountWChildren,
             Metric.PropClassifiedWChildren,
+            Metric.RawReadcountWChildren,
         )
 
     @property
@@ -167,6 +175,8 @@ class Metric(BaseEnum):
             Metric.AbundanceWChildren: "abundance_w_children",
             Metric.NormalizedReadcount: "readcount",
             Metric.NormalizedReadcountWChildren: "readcount_w_children",
+            Metric.RawReadcount: "raw_readcount",
+            Metric.RawReadcountWChildren: "raw_readcount_w_children",
         }[self]
 
     @property
@@ -183,6 +193,8 @@ class Metric(BaseEnum):
             Metric.PropClassifiedWChildren: float,
             Metric.NormalizedReadcount: float,
             Metric.NormalizedReadcountWChildren: float,
+            Metric.RawReadcount: int,
+            Metric.RawReadcountWChildren: int,
         }[self]
 
     @property
@@ -199,6 +211,8 @@ class Metric(BaseEnum):
             Metric.PropClassifiedWChildren: "Classified Reads (Normalized)",
             Metric.NormalizedReadcount: "Normalized Readcount",
             Metric.NormalizedReadcountWChildren: "Normalized Readcount With Children",
+            Metric.RawReadcount: "Readcount (Unfiltered)",
+            Metric.RawReadcountWChildren: "Readcount With Children (Unfiltered)",
         }[self]
 
 

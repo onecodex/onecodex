@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import os.path
-from typing import IO, Dict, List, Optional, Union
+from functools import lru_cache
+from typing import IO, TYPE_CHECKING, Dict, List, Optional, Union
 
 import click
 import requests
@@ -16,6 +19,9 @@ from onecodex.models.schemas.analysis import (
 )
 from onecodex.models.schemas.misc import FileDetailSchema
 
+if TYPE_CHECKING:
+    import pandas as pd
+
 
 class _AnalysesBase(OneCodexBase):
     _allowed_methods = {
@@ -27,7 +33,10 @@ class _AnalysesBase(OneCodexBase):
     job: Union["Jobs", ApiRef]  # noqa: F821
     error_msg: Optional[str] = None
 
-    def results(self, json=True):
+    def __hash__(self) -> int:
+        return hash(self.id)
+
+    def results(self, json: bool = True):
         """Fetch the results of an Analyses resource.
 
         Parameters
@@ -45,10 +54,8 @@ class _AnalysesBase(OneCodexBase):
         else:
             raise NotImplementedError("No non-JSON result format implemented.")
 
+    @lru_cache
     def _results(self):
-        if getattr(self, "_cached_result", None):
-            return self._cached_result
-
         resp = self._client.get(f"{self._api._base_url}{self.field_uri}/results")
         self._cached_result = resp.json()
         return self._cached_result
@@ -198,7 +205,16 @@ class Classifications(_AnalysesBase, ClassificationSchema):
     # root & cellular organisms
     _NONSPECIFIC_TAX_IDS = {"1", "131567"}
 
-    def results(self, json=True):
+    @lru_cache
+    def _results(self, raw: bool = False):
+        if raw:
+            resp = self._client.get(f"{self._api._base_url}{self.field_uri}/raw_results")
+        else:
+            resp = self._client.get(f"{self._api._base_url}{self.field_uri}/results")
+        self._cached_result = resp.json()
+        return self._cached_result
+
+    def results(self, json: bool = True, raw: bool = False) -> dict | pd.DataFrame:
         """Return the complete results table for a classification.
 
         Parameters
@@ -212,22 +228,20 @@ class Classifications(_AnalysesBase, ClassificationSchema):
             Return a JSON object with the classification results or a `pd.DataFrame` if json=False.
         """
         if json is True:
-            return self._results()
+            return self._results(raw=raw)
         else:
-            return self._table()
+            return self._table(raw=raw)
 
     def _readlevel(self):
         resp = self._client.get(f"{self._api._base_url}{self.field_uri}/readlevel")
         return resp.json()
 
-    def _table(self):
+    def _table(self, raw: bool = False) -> pd.DataFrame:
         import pandas as pd
 
-        if self._cached_table is None:
-            self._cached_table = pd.DataFrame(self._results()["table"])
-        return self._cached_table
+        return pd.DataFrame(self._results(raw=raw)["table"])
 
-    def table(self):
+    def table(self) -> pd.DataFrame:
         """Return the complete results table for the classification.
 
         Returns

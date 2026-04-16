@@ -451,7 +451,7 @@ class BaseSampleCollection(
 
         for classification in self._classifications:
             # pulling results from API is the slowest part of the function, 75% of the execution time
-            results = classification.results()
+            results = classification.results(raw=True)
             host_tax_ids = results.get("host_tax_ids", [])
 
             # d contains info about a taxon in result, including name, id, counts, rank, etc.
@@ -485,7 +485,7 @@ class BaseSampleCollection(
 
         for c_idx, c in enumerate(self._classifications):
             # results are cached from the call earlier in this method
-            results = c.results()
+            results = c.results(raw=True)
             host_tax_ids = results.get("host_tax_ids", [])
 
             for d in results["table"]:
