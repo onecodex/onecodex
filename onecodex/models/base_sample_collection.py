@@ -1139,6 +1139,8 @@ class BaseSampleCollection(
             Metric.PropClassifiedWChildren,
             Metric.NormalizedReadcount,
             Metric.NormalizedReadcountWChildren,
+            Metric.NormalizedRawReadcount,
+            Metric.NormalizedRawReadcountWChildren,
         ):
             if metric in (Metric.PropClassified, Metric.PropClassifiedWChildren):
                 denoms = [
@@ -1147,7 +1149,12 @@ class BaseSampleCollection(
                 ]
             elif metric in (Metric.PropReadcount, Metric.PropReadcountWChildren):
                 denoms = [c._classification_stats["n_reads_total"] for c in self._classifications]
-            elif metric in (Metric.NormalizedReadcount, Metric.NormalizedReadcountWChildren):
+            elif metric in (
+                Metric.NormalizedReadcount,
+                Metric.NormalizedReadcountWChildren,
+                Metric.NormalizedRawReadcount,
+                Metric.NormalizedRawReadcountWChildren,
+            ):
                 denoms = df.sum(axis=1)
             else:
                 raise Exception("unreachable")

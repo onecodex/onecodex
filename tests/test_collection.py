@@ -125,6 +125,22 @@ def test_sample_collection_pandas(samples):
             Rank.Species,
             [0.1349, 0.0231, 0.0087, 0.0069, 0.0065, 0.0065],
         ),
+        # NormalizedRaw mirrors Normalized since mock data has raw_readcount == readcount
+        (
+            Metric.NormalizedRawReadcount,
+            Rank.Species,
+            [0.5487, 0.0352, 0.0264, 0.0222, 0.0214, 0.0159],
+        ),
+        (
+            Metric.NormalizedRawReadcountWChildren,
+            Rank.Species,
+            [0.4483, 0.0766, 0.0288, 0.023, 0.0217, 0.0216],
+        ),
+        (
+            Metric.NormalizedRawReadcountWChildren,
+            Rank.Genus,
+            [0.3564, 0.2649, 0.0594, 0.0582, 0.046, 0.0441],
+        ),
     ],
 )
 def test_normalize_results(samples, metric, rank, expected_top_6):

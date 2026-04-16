@@ -129,6 +129,8 @@ class Metric(BaseEnum):
 
     RawReadcount = "raw_readcount"
     RawReadcountWChildren = "raw_readcount_w_children"
+    NormalizedRawReadcount = "normalized_raw_readcount"
+    NormalizedRawReadcountWChildren = "normalized_raw_readcount_w_children"
 
     @property
     def is_abundance_metric(self) -> bool:
@@ -147,6 +149,8 @@ class Metric(BaseEnum):
             Metric.PropClassifiedWChildren,
             Metric.NormalizedReadcount,
             Metric.NormalizedReadcountWChildren,
+            Metric.NormalizedRawReadcount,
+            Metric.NormalizedRawReadcountWChildren,
         }
 
     @property
@@ -159,6 +163,7 @@ class Metric(BaseEnum):
             Metric.NormalizedReadcountWChildren,
             Metric.PropClassifiedWChildren,
             Metric.RawReadcountWChildren,
+            Metric.NormalizedRawReadcountWChildren,
         )
 
     @property
@@ -177,6 +182,8 @@ class Metric(BaseEnum):
             Metric.NormalizedReadcountWChildren: "readcount_w_children",
             Metric.RawReadcount: "raw_readcount",
             Metric.RawReadcountWChildren: "raw_readcount_w_children",
+            Metric.NormalizedRawReadcount: "raw_readcount",
+            Metric.NormalizedRawReadcountWChildren: "raw_readcount_w_children",
         }[self]
 
     @property
@@ -195,6 +202,8 @@ class Metric(BaseEnum):
             Metric.NormalizedReadcountWChildren: float,
             Metric.RawReadcount: int,
             Metric.RawReadcountWChildren: int,
+            Metric.NormalizedRawReadcount: float,
+            Metric.NormalizedRawReadcountWChildren: float,
         }[self]
 
     @property
@@ -213,6 +222,8 @@ class Metric(BaseEnum):
             Metric.NormalizedReadcountWChildren: "Normalized Readcount With Children",
             Metric.RawReadcount: "Readcount (Unfiltered)",
             Metric.RawReadcountWChildren: "Readcount With Children (Unfiltered)",
+            Metric.NormalizedRawReadcount: "Normalized Readcount (Unfiltered)",
+            Metric.NormalizedRawReadcountWChildren: "Normalized Readcount With Children (Unfiltered)",
         }[self]
 
 
