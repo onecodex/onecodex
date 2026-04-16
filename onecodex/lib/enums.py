@@ -110,8 +110,32 @@ class Metric(BaseEnum):
 
           \frac{\text{readcount\_w\_children}}{\sum_{\text{taxa at rank}} \text{readcount\_w\_children}}
 
+    .. attribute:: RawReadcount
 
-    # TODO: Add RawReadcount(WChildren)
+       Unfiltered read count assigned to a given taxon, before any host or nonspecific read
+       filtering is applied.
+
+    .. attribute:: RawReadcountWChildren
+
+       Unfiltered read count for a taxon and all its taxonomic descendants.
+
+    .. attribute:: NormalizedRawReadcount
+
+       RawReadcount normalized by the sum of RawReadcounts for taxa at the specified rank.
+       Values sum to 1.0 across taxa at that rank.
+
+       .. math::
+
+          \frac{\text{raw\_readcount}}{\sum_{\text{taxa at rank}} \text{raw\_readcount}}
+
+    .. attribute:: NormalizedRawReadcountWChildren
+
+       RawReadcountWChildren normalized by the sum of RawReadcountWChildren for taxa at the
+       specified rank. Values sum to 1.0 across taxa at that rank.
+
+       .. math::
+
+          \frac{\text{raw\_readcount\_w\_children}}{\sum_{\text{taxa at rank}} \text{raw\_readcount\_w\_children}}
 
     """
 
