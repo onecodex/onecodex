@@ -87,21 +87,17 @@ def test_unifrac(samples, value, weighted):
 # the root has only one child, which isn't true in our taxonomy.
 # See onecodex/distances.py for more details.
 def test_unifrac_tree(samples):
-    samples[0].primary_classification.results()  # seed _cached_results
-    samples[0].primary_classification._cached_result["table"].append(
-        {
-            "abundance": None,
-            "name": "fake node",
-            "parent_tax_id": "1",
-            "rank": "species",
-            "readcount": 100000,
-            "readcount_w_children": 100000,
-            "tax_id": "1000000000",
-        }
+    # in mock data, root has > 1 child but check to make sure
+    assert (
+        len(
+            [
+                r
+                for r in samples[0].primary_classification.results()["table"]
+                if r["parent_tax_id"] == "1"
+            ]
+        )
+        > 1
     )
-
-    df = samples.to_df(metric="readcount_w_children")
-    assert df.shape[1] == 1081  # make sure our insert worked
 
     dm = samples.unifrac()
     assert isinstance(dm, skbio.stats.distance._base.DistanceMatrix)
