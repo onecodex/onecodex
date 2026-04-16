@@ -415,6 +415,35 @@ class BaseSampleCollection(
 
         return metadata
 
+    def _build_tax_info(self, include_host: bool = False) -> "pd.DataFrame":
+        """Build a DataFrame of taxonomy metadata from all classifications.
+
+        Returns a DataFrame indexed by tax_id with columns: name, rank, parent_tax_id.
+        """
+        import pandas as pd
+
+        tax_info: dict[str, list] = {"tax_id": [], "name": [], "rank": [], "parent_tax_id": []}
+        tax_ids: set[str] = set()
+
+        for classification in self._classifications:
+            results = classification.results(raw=True)
+            host_tax_ids = results.get("host_tax_ids", [])
+
+            for data in results["table"]:
+                d_tax_id = data["tax_id"]
+
+                if not include_host and d_tax_id in host_tax_ids:
+                    continue
+
+                if d_tax_id not in tax_ids:
+                    for k in ("tax_id", "name", "rank", "parent_tax_id"):
+                        tax_info[k].append(data[k])
+                    tax_ids.add(d_tax_id)
+
+        df = pd.DataFrame(tax_info, dtype=object, copy=False)
+        df.set_index("tax_id", inplace=True)
+        return df
+
     def _collate_results(
         self,
         metric: str | Metric = Metric.Auto,
@@ -442,13 +471,16 @@ class BaseSampleCollection(
         if metric == Metric.Auto:
             metric = self.automatic_metric
 
-        if metric.is_readcount_metric and (
+        # if the metric is derived from filtered readcounts (readcount or readcount_w_children)
+        # and the samples contain a mix of +/- abundance samples, then the metric may not be
+        # comparable. warn the user and advise to use the unfiltered readcounts instead
+        if metric.is_filtered_readcount_metric and (
             0 < len(self._classification_ids_without_abundances) < len(self._classifications)
         ):
             warnings.warn(
                 f"{len(self._classification_ids_without_abundances)} sample(s) have no abundances "
-                "calculated. Readcount values may not be comparable across samples when abundance "
-                "status is mixed. Consider using a RawReadcount metric instead.",
+                f"calculated. {metric.display_name} values may not be comparable across samples when abundance "
+                "status is mixed. Consider using an unfiltered metric instead.",
                 PlottingWarning,
             )
 
@@ -456,28 +488,7 @@ class BaseSampleCollection(
         classification_ids = [c.id for c in self._classifications]
 
         # Compile info about all taxa observed in the classification results
-        tax_info = {"tax_id": [], "name": [], "rank": [], "parent_tax_id": []}
-        tax_ids = set()
-
-        for classification in self._classifications:
-            # pulling results from API is the slowest part of the function, 75% of the execution time
-            results = classification.results(raw=True)
-            host_tax_ids = results.get("host_tax_ids", [])
-
-            # d contains info about a taxon in result, including name, id, counts, rank, etc.
-            for data in results["table"]:
-                d_tax_id = data["tax_id"]
-
-                if not include_host and d_tax_id in host_tax_ids:
-                    continue
-
-                if d_tax_id not in tax_ids:
-                    for k in ("tax_id", "name", "rank", "parent_tax_id"):
-                        tax_info[k].append(data[k])
-                    tax_ids.add(d_tax_id)
-
-        tax_info = pd.DataFrame(tax_info, dtype=object, copy=False)
-        tax_info.set_index("tax_id", inplace=True)
+        tax_info = self._build_tax_info(include_host=include_host)
 
         # Now that we have a complete list of taxa in these classification results, take a second
         # pass through the results, filling in the abundances/counts into a single numpy array.
@@ -609,10 +620,7 @@ class BaseSampleCollection(
 
     @cached_property
     def taxonomy(self):
-        # metric is arbitrary here as long as it has a value
-        _, tax_info = self._collate_results(metric=Metric.Readcount)
-
-        return tax_info
+        return self._build_tax_info(include_host=False)
 
     @cached_property
     def _functional_profiles(self) -> list[FunctionalProfiles]:

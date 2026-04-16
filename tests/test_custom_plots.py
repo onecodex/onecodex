@@ -1,8 +1,10 @@
+import gzip
 import io
 import json
-import mock
+import os
 import uuid
 
+import mock
 import numpy as np
 import pandas as pd
 import pytest
@@ -39,8 +41,11 @@ def generate_id() -> str:
 
 
 def load_classification_results_json(classification_uuid: str) -> dict | list:
-    filepath = f"tests/data/api/v1/classifications/{classification_uuid}/raw_results/index.json"
-    with open(filepath, "r") as f:
+    base = f"tests/data/api/v1/classifications/{classification_uuid}/raw_results/index.json"
+    if os.path.exists(base + ".gz"):
+        with gzip.open(base + ".gz", "rt") as f:
+            return json.load(f)
+    with open(base, "r") as f:
         return json.load(f)
 
 
@@ -116,6 +121,18 @@ def sample_collection() -> SampleCollection:
     )
 
     return SampleCollection([sample1, sample2, sample3])
+
+
+@pytest.fixture
+def sample_collection_mixed_abundances(sample_collection) -> SampleCollection:
+    """A collection mixing samples with and without abundance estimates."""
+    no_abundance_sample = make_sample(
+        classification_uuid="464a7ebcnocaffe1",
+        filename="no_abundances.fastq",
+        sample_name="No Abundances",
+        cohort="C1",
+    )
+    return SampleCollection([*sample_collection.samples, no_abundance_sample])
 
 
 @pytest.fixture
@@ -211,6 +228,48 @@ def test_plot(sample_collection, default_plot_params_payload, params):
         assert isinstance(df, pd.DataFrame)
     else:
         assert result.exported_chart_data is None
+
+
+@pytest.mark.parametrize(
+    "metric",
+    [
+        Metric.RawReadcount,
+        Metric.RawReadcountWChildren,
+        Metric.NormalizedRawReadcount,
+        Metric.NormalizedRawReadcountWChildren,
+    ],
+)
+def test_plot_no_warning_for_raw_metrics_with_mixed_abundances(
+    sample_collection_mixed_abundances, default_plot_params_payload, metric
+):
+    """Raw readcount metrics must not emit a PlottingWarning for mixed-abundance collections."""
+    params = PlotParams.model_validate(default_plot_params_payload | {"metric": metric})
+    result = sample_collection_mixed_abundances.plot(params)
+
+    assert result.error is None
+    assert result.warnings == [], f"Unexpected warnings for metric {metric}: {result.warnings}"
+
+
+@pytest.mark.parametrize(
+    "metric",
+    [
+        Metric.Readcount,
+        Metric.ReadcountWChildren,
+        Metric.NormalizedReadcount,
+        Metric.NormalizedReadcountWChildren,
+    ],
+)
+def test_plot_warns_for_filtered_metrics_with_mixed_abundances(
+    sample_collection_mixed_abundances, default_plot_params_payload, metric
+):
+    """Filtered readcount metrics should emit a PlottingWarning for mixed-abundance collections."""
+    params = PlotParams.model_validate(default_plot_params_payload | {"metric": metric})
+    result = sample_collection_mixed_abundances.plot(params)
+
+    assert result.error is None
+    assert any("no abundances calculated" in w for w in result.warnings), (
+        f"Expected warning for metric {metric}, got: {result.warnings}"
+    )
 
 
 # Regression test for DEV-10319

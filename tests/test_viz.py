@@ -389,8 +389,12 @@ def test_plot_pca_missing_abundances(ocx, api_data, samples, samples_without_abu
     with pytest.warns(PlottingWarning, match=r"3 sample\(s\) have no abundances calculated"):
         samples.plot_pca(metric="abundance", return_chart=True)
 
-    # non abundance-based metric, no warning
-    samples.plot_pca(metric="readcount", return_chart=True)
+    # filtered readcount metric warns about mixed abundance status
+    with pytest.warns(PlottingWarning, match=r"3 sample\(s\) have no abundances calculated"):
+        samples.plot_pca(metric="readcount", return_chart=True)
+
+    # raw readcount metric does not warn
+    samples.plot_pca(metric="raw_readcount", return_chart=True)
 
 
 def test_plot_pca_exceptions(samples):

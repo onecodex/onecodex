@@ -162,7 +162,7 @@ class Metric(BaseEnum):
         return self in {Metric.Abundance, Metric.AbundanceWChildren}
 
     @property
-    def is_readcount_metric(self) -> bool:
+    def is_filtered_readcount_metric(self) -> bool:
         """True for metrics based on filtered readcounts (readcount/readcount_w_children).
 
         The API computes these values differently depending on whether a sample has abundances,
