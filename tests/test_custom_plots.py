@@ -267,9 +267,9 @@ def test_plot_warns_for_filtered_metrics_with_mixed_abundances(
     result = sample_collection_mixed_abundances.plot(params)
 
     assert result.error is None
-    assert any("no abundances calculated" in w for w in result.warnings), (
-        f"Expected warning for metric {metric}, got: {result.warnings}"
-    )
+    assert any(
+        "no abundances calculated" in w for w in result.warnings
+    ), f"Expected warning for metric {metric}, got: {result.warnings}"
 
 
 # Regression test for DEV-10319
