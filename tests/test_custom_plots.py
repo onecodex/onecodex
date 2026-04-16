@@ -1,5 +1,6 @@
 import io
 import json
+import mock
 import uuid
 
 import numpy as np
@@ -20,7 +21,12 @@ from onecodex.lib.enums import (
     PosthocStatsTest,
     Rank,
 )
-from onecodex.stats import AlphaDiversityStatsResults, BetaDiversityStatsResults, PosthocResults
+from onecodex.stats import (
+    AlphaDiversityStatsResults,
+    AncombcResults,
+    BetaDiversityStatsResults,
+    PosthocResults,
+)
 from onecodex.viz._custom_plots.collection import SampleCollection, Samples
 from onecodex.viz._custom_plots.enums import ExportFormat, PlotRepr, PlotType, StatsType
 from onecodex.viz._custom_plots.metadata import _get_metadata_field_value
@@ -829,3 +835,167 @@ def test_stats_to_dict_with_posthoc():
     assert posthoc_dict["statistics"]["g1"]["g2"] == 5.0
     assert posthoc_dict["statistics"]["g2"]["g3"] == 4.0
     assert np.isnan(posthoc_dict["statistics"]["g1"]["g1"])
+
+
+def _make_ancombc_main_results():
+    index = pd.MultiIndex.from_tuples(
+        [
+            ("Taxon A", "Intercept"),
+            ("Taxon A", "cohort[T.B]"),
+            ("Taxon B", "Intercept"),
+            ("Taxon B", "cohort[T.B]"),
+        ],
+        names=["Taxon", "Covariate"],
+    )
+    return pd.DataFrame(
+        {
+            "Comparison": [
+                "Intercept",
+                "cohort: B vs A (reference)",
+                "Intercept",
+                "cohort: B vs A (reference)",
+            ],
+            "Log2(FC)": [0.0, 1.5, 0.0, -2.0],
+            "SE": [0.1, 0.2, 0.1, 0.3],
+            "W": [0.0, 7.5, 0.0, -6.7],
+            "pvalue": [1.0, 0.001, 1.0, 0.002],
+            "qvalue": [1.0, 0.002, 1.0, 0.004],
+            "Signif": [False, True, False, True],
+        },
+        index=index,
+    )
+
+
+def _make_ancombc_global_results():
+    index = pd.Index(["Taxon A", "Taxon B"], name="Taxon")
+    return pd.DataFrame(
+        {
+            "W": [5.0, 3.0],
+            "pvalue": [0.01, 0.03],
+            "qvalue": [0.02, 0.06],
+            "Signif": [True, False],
+        },
+        index=index,
+    )
+
+
+def test_stats_ancombc(stats_sample_collection):
+    params = StatsParams(
+        group_by="cohort",
+        stats_type=StatsType.Ancombc,
+        metric=Metric.ReadcountWChildren,
+        rank=Rank.Genus,
+    )
+
+    result = stats_sample_collection.stats(params)
+
+    assert result.error is None
+    assert result.plot_results is None  # no plot if there's no significant results
+    assert result.alpha_diversity_results is None
+    assert result.beta_diversity_results is None
+    assert isinstance(result.ancombc_results, AncombcResults)
+    assert result.ancombc_results.group_sizes == {"A": 2, "B": 2}
+    assert result.ancombc_results.sample_size == 4
+    assert result.ancombc_results.reference_group == "A"
+    assert result.ancombc_results.group_by_variable == "cohort"
+
+
+def test_stats_ancombc_reference_group(stats_sample_collection):
+    params = StatsParams(
+        group_by="cohort",
+        stats_type=StatsType.Ancombc,
+        metric=Metric.ReadcountWChildren,
+        rank=Rank.Genus,
+        reference_group="B",
+    )
+
+    result = stats_sample_collection.stats(params)
+
+    assert result.error is None
+    assert result.ancombc_results.reference_group == "B"
+
+
+def test_stats_ancombc_generates_plot_when_significant(stats_sample_collection):
+    main_results = _make_ancombc_main_results()
+    ancombc_results = AncombcResults(
+        main_results=main_results,
+        reference_group="A",
+        adjustment_method=AdjustmentMethod.BenjaminiHochberg,
+        alpha=0.05,
+        sample_size=10,
+        group_by_variable="cohort",
+        group_sizes={"A": 5, "B": 5},
+    )
+    params = StatsParams(
+        group_by="cohort",
+        stats_type=StatsType.Ancombc,
+        metric=Metric.ReadcountWChildren,
+        rank=Rank.Species,
+    )
+    mock_stats_results = StatsResults(params=params, ancombc_results=ancombc_results)
+
+    with mock.patch.object(
+        type(stats_sample_collection), "_stats", return_value=mock_stats_results
+    ):
+        result = stats_sample_collection.stats(params)
+
+    assert result.error is None
+    assert isinstance(result.plot_results, PlotResults)
+    assert result.plot_results.error is None
+    assert isinstance(result.plot_results.chart, dict)
+
+
+def test_stats_to_dict_ancombc():
+    main_results = _make_ancombc_main_results()
+    global_results = _make_ancombc_global_results()
+    ancombc_results = AncombcResults(
+        main_results=main_results,
+        global_results=global_results,
+        reference_group="A",
+        adjustment_method=AdjustmentMethod.BenjaminiHochberg,
+        alpha=0.05,
+        sample_size=10,
+        group_by_variable="cohort",
+        group_sizes={"A": 5, "B": 5},
+    )
+    params = StatsParams(group_by="cohort", stats_type=StatsType.Ancombc)
+    result = StatsResults(params=params, ancombc_results=ancombc_results)
+
+    d = result.to_dict()
+
+    assert d["error"] is None
+    assert d["alpha_diversity_results"] is None
+    assert d["beta_diversity_results"] is None
+    assert d["params"]["stats_type"] == "ancombc"
+
+    ancombc = d["ancombc_results"]
+    assert ancombc["reference_group"] == "A"
+    assert ancombc["adjustment_method"] == "benjamini_hochberg"
+    assert ancombc["alpha"] == 0.05
+    assert ancombc["sample_size"] == 10
+    assert ancombc["group_by_variable"] == "cohort"
+    assert ancombc["group_sizes"] == {"A": 5, "B": 5}
+
+    records = ancombc["main_results"]
+    assert isinstance(records, list)
+    assert len(records) == 4
+    assert all(
+        {"Taxon", "Covariate", "Comparison", "Log2(FC)", "SE", "W", "pvalue", "qvalue", "Signif"}
+        == set(r.keys())
+        for r in records
+    )
+    sig_record = next(
+        r for r in records if r["Taxon"] == "Taxon A" and r["Covariate"] == "cohort[T.B]"
+    )
+    assert sig_record["Log2(FC)"] == 1.5
+    assert sig_record["Signif"] is True
+
+    global_records = ancombc["global_results"]
+    assert isinstance(global_records, list)
+    assert len(global_records) == 2
+    assert all(
+        {"Taxon", "W", "pvalue", "qvalue", "Signif"} == set(r.keys()) for r in global_records
+    )
+    taxon_a = next(r for r in global_records if r["Taxon"] == "Taxon A")
+    assert taxon_a["W"] == 5.0
+    assert taxon_a["Signif"] is True

@@ -130,6 +130,10 @@ class AncombcResults(StatsResults):
     reference_group: str
     adjustment_method: AdjustmentMethod
 
+    @property
+    def significant_main_results(self) -> pd.DataFrame:
+        return self.main_results.query('Covariate != "Intercept" & Signif == True')
+
     def plot(
         self,
         title: str | None = None,
@@ -166,8 +170,7 @@ class AncombcResults(StatsResults):
         """
         import altair as alt
 
-        df = self.main_results.query('Covariate != "Intercept" & Signif == True')
-
+        df = self.significant_main_results
         if len(df) == 0:
             raise PlottingException(
                 "ANCOM-BC did not detect any statistically significant results."
@@ -931,14 +934,21 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
             ancombc_col = f"_{ancombc_col}_"
         ancombc_metadata = metadata_df.rename(columns={group_by_column_name: ancombc_col})
 
-        ancombc_results = ancombc(
-            zero_replaced_df,
-            ancombc_metadata,
-            formula=ancombc_col,
-            grouping=ancombc_col if include_global_test else None,
-            alpha=alpha,
-            p_adjust="holm-bonferroni",
-        )
+        try:
+            ancombc_results = ancombc(
+                zero_replaced_df,
+                ancombc_metadata,
+                formula=ancombc_col,
+                grouping=ancombc_col if include_global_test else None,
+                alpha=alpha,
+                p_adjust="holm-bonferroni",
+            )
+        except ValueError as e:
+            raise StatsException(
+                f"ANCOM-BC failed — this can happen when sample sizes are too small or data "
+                f"lack sufficient variation: {e}"
+            )
+
         main_results = ancombc_results
         global_results = None
         if include_global_test:
