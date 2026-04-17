@@ -891,6 +891,8 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
         if require_classification_version_match:
             self._assert_single_database_version(metadata_df)
 
+        self._assert_categorical_group_by(metadata_df, group_by_column_name)
+
         group_names = sorted(metadata_df[group_by_column_name].unique())
         if reference_group:
             if reference_group not in group_names:
@@ -1004,6 +1006,16 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
                 StatsWarning,
             )
         return metadata_df
+
+    def _assert_categorical_group_by(self, df: pd.DataFrame, group_by_column_name: str):
+        try:
+            df[group_by_column_name].astype("float64")
+        except (ValueError, TypeError):
+            return
+        raise StatsException(
+            f"The `group_by` variable ({group_by_column_name!r}) has all numeric values after "
+            f"filtering, which is not currently supported. Please select a categorical variable."
+        )
 
     def _assert_min_num_groups_for_global_test(
         self, metadata_df: pd.DataFrame, group_by_column_name: str

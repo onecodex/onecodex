@@ -701,6 +701,16 @@ def test_ancombc_three_groups(ocx, api_data, samples):
     _assert_ancombc_covariates(results.main_results, "group", "a", ["b", "c"])
 
 
+def test_ancombc_numeric_group_by_raises(ocx, api_data, samples):
+    samples.extend([ocx.Samples.get("cc18208d98ad48b3"), ocx.Samples.get("5445740666134eee")])
+
+    for sample, group in zip(samples, ["1", "2", "1", "2", "1"]):
+        sample.metadata.custom["group"] = group
+
+    with pytest.raises(StatsException, match="numeric values.*categorical variable"):
+        samples._ancombc(group_by="group", metric="readcount_w_children", rank="genus")
+
+
 def _make_ancombc_results(rows):
     """Build an AncombcResults from (Taxon, Covariate, Comparison, Log2FC, Signif) tuples."""
     index = pd.MultiIndex.from_tuples([(r[0], r[1]) for r in rows], names=["Taxon", "Covariate"])
