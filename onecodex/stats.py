@@ -178,6 +178,13 @@ class AncombcResults(StatsResults):
 
         df = df.reset_index()
 
+        # Extract taxon IDs from the "Name (id)" format into a separate column for tooltips,
+        # and keep only the name for y-axis labels. When Taxon is just an ID (no parenthesized
+        # suffix), use the raw value as both the label and the Taxon ID.
+        taxon_parts = df["Taxon"].str.extract(r"^(.*?)\s+\(([^)]+)\)$")
+        df["Taxon ID"] = taxon_parts[1].fillna(df["Taxon"])
+        df["Taxon"] = taxon_parts[0].fillna(df["Taxon"])
+
         df["Difference from reference"] = "No change"
         df.loc[(df["Log2(FC)"] < 0), "Difference from reference"] = "Decreased"
         df.loc[(df["Log2(FC)"] > 0), "Difference from reference"] = "Increased"
@@ -193,12 +200,12 @@ class AncombcResults(StatsResults):
 
         bars = base.mark_bar().encode(
             x=alt.X("Log2(FC):Q", title="Log2(FC)", scale=alt.Scale(domain=[-x_extent, x_extent])),
-            y=alt.Y("Taxon:O", title="Taxon"),
+            y=alt.Y("Taxon:O", title="Taxon", axis=alt.Axis(labelLimit=400)),
             color=alt.Color(
                 "Difference from reference:N",
                 scale=alt.Scale(domain=color_domain, range=color_range),
             ),
-            tooltip=["Taxon", "Comparison", "Log2(FC)", "pvalue", "qvalue"],
+            tooltip=["Taxon", "Taxon ID", "Comparison", "Log2(FC)", "pvalue", "qvalue"],
         )
 
         # Dashed vertical reference line at x=0
