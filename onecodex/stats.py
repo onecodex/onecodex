@@ -18,6 +18,7 @@ from onecodex.lib.enums import (
     PosthocStatsTest,
 )
 from onecodex.models.base_sample_collection import BaseSampleCollection
+from onecodex.viz import OCX_DARK_BLUE, OCX_RED
 from onecodex.viz._primitives import prepare_props
 
 if TYPE_CHECKING:
@@ -183,7 +184,7 @@ class AncombcResults(StatsResults):
         df.loc[(df["Log2(FC)"] > 0), "Difference from reference"] = "Increased"
 
         color_domain = ["Decreased", "Increased"]
-        color_range = ["#CC3300", "#0033CC"]
+        color_range = [OCX_RED, OCX_DARK_BLUE]
 
         # Symmetric x-axis domain around zero, with a minimum extent of ±0.5. Log2(FC) of 0.5 is
         # sometimes considered "biologically relevant", which is why we use this minimum threshold.

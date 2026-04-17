@@ -12,10 +12,12 @@ from onecodex.viz._functional import VizFunctionalHeatmapMixin
 
 
 OCX_DARK_GREEN = "#128887"
+OCX_DARK_BLUE = "#16347B"
+OCX_RED = "#DD3A3A"
 
 DEFAULT_PALETTES = {
     "ocx": [
-        "#16347B",
+        OCX_DARK_BLUE,
         "#0072C7",
         "#01ACEC",
         "#97E9FC",
@@ -32,7 +34,7 @@ DEFAULT_PALETTES = {
         "#FCE34D",
         "#FEF2A3",
         "#950303",
-        "#DD3A3A",
+        OCX_RED,
         "#FF8D8B",
         "#FFD5CB",
         "#771354",
