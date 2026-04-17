@@ -41,7 +41,7 @@ class DistanceMixin(BaseSampleCollection, TaxonomyMixin):
 
         Returns
         -------
-        pandas.DataFrame, a distance matrix.
+        pandas.DataFrame of computed alpha diversity values
         """
         import pandas as pd
         import skbio.diversity
