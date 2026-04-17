@@ -237,12 +237,15 @@ def test_plot(sample_collection, default_plot_params_payload, params):
         Metric.RawReadcountWChildren,
         Metric.NormalizedRawReadcount,
         Metric.NormalizedRawReadcountWChildren,
+        Metric.Abundance,
+        Metric.AbundanceWChildren,
     ],
 )
-def test_plot_no_warning_for_raw_metrics_with_mixed_abundances(
+def test_plot_no_warning_metrics(
     sample_collection_mixed_abundances, default_plot_params_payload, metric
 ):
-    """Raw readcount metrics must not emit a PlottingWarning for mixed-abundance collections."""
+    """Raw readcount and abundance metrics must not emit a PlottingWarning for mixed-abundance
+    collections."""
     params = PlotParams.model_validate(default_plot_params_payload | {"metric": metric})
     result = sample_collection_mixed_abundances.plot(params)
 

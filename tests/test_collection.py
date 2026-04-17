@@ -413,11 +413,11 @@ def test_mixed_abundance_status_warns_for_readcount_metrics(
         Metric.RawReadcountWChildren,
         Metric.NormalizedRawReadcount,
         Metric.NormalizedRawReadcountWChildren,
+        Metric.Abundance,
+        Metric.AbundanceWChildren,
     ],
 )
-def test_mixed_abundance_status_no_warning_for_raw_metrics(
-    samples, samples_without_abundances, metric
-):
+def test_mixed_abundance_status_no_warning(samples, samples_without_abundances, metric):
     """Raw readcount metrics should not warn even when abundance status is mixed."""
     import warnings as _warnings
 
