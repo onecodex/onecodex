@@ -742,12 +742,12 @@ def _make_ancombc_results(rows):
 
 def test_ancombc_results_plot():
     rows = [
-        ("TaxonA", "Intercept", "Intercept", 1.0, True),
-        ("TaxonB", "Intercept", "Intercept", -0.5, False),
-        ("TaxonA", "group[T.b]", "group: b vs ref (reference)", 1.5, True),
-        ("TaxonA", "group[T.c]", "group: c vs ref (reference)", -0.9, True),
-        ("TaxonB", "group[T.b]", "group: b vs ref (reference)", -1.0, True),
-        ("TaxonB", "group[T.c]", "group: c vs ref (reference)", 0.3, False),
+        ("Taxon A (123)", "Intercept", "Intercept", 1.0, True),
+        ("Taxon B (456)", "Intercept", "Intercept", -0.5, False),
+        ("Taxon A (123)", "group[T.b]", "group: b vs ref (reference)", 1.5, True),
+        ("Taxon A (123)", "group[T.c]", "group: c vs ref (reference)", -0.9, True),
+        ("Taxon B (456)", "group[T.b]", "group: b vs ref (reference)", -1.0, True),
+        ("Taxon B (456)", "group[T.c]", "group: c vs ref (reference)", 0.3, False),
     ]
     results = _make_ancombc_results(rows)
     chart = results.plot(return_chart=True)
@@ -768,7 +768,15 @@ def test_ancombc_results_plot():
     assert "Intercept" not in data["Comparison"].values
 
     # Non-significant rows are excluded
-    assert set(data["Taxon"][data["Comparison"] == "group: c vs ref (reference)"]) == {"TaxonA"}
+    assert set(data["Taxon"][data["Comparison"] == "group: c vs ref (reference)"]) == {"Taxon A"}
+
+    # Taxon IDs are stripped from y-axis labels (Taxon column) and placed in Taxon ID column
+    assert set(data["Taxon"].unique()) == {"Taxon A", "Taxon B"}
+    assert set(data["Taxon ID"].unique()) == {"123", "456"}
+
+    # Y-axis label limit is increased
+    bars = spec["spec"]["layer"][0]
+    assert bars["encoding"]["y"]["axis"]["labelLimit"] == 400
 
     # Both non-Intercept comparisons are present
     assert set(data["Comparison"].unique()) == {
@@ -777,7 +785,6 @@ def test_ancombc_results_plot():
     }
 
     # Color encoding
-    bars = spec["spec"]["layer"][0]
     assert bars["encoding"]["color"]["field"] == "Difference from reference"
     assert len(bars["encoding"]["color"]["scale"]["domain"]) == 2
     assert len(bars["encoding"]["color"]["scale"]["range"]) == 2
@@ -785,8 +792,8 @@ def test_ancombc_results_plot():
 
 def test_ancombc_results_plot_no_significant_results():
     rows = [
-        ("TaxonA", "Intercept", "Intercept", 1.0, True),
-        ("TaxonA", "group[T.treat]", "group: treat vs ref (reference)", 0.2, False),
+        ("Taxon A (123)", "Intercept", "Intercept", 1.0, True),
+        ("Taxon A (123)", "group[T.treat]", "group: treat vs ref (reference)", 0.2, False),
     ]
     results = _make_ancombc_results(rows)
 
@@ -796,8 +803,8 @@ def test_ancombc_results_plot_no_significant_results():
 
 def test_ancombc_results_plot_props():
     rows = [
-        ("TaxonA", "Intercept", "Intercept", 1.0, True),
-        ("TaxonA", "group[T.treat]", "group: treat vs ref (reference)", 1.2, True),
+        ("Taxon A (123)", "Intercept", "Intercept", 1.0, True),
+        ("Taxon A (123)", "group[T.treat]", "group: treat vs ref (reference)", 1.2, True),
     ]
     results = _make_ancombc_results(rows)
 
@@ -808,3 +815,19 @@ def test_ancombc_results_plot_props():
     assert spec["title"] == "My Title"
     assert spec["spec"]["width"] == 400
     assert spec["spec"]["height"] == 200
+
+
+def test_ancombc_results_plot_taxon_id_only():
+    """When Taxon is just an ID (no 'Name (id)' format), use it as both label and Taxon ID."""
+    rows = [
+        ("12345", "Intercept", "Intercept", 1.0, True),
+        ("12345", "group[T.treat]", "group: treat vs ref (reference)", 1.5, True),
+        ("67890", "group[T.treat]", "group: treat vs ref (reference)", -0.8, True),
+    ]
+    results = _make_ancombc_results(rows)
+    chart = results.plot(return_chart=True)
+    spec = chart.to_dict()
+    data = pd.DataFrame(spec["datasets"][spec["data"]["name"]])
+
+    assert set(data["Taxon"].unique()) == {"12345", "67890"}
+    assert set(data["Taxon ID"].unique()) == {"12345", "67890"}
