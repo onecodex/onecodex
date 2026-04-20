@@ -204,6 +204,7 @@ class AncombcResults(StatsResults):
             y=alt.Y("Taxon:O", title="Taxon", axis=alt.Axis(labelLimit=400)),
             color=alt.Color(
                 "Difference from reference:N",
+                title="Difference from reference",
                 scale=alt.Scale(domain=color_domain, range=color_range),
             ),
             tooltip=["Taxon", "Taxon ID", "Comparison", "Log2(FC)", "pvalue", "qvalue"],
