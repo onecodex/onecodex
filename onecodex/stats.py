@@ -120,7 +120,7 @@ class AncombcResults(StatsResults):
     - `reference_group`: Group name used as the reference. All other groups are compared to this
     reference group.
     - `adjustment_method`: method used to adjust p-values to control the false discovery rate
-    - `alpha`: p-value threshold used to determine statistical significance
+    - `alpha`: q-value threshold used to determine statistical significance
     - `sample_size`: number of samples used in the test after filtering
     - `group_by_variable`: name of the variable used to group samples by
     - `group_sizes`: dict mapping group name to sample size in each group
@@ -201,7 +201,7 @@ class AncombcResults(StatsResults):
 
         bars = base.mark_bar().encode(
             x=alt.X("Log2(FC):Q", title="Log2(FC)", scale=alt.Scale(domain=[-x_extent, x_extent])),
-            y=alt.Y("Taxon:O", title="Taxon", axis=alt.Axis(labelLimit=400)),
+            y=alt.Y("Taxon:O", title="Taxon"),
             color=alt.Color(
                 "Difference from reference:N",
                 title="Difference from reference",
@@ -840,7 +840,7 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
             See :class:`~onecodex.lib.enums.Rank` for details.
 
         alpha : float, optional
-            Threshold to determine statistical significance (e.g. p < `alpha`). Must be between 0
+            Threshold to determine statistical significance (e.g. q <= `alpha`). Must be between 0
             and 1 (exclusive).
 
         include_global_test : bool, optional

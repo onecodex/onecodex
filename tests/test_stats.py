@@ -774,10 +774,6 @@ def test_ancombc_results_plot():
     assert set(data["Taxon"].unique()) == {"Taxon A", "Taxon B"}
     assert set(data["Taxon ID"].unique()) == {"123", "456"}
 
-    # Y-axis label limit is increased
-    bars = spec["spec"]["layer"][0]
-    assert bars["encoding"]["y"]["axis"]["labelLimit"] == 400
-
     # Both non-Intercept comparisons are present
     assert set(data["Comparison"].unique()) == {
         "group: b vs ref (reference)",
@@ -785,6 +781,7 @@ def test_ancombc_results_plot():
     }
 
     # Color encoding
+    bars = spec["spec"]["layer"][0]
     assert bars["encoding"]["color"]["field"] == "Difference from reference"
     assert len(bars["encoding"]["color"]["scale"]["domain"]) == 2
     assert len(bars["encoding"]["color"]["scale"]["range"]) == 2
