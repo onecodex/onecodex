@@ -126,7 +126,7 @@ class Metric(BaseEnum):
 
        .. math::
 
-          \frac{\text{raw\_readcount}}{\sum_{\text{taxa at rank}} \text{raw\_readcount}}
+          \frac{\text{unfiltered\_readcount}}{\sum_{\text{taxa at rank}} \text{unfiltered\_readcount}}
 
     .. attribute:: NormalizedUnfilteredReadcountWChildren
 
@@ -135,7 +135,7 @@ class Metric(BaseEnum):
 
        .. math::
 
-          \frac{\text{raw\_readcount\_w\_children}}{\sum_{\text{taxa at rank}} \text{raw\_readcount\_w\_children}}
+          \frac{\text{unfiltered\_readcount\_w\_children}}{\sum_{\text{taxa at rank}} \text{unfiltered\_readcount\_w\_children}}
 
     """
 
@@ -151,10 +151,10 @@ class Metric(BaseEnum):
     NormalizedReadcount = "normalized_readcount"
     NormalizedReadcountWChildren = "normalized_readcount_w_children"
 
-    UnfilteredReadcount = "raw_readcount"
-    UnfilteredReadcountWChildren = "raw_readcount_w_children"
-    NormalizedUnfilteredReadcount = "normalized_raw_readcount"
-    NormalizedUnfilteredReadcountWChildren = "normalized_raw_readcount_w_children"
+    UnfilteredReadcount = "unfiltered_readcount"
+    UnfilteredReadcountWChildren = "unfiltered_readcount_w_children"
+    NormalizedUnfilteredReadcount = "normalized_unfiltered_readcount"
+    NormalizedUnfilteredReadcountWChildren = "normalized_unfiltered_readcount_w_children"
 
     @property
     def is_abundance_metric(self) -> bool:
@@ -166,7 +166,7 @@ class Metric(BaseEnum):
         """True for metrics based on filtered readcounts (readcount/readcount_w_children).
 
         The API computes these values differently depending on whether a sample has abundances,
-        so they are not comparable across samples with mixed abundance status. Raw readcount
+        so they are not comparable across samples with mixed abundance status. Unfiltered readcount
         metrics (UnfilteredReadcount, NormalizedUnfilteredReadcount, etc.) are not affected.
         """
         return self in {
@@ -223,10 +223,10 @@ class Metric(BaseEnum):
             Metric.AbundanceWChildren: "abundance_w_children",
             Metric.NormalizedReadcount: "readcount",
             Metric.NormalizedReadcountWChildren: "readcount_w_children",
-            Metric.UnfilteredReadcount: "raw_readcount",
-            Metric.UnfilteredReadcountWChildren: "raw_readcount_w_children",
-            Metric.NormalizedUnfilteredReadcount: "raw_readcount",
-            Metric.NormalizedUnfilteredReadcountWChildren: "raw_readcount_w_children",
+            Metric.UnfilteredReadcount: "unfiltered_readcount",
+            Metric.UnfilteredReadcountWChildren: "unfiltered_readcount_w_children",
+            Metric.NormalizedUnfilteredReadcount: "unfiltered_readcount",
+            Metric.NormalizedUnfilteredReadcountWChildren: "unfiltered_readcount_w_children",
         }[self]
 
     @property

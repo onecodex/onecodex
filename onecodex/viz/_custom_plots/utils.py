@@ -82,16 +82,19 @@ def format_classification_results(results: dict) -> dict[str, Any]:
             "rank": data["r"],
             "abundance": data.get("a") if has_abundances else None,
             "abundance_w_children": data.get("c") if has_abundances else None,
-            "raw_readcount": data.get("x"),
-            "raw_readcount_w_children": data.get("y"),
+            "unfiltered_readcount": data.get("x"),
+            "unfiltered_readcount_w_children": data.get("y"),
         }
 
         # Skip 0 values (i.e., reads with only k-mer hits but no reads or child reads)
         if (
             entry["readcount"] < 1
             and entry["readcount_w_children"] < 1
-            and (entry["raw_readcount"] is None or entry["raw_readcount"] < 1)
-            and (entry["raw_readcount_w_children"] is None or entry["raw_readcount_w_children"] < 1)
+            and (entry["unfiltered_readcount"] is None or entry["unfiltered_readcount"] < 1)
+            and (
+                entry["unfiltered_readcount_w_children"] is None
+                or entry["unfiltered_readcount_w_children"] < 1
+            )
             and (entry["abundance"] is None or entry["abundance"] <= 0.0)
             and (entry.get("abundance_w_children") is None or entry["abundance_w_children"] <= 0.0)
         ):

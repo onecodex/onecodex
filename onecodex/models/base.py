@@ -46,10 +46,6 @@ class ApiRef(PydanticBaseModel):
             return {"$ref": data["field_uri"]}
         return data
 
-    def __init__(self, **data):
-        super().__init__(**data)
-        self._resolved_cache = None
-
     @property
     def id(self) -> str:
         """Extract the ID from the reference URI."""
