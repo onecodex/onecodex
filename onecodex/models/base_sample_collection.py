@@ -415,7 +415,7 @@ class BaseSampleCollection(
 
         return metadata
 
-    def _build_tax_info(self, include_host: bool = False) -> "pd.DataFrame":
+    def _build_tax_info(self, include_host: bool = False) -> pd.DataFrame:
         """Build a DataFrame of taxonomy metadata from all classifications.
 
         Returns a DataFrame indexed by tax_id with columns: name, rank, parent_tax_id.
