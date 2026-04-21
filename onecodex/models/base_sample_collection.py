@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, Literal, Optional, Type, overload
 
 from typing_extensions import Annotated, deprecated
 
-from onecodex.exceptions import NoTaxaException, OneCodexException, OneCodexWarning
+from onecodex.exceptions import NoTaxaException, OneCodexException, OneCodexUserWarning
 from onecodex.lib.enums import (
     AnalysisType,
     FunctionalAnnotations,
@@ -1068,7 +1068,7 @@ class BaseSampleCollection(
                 f"{len(self._classification_ids_without_abundances)} sample(s) have no abundances "
                 f"calculated. {metric.display_name} values may not be comparable across samples when abundance "
                 "status is mixed. Consider using an unfiltered metric instead.",
-                OneCodexWarning,
+                OneCodexUserWarning,
             )
 
         return self._to_classification_df(

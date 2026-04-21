@@ -8,9 +8,8 @@ import pandas as pd
 
 from onecodex.exceptions import (
     OneCodexException,
-    OneCodexWarning,
+    OneCodexUserWarning,
     PlottingException,
-    PlottingWarning,
     StatsException,
     StatsWarning,
     ValidationError,
@@ -249,8 +248,7 @@ class SampleCollection(BaseSampleCollection):
         import altair as alt
 
         with warnings.catch_warnings(record=True) as captured_warnings:
-            warnings.simplefilter("always", PlottingWarning)
-            warnings.simplefilter("always", OneCodexWarning)
+            warnings.simplefilter("always", OneCodexUserWarning)
 
             try:
                 result = plot_fn()
@@ -263,7 +261,7 @@ class SampleCollection(BaseSampleCollection):
                 )
 
         for warning in captured_warnings:
-            if warning.category in (PlottingWarning, OneCodexWarning):
+            if warning.category is OneCodexUserWarning:
                 result.warnings.append(str(warning.message))
             else:
                 warnings.warn(warning.message, warning.category)

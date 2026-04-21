@@ -19,7 +19,7 @@ from onecodex.viz._primitives import (
     get_classification_url,
     get_ncbi_taxonomy_browser_url,
 )
-from onecodex.exceptions import OneCodexWarning, PlottingWarning
+from onecodex.exceptions import OneCodexUserWarning, PlottingWarning
 
 
 def assert_expected_legend_title(chart, title):
@@ -391,7 +391,7 @@ def test_plot_pca_missing_abundances(ocx, api_data, samples, samples_without_abu
 
     # filtered readcount metric warns about mixed abundance status
     with pytest.warns(
-        OneCodexWarning,
+        OneCodexUserWarning,
         match=r"values may not be comparable across samples when abundance status is mixed",
     ):
         samples.plot_pca(metric=Metric.Readcount, return_chart=True)
@@ -717,7 +717,7 @@ def test_plot_mds_missing_abundances(ocx, api_data, samples, samples_without_abu
     assert len(samples._classification_ids_without_abundances) == 2
 
     with pytest.warns(
-        (PlottingWarning, OneCodexWarning), match=r"2 sample\(s\) have no abundances calculated"
+        (PlottingWarning, OneCodexUserWarning), match=r"2 sample\(s\) have no abundances calculated"
     ):
         samples.plot_mds(metric="abundance", return_chart=True)
 

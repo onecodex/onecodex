@@ -8,7 +8,7 @@ pytest.importorskip("pandas")  # noqa
 
 from unittest.mock import patch
 
-from onecodex.exceptions import OneCodexException, NoTaxaException
+from onecodex.exceptions import NoTaxaException, OneCodexException, OneCodexUserWarning
 from onecodex.lib.enums import Metric, Rank
 from onecodex.models import Classifications
 from onecodex.models.collection import SampleCollection
@@ -398,10 +398,10 @@ def test_mixed_abundance_status_warns_for_readcount_metrics(
     samples, samples_without_abundances, metric
 ):
     """Readcount metrics should warn when the collection has mixed abundance status."""
-    from onecodex.exceptions import OneCodexWarning
+    from onecodex.exceptions import OneCodexUserWarning
 
     mixed = samples + samples_without_abundances[:1]
-    with pytest.warns(OneCodexWarning, match="no abundances calculated"):
+    with pytest.warns(OneCodexUserWarning, match="no abundances calculated"):
         mixed.to_df(metric=metric)
 
 
@@ -420,11 +420,9 @@ def test_mixed_abundance_status_no_warning(samples, samples_without_abundances, 
     """Unfiltered readcount metrics should not warn even when abundance status is mixed."""
     import warnings as _warnings
 
-    from onecodex.exceptions import OneCodexWarning
-
     mixed = samples + samples_without_abundances[:1]
     with _warnings.catch_warnings():
-        _warnings.simplefilter("error", OneCodexWarning)
+        _warnings.simplefilter("error", OneCodexUserWarning)
         mixed.to_df(metric=metric)  # should not raise
 
 

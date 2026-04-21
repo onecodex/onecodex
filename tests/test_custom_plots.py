@@ -251,7 +251,7 @@ def test_plot(sample_collection, default_plot_params_payload, params):
 def test_plot_no_warning_metrics(
     sample_collection_mixed_abundances, default_plot_params_payload, metric
 ):
-    """Unfiltered readcount and abundance metrics must not emit a OneCodexWarning for mixed-abundance
+    """Unfiltered readcount and abundance metrics must not emit a OneCodexUserWarning for mixed-abundance
     collections."""
     params = PlotParams.model_validate(default_plot_params_payload | {"metric": metric})
     result = sample_collection_mixed_abundances.plot(params)
