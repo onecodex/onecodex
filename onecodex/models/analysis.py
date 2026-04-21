@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os.path
 from functools import lru_cache
-from typing import IO, TYPE_CHECKING, Dict, List, Optional, Union
+from typing import IO, TYPE_CHECKING, List, Optional, Union
 
 import click
 import requests
@@ -27,8 +27,6 @@ class _AnalysesBase(OneCodexBase):
     _allowed_methods = {
         "instances_public": None,
     }
-    _cached_result: Dict = {}
-    _cached_files: Optional[List[FileDetailSchema]] = None
     sample: Union["Samples", ApiRef]  # noqa: F821
     job: Union["Jobs", ApiRef]  # noqa: F821
     error_msg: Optional[str] = None
@@ -66,6 +64,7 @@ class _AnalysesBase(OneCodexBase):
         resp = self._client.get(f"{self._api._base_url}{self.field_uri}/results")
         return resp.json()
 
+    @lru_cache
     def get_files(self) -> List[FileDetailSchema]:
         """Fetch the files details of an Analyses.
 
@@ -73,12 +72,8 @@ class _AnalysesBase(OneCodexBase):
         -------
         A list of FileDetailSchema
         """
-        if getattr(self, "_cached_files", None) is not None:
-            return self._cached_files
-
         resp = self._client.get(f"{self._api._base_url}{self.field_uri}/file_details")
-        self._cached_files = [FileDetailSchema(**x) for x in resp.json()["files"]]
-        return self._cached_files
+        return [FileDetailSchema(**x) for x in resp.json()["files"]]
 
     # It is almost copy/paste of ResourceDownloadMixin._download
     # I do not want to extract re-usable function just yet I need more than two copies.
@@ -197,7 +192,6 @@ class _AnalysesBase(OneCodexBase):
 
 class Analyses(_AnalysesBase, AnalysisSchema):
     _resource_path = "/api/v1/analyses"
-    _cached_result = None
 
 
 class Alignments(_AnalysesBase, AlignmentSchema):
@@ -206,7 +200,6 @@ class Alignments(_AnalysesBase, AlignmentSchema):
 
 class Classifications(_AnalysesBase, ClassificationSchema):
     _resource_path = "/api/v1/classifications"
-    _cached_table = None
 
     # root & cellular organisms
     _NONSPECIFIC_TAX_IDS = {"1", "131567"}
