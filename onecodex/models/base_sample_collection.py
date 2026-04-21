@@ -619,7 +619,7 @@ class BaseSampleCollection(
         return classification_ids_without_abundances
 
     @cached_property
-    def taxonomy(self):
+    def taxonomy(self) -> pd.DataFrame:
         return self._build_tax_info(include_host=False)
 
     @cached_property
