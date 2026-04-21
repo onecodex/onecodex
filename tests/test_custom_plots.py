@@ -41,7 +41,7 @@ def generate_id() -> str:
 
 
 def load_classification_results_json(classification_uuid: str) -> dict | list:
-    # Loads results directly into Samples (bypasses HTTP mocks). Adds raw_readcount fields
+    # Loads results directly into Samples (bypasses HTTP mocks). Adds unfiltered_readcount fields
     # since the /results endpoint doesn't include them but the model expects them.
     base = f"tests/data/api/v1/classifications/{classification_uuid}/results/index.json"
     if os.path.exists(base + ".gz"):
@@ -51,8 +51,8 @@ def load_classification_results_json(classification_uuid: str) -> dict | list:
         with open(base, "r") as f:
             data = json.load(f)
     for row in data.get("table", []):
-        row["raw_readcount"] = row["readcount"]
-        row["raw_readcount_w_children"] = row["readcount_w_children"]
+        row["unfiltered_readcount"] = row["readcount"]
+        row["unfiltered_readcount_w_children"] = row["readcount_w_children"]
     return data
 
 
