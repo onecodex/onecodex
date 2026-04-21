@@ -620,6 +620,10 @@ class BaseSampleCollection(
 
     @cached_property
     def taxonomy(self) -> pd.DataFrame:
+        """Build a DataFrame of taxonomy metadata from all classifications.
+
+        Returns a DataFrame indexed by tax_id with columns: name, rank, parent_tax_id.
+        """
         return self._build_tax_info(include_host=False)
 
     @cached_property
