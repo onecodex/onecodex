@@ -125,21 +125,20 @@ def test_sample_collection_pandas(samples):
             Rank.Species,
             [0.1349, 0.0231, 0.0087, 0.0069, 0.0065, 0.0065],
         ),
-        # NormalizedRaw mirrors Normalized since mock data has raw_readcount == readcount
         (
-            Metric.NormalizedRawReadcount,
+            Metric.NormalizedUnfilteredReadcount,
             Rank.Species,
-            [0.5487, 0.0352, 0.0264, 0.0222, 0.0214, 0.0159],
+            [0.5448, 0.035, 0.0262, 0.0221, 0.0213, 0.0158],
         ),
         (
-            Metric.NormalizedRawReadcountWChildren,
+            Metric.NormalizedUnfilteredReadcountWChildren,
             Rank.Species,
-            [0.4483, 0.0766, 0.0288, 0.023, 0.0217, 0.0216],
+            [0.4457, 0.0762, 0.0286, 0.0229, 0.0216, 0.0214],
         ),
         (
-            Metric.NormalizedRawReadcountWChildren,
+            Metric.NormalizedUnfilteredReadcountWChildren,
             Rank.Genus,
-            [0.3564, 0.2649, 0.0594, 0.0582, 0.046, 0.0441],
+            [0.3557, 0.2643, 0.0593, 0.0581, 0.046, 0.0441],
         ),
     ],
 )
@@ -399,33 +398,33 @@ def test_mixed_abundance_status_warns_for_readcount_metrics(
     samples, samples_without_abundances, metric
 ):
     """Readcount metrics should warn when the collection has mixed abundance status."""
-    from onecodex.exceptions import PlottingWarning
+    from onecodex.exceptions import OneCodexWarning
 
     mixed = samples + samples_without_abundances[:1]
-    with pytest.warns(PlottingWarning, match="no abundances calculated"):
+    with pytest.warns(OneCodexWarning, match="no abundances calculated"):
         mixed.to_df(metric=metric)
 
 
 @pytest.mark.parametrize(
     "metric",
     [
-        Metric.RawReadcount,
-        Metric.RawReadcountWChildren,
-        Metric.NormalizedRawReadcount,
-        Metric.NormalizedRawReadcountWChildren,
+        Metric.UnfilteredReadcount,
+        Metric.UnfilteredReadcountWChildren,
+        Metric.NormalizedUnfilteredReadcount,
+        Metric.NormalizedUnfilteredReadcountWChildren,
         Metric.Abundance,
         Metric.AbundanceWChildren,
     ],
 )
 def test_mixed_abundance_status_no_warning(samples, samples_without_abundances, metric):
-    """Raw readcount metrics should not warn even when abundance status is mixed."""
+    """Unfiltered readcount metrics should not warn even when abundance status is mixed."""
     import warnings as _warnings
 
-    from onecodex.exceptions import PlottingWarning
+    from onecodex.exceptions import OneCodexWarning
 
     mixed = samples + samples_without_abundances[:1]
     with _warnings.catch_warnings():
-        _warnings.simplefilter("error", PlottingWarning)
+        _warnings.simplefilter("error", OneCodexWarning)
         mixed.to_df(metric=metric)  # should not raise
 
 

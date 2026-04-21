@@ -8,6 +8,7 @@ import pandas as pd
 
 from onecodex.exceptions import (
     OneCodexException,
+    OneCodexWarning,
     PlottingException,
     PlottingWarning,
     StatsException,
@@ -249,6 +250,7 @@ class SampleCollection(BaseSampleCollection):
 
         with warnings.catch_warnings(record=True) as captured_warnings:
             warnings.simplefilter("always", PlottingWarning)
+            warnings.simplefilter("always", OneCodexWarning)
 
             try:
                 result = plot_fn()
@@ -261,7 +263,7 @@ class SampleCollection(BaseSampleCollection):
                 )
 
         for warning in captured_warnings:
-            if warning.category is PlottingWarning:
+            if warning.category in (PlottingWarning, OneCodexWarning):
                 result.warnings.append(str(warning.message))
             else:
                 warnings.warn(warning.message, warning.category)

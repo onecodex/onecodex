@@ -64,8 +64,7 @@ class _AnalysesBase(OneCodexBase):
     @lru_cache
     def _results(self):
         resp = self._client.get(f"{self._api._base_url}{self.field_uri}/results")
-        self._cached_result = resp.json()
-        return self._cached_result
+        return resp.json()
 
     def get_files(self) -> List[FileDetailSchema]:
         """Fetch the files details of an Analyses.
@@ -218,8 +217,7 @@ class Classifications(_AnalysesBase, ClassificationSchema):
             resp = self._client.get(f"{self._api._base_url}{self.field_uri}/raw_results")
         else:
             resp = self._client.get(f"{self._api._base_url}{self.field_uri}/results")
-        self._cached_result = resp.json()
-        return self._cached_result
+        return resp.json()
 
     def results(self, json: bool = True, raw: bool = False) -> dict | pd.DataFrame:
         """Return the complete results table for a classification.

@@ -48,6 +48,12 @@ class NoTaxaException(OneCodexException):
     pass
 
 
+class OneCodexWarning(UserWarning):
+    """General-purpose user-facing warning."""
+
+    pass
+
+
 class PlottingWarning(UserWarning):
     """User-facing plotting warning for cases when the user may take action to resolve the issue."""
 

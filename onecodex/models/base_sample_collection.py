@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, Literal, Optional, Type, overload
 
 from typing_extensions import Annotated, deprecated
 
-from onecodex.exceptions import NoTaxaException, OneCodexException, PlottingWarning
+from onecodex.exceptions import NoTaxaException, OneCodexException, OneCodexWarning
 from onecodex.lib.enums import (
     AnalysisType,
     FunctionalAnnotations,
@@ -481,7 +481,7 @@ class BaseSampleCollection(
                 f"{len(self._classification_ids_without_abundances)} sample(s) have no abundances "
                 f"calculated. {metric.display_name} values may not be comparable across samples when abundance "
                 "status is mixed. Consider using an unfiltered metric instead.",
-                PlottingWarning,
+                OneCodexWarning,
             )
 
         # getting classification IDs is 15% of execution time
@@ -1158,8 +1158,8 @@ class BaseSampleCollection(
             Metric.PropClassifiedWChildren,
             Metric.NormalizedReadcount,
             Metric.NormalizedReadcountWChildren,
-            Metric.NormalizedRawReadcount,
-            Metric.NormalizedRawReadcountWChildren,
+            Metric.NormalizedUnfilteredReadcount,
+            Metric.NormalizedUnfilteredReadcountWChildren,
         ):
             if metric in (Metric.PropClassified, Metric.PropClassifiedWChildren):
                 denoms = [
@@ -1171,8 +1171,8 @@ class BaseSampleCollection(
             elif metric in (
                 Metric.NormalizedReadcount,
                 Metric.NormalizedReadcountWChildren,
-                Metric.NormalizedRawReadcount,
-                Metric.NormalizedRawReadcountWChildren,
+                Metric.NormalizedUnfilteredReadcount,
+                Metric.NormalizedUnfilteredReadcountWChildren,
             ):
                 denoms = df.sum(axis=1)
             else:

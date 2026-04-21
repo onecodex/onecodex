@@ -90,8 +90,8 @@ def format_classification_results(results: dict) -> dict[str, Any]:
         if (
             entry["readcount"] < 1
             and entry["readcount_w_children"] < 1
-            and entry["raw_readcount"] < 1
-            and entry["raw_readcount_w_children"] < 1
+            and (entry["raw_readcount"] is None or entry["raw_readcount"] < 1)
+            and (entry["raw_readcount_w_children"] is None or entry["raw_readcount_w_children"] < 1)
             and (entry["abundance"] is None or entry["abundance"] <= 0.0)
             and (entry.get("abundance_w_children") is None or entry["abundance_w_children"] <= 0.0)
         ):

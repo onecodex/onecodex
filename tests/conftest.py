@@ -492,8 +492,10 @@ for _uuid in os.listdir(_CLASSIFICATIONS_DIR):
 
         _raw = _copy.deepcopy(API_DATA[_results_key])
         for _row in _raw.get("table", []):
-            _row["raw_readcount"] = _row["readcount"]
-            _row["raw_readcount_w_children"] = _row["readcount_w_children"]
+            # Use readcount + 100 so raw values differ from filtered values, making
+            # tests sensitive to bugs where filtered and unfiltered data are mixed up.
+            _row["raw_readcount"] = _row["readcount"] + 100
+            _row["raw_readcount_w_children"] = _row["readcount_w_children"] + 100
         API_DATA[f"GET::api/v1/classifications/{_uuid}/raw_results"] = _raw
 
 
