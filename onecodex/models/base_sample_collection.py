@@ -471,19 +471,6 @@ class BaseSampleCollection(
         if metric == Metric.Auto:
             metric = self.automatic_metric
 
-        # if the metric is derived from filtered readcounts (readcount or readcount_w_children)
-        # and the samples contain a mix of +/- abundance samples, then the metric may not be
-        # comparable. warn the user and advise to use the unfiltered readcounts instead
-        if metric.is_filtered_readcount_metric and (
-            0 < len(self._classification_ids_without_abundances) < len(self._classifications)
-        ):
-            warnings.warn(
-                f"{len(self._classification_ids_without_abundances)} sample(s) have no abundances "
-                f"calculated. {metric.display_name} values may not be comparable across samples when abundance "
-                "status is mixed. Consider using an unfiltered metric instead.",
-                OneCodexWarning,
-            )
-
         # getting classification IDs is 15% of execution time
         classification_ids = [c.id for c in self._classifications]
 
@@ -1063,6 +1050,26 @@ class BaseSampleCollection(
         -------
         :class:`~onecodex.dataframes.ClassificationsDataFrame`
         """
+
+        # if the metric is derived from filtered readcounts (readcount or readcount_w_children)
+        # and the samples contain a mix of +/- abundance samples, then the metric may not be
+        # comparable. warn the user and advise to use the unfiltered readcounts instead
+
+        # this check needs to be performed outside of _to_classification_df (which is cached) so that
+        # multiple invocations each issue their own warning
+
+        if metric == Metric.Auto:
+            metric = self.automatic_metric
+
+        if metric.is_filtered_readcount_metric and (
+            0 < len(self._classification_ids_without_abundances) < len(self._classifications)
+        ):
+            warnings.warn(
+                f"{len(self._classification_ids_without_abundances)} sample(s) have no abundances "
+                f"calculated. {metric.display_name} values may not be comparable across samples when abundance "
+                "status is mixed. Consider using an unfiltered metric instead.",
+                OneCodexWarning,
+            )
 
         return self._to_classification_df(
             rank=rank,
