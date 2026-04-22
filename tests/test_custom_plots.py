@@ -1,8 +1,10 @@
+import gzip
 import io
 import json
-import mock
+import os
 import uuid
 
+import mock
 import numpy as np
 import pandas as pd
 import pytest
@@ -39,9 +41,19 @@ def generate_id() -> str:
 
 
 def load_classification_results_json(classification_uuid: str) -> dict | list:
-    filepath = f"tests/data/api/v1/classifications/{classification_uuid}/results/index.json"
-    with open(filepath, "r") as f:
-        return json.load(f)
+    # Loads results directly into Samples (bypasses HTTP mocks). Adds unfiltered_readcount fields
+    # since the /results endpoint doesn't include them but the model expects them.
+    base = f"tests/data/api/v1/classifications/{classification_uuid}/results/index.json"
+    if os.path.exists(base + ".gz"):
+        with gzip.open(base + ".gz", "rt") as f:
+            data = json.load(f)
+    else:
+        with open(base, "r") as f:
+            data = json.load(f)
+    for row in data.get("table", []):
+        row["unfiltered_readcount"] = row["readcount"]
+        row["unfiltered_readcount_w_children"] = row["readcount_w_children"]
+    return data
 
 
 JOB_UUID = "a1b2c3d4e5f6a7b8"
@@ -116,6 +128,18 @@ def sample_collection() -> SampleCollection:
     )
 
     return SampleCollection([sample1, sample2, sample3])
+
+
+@pytest.fixture
+def sample_collection_mixed_abundances(sample_collection) -> SampleCollection:
+    """A collection mixing samples with and without abundance estimates."""
+    no_abundance_sample = make_sample(
+        classification_uuid="464a7ebcnocaffe1",
+        filename="no_abundances.fastq",
+        sample_name="No Abundances",
+        cohort="C1",
+    )
+    return SampleCollection([*sample_collection.samples, no_abundance_sample])
 
 
 @pytest.fixture
@@ -211,6 +235,68 @@ def test_plot(sample_collection, default_plot_params_payload, params):
         assert isinstance(df, pd.DataFrame)
     else:
         assert result.exported_chart_data is None
+
+
+@pytest.mark.parametrize(
+    "metric",
+    [
+        Metric.UnfilteredReadcount,
+        Metric.UnfilteredReadcountWChildren,
+        Metric.NormalizedUnfilteredReadcount,
+        Metric.NormalizedUnfilteredReadcountWChildren,
+        Metric.Abundance,
+        Metric.AbundanceWChildren,
+    ],
+)
+def test_plot_no_warning_metrics(
+    sample_collection_mixed_abundances, default_plot_params_payload, metric
+):
+    """Unfiltered readcount and abundance metrics must not emit a OneCodexUserWarning for mixed-abundance
+    collections."""
+    params = PlotParams.model_validate(default_plot_params_payload | {"metric": metric})
+    result = sample_collection_mixed_abundances.plot(params)
+
+    assert result.error is None
+    assert result.warnings == [], f"Unexpected warnings for metric {metric}: {result.warnings}"
+
+
+@pytest.mark.parametrize(
+    "metric",
+    [
+        Metric.Readcount,
+        Metric.ReadcountWChildren,
+        Metric.NormalizedReadcount,
+        Metric.NormalizedReadcountWChildren,
+    ],
+)
+def test_plot_warns_for_filtered_metrics_with_mixed_abundances(
+    sample_collection_mixed_abundances, default_plot_params_payload, metric
+):
+    """Filtered readcount metrics should emit a PlottingWarning for mixed-abundance collections."""
+    params = PlotParams.model_validate(default_plot_params_payload | {"metric": metric})
+    result = sample_collection_mixed_abundances.plot(params)
+
+    assert result.error is None
+    assert any(
+        "no abundances calculated" in w for w in result.warnings
+    ), f"Expected warning for metric {metric}, got: {result.warnings}"
+
+
+def test_plot_alpha_diversity_warning_not_duplicated(
+    sample_collection_mixed_abundances, default_plot_params_payload
+):
+    """Alpha diversity plots should emit exactly one warning for mixed-abundance collections, not two.
+    The warning fires twice internally (once in plot_metadata and once inside alpha_diversity), but
+    _run_with_plot_error_handling should deduplicate them."""
+    params = PlotParams.model_validate(
+        default_plot_params_payload
+        | {"plot_type": PlotType.Alpha, "metric": Metric.NormalizedReadcountWChildren}
+    )
+    result = sample_collection_mixed_abundances.plot(params)
+
+    assert result.error is None
+    assert len(result.warnings) == 1
+    assert "may not be comparable" in result.warnings[0]
 
 
 # Regression test for DEV-10319

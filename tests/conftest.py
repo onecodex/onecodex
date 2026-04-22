@@ -174,6 +174,43 @@ API_DATA = {
             },
         ]
     },
+    "GET::api/v1/classifications/45a573fb7833449a/raw_results": {
+        "table": [
+            {
+                "abundance": None,
+                "name": "root",
+                "parent_tax_id": None,
+                "rank": "no rank",
+                "readcount": 0,
+                "readcount_w_children": 3,
+                "unfiltered_readcount": 0,
+                "unfiltered_readcount_w_children": 3,
+                "tax_id": "1",
+            },
+            {
+                "abundance": None,
+                "name": "Staphylococcus",
+                "parent_tax_id": "1",
+                "rank": "genus",
+                "readcount": 0,
+                "readcount_w_children": 3,
+                "unfiltered_readcount": 0,
+                "unfiltered_readcount_w_children": 3,
+                "tax_id": "1279",
+            },
+            {
+                "abundance": 1,
+                "name": "Staphylococcus sp. HGB0015",
+                "parent_tax_id": "1279",
+                "rank": "species",
+                "readcount": 3,
+                "readcount_w_children": 3,
+                "unfiltered_readcount": 3,
+                "unfiltered_readcount_w_children": 3,
+                "tax_id": "1078083",
+            },
+        ]
+    },
     "GET::api/v1/classifications/593601a797914cbf/results": {
         "table": [
             {
@@ -201,6 +238,43 @@ API_DATA = {
                 "rank": "species",
                 "readcount": 80,
                 "readcount_w_children": 80,
+                "tax_id": "1078083",
+            },
+        ]
+    },
+    "GET::api/v1/classifications/593601a797914cbf/raw_results": {
+        "table": [
+            {
+                "abundance": None,
+                "name": "root",
+                "parent_tax_id": None,
+                "rank": "no rank",
+                "readcount": 0,
+                "readcount_w_children": 3,
+                "unfiltered_readcount": 0,
+                "unfiltered_readcount_w_children": 3,
+                "tax_id": "1",
+            },
+            {
+                "abundance": None,
+                "name": "Staphylococcus",
+                "parent_tax_id": "1",
+                "rank": "genus",
+                "readcount": 0,
+                "readcount_w_children": 80,
+                "unfiltered_readcount": 0,
+                "unfiltered_readcount_w_children": 80,
+                "tax_id": "1279",
+            },
+            {
+                "abundance": 1,
+                "name": "Staphylococcus sp. HGB0015",
+                "parent_tax_id": "1279",
+                "rank": "species",
+                "readcount": 80,
+                "readcount_w_children": 80,
+                "unfiltered_readcount": 80,
+                "unfiltered_readcount_w_children": 80,
                 "tax_id": "1078083",
             },
         ]
@@ -404,6 +478,25 @@ for api_version in os.listdir(API_DATA_DIR):
                     for instance in resource:
                         instance_uri = f"GET::{instance['$uri'].lstrip('/')}"
                         API_DATA[instance_uri] = instance
+
+
+# Auto-generate raw_results from results for classifications (raw_results = results + unfiltered_readcount fields)
+_CLASSIFICATIONS_DIR = os.path.join(API_DATA_DIR, "v1", "classifications")
+for _uuid in os.listdir(_CLASSIFICATIONS_DIR):
+    _results_key = f"GET::api/v1/classifications/{_uuid}/results"
+    if (
+        _results_key in API_DATA
+        and f"GET::api/v1/classifications/{_uuid}/raw_results" not in API_DATA
+    ):
+        import copy as _copy
+
+        _raw = _copy.deepcopy(API_DATA[_results_key])
+        for _row in _raw.get("table", []):
+            # Use readcount + 100 so raw values differ from filtered values, making
+            # tests sensitive to bugs where filtered and unfiltered data are mixed up.
+            _row["unfiltered_readcount"] = _row["readcount"] + 100
+            _row["unfiltered_readcount_w_children"] = _row["readcount_w_children"] + 100
+        API_DATA[f"GET::api/v1/classifications/{_uuid}/raw_results"] = _raw
 
 
 @pytest.fixture(scope="function")

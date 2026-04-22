@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import os.path
-from typing import IO, Dict, List, Optional, Union
+from functools import lru_cache
+from typing import IO, TYPE_CHECKING, List, Optional, Union
 
 import click
 import requests
@@ -16,18 +19,29 @@ from onecodex.models.schemas.analysis import (
 )
 from onecodex.models.schemas.misc import FileDetailSchema
 
+if TYPE_CHECKING:
+    import pandas as pd
+
 
 class _AnalysesBase(OneCodexBase):
     _allowed_methods = {
         "instances_public": None,
     }
-    _cached_result: Dict = {}
-    _cached_files: Optional[List[FileDetailSchema]] = None
     sample: Union["Samples", ApiRef]  # noqa: F821
     job: Union["Jobs", ApiRef]  # noqa: F821
     error_msg: Optional[str] = None
 
-    def results(self, json=True):
+    def __hash__(self) -> int:
+        return hash(self.id)
+
+    def __eq__(self, other: object) -> bool:
+        # Required alongside __hash__: lru_cache uses __eq__ to check for cache hits, and
+        # Pydantic's default __eq__ compares __dict__ which recurses infinitely on nested models.
+        if not isinstance(other, _AnalysesBase):
+            return NotImplemented
+        return self.id == other.id
+
+    def results(self, json: bool = True):
         """Fetch the results of an Analyses resource.
 
         Parameters
@@ -45,14 +59,12 @@ class _AnalysesBase(OneCodexBase):
         else:
             raise NotImplementedError("No non-JSON result format implemented.")
 
+    @lru_cache
     def _results(self):
-        if getattr(self, "_cached_result", None):
-            return self._cached_result
-
         resp = self._client.get(f"{self._api._base_url}{self.field_uri}/results")
-        self._cached_result = resp.json()
-        return self._cached_result
+        return resp.json()
 
+    @lru_cache
     def get_files(self) -> List[FileDetailSchema]:
         """Fetch the files details of an Analyses.
 
@@ -60,12 +72,8 @@ class _AnalysesBase(OneCodexBase):
         -------
         A list of FileDetailSchema
         """
-        if getattr(self, "_cached_files", None) is not None:
-            return self._cached_files
-
         resp = self._client.get(f"{self._api._base_url}{self.field_uri}/file_details")
-        self._cached_files = [FileDetailSchema(**x) for x in resp.json()["files"]]
-        return self._cached_files
+        return [FileDetailSchema(**x) for x in resp.json()["files"]]
 
     # It is almost copy/paste of ResourceDownloadMixin._download
     # I do not want to extract re-usable function just yet I need more than two copies.
@@ -184,7 +192,6 @@ class _AnalysesBase(OneCodexBase):
 
 class Analyses(_AnalysesBase, AnalysisSchema):
     _resource_path = "/api/v1/analyses"
-    _cached_result = None
 
 
 class Alignments(_AnalysesBase, AlignmentSchema):
@@ -193,12 +200,19 @@ class Alignments(_AnalysesBase, AlignmentSchema):
 
 class Classifications(_AnalysesBase, ClassificationSchema):
     _resource_path = "/api/v1/classifications"
-    _cached_table = None
 
     # root & cellular organisms
     _NONSPECIFIC_TAX_IDS = {"1", "131567"}
 
-    def results(self, json=True):
+    @lru_cache
+    def _results(self, raw: bool = False):
+        if raw:
+            resp = self._client.get(f"{self._api._base_url}{self.field_uri}/raw_results")
+        else:
+            resp = self._client.get(f"{self._api._base_url}{self.field_uri}/results")
+        return resp.json()
+
+    def results(self, json: bool = True, raw: bool = False) -> dict | pd.DataFrame:
         """Return the complete results table for a classification.
 
         Parameters
@@ -212,22 +226,20 @@ class Classifications(_AnalysesBase, ClassificationSchema):
             Return a JSON object with the classification results or a `pd.DataFrame` if json=False.
         """
         if json is True:
-            return self._results()
+            return self._results(raw=raw)
         else:
-            return self._table()
+            return self._table(raw=raw)
 
     def _readlevel(self):
         resp = self._client.get(f"{self._api._base_url}{self.field_uri}/readlevel")
         return resp.json()
 
-    def _table(self):
+    def _table(self, raw: bool = False) -> pd.DataFrame:
         import pandas as pd
 
-        if self._cached_table is None:
-            self._cached_table = pd.DataFrame(self._results()["table"])
-        return self._cached_table
+        return pd.DataFrame(self._results(raw=raw)["table"])
 
-    def table(self):
+    def table(self) -> pd.DataFrame:
         """Return the complete results table for the classification.
 
         Returns

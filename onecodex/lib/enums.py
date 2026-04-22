@@ -109,6 +109,34 @@ class Metric(BaseEnum):
        .. math::
 
           \frac{\text{readcount\_w\_children}}{\sum_{\text{taxa at rank}} \text{readcount\_w\_children}}
+
+    .. attribute:: UnfilteredReadcount
+
+       Unfiltered read count assigned to a given taxon, before any host or nonspecific read
+       filtering is applied.
+
+    .. attribute:: UnfilteredReadcountWChildren
+
+       Unfiltered read count for a taxon and all its taxonomic descendants.
+
+    .. attribute:: NormalizedUnfilteredReadcount
+
+       UnfilteredReadcount normalized by the sum of UnfilteredReadcounts for taxa at the specified rank.
+       Values sum to 1.0 across taxa at that rank.
+
+       .. math::
+
+          \frac{\text{unfiltered\_readcount}}{\sum_{\text{taxa at rank}} \text{unfiltered\_readcount}}
+
+    .. attribute:: NormalizedUnfilteredReadcountWChildren
+
+       UnfilteredReadcountWChildren normalized by the sum of UnfilteredReadcountWChildren for taxa at the
+       specified rank. Values sum to 1.0 across taxa at that rank.
+
+       .. math::
+
+          \frac{\text{unfiltered\_readcount\_w\_children}}{\sum_{\text{taxa at rank}} \text{unfiltered\_readcount\_w\_children}}
+
     """
 
     Auto = "auto"
@@ -123,10 +151,34 @@ class Metric(BaseEnum):
     NormalizedReadcount = "normalized_readcount"
     NormalizedReadcountWChildren = "normalized_readcount_w_children"
 
+    UnfilteredReadcount = "unfiltered_readcount"
+    UnfilteredReadcountWChildren = "unfiltered_readcount_w_children"
+    NormalizedUnfilteredReadcount = "normalized_unfiltered_readcount"
+    NormalizedUnfilteredReadcountWChildren = "normalized_unfiltered_readcount_w_children"
+
     @property
     def is_abundance_metric(self) -> bool:
         """Returns True if this metric is an abundance metric (Abundance or AbundanceWChildren)."""
         return self in {Metric.Abundance, Metric.AbundanceWChildren}
+
+    @property
+    def is_filtered_readcount_metric(self) -> bool:
+        """True for metrics based on filtered readcounts (readcount/readcount_w_children).
+
+        The API computes these values differently depending on whether a sample has abundances,
+        so they are not comparable across samples with mixed abundance status. Unfiltered readcount
+        metrics (UnfilteredReadcount, NormalizedUnfilteredReadcount, etc.) are not affected.
+        """
+        return self in {
+            Metric.Readcount,
+            Metric.ReadcountWChildren,
+            Metric.PropReadcount,
+            Metric.PropReadcountWChildren,
+            Metric.PropClassified,
+            Metric.PropClassifiedWChildren,
+            Metric.NormalizedReadcount,
+            Metric.NormalizedReadcountWChildren,
+        }
 
     @property
     def is_normalized(self) -> bool:
@@ -140,6 +192,8 @@ class Metric(BaseEnum):
             Metric.PropClassifiedWChildren,
             Metric.NormalizedReadcount,
             Metric.NormalizedReadcountWChildren,
+            Metric.NormalizedUnfilteredReadcount,
+            Metric.NormalizedUnfilteredReadcountWChildren,
         }
 
     @property
@@ -151,6 +205,8 @@ class Metric(BaseEnum):
             Metric.PropReadcountWChildren,
             Metric.NormalizedReadcountWChildren,
             Metric.PropClassifiedWChildren,
+            Metric.UnfilteredReadcountWChildren,
+            Metric.NormalizedUnfilteredReadcountWChildren,
         )
 
     @property
@@ -167,6 +223,10 @@ class Metric(BaseEnum):
             Metric.AbundanceWChildren: "abundance_w_children",
             Metric.NormalizedReadcount: "readcount",
             Metric.NormalizedReadcountWChildren: "readcount_w_children",
+            Metric.UnfilteredReadcount: "unfiltered_readcount",
+            Metric.UnfilteredReadcountWChildren: "unfiltered_readcount_w_children",
+            Metric.NormalizedUnfilteredReadcount: "unfiltered_readcount",
+            Metric.NormalizedUnfilteredReadcountWChildren: "unfiltered_readcount_w_children",
         }[self]
 
     @property
@@ -183,6 +243,10 @@ class Metric(BaseEnum):
             Metric.PropClassifiedWChildren: float,
             Metric.NormalizedReadcount: float,
             Metric.NormalizedReadcountWChildren: float,
+            Metric.UnfilteredReadcount: int,
+            Metric.UnfilteredReadcountWChildren: int,
+            Metric.NormalizedUnfilteredReadcount: float,
+            Metric.NormalizedUnfilteredReadcountWChildren: float,
         }[self]
 
     @property
@@ -199,6 +263,10 @@ class Metric(BaseEnum):
             Metric.PropClassifiedWChildren: "Classified Reads (Normalized)",
             Metric.NormalizedReadcount: "Normalized Readcount",
             Metric.NormalizedReadcountWChildren: "Normalized Readcount With Children",
+            Metric.UnfilteredReadcount: "Readcount (Unfiltered)",
+            Metric.UnfilteredReadcountWChildren: "Readcount With Children (Unfiltered)",
+            Metric.NormalizedUnfilteredReadcount: "Normalized Readcount (Unfiltered)",
+            Metric.NormalizedUnfilteredReadcountWChildren: "Normalized Readcount With Children (Unfiltered)",
         }[self]
 
 

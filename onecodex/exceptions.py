@@ -48,20 +48,26 @@ class NoTaxaException(OneCodexException):
     pass
 
 
-class PlottingWarning(UserWarning):
+class OneCodexUserWarning(UserWarning):
+    """General-purpose user-facing warning."""
+
+    pass
+
+
+class PlottingWarning(OneCodexUserWarning):
     """User-facing plotting warning for cases when the user may take action to resolve the issue."""
+
+    pass
+
+
+class StatsWarning(OneCodexUserWarning):
+    """User-facing warning for statistical methods."""
 
     pass
 
 
 class StatsException(OneCodexException):
     """User-facing error for statistical methods."""
-
-    pass
-
-
-class StatsWarning(UserWarning):
-    """User-facing warning for statistical methods."""
 
     pass
 

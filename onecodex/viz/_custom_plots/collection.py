@@ -8,10 +8,9 @@ import pandas as pd
 
 from onecodex.exceptions import (
     OneCodexException,
+    OneCodexUserWarning,
     PlottingException,
-    PlottingWarning,
     StatsException,
-    StatsWarning,
     ValidationError,
     NoTaxaException,
 )
@@ -91,7 +90,13 @@ class Classifications(dict):
     success: Literal[True] = True
     job: Jobs
 
-    def results(self) -> "Classifications":
+    def results(self, raw: bool = False) -> "Classifications":
+        """
+        Mirrors onecodex.models.analysis.Classifications which has a raw argument (default=False).
+
+        However, the data we retrieve from the CPITB endpoint matches what would be
+        retrieved if raw=True
+        """
         return self
 
 
@@ -242,7 +247,7 @@ class SampleCollection(BaseSampleCollection):
         import altair as alt
 
         with warnings.catch_warnings(record=True) as captured_warnings:
-            warnings.simplefilter("always", PlottingWarning)
+            warnings.simplefilter("always", OneCodexUserWarning)
 
             try:
                 result = plot_fn()
@@ -254,9 +259,14 @@ class SampleCollection(BaseSampleCollection):
                     "type or select a fewer number of samples.",
                 )
 
+        # deduplicate warning messages
+        seen = set()
         for warning in captured_warnings:
-            if warning.category is PlottingWarning:
-                result.warnings.append(str(warning.message))
+            if warning.category is OneCodexUserWarning:
+                message = str(warning.message)
+                if message not in seen:
+                    seen.add(message)
+                    result.warnings.append(message)
             else:
                 warnings.warn(warning.message, warning.category)
 
@@ -575,12 +585,12 @@ class SampleCollection(BaseSampleCollection):
 
     def stats(self, params: StatsParams) -> StatsResults:
         with warnings.catch_warnings():
-            # Turn StatsWarning into an exception (run stats in "strict" mode)
-            warnings.filterwarnings("error", category=StatsWarning)
+            # Turn OneCodexUserWarning into an exception (run stats in "strict" mode)
+            warnings.filterwarnings("error", category=OneCodexUserWarning)
 
             try:
                 stats_results = self._stats(params)
-            except (ValidationError, StatsException, StatsWarning, NoTaxaException) as e:
+            except (ValidationError, StatsException, OneCodexUserWarning, NoTaxaException) as e:
                 # Expected user error
                 return StatsResults(params=params, error=str(e))
 

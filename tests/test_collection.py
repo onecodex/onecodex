@@ -8,7 +8,7 @@ pytest.importorskip("pandas")  # noqa
 
 from unittest.mock import patch
 
-from onecodex.exceptions import OneCodexException, NoTaxaException
+from onecodex.exceptions import NoTaxaException, OneCodexException, OneCodexUserWarning
 from onecodex.lib.enums import Metric, Rank
 from onecodex.models import Classifications
 from onecodex.models.collection import SampleCollection
@@ -124,6 +124,21 @@ def test_sample_collection_pandas(samples):
             Metric.PropReadcountWChildren,
             Rank.Species,
             [0.1349, 0.0231, 0.0087, 0.0069, 0.0065, 0.0065],
+        ),
+        (
+            Metric.NormalizedUnfilteredReadcount,
+            Rank.Species,
+            [0.5448, 0.035, 0.0262, 0.0221, 0.0213, 0.0158],
+        ),
+        (
+            Metric.NormalizedUnfilteredReadcountWChildren,
+            Rank.Species,
+            [0.4457, 0.0762, 0.0286, 0.0229, 0.0216, 0.0214],
+        ),
+        (
+            Metric.NormalizedUnfilteredReadcountWChildren,
+            Rank.Genus,
+            [0.3557, 0.2643, 0.0593, 0.0581, 0.046, 0.0441],
         ),
     ],
 )
@@ -364,6 +379,51 @@ def test_automatic_metric_majority_rules(samples, samples_without_abundances):
 
 def test_automatic_metric_majority_lacking_abundance_estimates(samples, samples_without_abundances):
     assert samples_without_abundances.automatic_metric == Metric.NormalizedReadcountWChildren
+
+
+@pytest.mark.parametrize(
+    "metric",
+    [
+        Metric.Readcount,
+        Metric.ReadcountWChildren,
+        Metric.PropReadcount,
+        Metric.PropReadcountWChildren,
+        Metric.PropClassified,
+        Metric.PropClassifiedWChildren,
+        Metric.NormalizedReadcount,
+        Metric.NormalizedReadcountWChildren,
+    ],
+)
+def test_mixed_abundance_status_warns_for_readcount_metrics(
+    samples, samples_without_abundances, metric
+):
+    """Readcount metrics should warn when the collection has mixed abundance status."""
+    from onecodex.exceptions import OneCodexUserWarning
+
+    mixed = samples + samples_without_abundances[:1]
+    with pytest.warns(OneCodexUserWarning, match="no abundances calculated"):
+        mixed.to_df(metric=metric)
+
+
+@pytest.mark.parametrize(
+    "metric",
+    [
+        Metric.UnfilteredReadcount,
+        Metric.UnfilteredReadcountWChildren,
+        Metric.NormalizedUnfilteredReadcount,
+        Metric.NormalizedUnfilteredReadcountWChildren,
+        Metric.Abundance,
+        Metric.AbundanceWChildren,
+    ],
+)
+def test_mixed_abundance_status_no_warning(samples, samples_without_abundances, metric):
+    """Unfiltered readcount metrics should not warn even when abundance status is mixed."""
+    import warnings as _warnings
+
+    mixed = samples + samples_without_abundances[:1]
+    with _warnings.catch_warnings():
+        _warnings.simplefilter("error", OneCodexUserWarning)
+        mixed.to_df(metric=metric)  # should not raise
 
 
 def test_to_classification_df_no_taxa_exception(samples):
