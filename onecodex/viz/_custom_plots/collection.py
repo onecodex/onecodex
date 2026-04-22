@@ -259,9 +259,14 @@ class SampleCollection(BaseSampleCollection):
                     "type or select a fewer number of samples.",
                 )
 
+        # deduplicate warning messages
+        seen = set()
         for warning in captured_warnings:
             if warning.category is OneCodexUserWarning:
-                result.warnings.append(str(warning.message))
+                message = str(warning.message)
+                if message not in seen:
+                    seen.add(message)
+                    result.warnings.append(message)
             else:
                 warnings.warn(warning.message, warning.category)
 

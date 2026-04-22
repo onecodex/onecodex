@@ -282,6 +282,23 @@ def test_plot_warns_for_filtered_metrics_with_mixed_abundances(
     ), f"Expected warning for metric {metric}, got: {result.warnings}"
 
 
+def test_plot_alpha_diversity_warning_not_duplicated(
+    sample_collection_mixed_abundances, default_plot_params_payload
+):
+    """Alpha diversity plots should emit exactly one warning for mixed-abundance collections, not two.
+    The warning fires twice internally (once in plot_metadata and once inside alpha_diversity), but
+    _run_with_plot_error_handling should deduplicate them."""
+    params = PlotParams.model_validate(
+        default_plot_params_payload
+        | {"plot_type": PlotType.Alpha, "metric": Metric.NormalizedReadcountWChildren}
+    )
+    result = sample_collection_mixed_abundances.plot(params)
+
+    assert result.error is None
+    assert len(result.warnings) == 1
+    assert "may not be comparable" in result.warnings[0]
+
+
 # Regression test for DEV-10319
 #
 # If a metadata name matches a taxonomic name and samples where the value for that metadata column
