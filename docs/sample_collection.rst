@@ -34,7 +34,7 @@ A ``SampleCollection`` can also be created manually from a list of samples:
 
 .. code-block:: python
 
-   import onecodex.models.collection.SampleCollection
+   from onecodex.models.collection import SampleCollection
 
    sample_list = [
        ocx.Samples.get("cee3b512605a43c6"),
