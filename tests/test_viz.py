@@ -1096,4 +1096,7 @@ def test_plot_bargraph_to_calc_total_errors_out_if_df_is_empty(samples):
     chart = empty_samples.plot_bargraph(return_chart=True, metric=Metric.AbundanceWChildren)
 
     df = chart.data
-    assert df[df["tax_id"] == "Other"]["Relative Abundance"] == 0.0
+    values = list(df[df["tax_id"] == "Other"]["Relative Abundance"])
+
+    assert len(values) == 1
+    assert values[0] == 0.0
