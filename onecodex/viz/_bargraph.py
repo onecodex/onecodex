@@ -170,8 +170,9 @@ class VizBargraphMixin(BaseSampleCollection):
             df = df.loc[:, df.mean().sort_values(ascending=False).iloc[:top_n].index]
 
         if include_other:
-            # It needs to be a list and not an index
-            df_index = list(df.index)
+            row_totals_by_name = {}
+            for (_, row), row_total in zip(df.iterrows(), row_totals):
+                row_totals_by_name[row.name] = row_total
 
             def apply_callback(row):
                 # if there are no abundances in the dataframe, df.apply will yield
@@ -181,7 +182,7 @@ class VizBargraphMixin(BaseSampleCollection):
                 if row.name is None or row.name in empty_rows:
                     return 0.0
 
-                total = row_totals[df_index.index(row.name)]
+                total = row_totals_by_name[row.name]
                 return total - row.sum()
 
             df["Other"] = df.apply(
