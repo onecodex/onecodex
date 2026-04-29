@@ -1,7 +1,8 @@
 import math
+from datetime import datetime
+
 import mock
 import pytest
-from datetime import datetime
 
 pytest.importorskip("numpy")  # noqa
 pytest.importorskip("pandas")  # noqa
@@ -10,16 +11,20 @@ import altair as alt
 import numpy as np
 import pandas as pd
 
-from onecodex.lib.enums import Metric, Link, Rank
-from onecodex.exceptions import OneCodexException, PlottingException
+from onecodex.exceptions import (
+    OneCodexException,
+    OneCodexUserWarning,
+    PlottingException,
+    PlottingWarning,
+)
+from onecodex.lib.enums import Link, Metric, Rank
 from onecodex.models.collection import SampleCollection
 from onecodex.utils import has_missing_values
 from onecodex.viz._primitives import (
-    interleave_palette,
     get_classification_url,
     get_ncbi_taxonomy_browser_url,
+    interleave_palette,
 )
-from onecodex.exceptions import OneCodexUserWarning, PlottingWarning
 
 
 def assert_expected_legend_title(chart, title):
@@ -1078,3 +1083,20 @@ def test_plot_bargraph_to_calc_total_if_metric_is_not_normalized(samples):
     df = chart.data
     other_values = df[df["tax_id"] == "Other"]["Readcount"]
     assert all([x >= 0.0 for x in other_values])
+
+
+# Regression test for DEV-11620
+def test_plot_bargraph_to_calc_total_errors_out_if_df_is_empty(samples):
+    class EmptySamplesCollection(SampleCollection):
+        def to_classification_df(self, *args, **kwargs):
+            df = super().to_classification_df(*args, **kwargs)
+            return df.drop(df.index[1:]).drop(columns=df.columns)
+
+    empty_samples = EmptySamplesCollection(objects=samples)
+    chart = empty_samples.plot_bargraph(return_chart=True, metric=Metric.AbundanceWChildren)
+
+    df = chart.data
+    values = list(df[df["tax_id"] == "Other"]["Relative Abundance"])
+
+    assert len(values) == 1
+    assert values[0] == 0.0

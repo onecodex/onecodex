@@ -161,8 +161,7 @@ class VizBargraphMixin(BaseSampleCollection):
             threshold = None
 
         # We will need this when calculating "Other" column
-        # Do not iterate over it. It should be access only in `apply_callback`
-        row_totals = iter(df.sum(axis=1))
+        row_totals = list(df.sum(axis=1))
 
         if threshold:
             df = df.loc[:, df.max() >= threshold]
@@ -171,14 +170,20 @@ class VizBargraphMixin(BaseSampleCollection):
             df = df.loc[:, df.mean().sort_values(ascending=False).iloc[:top_n].index]
 
         if include_other:
+            row_totals_by_name = {}
+            for (_, row), row_total in zip(df.iterrows(), row_totals):
+                row_totals_by_name[row.name] = row_total
 
             def apply_callback(row):
-                total = next(row_totals)
                 # if there are no abundances in the dataframe, df.apply will yield
                 # a single item that has `None` as its name. Therefore, we must
                 # check if row.name is None AND whether or not the row name is
                 # in empty_rows
-                return 0.0 if (row.name is None or row.name in empty_rows) else total - row.sum()
+                if row.name is None or row.name in empty_rows:
+                    return 0.0
+
+                total = row_totals_by_name[row.name]
+                return total - row.sum()
 
             df["Other"] = df.apply(
                 apply_callback,
