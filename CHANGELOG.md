@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.0.2] - 2026-05-06
+
+### Added
+
+- Unfiltered readcount metrics added to classification results (#621)
+- Creating a results dataframe from a SampleCollection with samples with and
+  without abundance estimates now raises a warning
+
+### Fixed
+
+- Fixed `plot_bargraph` "Other" value when using a non-normalized metric (#614)
+- Fixed CSV/Excel export when `readcount` or `readcount_w_children` metric is selected (#605)
+- Fixed wrong exception type raised when all taxa are filtered out (#594)
+- Fixed limit functionality in sample queries (#612)
+- Samples without abundances are no longer incorrectly dropped during alpha diversity calculations (#622)
+
+### Removed
+
+- Removed deprecated `posthoc_df` property (#602)
+
 ## [v1.0.1] - 2026-03-04
 
 ### Fixed
