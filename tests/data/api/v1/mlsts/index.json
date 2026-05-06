@@ -1,0 +1,1 @@
+[{"$uri": "/api/v1/mlsts/cff9548162fa4c9b", "complete": true, "created_at": "2015-09-26T06:16:39.794227-07:00", "error_msg": "", "job": {"$ref": "/api/v1/jobs/e1218d2d144e465e"}, "sample": {"$ref": "/api/v1/samples/002f55a11aae4b8f"}, "success": true, "cost": null, "dependencies": [], "draft": false}]

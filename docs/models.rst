@@ -37,6 +37,13 @@ Models
    :members:
    :show-inheritance:
 
+``Mlsts``
+==========
+
+.. autoclass:: onecodex.models.analysis.Mlsts
+   :members:
+   :show-inheritance:
+
 ``Assets``
 ==========
 

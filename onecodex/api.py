@@ -68,6 +68,7 @@ class Api(object):
             Alignments as _Alignments,
             FunctionalProfiles as _FunctionalProfiles,
             Panels as _Panels,
+            Mlsts as _Mlsts,
             Users as _Users,
             Projects as _Projects,
             Tags as _Tags,
@@ -87,6 +88,7 @@ class Api(object):
         Alignments: Type[_Alignments]
         FunctionalProfiles: Type[_FunctionalProfiles]
         Panels: Type[_Panels]
+        Mlsts: Type[_Mlsts]
         Users: Type[_Users]
         Projects: Type[_Projects]
         Tags: Type[_Tags]

@@ -15,6 +15,7 @@ from onecodex.models.schemas.analysis import (
     AnalysisSchema,
     ClassificationSchema,
     FunctionalRunSchema,
+    MlstSchema,
     PanelSchema,
 )
 from onecodex.models.schemas.misc import FileDetailSchema
@@ -424,3 +425,13 @@ class Panels(_AnalysesBase, PanelSchema):
             return self._results()
         else:
             raise NotImplementedError("Panel results only available as JSON at this time.")
+
+
+class Mlsts(_AnalysesBase, MlstSchema):
+    _resource_path = "/api/v1/mlsts"
+
+    def results(self, json=True):
+        if json is True:
+            return self._results()
+        else:
+            raise NotImplementedError("MLST results only available as JSON at this time.")
