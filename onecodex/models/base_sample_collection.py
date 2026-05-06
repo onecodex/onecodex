@@ -576,7 +576,7 @@ class BaseSampleCollection(
         metric_counts = {"abundance": 0, "readcount": 0, "readcount_w_children": 0}
 
         for classification in self._classifications:
-            for row in classification.results()["table"]:
+            for row in classification.results(raw=True)["table"]:
                 if row["rank"] != "species":
                     continue
                 for key in metric_counts:
