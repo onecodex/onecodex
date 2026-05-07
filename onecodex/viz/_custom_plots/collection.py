@@ -90,7 +90,7 @@ class Classifications(dict):
     success: Literal[True] = True
     job: Jobs
 
-    def results(self, raw: bool = False) -> "Classifications":
+    def results(self) -> "Classifications":
         """Mirrors onecodex.models.analysis.Classifications."""
         return self
 

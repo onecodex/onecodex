@@ -480,25 +480,6 @@ for api_version in os.listdir(API_DATA_DIR):
                         API_DATA[instance_uri] = instance
 
 
-# Auto-generate raw_results from results for classifications (raw_results = results + unfiltered_readcount fields)
-_CLASSIFICATIONS_DIR = os.path.join(API_DATA_DIR, "v1", "classifications")
-for _uuid in os.listdir(_CLASSIFICATIONS_DIR):
-    _results_key = f"GET::api/v1/classifications/{_uuid}/results"
-    if (
-        _results_key in API_DATA
-        and f"GET::api/v1/classifications/{_uuid}/raw_results" not in API_DATA
-    ):
-        import copy as _copy
-
-        _raw = _copy.deepcopy(API_DATA[_results_key])
-        for _row in _raw.get("table", []):
-            # Use readcount + 100 so raw values differ from filtered values, making
-            # tests sensitive to bugs where filtered and unfiltered data are mixed up.
-            _row["unfiltered_readcount"] = _row["readcount"] + 100
-            _row["unfiltered_readcount_w_children"] = _row["readcount_w_children"] + 100
-        API_DATA[f"GET::api/v1/classifications/{_uuid}/raw_results"] = _raw
-
-
 @pytest.fixture(scope="function")
 def api_data():
     with mock_requests(API_DATA) as rsps:

@@ -12,7 +12,9 @@
             "rank": "no rank",
             "readcount": 0,
             "readcount_w_children": 72,
-            "tax_id": "1"
+            "tax_id": "1",
+            "unfiltered_readcount": 100,
+            "unfiltered_readcount_w_children": 172
         },
         {
             "abundance": null,
@@ -21,7 +23,9 @@
             "rank": "superkingdom",
             "readcount": 5,
             "readcount_w_children": 72,
-            "tax_id": "2"
+            "tax_id": "2",
+            "unfiltered_readcount": 105,
+            "unfiltered_readcount_w_children": 172
         },
         {
             "abundance": null,
@@ -30,7 +34,9 @@
             "rank": "no rank",
             "readcount": 0,
             "readcount_w_children": 72,
-            "tax_id": "131567"
+            "tax_id": "131567",
+            "unfiltered_readcount": 100,
+            "unfiltered_readcount_w_children": 172
         },
         {
             "abundance": null,
@@ -39,7 +45,9 @@
             "rank": "phylum",
             "readcount": 0,
             "readcount_w_children": 36,
-            "tax_id": "976"
+            "tax_id": "976",
+            "unfiltered_readcount": 100,
+            "unfiltered_readcount_w_children": 136
         },
         {
             "abundance": null,
@@ -48,7 +56,9 @@
             "rank": "no rank",
             "readcount": 0,
             "readcount_w_children": 36,
-            "tax_id": "68336"
+            "tax_id": "68336",
+            "unfiltered_readcount": 100,
+            "unfiltered_readcount_w_children": 136
         },
         {
             "abundance": null,
@@ -57,7 +67,9 @@
             "rank": "order",
             "readcount": 12,
             "readcount_w_children": 36,
-            "tax_id": "171549"
+            "tax_id": "171549",
+            "unfiltered_readcount": 112,
+            "unfiltered_readcount_w_children": 136
         },
         {
             "abundance": null,
@@ -66,7 +78,9 @@
             "rank": "class",
             "readcount": 0,
             "readcount_w_children": 36,
-            "tax_id": "200643"
+            "tax_id": "200643",
+            "unfiltered_readcount": 100,
+            "unfiltered_readcount_w_children": 136
         },
         {
             "abundance": null,
@@ -75,7 +89,9 @@
             "rank": "no rank",
             "readcount": 0,
             "readcount_w_children": 36,
-            "tax_id": "1783270"
+            "tax_id": "1783270",
+            "unfiltered_readcount": 100,
+            "unfiltered_readcount_w_children": 136
         },
         {
             "abundance": null,
@@ -84,7 +100,9 @@
             "rank": "no rank",
             "readcount": 0,
             "readcount_w_children": 28,
-            "tax_id": "1783272"
+            "tax_id": "1783272",
+            "unfiltered_readcount": 100,
+            "unfiltered_readcount_w_children": 128
         },
         {
             "abundance": null,
@@ -93,7 +111,9 @@
             "rank": "phylum",
             "readcount": 2,
             "readcount_w_children": 25,
-            "tax_id": "1239"
+            "tax_id": "1239",
+            "unfiltered_readcount": 102,
+            "unfiltered_readcount_w_children": 125
         },
         {
             "abundance": null,
@@ -102,7 +122,9 @@
             "rank": "family",
             "readcount": 0,
             "readcount_w_children": 23,
-            "tax_id": "815"
+            "tax_id": "815",
+            "unfiltered_readcount": 100,
+            "unfiltered_readcount_w_children": 123
         },
         {
             "abundance": null,
@@ -111,7 +133,9 @@
             "rank": "genus",
             "readcount": 200,
             "readcount_w_children": 200,
-            "tax_id": "816"
+            "tax_id": "816",
+            "unfiltered_readcount": 300,
+            "unfiltered_readcount_w_children": 300
         },
         {
             "abundance": null,
@@ -120,7 +144,9 @@
             "rank": "class",
             "readcount": 0,
             "readcount_w_children": 23,
-            "tax_id": "186801"
+            "tax_id": "186801",
+            "unfiltered_readcount": 100,
+            "unfiltered_readcount_w_children": 123
         },
         {
             "abundance": null,
@@ -129,7 +155,9 @@
             "rank": "order",
             "readcount": 7,
             "readcount_w_children": 23,
-            "tax_id": "186802"
+            "tax_id": "186802",
+            "unfiltered_readcount": 107,
+            "unfiltered_readcount_w_children": 123
         },
         {
             "abundance": null,
@@ -138,7 +166,9 @@
             "rank": "genus",
             "readcount": 1,
             "readcount_w_children": 7,
-            "tax_id": "1485"
+            "tax_id": "1485",
+            "unfiltered_readcount": 101,
+            "unfiltered_readcount_w_children": 107
         },
         {
             "abundance": null,
@@ -147,7 +177,9 @@
             "rank": "family",
             "readcount": 0,
             "readcount_w_children": 7,
-            "tax_id": "31979"
+            "tax_id": "31979",
+            "unfiltered_readcount": 100,
+            "unfiltered_readcount_w_children": 107
         },
         {
             "abundance": null,
@@ -156,7 +188,9 @@
             "rank": "family",
             "readcount": 0,
             "readcount_w_children": 7,
-            "tax_id": "186803"
+            "tax_id": "186803",
+            "unfiltered_readcount": 100,
+            "unfiltered_readcount_w_children": 107
         },
         {
             "abundance": null,
@@ -165,7 +199,9 @@
             "rank": "genus",
             "readcount": 1,
             "readcount_w_children": 6,
-            "tax_id": "841"
+            "tax_id": "841",
+            "unfiltered_readcount": 101,
+            "unfiltered_readcount_w_children": 106
         },
         {
             "abundance": 0.054875299766356134,
@@ -174,7 +210,9 @@
             "rank": "species",
             "readcount": 6,
             "readcount_w_children": 6,
-            "tax_id": "1720194"
+            "tax_id": "1720194",
+            "unfiltered_readcount": 106,
+            "unfiltered_readcount_w_children": 106
         },
         {
             "abundance": 0.06309565275511247,
@@ -183,7 +221,9 @@
             "rank": "species",
             "readcount": 5,
             "readcount_w_children": 5,
-            "tax_id": "301302"
+            "tax_id": "301302",
+            "unfiltered_readcount": 105,
+            "unfiltered_readcount_w_children": 105
         },
         {
             "abundance": null,
@@ -192,7 +232,9 @@
             "rank": "genus",
             "readcount": 3,
             "readcount_w_children": 3,
-            "tax_id": "1678"
+            "tax_id": "1678",
+            "unfiltered_readcount": 103,
+            "unfiltered_readcount_w_children": 103
         },
         {
             "abundance": null,
@@ -201,7 +243,9 @@
             "rank": "class",
             "readcount": 0,
             "readcount_w_children": 3,
-            "tax_id": "1760"
+            "tax_id": "1760",
+            "unfiltered_readcount": 100,
+            "unfiltered_readcount_w_children": 103
         },
         {
             "abundance": null,
@@ -210,7 +254,9 @@
             "rank": "family",
             "readcount": 0,
             "readcount_w_children": 3,
-            "tax_id": "31953"
+            "tax_id": "31953",
+            "unfiltered_readcount": 100,
+            "unfiltered_readcount_w_children": 103
         },
         {
             "abundance": null,
@@ -219,7 +265,9 @@
             "rank": "order",
             "readcount": 0,
             "readcount_w_children": 3,
-            "tax_id": "85004"
+            "tax_id": "85004",
+            "unfiltered_readcount": 100,
+            "unfiltered_readcount_w_children": 103
         },
         {
             "abundance": null,
@@ -228,7 +276,9 @@
             "rank": "phylum",
             "readcount": 0,
             "readcount_w_children": 3,
-            "tax_id": "201174"
+            "tax_id": "201174",
+            "unfiltered_readcount": 100,
+            "unfiltered_readcount_w_children": 103
         },
         {
             "abundance": 0.8820290474785315,
@@ -237,7 +287,9 @@
             "rank": "species",
             "readcount": 2,
             "readcount_w_children": 2,
-            "tax_id": "820"
+            "tax_id": "820",
+            "unfiltered_readcount": 102,
+            "unfiltered_readcount_w_children": 102
         },
         {
             "abundance": null,
@@ -246,7 +298,9 @@
             "rank": "phylum",
             "readcount": 0,
             "readcount_w_children": 2,
-            "tax_id": "1224"
+            "tax_id": "1224",
+            "unfiltered_readcount": 100,
+            "unfiltered_readcount_w_children": 102
         },
         {
             "abundance": null,
@@ -255,7 +309,9 @@
             "rank": "class",
             "readcount": 0,
             "readcount_w_children": 2,
-            "tax_id": "28216"
+            "tax_id": "28216",
+            "unfiltered_readcount": 100,
+            "unfiltered_readcount_w_children": 102
         },
         {
             "abundance": null,
@@ -264,7 +320,9 @@
             "rank": "genus",
             "readcount": 2,
             "readcount_w_children": 2,
-            "tax_id": "40544"
+            "tax_id": "40544",
+            "unfiltered_readcount": 102,
+            "unfiltered_readcount_w_children": 102
         },
         {
             "abundance": null,
@@ -273,7 +331,9 @@
             "rank": "order",
             "readcount": 0,
             "readcount_w_children": 2,
-            "tax_id": "80840"
+            "tax_id": "80840",
+            "unfiltered_readcount": 100,
+            "unfiltered_readcount_w_children": 102
         },
         {
             "abundance": null,
@@ -282,7 +342,9 @@
             "rank": "family",
             "readcount": 0,
             "readcount_w_children": 2,
-            "tax_id": "995019"
+            "tax_id": "995019",
+            "unfiltered_readcount": 100,
+            "unfiltered_readcount_w_children": 102
         },
         {
             "abundance": null,
@@ -291,7 +353,9 @@
             "rank": "order",
             "readcount": 0,
             "readcount_w_children": 1,
-            "tax_id": "48461"
+            "tax_id": "48461",
+            "unfiltered_readcount": 100,
+            "unfiltered_readcount_w_children": 101
         },
         {
             "abundance": null,
@@ -300,7 +364,9 @@
             "rank": "phylum",
             "readcount": 0,
             "readcount_w_children": 1,
-            "tax_id": "74201"
+            "tax_id": "74201",
+            "unfiltered_readcount": 100,
+            "unfiltered_readcount_w_children": 101
         },
         {
             "abundance": null,
@@ -309,7 +375,9 @@
             "rank": "genus",
             "readcount": 1,
             "readcount_w_children": 1,
-            "tax_id": "189330"
+            "tax_id": "189330",
+            "unfiltered_readcount": 101,
+            "unfiltered_readcount_w_children": 101
         },
         {
             "abundance": null,
@@ -318,7 +386,9 @@
             "rank": "class",
             "readcount": 0,
             "readcount_w_children": 1,
-            "tax_id": "203494"
+            "tax_id": "203494",
+            "unfiltered_readcount": 100,
+            "unfiltered_readcount_w_children": 101
         },
         {
             "abundance": null,
@@ -327,7 +397,9 @@
             "rank": "family",
             "readcount": 1,
             "readcount_w_children": 1,
-            "tax_id": "216572"
+            "tax_id": "216572",
+            "unfiltered_readcount": 101,
+            "unfiltered_readcount_w_children": 101
         },
         {
             "abundance": null,
@@ -336,7 +408,9 @@
             "rank": "genus",
             "readcount": 1,
             "readcount_w_children": 1,
-            "tax_id": "239934"
+            "tax_id": "239934",
+            "unfiltered_readcount": 101,
+            "unfiltered_readcount_w_children": 101
         },
         {
             "abundance": null,
@@ -345,7 +419,9 @@
             "rank": "genus",
             "readcount": 1,
             "readcount_w_children": 1,
-            "tax_id": "375288"
+            "tax_id": "375288",
+            "unfiltered_readcount": 101,
+            "unfiltered_readcount_w_children": 101
         },
         {
             "abundance": null,
@@ -354,7 +430,9 @@
             "rank": "family",
             "readcount": 1,
             "readcount_w_children": 1,
-            "tax_id": "541000"
+            "tax_id": "541000",
+            "unfiltered_readcount": 101,
+            "unfiltered_readcount_w_children": 101
         },
         {
             "abundance": null,
@@ -363,7 +441,9 @@
             "rank": "family",
             "readcount": 0,
             "readcount_w_children": 1,
-            "tax_id": "1647988"
+            "tax_id": "1647988",
+            "unfiltered_readcount": 100,
+            "unfiltered_readcount_w_children": 101
         },
         {
             "abundance": null,
@@ -372,7 +452,9 @@
             "rank": "no rank",
             "readcount": 0,
             "readcount_w_children": 1,
-            "tax_id": "1783257"
+            "tax_id": "1783257",
+            "unfiltered_readcount": 100,
+            "unfiltered_readcount_w_children": 101
         },
         {
             "abundance": null,
@@ -381,7 +463,9 @@
             "rank": "family",
             "readcount": 0,
             "readcount_w_children": 1,
-            "tax_id": "2005525"
+            "tax_id": "2005525",
+            "unfiltered_readcount": 100,
+            "unfiltered_readcount_w_children": 101
         }
     ]
 }
