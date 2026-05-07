@@ -1011,7 +1011,7 @@ class BaseSampleCollection(
         include_taxa_missing_rank: bool = False,
         fill_missing: bool = True,
         filler: Any = 0,
-        metric: Metric = Metric.Auto,
+        metric: Metric | str = Metric.Auto,
     ):
         """Generate a ClassificationsDataFrame, performing any specified transformations.
 
@@ -1059,6 +1059,8 @@ class BaseSampleCollection(
 
         if metric == Metric.Auto:
             metric = self.automatic_metric
+
+        metric = Metric(metric)
 
         if metric.is_filtered_readcount_metric and (
             0 < len(self._classification_ids_without_abundances) < len(self._classifications)
