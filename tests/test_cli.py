@@ -1,8 +1,9 @@
-from click.testing import CliRunner
-import mock
 import os
 import os.path
+
+import mock
 import pytest
+from click.testing import CliRunner
 from testfixtures import Replace
 
 from onecodex import Cli
@@ -86,6 +87,32 @@ def test_documents_table(runner, api_data, mocked_creds_file):
     result = runner.invoke(Cli, ["documents", "list", "--json"])
     assert len(result.stdout.split("\n")) == 258  # shorter because we ignore extra fields
     assert "OneCodexTakeHome" in result.stdout
+
+
+# Assets
+@pytest.mark.filterwarnings("ignore:Experimental API mode enabled:UserWarning")
+def test_assets_table(runner, api_data, mocked_creds_file):
+    result = runner.invoke(Cli, ["assets", "list"])
+    assert result.exit_code == 0
+    assert "ID" in result.stdout
+    assert "Status" in result.stdout
+    assert "057268a2ba9f6d7a" in result.stdout
+    assert "reference_genome.fa.gz" in result.stdout
+    assert "available" in result.stdout
+    assert "pending" in result.stdout
+
+    result = runner.invoke(Cli, ["assets", "list", "--json"])
+    assert result.exit_code == 0
+    assert "057268a2ba9f6d7a" in result.stdout
+    assert "reference_genome.fa.gz" in result.stdout
+
+
+@pytest.mark.filterwarnings("ignore:Experimental API mode enabled:UserWarning")
+def test_assets_list_empty(runner, custom_mock_requests, mocked_creds_file):
+    with custom_mock_requests({"GET::api/v1/assets": []}):
+        result = runner.invoke(Cli, ["assets", "list"])
+        assert result.exit_code == 0
+        assert "haven't uploaded any assets" in result.stdout
 
 
 # Panels
