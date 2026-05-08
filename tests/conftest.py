@@ -6,6 +6,7 @@ import datetime
 import gzip
 import json
 import os
+import pathlib
 import pytest
 import re
 import responses
@@ -25,7 +26,9 @@ def mock_requests(mock_json):
             method, content_type, url = mock_url.split(":", 2)
             if not content_type:
                 content_type = "application/json"
-            if "?" in url:
+            if url.startswith("https://") or url.startswith("http://"):
+                compiled_url = re.compile(re.escape(url) + r"(\?.*)?$")
+            elif "?" in url:
                 compiled_url = re.compile("http://[^/]+/" + url)
             else:
                 compiled_url = re.compile("http://[^/]+/" + url + "(\\?.*)?$")
@@ -143,145 +146,6 @@ API_DATA = {
             "draft": False,
         }
     ],
-    "GET::api/v1/classifications/45a573fb7833449a/results": {
-        "table": [
-            {
-                "abundance": None,
-                "name": "root",
-                "parent_tax_id": None,
-                "rank": "no rank",
-                "readcount": 0,
-                "readcount_w_children": 3,
-                "tax_id": "1",
-            },
-            {
-                "abundance": None,
-                "name": "Staphylococcus",
-                "parent_tax_id": "1",
-                "rank": "genus",
-                "readcount": 0,
-                "readcount_w_children": 3,
-                "tax_id": "1279",
-            },
-            {
-                "abundance": 1,
-                "name": "Staphylococcus sp. HGB0015",
-                "parent_tax_id": "1279",
-                "rank": "species",
-                "readcount": 3,
-                "readcount_w_children": 3,
-                "tax_id": "1078083",
-            },
-        ]
-    },
-    "GET::api/v1/classifications/45a573fb7833449a/raw_results": {
-        "table": [
-            {
-                "abundance": None,
-                "name": "root",
-                "parent_tax_id": None,
-                "rank": "no rank",
-                "readcount": 0,
-                "readcount_w_children": 3,
-                "unfiltered_readcount": 0,
-                "unfiltered_readcount_w_children": 3,
-                "tax_id": "1",
-            },
-            {
-                "abundance": None,
-                "name": "Staphylococcus",
-                "parent_tax_id": "1",
-                "rank": "genus",
-                "readcount": 0,
-                "readcount_w_children": 3,
-                "unfiltered_readcount": 0,
-                "unfiltered_readcount_w_children": 3,
-                "tax_id": "1279",
-            },
-            {
-                "abundance": 1,
-                "name": "Staphylococcus sp. HGB0015",
-                "parent_tax_id": "1279",
-                "rank": "species",
-                "readcount": 3,
-                "readcount_w_children": 3,
-                "unfiltered_readcount": 3,
-                "unfiltered_readcount_w_children": 3,
-                "tax_id": "1078083",
-            },
-        ]
-    },
-    "GET::api/v1/classifications/593601a797914cbf/results": {
-        "table": [
-            {
-                "abundance": None,
-                "name": "root",
-                "parent_tax_id": None,
-                "rank": "no rank",
-                "readcount": 0,
-                "readcount_w_children": 3,
-                "tax_id": "1",
-            },
-            {
-                "abundance": None,
-                "name": "Staphylococcus",
-                "parent_tax_id": "1",
-                "rank": "genus",
-                "readcount": 0,
-                "readcount_w_children": 80,
-                "tax_id": "1279",
-            },
-            {
-                "abundance": 1,
-                "name": "Staphylococcus sp. HGB0015",
-                "parent_tax_id": "1279",
-                "rank": "species",
-                "readcount": 80,
-                "readcount_w_children": 80,
-                "tax_id": "1078083",
-            },
-        ]
-    },
-    "GET::api/v1/classifications/593601a797914cbf/raw_results": {
-        "table": [
-            {
-                "abundance": None,
-                "name": "root",
-                "parent_tax_id": None,
-                "rank": "no rank",
-                "readcount": 0,
-                "readcount_w_children": 3,
-                "unfiltered_readcount": 0,
-                "unfiltered_readcount_w_children": 3,
-                "tax_id": "1",
-            },
-            {
-                "abundance": None,
-                "name": "Staphylococcus",
-                "parent_tax_id": "1",
-                "rank": "genus",
-                "readcount": 0,
-                "readcount_w_children": 80,
-                "unfiltered_readcount": 0,
-                "unfiltered_readcount_w_children": 80,
-                "tax_id": "1279",
-            },
-            {
-                "abundance": 1,
-                "name": "Staphylococcus sp. HGB0015",
-                "parent_tax_id": "1279",
-                "rank": "species",
-                "readcount": 80,
-                "readcount_w_children": 80,
-                "unfiltered_readcount": 80,
-                "unfiltered_readcount_w_children": 80,
-                "tax_id": "1078083",
-            },
-        ]
-    },
-    "GET::api/v1/classifications/593601a797914cbf/readlevel": {
-        "url": "https://s3.aws.com/bucket/test_paired_filtering_001.fastq.gz.results.tsv.gz"
-    },
     "GET::api/v1/classifications/5a4b7e3bd3a44006/readlevel": {
         "url": "https://s3.aws.com/bucket/test_paired_filtering_001.fastq.gz.results.tsv.gz"
     },
@@ -454,7 +318,9 @@ for api_version in os.listdir(API_DATA_DIR):
 
     for resource_name in os.listdir(api_root):
         resource_root = os.path.join(api_root, resource_name)
-        for dirpath, _, filenames in os.walk(resource_root):
+        for dirpath, dirs, filenames in os.walk(resource_root):
+            # results_unprocessed/ dirs are registered separately as lazy callbacks below.
+            dirs[:] = [d for d in dirs if d != "results_unprocessed"]
             for filename in filenames:
                 if filename not in {"index.json", "index.json.gz"}:
                     continue
@@ -478,6 +344,26 @@ for api_version in os.listdir(API_DATA_DIR):
                     for instance in resource:
                         instance_uri = f"GET::{instance['$uri'].lstrip('/')}"
                         API_DATA[instance_uri] = instance
+
+
+# Point each classification fixture at its local results_unprocessed file via a file:// URI.
+# _fetch_unprocessed_results() handles file:// URIs directly, so no HTTP mocking is needed.
+#
+# Some fixtures use synthetic (hand-crafted) unprocessed results rather than real production data:
+#   - 45a573fb7833449a: synthetic Staphylococcus sp. HGB0015 fixture (3 reads)
+#   - 593601a797914cbf: synthetic Staphylococcus sp. HGB0015 fixture (80 reads)
+# These UUIDs preserve backwards compatibility with existing test assertions. They should be
+# replaced with real test-account data in a future ticket.
+_CLASSIF_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "data", "api", "v1", "classifications")
+)
+for _uuid in os.listdir(_CLASSIF_DIR):
+    _unprocessed_path = os.path.join(_CLASSIF_DIR, _uuid, "results_unprocessed", "index.json.gz")
+    if not os.path.exists(_unprocessed_path):
+        continue
+    _cls_key = f"GET::api/v1/classifications/{_uuid}"
+    if _cls_key in API_DATA:
+        API_DATA[_cls_key]["results_json_uri"] = pathlib.Path(_unprocessed_path).as_uri()
 
 
 @pytest.fixture(scope="function")

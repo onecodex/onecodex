@@ -78,7 +78,7 @@ def test_plot_metadata(samples):
     assert chart.data["simpson"].tolist() == [
         0.9232922257199748,
         0.8930761430647977,
-        0.7865654458730156,
+        0.7865654458730155,
     ]
     assert chart.mark == "circle"
     assert chart.title == "my title"
@@ -660,9 +660,9 @@ def test_plot_distance_exceptions(samples):
         ("abundance_w_children", "weighted_unifrac", {0.7595}),
         ("abundance_w_children", "unweighted_unifrac", {0.1734}),
         ("abundance_w_children", "braycurtis", {0.0143, 0.1284}),
-        ("readcount_w_children", "weighted_unifrac", {0.4956, 0.0918}),
+        ("readcount_w_children", "weighted_unifrac", {0.4956, 0.0918, 0.0917}),
         ("readcount_w_children", "braycurtis", {0.1735, 0.0798}),
-        ("readcount_w_children", "unweighted_unifrac", {0.3579}),
+        ("readcount_w_children", "unweighted_unifrac", {0.3579, 0.3615}),
     ],
 )
 def test_plot_mds(samples, metric, diversity_metric, smacofs):

@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+import gzip
+import json
 import os.path
+import urllib.parse
+import urllib.request
 from functools import lru_cache
 from typing import IO, TYPE_CHECKING, List, Optional, Union
 
 import click
 import requests
 
+from onecodex.classification_results import format_classification_table, summarize_analysis_json
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.enums import FunctionalAnnotations, FunctionalAnnotationsMetric
 from onecodex.models.base import ApiRef, OneCodexBase
@@ -206,9 +211,28 @@ class Classifications(_AnalysesBase, ClassificationSchema):
     _NONSPECIFIC_TAX_IDS = {"1", "131567"}
 
     @lru_cache
-    def _results(self):
-        resp = self._client.get(f"{self._api._base_url}{self.field_uri}/results")
+    def _fetch_unprocessed_results(self):
+        # TODO: this is a pre-signed URI that can time out
+        # we should check if it has timed out and refresh our data if so
+        scheme = urllib.parse.urlparse(self.results_json_uri).scheme
+        if scheme == "file":
+            path = urllib.request.url2pathname(urllib.parse.urlparse(self.results_json_uri).path)
+            with gzip.open(path) as f:
+                return json.load(f)
+        resp = self._client.get(self.results_json_uri)
         return resp.json()
+
+    @lru_cache
+    def _results(self):
+        if self.results_json_uri is None:
+            # Legacy path: API hasn't provided unprocessed results URI; fall back to /results.
+            resp = self._client.get(f"{self._api._base_url}{self.field_uri}/results")
+            return resp.json()
+        return format_classification_table(
+            summarize_analysis_json(
+                unprocessed_results=self._fetch_unprocessed_results(), include_kmers=False
+            )
+        )
 
     def results(self, json: bool = True) -> dict | pd.DataFrame:
         """Return the complete results table for a classification.

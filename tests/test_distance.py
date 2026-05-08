@@ -12,7 +12,7 @@ from onecodex.lib.enums import BetaDiversityMetric
 @pytest.mark.parametrize(
     "metric,value",
     [
-        ("simpson", [0.9232922257199748, 0.8930761430647977, 0.7865654458730156]),
+        ("simpson", [0.9232922257199748, 0.8930761430647977, 0.7865654458730155]),
         ("observed_taxa", [164.0, 134.0, 103.0]),
     ],
 )

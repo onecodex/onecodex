@@ -47,7 +47,7 @@ class AlignmentSchema(BaseAnalysisSchema):
 
 
 class ClassificationSchema(BaseAnalysisSchema):
-    pass
+    results_json_uri: Optional[str] = None
 
 
 class FunctionalRunSchema(BaseAnalysisSchema):
