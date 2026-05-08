@@ -206,14 +206,11 @@ class Classifications(_AnalysesBase, ClassificationSchema):
     _NONSPECIFIC_TAX_IDS = {"1", "131567"}
 
     @lru_cache
-    def _results(self, raw: bool = False):
-        if raw:
-            resp = self._client.get(f"{self._api._base_url}{self.field_uri}/raw_results")
-        else:
-            resp = self._client.get(f"{self._api._base_url}{self.field_uri}/results")
+    def _results(self):
+        resp = self._client.get(f"{self._api._base_url}{self.field_uri}/results")
         return resp.json()
 
-    def results(self, json: bool = True, raw: bool = False) -> dict | pd.DataFrame:
+    def results(self, json: bool = True) -> dict | pd.DataFrame:
         """Return the complete results table for a classification.
 
         Parameters
@@ -227,18 +224,18 @@ class Classifications(_AnalysesBase, ClassificationSchema):
             Return a JSON object with the classification results or a `pd.DataFrame` if json=False.
         """
         if json is True:
-            return self._results(raw=raw)
+            return self._results()
         else:
-            return self._table(raw=raw)
+            return self._table()
 
     def _readlevel(self):
         resp = self._client.get(f"{self._api._base_url}{self.field_uri}/readlevel")
         return resp.json()
 
-    def _table(self, raw: bool = False) -> pd.DataFrame:
+    def _table(self) -> pd.DataFrame:
         import pandas as pd
 
-        return pd.DataFrame(self._results(raw=raw)["table"])
+        return pd.DataFrame(self._results()["table"])
 
     def table(self) -> pd.DataFrame:
         """Return the complete results table for the classification.

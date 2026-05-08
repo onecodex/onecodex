@@ -426,7 +426,7 @@ class BaseSampleCollection(
         tax_ids: set[str] = set()
 
         for classification in self._classifications:
-            results = classification.results(raw=True)
+            results = classification.results()
             host_tax_ids = results.get("host_tax_ids", [])
 
             for data in results["table"]:
@@ -493,7 +493,7 @@ class BaseSampleCollection(
 
         for c_idx, c in enumerate(self._classifications):
             # results are cached from the call earlier in this method
-            results = c.results(raw=True)
+            results = c.results()
             host_tax_ids = results.get("host_tax_ids", [])
 
             for d in results["table"]:
@@ -596,8 +596,7 @@ class BaseSampleCollection(
         classification_ids_without_abundances = []
         for classification in self._classifications:
             has_abundances = False
-            # fetch faw results because that's more likely to be cached by _collate_results
-            for row in classification.results(raw=True)["table"]:
+            for row in classification.results()["table"]:
                 if row.get("abundance_w_children") is not None or row.get("abundance") is not None:
                     has_abundances = True
                     break
@@ -1012,7 +1011,7 @@ class BaseSampleCollection(
         include_taxa_missing_rank: bool = False,
         fill_missing: bool = True,
         filler: Any = 0,
-        metric: Metric = Metric.Auto,
+        metric: Metric | str = Metric.Auto,
     ):
         """Generate a ClassificationsDataFrame, performing any specified transformations.
 
@@ -1060,6 +1059,8 @@ class BaseSampleCollection(
 
         if metric == Metric.Auto:
             metric = self.automatic_metric
+
+        metric = Metric(metric)
 
         if metric.is_filtered_readcount_metric and (
             0 < len(self._classification_ids_without_abundances) < len(self._classifications)

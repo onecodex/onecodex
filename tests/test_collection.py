@@ -426,6 +426,10 @@ def test_mixed_abundance_status_no_warning(samples, samples_without_abundances, 
         mixed.to_df(metric=metric)  # should not raise
 
 
+def test_to_df_takes_string_value_of_metric(samples):
+    samples.to_df(metric="readcount_w_children")
+
+
 def test_to_classification_df_no_taxa_exception(samples):
     original_results, tax_info = samples._collate_results(
         metric="readcount_w_children",
