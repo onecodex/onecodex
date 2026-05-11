@@ -306,7 +306,7 @@ def assets_list(ctx, json):
     assets_data = sorted(
         assets_data,
         reverse=True,
-        key=lambda x: time.mktime(x.created_at.timetuple()),
+        key=lambda x: x.created_at.timestamp(),
     )
 
     for asset in assets_data:
