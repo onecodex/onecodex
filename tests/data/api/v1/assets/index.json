@@ -1,0 +1,44 @@
+[
+    {
+        "$uri": "/api/v1/assets/057268a2ba9f6d7a",
+        "created_at": "2023-11-15T18:33:18.884095+00:00",
+        "filename": "test_asset.json",
+        "name": "test_asset.json",
+        "organization_id": 19,
+        "s3_uri": "s3://example-bucket/test_asset.json",
+        "status": "available",
+        "uploaded_by": {
+            "$uri": "/api/v1/users/4ada56103d9a48b8",
+            "email": "user@onecodex.com"
+        },
+        "uuid": "057268a2ba9f6d7a"
+    },
+    {
+        "$uri": "/api/v1/assets/78f7827cb8e7c323",
+        "created_at": "2023-12-13T00:46:00.700443+00:00",
+        "filename": "results.txt",
+        "name": "results.txt",
+        "organization_id": 19,
+        "s3_uri": "s3://example-bucket/results.txt",
+        "status": "available",
+        "uploaded_by": {
+            "$uri": "/api/v1/users/4ada56103d9a48b8",
+            "email": "user@onecodex.com"
+        },
+        "uuid": "78f7827cb8e7c323"
+    },
+    {
+        "$uri": "/api/v1/assets/de2995c92e569569",
+        "created_at": "2024-03-04T09:10:11.000000+00:00",
+        "filename": "reference_genome.fa.gz",
+        "name": "reference_genome.fa.gz",
+        "organization_id": 19,
+        "s3_uri": "s3://example-bucket/reference_genome.fa.gz",
+        "status": "pending",
+        "uploaded_by": {
+            "$uri": "/api/v1/users/4ada56103d9a48b8",
+            "email": "user@onecodex.com"
+        },
+        "uuid": "de2995c92e569569"
+    }
+]

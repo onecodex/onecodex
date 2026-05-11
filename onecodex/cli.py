@@ -1,11 +1,13 @@
 from __future__ import print_function
-import click
+
 import copy
-from functools import partial
 import logging
 import os
 import time
 import warnings
+from functools import partial
+
+import click
 
 from onecodex.api import Api
 from onecodex.auth import (
@@ -15,30 +17,29 @@ from onecodex.auth import (
     login_required,
     login_required_experimental_api,
 )
+from onecodex.input_helpers import (
+    auto_detect_pairs,
+    concatenate_multilane_files,
+    concatenate_ont_groups,
+)
 from onecodex.lib.upload import DEFAULT_THREADS
 from onecodex.metadata_upload import validate_appendables
-from onecodex.scripts import subset_reads, export_functional_metric, interleave
+from onecodex.scripts import export_functional_metric, interleave, subset_reads
 from onecodex.utils import (
-    click_path_autocomplete_helper,
-    cli_resource_fetcher,
-    CliLogFormatter,
-    download_file_helper,
-    valid_api_key,
     OPTION_HELP,
-    progressbar,
+    CliLogFormatter,
+    cli_resource_fetcher,
+    click_path_autocomplete_helper,
+    download_file_helper,
     pprint,
     pretty_errors,
+    progressbar,
     run_via_threadpool,
     telemetry,
     use_tempdir,
-)
-from onecodex.input_helpers import (
-    auto_detect_pairs,
-    concatenate_ont_groups,
-    concatenate_multilane_files,
+    valid_api_key,
 )
 from onecodex.version import __version__
-
 
 # set the context for getting -h also
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
@@ -282,7 +283,52 @@ def assets_upload(ctx, max_threads, file, name):
     )
 
 
+@click.command("list", help="List assets available to you")
+@click.option("--json", is_flag=True, default=False, help="Output JSON instead of prettified table")
+@click.pass_context
+@telemetry
+@login_required_experimental_api
+def assets_list(ctx, json):
+    assets_data = cli_resource_fetcher(ctx, "assets", [], print_results=json)
+    if json:
+        return
+
+    if not assets_data:
+        click.echo("You haven't uploaded any assets yet.")
+        return
+
+    formatters = ["%-18s", "%-34s", "%-12s", "%-12s"]
+    table = [
+        ["ID", "Filename", "Status", "Created On"],
+        ["-" * 16, "-" * 32, "-" * 10, "-" * 10],
+    ]
+
+    assets_data = sorted(
+        assets_data,
+        reverse=True,
+        key=lambda x: x.created_at.timestamp(),
+    )
+
+    for asset in assets_data:
+        fname = asset.filename
+        table.append(
+            [
+                asset.uuid,
+                fname if len(fname) <= 32 else fname[:29] + "...",
+                asset.status,
+                asset.created_at.strftime("%Y-%m-%d"),
+            ]
+        )
+
+    for row in table:
+        formatted_row = []
+        for formatter, content in zip(formatters, row):
+            formatted_row.append(formatter % content)
+        click.echo("".join(formatted_row))
+
+
 assets.add_command(assets_upload, "upload")
+assets.add_command(assets_list, "list")
 
 
 # resources
