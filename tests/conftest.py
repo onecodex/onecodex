@@ -9,6 +9,7 @@ import os
 import pytest
 import re
 import responses
+import zstandard
 
 from onecodex import Api
 from onecodex.lib.enums import FunctionalAnnotations, FunctionalAnnotationsMetric
@@ -456,12 +457,15 @@ for api_version in os.listdir(API_DATA_DIR):
         resource_root = os.path.join(api_root, resource_name)
         for dirpath, _, filenames in os.walk(resource_root):
             for filename in filenames:
-                if filename not in {"index.json", "index.json.gz"}:
+                if filename not in {"index.json", "index.json.gz", "index.json.zstd"}:
                     continue
 
                 filepath = os.path.join(dirpath, filename)
                 if filepath.endswith(".json.gz"):
                     resource = json.load(gzip.open(filepath))
+                elif filepath.endswith(".json.zstd"):
+                    with open(filepath, "rb") as f:
+                        resource = json.loads(zstandard.decompress(f.read()))
                 else:
                     resource = json.load(open(filepath))
 
@@ -476,6 +480,12 @@ for api_version in os.listdir(API_DATA_DIR):
                 # (e.g. api/v1/classifications/<uuid>)
                 if dirpath == resource_root and isinstance(resource, list):
                     for instance in resource:
+                        # Resolve relative results_uri paths to absolute so they survive
+                        # tests that change the working directory (e.g. isolated_filesystem).
+                        if instance.get("results_uri") and not instance["results_uri"].startswith(
+                            ("http://", "https://", "/")
+                        ):
+                            instance["results_uri"] = os.path.abspath(instance["results_uri"])
                         instance_uri = f"GET::{instance['$uri'].lstrip('/')}"
                         API_DATA[instance_uri] = instance
 

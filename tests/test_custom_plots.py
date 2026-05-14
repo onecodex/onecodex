@@ -44,7 +44,12 @@ def load_classification_results_json(classification_uuid: str) -> dict | list:
     # Loads results directly into Samples (bypasses HTTP mocks). Adds unfiltered_readcount fields
     # since the /results endpoint doesn't include them but the model expects them.
     base = f"tests/data/api/v1/classifications/{classification_uuid}/results/index.json"
-    if os.path.exists(base + ".gz"):
+    if os.path.exists(base + ".zstd"):
+        import zstandard
+
+        with open(base + ".zstd", "rb") as f:
+            data = json.loads(zstandard.decompress(f.read()))
+    elif os.path.exists(base + ".gz"):
         with gzip.open(base + ".gz", "rt") as f:
             data = json.load(f)
     else:

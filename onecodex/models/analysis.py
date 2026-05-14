@@ -24,6 +24,19 @@ if TYPE_CHECKING:
     import pandas as pd
 
 
+def _decompress(data: bytes) -> bytes:
+    """Decompress bytes, detecting format from magic bytes. Supports zstd, gzip, and plain."""
+    if data[:4] == b"\x28\xb5\x2f\xfd":  # zstd magic
+        import zstandard
+
+        return zstandard.decompress(data)
+    elif data[:2] == b"\x1f\x8b":  # gzip magic
+        import gzip
+
+        return gzip.decompress(data)
+    return data
+
+
 class _AnalysesBase(OneCodexBase):
     _allowed_methods = {
         "instances_public": None,
@@ -207,6 +220,26 @@ class Classifications(_AnalysesBase, ClassificationSchema):
 
     @lru_cache
     def _results(self):
+        # results_uri is a pre-signed URL included in the API response; it's None when the
+        # analysis isn't available. Fetch directly from the URL when present to avoid the round-trip
+        # through the API server. Local paths are supported for testing.
+        if self.results_uri is not None:
+            import orjson
+
+            uri = self.results_uri
+            if uri.startswith(("http://", "https://")):
+                try:
+                    resp = requests.get(uri)
+                    resp.raise_for_status()
+                    return orjson.loads(_decompress(resp.content))
+                except requests.HTTPError:
+                    # Pre-signed URL may have expired; fall through to the API.
+                    pass
+            else:
+                with open(uri, "rb") as f:
+                    return orjson.loads(_decompress(f.read()))
+        # Fall back to the /results API endpoint (e.g. analysis not yet available, older API,
+        # or expired pre-signed URL).
         resp = self._client.get(f"{self._api._base_url}{self.field_uri}/results")
         return resp.json()
 
