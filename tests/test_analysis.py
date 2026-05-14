@@ -9,7 +9,6 @@ import pytest
 from onecodex.classification_results import (
     RESULTS_FORMAT_VERSION,
     PyTaxonomy,
-    dfs_postorder_taxonomy,
     format_classification_table,
     shannon_diversity,
     simpson_diversity,
@@ -96,7 +95,7 @@ def test_taxonomy_from_nested_tree(old_style_json):
     root = tree.node("1")
     assert root is not None
     assert root.name == "root"
-    assert root.parent_tax_id is None
+    assert root.parent is None
 
 
 def test_taxonomy_from_json(old_style_json):
@@ -132,7 +131,7 @@ def test_taxonomy_from_table(flat_results):
     assert root is not None
     assert root.name == "root"
     assert root.rank == "no rank"
-    assert root.parent_tax_id is None
+    assert root.parent is None
 
 
 def test_taxonomy_getitem(flat_results):
@@ -154,41 +153,22 @@ def test_taxonomy_node_missing(flat_results):
 
 def test_taxonomy_children(flat_results):
     tree = PyTaxonomy.from_table(flat_results["table"])
-    assert tree.children("1") == ["131567"]
+    assert [n.id for n in tree.children("1")] == ["131567"]
     assert tree.children("1720194") == []
 
 
 def test_taxonomy_lineage(flat_results):
     tree = PyTaxonomy.from_table(flat_results["table"])
     lineage = tree.lineage("1720194")
-    assert lineage[0] == "1720194"
-    assert lineage[-1] == "1"
-    assert "1485" in lineage
+    assert lineage[0].id == "1720194"
+    assert lineage[-1].id == "1"
+    assert any(n.id == "1485" for n in lineage)
 
 
 def test_taxonomy_contains(flat_results):
     tree = PyTaxonomy.from_table(flat_results["table"])
     assert "1" in tree
     assert "99999999" not in tree
-
-
-# ---------------------------------------------------------------------------
-# dfs_postorder_taxonomy
-# ---------------------------------------------------------------------------
-
-
-def test_dfs_postorder_children_before_parents(flat_results):
-    tree = PyTaxonomy.from_table(flat_results["table"])
-    visited = list(dfs_postorder_taxonomy(tree))
-    pos = {tax_id: i for i, tax_id in enumerate(visited)}
-    for tax_id in pos:
-        node = tree.node(tax_id)
-        parent = node.parent_tax_id if node else None
-        if parent is not None and parent in pos:
-            assert pos[tax_id] < pos[parent], (
-                f"{tax_id} (pos {pos[tax_id]}) should appear before "
-                f"parent {parent} (pos {pos[parent]})"
-            )
 
 
 # ---------------------------------------------------------------------------

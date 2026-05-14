@@ -322,7 +322,7 @@ def test_collate_metadata(samples):
         ),
         (
             "abundance_w_children",
-            "26ea4ae0273d17722e79313e73f4b7ef68ca696a6ecb3990d8cbac3cdce23502",
+            "2e925c9894e462bb7a806badfdd7077f927c30f98c1504b8a7e5f51cf16c8ff4",
         ),
     ],
 )
@@ -330,11 +330,13 @@ def test_collate_results(samples, metric, sha):
     results, taxonomy = samples._collate_results(metric=metric)
 
     # check contents of results df
+    # Round to 4 decimal places before hashing: abundance_w_children uses NNLS which can
+    # produce slightly different floating-point results across scipy/LAPACK versions.
     string_to_hash = ""
     for col in sorted(results.columns.tolist()):
         for row in sorted(results.index.tolist()):
             try:
-                string_to_hash += results.fillna(0).loc[row, col].astype(str)
+                string_to_hash += results.fillna(0).loc[row, col].round(4).astype(str)
             except AttributeError:
                 pass
 

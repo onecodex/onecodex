@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import json
 import math
-from typing import Generator, Iterable, NamedTuple, TypedDict
+from typing import Iterable, Iterator, NamedTuple, TypedDict
 
 
 class TaxonomyNode(NamedTuple):
-    tax_id: str
+    id: str
     name: str
     rank: str
-    parent_tax_id: str | None
+    parent: str | None
 
 
 # Increment this whenever the output format of summarize_analysis_json changes.
@@ -110,10 +110,10 @@ class PyTaxonomy:
         def _traverse(node: dict, parent_id: str | None) -> None:
             tax_id = str(node["id"])
             nodes[tax_id] = TaxonomyNode(
-                tax_id=tax_id,
+                id=tax_id,
                 name=node["name"],
                 rank=node["rank"],
-                parent_tax_id=parent_id,
+                parent=parent_id,
             )
             children_map[tax_id] = [str(c["id"]) for c in node.get("children", [])]
             for child in node.get("children", []):
@@ -139,43 +139,65 @@ class PyTaxonomy:
         for row in table:
             tax_id = row["tax_id"]
             nodes[tax_id] = TaxonomyNode(
-                tax_id=tax_id,
+                id=tax_id,
                 name=row["name"],
                 rank=row["rank"],
-                parent_tax_id=row.get("parent_tax_id"),
+                parent=row.get("parent_tax_id"),
             )
             children_map.setdefault(tax_id, [])
 
         for tax_id, node in nodes.items():
-            parent = node.parent_tax_id
+            parent = node.parent
             if parent is not None and parent in nodes:
                 children_map.setdefault(parent, []).append(tax_id)
 
         return cls(nodes, children_map)
 
-    def children(self, tax_id: str) -> list[str]:
-        """Return the direct child tax IDs of *tax_id*."""
-        return self._children_map.get(tax_id, [])
+    def children(self, tax_id: str) -> list[TaxonomyNode]:
+        """Return the direct children of *tax_id* as TaxonomyNode objects."""
+        return [self._nodes[c] for c in self._children_map.get(tax_id, []) if c in self._nodes]
 
-    def lineage(self, tax_id: str) -> list[str]:
+    def lineage(self, tax_id: str) -> list[TaxonomyNode]:
         """Return the lineage from *tax_id* up to (and including) the root.
 
         Returns
         -------
-        list[str]
-            Ordered ``[tax_id, parent, grandparent, …, root]``.
+        list[TaxonomyNode]
+            Ordered ``[node, parent, grandparent, …, root]``.
         """
-        result: list[str] = []
+        result: list[TaxonomyNode] = []
         current: str | None = tax_id
         seen: set[str] = set()
         while current is not None and current not in seen:
             seen.add(current)
-            result.append(current)
             node = self._nodes.get(current)
             if node is None:
                 break
-            current = node.parent_tax_id
+            result.append(node)
+            current = node.parent
         return result
+
+    def parent(self, tax_id: str, at_rank: str | None = None) -> TaxonomyNode | None:
+        """Return the parent of *tax_id*, or the nearest ancestor at *at_rank*.
+
+        Parameters
+        ----------
+        tax_id : str
+        at_rank : str, optional
+            If given, walk up until a node with this rank is found.
+        """
+        node = self._nodes.get(tax_id)
+        if node is None:
+            return None
+        current_id = node.parent
+        while current_id is not None:
+            current = self._nodes.get(current_id)
+            if current is None:
+                return None
+            if at_rank is None or current.rank == at_rank:
+                return current
+            current_id = current.parent
+        return None
 
     def node(self, tax_id: str) -> TaxonomyNode | None:
         """Return the node for *tax_id*, or ``None`` if not found."""
@@ -187,36 +209,11 @@ class PyTaxonomy:
     def __contains__(self, tax_id: object) -> bool:
         return tax_id in self._nodes
 
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._nodes)
 
-def dfs_postorder_taxonomy(tree: PyTaxonomy, root_id: str = "1") -> Generator[str, None, None]:
-    """Yield tax IDs in DFS post-order (children before parents).
-
-    Parameters
-    ----------
-    tree : PyTaxonomy
-    root_id : str, optional
-        Tax ID of the root node.  Defaults to ``"1"`` (NCBI root).
-
-    Yields
-    ------
-    str
-        Tax IDs in post-order.
-    """
-    visited: set[str] = set()
-    visited.add(root_id)
-    stack = [(root_id, iter(tree.children(root_id)))]
-    while stack:
-        parent, children = stack[-1]
-        try:
-            child = next(children)
-            if child not in visited:
-                visited.add(child)
-                stack.append((child, iter(tree.children(child))))
-        except StopIteration:
-            stack.pop()
-            if stack:
-                yield parent
-    yield root_id
+    def __len__(self) -> int:
+        return len(self._nodes)
 
 
 def shannon_diversity(proportions: Iterable[float], base: float = math.e) -> float:
@@ -309,10 +306,20 @@ def summarize_analysis_json(
     """
     node_data = {str(n["tax_id"]): n for n in unprocessed_results["results"]}
 
-    json_taxa = json.dumps(unprocessed_results["taxonomy"])
-    # Some analyses have a "synthetic" rank that the taxonomy library doesn't accept.
-    json_taxa = json_taxa.replace('"rank": "synthetic"', '"rank": "no rank"')
-    tree = PyTaxonomy.from_nested_tree(json.loads(json_taxa))
+    # Single-pass iterative postorder traversal of the raw nested taxonomy tree.
+    # Produces (tax_id, name, rank, parent_id, children_ids) tuples without
+    # building an intermediate PyTaxonomy or doing a second traversal.
+    postorder: list[tuple[str, str, str, str | None, list[str]]] = []
+    stack: list[tuple[dict, str | None]] = [(unprocessed_results["taxonomy"], None)]
+    while stack:
+        node, parent_id = stack.pop()
+        tax_id = str(node["id"])
+        children = node.get("children", [])
+        children_ids = [str(c["id"]) for c in children]
+        postorder.append((tax_id, node["name"], node["rank"], parent_id, children_ids))
+        for child in children:
+            stack.append((child, tax_id))
+    postorder.reverse()
 
     data: dict[str, TaxonEntry] = {}
 
@@ -329,9 +336,8 @@ def summarize_analysis_json(
     )
 
     if n_mapped > 0:
-        for tax_id in dfs_postorder_taxonomy(tree):
+        for tax_id, name, rank, parent_id, child_tax_ids in postorder:
             node = node_data.get(tax_id, {})
-            child_tax_ids = tree.children(tax_id)
 
             # Fall back to readcount for old-style JSONs that lack rawReadcount.
             n_raw_reads = node.get("rawReadcount", node.get("readcount", 0))
@@ -345,10 +351,12 @@ def summarize_analysis_json(
             sum_raw_reads = n_raw_reads
             cumulative_abund = node.get("speciesAbundance", 0.0)
 
-            if child_tax_ids:
-                sum_reads += sum(data.get(t, {}).get("t", 0) for t in child_tax_ids)
-                sum_raw_reads += sum(data.get(t, {}).get("y", 0) for t in child_tax_ids)
-                cumulative_abund += sum(data.get(t, {}).get("c", 0) for t in child_tax_ids)
+            for t in child_tax_ids:
+                d = data.get(t)
+                if d:
+                    sum_reads += d["t"]
+                    sum_raw_reads += d["y"]
+                    cumulative_abund += d["c"]
 
             if sum_reads == 0 and cumulative_abund == 0.0:
                 continue
@@ -357,8 +365,8 @@ def summarize_analysis_json(
                 "c": cumulative_abund,
                 "t": sum_reads,
                 "%": sum_reads / n_mapped,
-                "i": tree[tax_id].name,
-                "r": tree[tax_id].rank,
+                "i": name,
+                "r": rank,
                 "x": n_raw_reads,
                 "y": sum_raw_reads,
             }
@@ -374,9 +382,8 @@ def summarize_analysis_json(
             if abundance is not None:
                 entry["a"] = abundance
 
-            parent_ids = tree.lineage(tax_id)[1:]
-            if parent_ids:
-                entry["p"] = parent_ids[0]
+            if parent_id is not None:
+                entry["p"] = parent_id
 
             data[tax_id] = entry
 

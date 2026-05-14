@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import gzip
-import json
 import os.path
 import urllib.parse
 import urllib.request
@@ -9,6 +8,7 @@ from functools import lru_cache
 from typing import IO, TYPE_CHECKING, List, Optional, Union
 
 import click
+import orjson
 import requests
 
 from onecodex.classification_results import (
@@ -220,12 +220,16 @@ class Classifications(_AnalysesBase, ClassificationSchema):
         if scheme == "file":
             path = urllib.request.url2pathname(urllib.parse.urlparse(self.results_json_uri).path)
             with gzip.open(path) as f:
-                return json.load(f)
+                return orjson.loads(f.read())
         else:
             # TODO: this is a pre-signed URI that can time out
             # we should check if it has timed out and refresh our data if so
-            resp = self._client.get(self.results_json_uri)
-            return resp.json()
+            # S3 serves these with Content-Encoding: gzip; urllib3 decompresses on the fly
+            # when decode_content=True (the default). stream=True avoids buffering the
+            # compressed payload before decompression begins.
+            resp = self._client.get(self.results_json_uri, stream=True)
+            resp.raw.decode_content = True
+            return orjson.loads(resp.raw.read())
 
     @lru_cache
     def _results(self) -> ClassificationTable:
