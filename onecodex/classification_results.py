@@ -385,16 +385,18 @@ def summarize_analysis_json(
     else:
         hosts = ["9606"]
 
-    return {
-        "n_reads": unprocessed_results["n_reads"],
-        "n_mapped": n_mapped,
-        "pct_mapped": unprocessed_results["pct_mapped"] / 100,
-        "data": data,
-        "stats": analysis_stats(data),
-        "filtered": filtered,
-        "has_abundances": nnls_ran,
-        "hosts": hosts,
-    }
+    return ClassificationSummary(
+        n_reads=unprocessed_results["n_reads"],
+        n_mapped=n_mapped,
+        pct_mapped=(
+            unprocessed_results["pct_mapped"] / 100
+        ),  # TODO: can we rename this as prop_mapped or will something break?
+        data=data,
+        stats=analysis_stats(data),
+        filtered=filtered,
+        has_abundances=nnls_ran,
+        hosts=hosts,
+    )
 
 
 def format_classification_table(summary: ClassificationSummary) -> ClassificationTable:
@@ -444,8 +446,8 @@ def format_classification_table(summary: ClassificationSummary) -> Classificatio
             }
         )
 
-    return {
-        "n_reads": summary["n_reads"],
-        "host_tax_ids": summary["hosts"],
-        "table": table,
-    }
+    return ClassificationTable(
+        n_reads=summary["n_reads"],
+        host_tax_ids=summary["hosts"],
+        table=table,
+    )
