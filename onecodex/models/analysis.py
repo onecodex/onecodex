@@ -214,9 +214,15 @@ class Alignments(_AnalysesBase, AlignmentSchema):
 
 class Classifications(_AnalysesBase, ClassificationSchema):
     _resource_path = "/api/v1/classifications"
-
     # root & cellular organisms
     _NONSPECIFIC_TAX_IDS = {"1", "131567"}
+
+    @staticmethod
+    @lru_cache(maxsize=1)
+    def _get_s3_session():
+        from onecodex.utils import get_requests_session
+
+        return get_requests_session()
 
     @lru_cache
     def _results(self):
@@ -229,7 +235,7 @@ class Classifications(_AnalysesBase, ClassificationSchema):
             uri = self.results_uri
             if uri.startswith(("http://", "https://")):
                 try:
-                    resp = requests.get(uri)
+                    resp = Classifications._get_s3_session().get(uri, timeout=30)
                     resp.raise_for_status()
                     return orjson.loads(_decompress(resp.content))
                 except requests.HTTPError:

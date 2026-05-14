@@ -414,6 +414,22 @@ def test_classification_methods(ocx, api_data):
     assert isinstance(classification, onecodex.models.analysis.Classifications)
 
 
+def test_decompress():
+    import gzip
+    import zstandard
+    from onecodex.models.analysis import _decompress
+
+    payload = b'{"hello": "world"}'
+
+    zstd_compressed = zstandard.ZstdCompressor().compress(payload)
+    assert _decompress(zstd_compressed) == payload
+
+    gz_compressed = gzip.compress(payload)
+    assert _decompress(gz_compressed) == payload
+
+    assert _decompress(payload) == payload
+
+
 # Sorting and where clauses
 @pytest.mark.parametrize(
     "where_args,where_kwargs,queries",

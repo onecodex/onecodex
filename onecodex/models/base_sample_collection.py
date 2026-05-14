@@ -356,12 +356,14 @@ class BaseSampleCollection(
 
             classifications.append(classification)
 
-        job_names = set([obj.job.name for obj in classifications])
+        unique_jobs = list({obj.job.id: obj.job for obj in classifications}.values())
 
         # warn if some of the classifications in this collection are not alike
-        if len(job_names) > 1:
+        if len(unique_jobs) > 1:
             warnings.warn(
-                "SampleCollection contains multiple analysis types: {}".format(", ".join(job_names))
+                "SampleCollection contains multiple analysis types: {}".format(
+                    ", ".join(j.name for j in unique_jobs)
+                )
             )
 
         return classifications
