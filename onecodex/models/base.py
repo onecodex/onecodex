@@ -133,6 +133,7 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
     _client: ClassVar[Optional["HTTPClient"]] = None  # noqa: F821
     _resource_path: ClassVar[str]  # Default resource path, subclasses override
     _allowed_methods: ClassVar[AllowedMethods] = {}
+    _ref_cache: ClassVar[dict] = {}
 
     model_config = ConfigDict(
         populate_by_alias=True,
@@ -145,10 +146,6 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
         if self.field_uri is None:
             return None
         return self.field_uri.split("/")[-1]
-
-    def __init__(self, **data):
-        super().__init__(**data)
-        self._resolved_cache = {}
 
     @classmethod
     def _convert_id_to_uri(cls, uuid):
@@ -199,19 +196,17 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
             raise MethodNotSupported(f"Cannot set attribute {key} on {self.__class__.__name__}")
         super().__setattr__(key, value)
 
-    def _resolve_and_cache(self, api_ref, cache_key):
+    def _resolve_and_cache(self, api_ref):
         """Resolve an ApiRef and cache the result."""
-        if cache_key in self._resolved_cache:
-            return self._resolved_cache[cache_key]
-
         # Check for simple circular reference (a.b.a pattern)
         if hasattr(self, "_immediate_parent") and self._immediate_parent.id == api_ref.id:
             return self._immediate_parent
 
-        # Make API call to resolve, add the parent, cache it
-        resolved = api_ref._resolve()
+        if api_ref.ref not in OneCodexBase._ref_cache:
+            OneCodexBase._ref_cache[api_ref.ref] = api_ref._resolve()
+
+        resolved = OneCodexBase._ref_cache[api_ref.ref]
         resolved._immediate_parent = self
-        self._resolved_cache[cache_key] = resolved
         return resolved
 
     def __getattribute__(self, name):
@@ -235,11 +230,11 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
 
         # Handle ApiRef objects
         if isinstance(value, ApiRef):
-            return self._resolve_and_cache(value, f"{name}:{value.ref}")
+            return self._resolve_and_cache(value)
 
         # Handle lists of ApiRef objects
         if isinstance(value, list) and all(isinstance(item, ApiRef) for item in value):
-            return [self._resolve_and_cache(item, f"{name}:{item.ref}") for item in value]
+            return [self._resolve_and_cache(item) for item in value]
 
         return value
 

@@ -414,6 +414,30 @@ def test_classification_methods(ocx, api_data):
     assert isinstance(classification, onecodex.models.analysis.Classifications)
 
 
+def test_ref_cache_deduplicates_api_calls(ocx, api_data):
+    from onecodex.models.base import OneCodexBase
+
+    # All three classifications share the same job ref (/api/v1/jobs/cc1d331e1ee54bac)
+    c1 = ocx.Classifications.get("464a7ebcnocaffe1")
+    c2 = ocx.Classifications.get("464a7ebcnocaffe2")
+    c3 = ocx.Classifications.get("464a7ebcnocaffe3")
+
+    job_ref = "/api/v1/jobs/cc1d331e1ee54bac"
+    assert job_ref not in OneCodexBase._ref_cache
+
+    job_url = "http://localhost:3000" + job_ref
+    calls_before = len([c for c in responses.calls if c.request.url.startswith(job_url)])
+
+    _ = c1.job
+    _ = c2.job
+    _ = c3.job
+
+    calls_after = len([c for c in responses.calls if c.request.url.startswith(job_url)])
+    assert calls_after - calls_before == 1
+    assert job_ref in OneCodexBase._ref_cache
+    assert c1.job is c2.job is c3.job
+
+
 # Sorting and where clauses
 @pytest.mark.parametrize(
     "where_args,where_kwargs,queries",

@@ -179,7 +179,12 @@ class Api(object):
             )
             headers["X-OneCodex-Api-Experimental"] = "1"
 
+        from onecodex.models.base import OneCodexBase
+
         self._client = HTTPClient(auth=auth, headers=headers)
+
+        # always clear cache on (re)-initialization of Api session
+        OneCodexBase._ref_cache.clear()
         self._copy_resources()
 
         # Optionally configure custom One Codex altair theme and renderer
