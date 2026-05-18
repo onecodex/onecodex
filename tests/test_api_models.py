@@ -539,6 +539,162 @@ def test_jobs(ocx, api_data):
     assert len(jobs) == 24
 
 
+def test_jobs_run(ocx, api_data, custom_mock_requests):
+    job_id = "47c4fe23588640a9"
+    sample_id = "7428cca4a3a04a8e"
+    analysis_id = "593601a797914cbf"
+
+    captured = {}
+
+    def run_callback(request):
+        captured["url"] = request.url
+        captured["body"] = json.loads(request.body)
+        return (
+            200,
+            {"Content-Type": "application/json"},
+            json.dumps({"$ref": f"/api/v1/analyses/{analysis_id}"}),
+        )
+
+    with custom_mock_requests({f"POST::api/v1/jobs/{job_id}/run": run_callback}):
+        job = ocx.Jobs.get(job_id)
+        sample = ocx.Samples.get(sample_id)
+        analysis = job.run(sample, {"min_quality": "20", "adapter": "AGATC"})
+
+    assert isinstance(analysis, onecodex.models.Analyses)
+    assert analysis.id == analysis_id
+    assert captured["url"].endswith(f"/api/v1/jobs/{job_id}/run")
+    assert captured["body"] == {
+        "sample": sample_id,
+        "job_args": {"min_quality": "20", "adapter": "AGATC"},
+    }
+
+
+def test_jobs_run_no_args(ocx, api_data, custom_mock_requests):
+    job_id = "47c4fe23588640a9"
+    sample_id = "7428cca4a3a04a8e"
+    analysis_id = "593601a797914cbf"
+
+    captured = {}
+
+    def run_callback(request):
+        captured["body"] = json.loads(request.body)
+        return (
+            200,
+            {"Content-Type": "application/json"},
+            json.dumps({"$ref": f"/api/v1/analyses/{analysis_id}"}),
+        )
+
+    with custom_mock_requests({f"POST::api/v1/jobs/{job_id}/run": run_callback}):
+        job = ocx.Jobs.get(job_id)
+        sample = ocx.Samples.get(sample_id)
+        job.run(sample)
+
+    assert captured["body"] == {"sample": sample_id, "job_args": None}
+
+
+def test_jobs_run_invalid_response(ocx, api_data, custom_mock_requests):
+    job_id = "47c4fe23588640a9"
+    sample_id = "7428cca4a3a04a8e"
+
+    def run_callback(request):
+        return (200, {"Content-Type": "application/json"}, json.dumps({}))
+
+    with custom_mock_requests({f"POST::api/v1/jobs/{job_id}/run": run_callback}):
+        job = ocx.Jobs.get(job_id)
+        sample = ocx.Samples.get(sample_id)
+        with pytest.raises(OneCodexException, match="Invalid response when running job"):
+            job.run(sample, {})
+
+
+def test_jobs_run_http_error(ocx, api_data, custom_mock_requests):
+    import requests
+
+    job_id = "47c4fe23588640a9"
+    sample_id = "7428cca4a3a04a8e"
+
+    def run_callback(request):
+        return (500, {"Content-Type": "application/json"}, json.dumps({"message": "boom"}))
+
+    with custom_mock_requests({f"POST::api/v1/jobs/{job_id}/run": run_callback}):
+        job = ocx.Jobs.get(job_id)
+        sample = ocx.Samples.get(sample_id)
+        with pytest.raises(requests.HTTPError):
+            job.run(sample, {})
+
+
+def test_analyses_refresh(ocx, custom_mock_requests):
+    analysis_id = "593601a797914cbf"
+    base_payload = {
+        "$uri": f"/api/v1/analyses/{analysis_id}",
+        "analysis_type": "classification",
+        "created_at": "2015-09-25T17:27:30.622286-07:00",
+        "job": {"$ref": "/api/v1/jobs/e4b1ab37ff554c53"},
+        "sample": {"$ref": "/api/v1/samples/7428cca4a3a04a8e"},
+        "cost": None,
+        "dependencies": [],
+        "draft": False,
+        "job_args": {},
+    }
+    bodies = [
+        {**base_payload, "complete": False, "success": False, "error_msg": None},
+        {**base_payload, "complete": True, "success": True, "error_msg": "bad!"},
+    ]
+
+    def get_callback(request):
+        body = bodies.pop(0)
+        return (200, {"Content-Type": "application/json"}, json.dumps(body))
+
+    with custom_mock_requests({f"GET::api/v1/analyses/{analysis_id}": get_callback}):
+        analysis = ocx.Analyses.get(analysis_id)
+        assert analysis.complete is False
+        assert analysis.success is False
+        assert analysis.error_msg is None
+
+        analysis.refresh()
+
+        assert analysis.complete is True
+        assert analysis.success is True
+        assert analysis.error_msg == "bad!"
+        assert analysis.id == analysis_id
+
+    assert bodies == []
+
+
+def test_analyses_refresh_http_error(ocx, custom_mock_requests):
+    import requests
+
+    analysis_id = "593601a797914cbf"
+    payload = {
+        "$uri": f"/api/v1/analyses/{analysis_id}",
+        "analysis_type": "classification",
+        "created_at": "2015-09-25T17:27:30.622286-07:00",
+        "complete": False,
+        "success": False,
+        "error_msg": None,
+        "job": {"$ref": "/api/v1/jobs/e4b1ab37ff554c53"},
+        "sample": {"$ref": "/api/v1/samples/7428cca4a3a04a8e"},
+        "cost": None,
+        "dependencies": [],
+        "draft": False,
+        "job_args": {},
+    }
+    responses_queue = [
+        (200, json.dumps(payload)),
+        (500, json.dumps({"message": "API error"})),
+    ]
+
+    def get_callback(request):
+        status, body = responses_queue.pop(0)
+        return (status, {"Content-Type": "application/json"}, body)
+
+    with custom_mock_requests({f"GET::api/v1/analyses/{analysis_id}": get_callback}):
+        analysis = ocx.Analyses.get(analysis_id)
+        with pytest.raises(requests.HTTPError):
+            analysis.refresh()
+        assert analysis.complete is False
+        assert analysis.success is False
+
+
 def test_sample_preupload(ocx, upload_mocks, api_data):
     projects = ocx.Projects.where(project_name="One Codex Project")
     sample_id = ocx.Samples.preupload(

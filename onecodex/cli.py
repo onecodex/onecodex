@@ -633,3 +633,92 @@ def login(ctx):
 def logout(ctx):
     """Delete an API key (saved in ~/.onecodex)."""
     _logout()
+
+
+# job run
+@onecodex.group("workflow", help="One Codex platform Workflow management.")
+def workflow_group():
+    pass
+
+
+@workflow_group.command("run")
+@click.argument(
+    "job_id",
+    nargs=1,
+    required=True,
+)
+@click.argument(
+    "sample_id",
+    nargs=1,
+    required=True,
+)
+@click.option(
+    "-a",
+    "--arg",
+    "args",
+    multiple=True,
+    help="Additional runtime arguments, example: -a min_quality=1 -a adapter=AGATC.",
+)
+@click.pass_context
+@pretty_errors
+@telemetry
+@login_required
+def workflow_run(ctx, job_id, sample_id, args):
+    """Run a OneCodex workflow with optional arguments."""
+    parsed_args = {}
+    for a in args:
+        if "=" not in a:
+            raise click.BadParameter(
+                "Expected key=value format, got {!r}.".format(a), param_hint="-a/--arg"
+            )
+        key, value = a.split("=", 1)
+        parsed_args[key] = value
+
+    job = ctx.obj["API"].Jobs.get(job_id)
+    sample = ctx.obj["API"].Samples.get(sample_id)
+
+    run = job.run(sample, parsed_args)
+    click.echo(f"Job run successfully. New run ID: {run.id}")
+    click.echo(f"Get its status using `onecodex workflow status {run.id}`")
+
+
+@workflow_group.command("status")
+@click.argument(
+    "run_id",
+    nargs=1,
+    required=True,
+)
+@click.pass_context
+@pretty_errors
+@login_required
+def workflow_status(ctx, run_id):
+    """Get the status of an OneCodex workflow."""
+    run = ctx.obj["API"].Analyses.get(run_id)
+
+    if not run.complete:
+        status = "Running"
+    elif run.success:
+        status = "Succeeded"
+    else:
+        status = "Failed"
+
+    fields = [
+        ("Run ID", run.id),
+        ("Status", status),
+        ("Analysis type", run.analysis_type),
+        ("Job", run.job.id),
+        ("Sample", run.sample.id),
+        ("Created", run.created_at.isoformat()),
+    ]
+    if run.error_msg:
+        fields.append(("Error", run.error_msg))
+
+    width = max(len(label) for label, _ in fields)
+    for label, value in fields:
+        click.echo(f"{label + ':':<{width + 2}}{value}")
+
+    if run.job_args:
+        click.echo(f"{'Args:':<{width + 2}}", nl=False)
+        pad = " " * (width + 2)
+        for i, (key, value) in enumerate(run.job_args.items()):
+            click.echo(f"{'' if i == 0 else pad}{key}={value}")
