@@ -121,6 +121,12 @@ def test_panel_instances(runner, api_data, mocked_creds_file):
     assert result.exit_code == 0
 
 
+# Workflows
+def test_workflow_instances(runner, api_data, mocked_creds_file):
+    result = runner.invoke(Cli, ["workflows"])
+    assert result.exit_code == 0
+
+
 # Samples
 def test_samples(runner, api_data, mocked_creds_file):
     r0 = runner.invoke(Cli, ["samples"])

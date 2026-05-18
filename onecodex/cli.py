@@ -408,6 +408,16 @@ def panels(ctx, panels):
     cli_resource_fetcher(ctx, "panels", panels)
 
 
+@onecodex.command("workflows")
+@click.pass_context
+@click.argument("workflows", nargs=-1, required=False)
+@telemetry
+@login_required
+def workflows(ctx, workflows):
+    """Retrieve performed workflow results."""
+    cli_resource_fetcher(ctx, "workflows", workflows)
+
+
 @onecodex.command("samples")
 @click.pass_context
 @click.argument("samples", nargs=-1, required=False)

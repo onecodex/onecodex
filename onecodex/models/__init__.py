@@ -5,6 +5,7 @@ from onecodex.models.analysis import (
     FunctionalProfiles,
     Mlsts,
     Panels,
+    Workflows,
 )
 from onecodex.models.collection import SampleCollection
 from onecodex.models.genome import AnnotationSets, Assemblies, Genomes, Taxa
@@ -39,6 +40,7 @@ register_model(Alignments)
 register_model(FunctionalProfiles)
 register_model(Panels)
 register_model(Mlsts)
+register_model(Workflows)
 register_model(Users)
 register_model(Projects)
 register_model(Tags)
@@ -59,6 +61,7 @@ Alignments.model_rebuild()
 FunctionalProfiles.model_rebuild()
 Panels.model_rebuild()
 Mlsts.model_rebuild()
+Workflows.model_rebuild()
 Users.model_rebuild()
 Projects.model_rebuild()
 Tags.model_rebuild()
@@ -81,6 +84,7 @@ __all__ = [
     "FunctionalProfiles",
     "Panels",
     "Mlsts",
+    "Workflows",
     "Analyses",
     "Jobs",
     "Documents",

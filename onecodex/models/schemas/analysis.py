@@ -60,3 +60,7 @@ class PanelSchema(BaseAnalysisSchema):
 
 class MlstSchema(BaseAnalysisSchema):
     pass
+
+
+class WorkflowSchema(BaseAnalysisSchema):
+    pass

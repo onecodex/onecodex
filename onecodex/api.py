@@ -69,6 +69,7 @@ class Api(object):
             FunctionalProfiles as _FunctionalProfiles,
             Panels as _Panels,
             Mlsts as _Mlsts,
+            Workflows as _Workflows,
             Users as _Users,
             Projects as _Projects,
             Tags as _Tags,
@@ -89,6 +90,7 @@ class Api(object):
         FunctionalProfiles: Type[_FunctionalProfiles]
         Panels: Type[_Panels]
         Mlsts: Type[_Mlsts]
+        Workflows: Type[_Workflows]
         Users: Type[_Users]
         Projects: Type[_Projects]
         Tags: Type[_Tags]

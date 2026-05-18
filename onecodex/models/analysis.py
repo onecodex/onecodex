@@ -17,6 +17,7 @@ from onecodex.models.schemas.analysis import (
     FunctionalRunSchema,
     MlstSchema,
     PanelSchema,
+    WorkflowSchema,
 )
 from onecodex.models.schemas.misc import FileDetailSchema
 
@@ -471,3 +472,13 @@ class Mlsts(_AnalysesBase, MlstSchema):
             return self._results()
         else:
             raise NotImplementedError("MLST results only available as JSON at this time.")
+
+
+class Workflows(_AnalysesBase, WorkflowSchema):
+    _resource_path = "/api/v1/workflows"
+
+    def results(self, json=True):
+        if json is True:
+            return self._results()
+        else:
+            raise NotImplementedError("Workflow results only available as JSON at this time.")
