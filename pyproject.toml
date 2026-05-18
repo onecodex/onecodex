@@ -34,6 +34,7 @@ dependencies = [
     "filelock>=3.0.12,<4",
     "pydantic>=2.10.6",
     "orjson>=3.10.16",
+    "zstandard>=0.23.0",
 ]
 
 [project.optional-dependencies]
