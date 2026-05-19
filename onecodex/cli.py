@@ -659,12 +659,29 @@ def workflow_group():
     multiple=True,
     help="Additional runtime arguments, example: -a min_quality=1 -a adapter=AGATC.",
 )
+@click.option(
+    "-d",
+    "--dependency-override",
+    "dependency_overrides",
+    multiple=True,
+    help=(
+        "Override a dependency with an existing analysis, example: "
+        "-d <analysis_id> or -d <analysis_id>=<relative_download_path>."
+    ),
+)
+@click.option(
+    "--populate-default-arguments/--no-populate-default-arguments",
+    default=True,
+    help="Populate job arguments with their defaults on the server (default: enabled).",
+)
 @click.pass_context
 @pretty_errors
 @telemetry
 @login_required
-def workflow_run(ctx, job_id, sample_id, args):
+def workflow_run(ctx, job_id, sample_id, args, dependency_overrides, populate_default_arguments):
     """Run a OneCodex workflow with optional arguments."""
+    from onecodex.models.misc import DependencyOverride
+
     parsed_args = {}
     for a in args:
         if "=" not in a:
@@ -674,10 +691,27 @@ def workflow_run(ctx, job_id, sample_id, args):
         key, value = a.split("=", 1)
         parsed_args[key] = value
 
+    parsed_dependencies = []
+    for dep in dependency_overrides:
+        analysis_id, _, download_path = dep.partition("=")
+        if not analysis_id:
+            raise click.BadParameter(
+                "Expected <analysis_id> or <analysis_id>=<download_path>, got {!r}.".format(dep),
+                param_hint="-d/--dependency-override",
+            )
+        parsed_dependencies.append(
+            DependencyOverride(analysis_id=analysis_id, download_path=download_path or None)
+        )
+
     job = ctx.obj["API"].Jobs.get(job_id)
     sample = ctx.obj["API"].Samples.get(sample_id)
 
-    run = job.run(sample, parsed_args)
+    run = job.run(
+        sample,
+        parsed_args,
+        dependency_overrides=parsed_dependencies or None,
+        populate_default_arguments=populate_default_arguments,
+    )
     click.echo(f"Job run successfully. New run ID: {run.id}")
     click.echo(f"Get its status using `onecodex workflow status {run.id}`")
 

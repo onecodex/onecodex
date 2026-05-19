@@ -566,6 +566,7 @@ def test_jobs_run(ocx, api_data, custom_mock_requests):
     assert captured["body"] == {
         "sample": sample_id,
         "job_args": {"min_quality": "20", "adapter": "AGATC"},
+        "populate_default_arguments": True,
     }
 
 
@@ -589,7 +590,78 @@ def test_jobs_run_no_args(ocx, api_data, custom_mock_requests):
         sample = ocx.Samples.get(sample_id)
         job.run(sample)
 
-    assert captured["body"] == {"sample": sample_id, "job_args": None}
+    assert captured["body"] == {
+        "sample": sample_id,
+        "job_args": None,
+        "populate_default_arguments": True,
+    }
+
+
+def test_jobs_run_no_populate_default_arguments(ocx, api_data, custom_mock_requests):
+    job_id = "47c4fe23588640a9"
+    sample_id = "7428cca4a3a04a8e"
+    analysis_id = "593601a797914cbf"
+
+    captured = {}
+
+    def run_callback(request):
+        captured["body"] = json.loads(request.body)
+        return (
+            200,
+            {"Content-Type": "application/json"},
+            json.dumps({"$ref": f"/api/v1/analyses/{analysis_id}"}),
+        )
+
+    with custom_mock_requests({f"POST::api/v1/jobs/{job_id}/run": run_callback}):
+        job = ocx.Jobs.get(job_id)
+        sample = ocx.Samples.get(sample_id)
+        job.run(sample, populate_default_arguments=False)
+
+    assert captured["body"] == {
+        "sample": sample_id,
+        "job_args": None,
+        "populate_default_arguments": False,
+    }
+
+
+def test_jobs_run_with_dependency_overrides(ocx, api_data, custom_mock_requests):
+    from onecodex.models.misc import DependencyOverride
+
+    job_id = "47c4fe23588640a9"
+    sample_id = "7428cca4a3a04a8e"
+    analysis_id = "593601a797914cbf"
+    dep_analysis_id = "abc123def4567890"
+
+    captured = {}
+
+    def run_callback(request):
+        captured["body"] = json.loads(request.body)
+        return (
+            200,
+            {"Content-Type": "application/json"},
+            json.dumps({"$ref": f"/api/v1/analyses/{analysis_id}"}),
+        )
+
+    with custom_mock_requests({f"POST::api/v1/jobs/{job_id}/run": run_callback}):
+        job = ocx.Jobs.get(job_id)
+        sample = ocx.Samples.get(sample_id)
+        job.run(
+            sample,
+            dependency_overrides=[
+                DependencyOverride(analysis_id=dep_analysis_id, download_path="/results/out.txt"),
+                DependencyOverride(analysis_id=dep_analysis_id, download_path=None),
+            ],
+        )
+
+    assert captured["body"] == {
+        "sample": sample_id,
+        "job_args": None,
+        "populate_default_arguments": True,
+        "dependencies": [
+            {"analysis": dep_analysis_id, "download_path": "/results/out.txt"},
+            {"analysis": dep_analysis_id, "download_path": None},
+        ],
+    }
 
 
 def test_jobs_run_invalid_response(ocx, api_data, custom_mock_requests):

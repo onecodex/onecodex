@@ -2,6 +2,7 @@ import warnings
 from typing import Any, List, Optional, Union, TYPE_CHECKING
 
 from pydantic import Field
+from dataclasses import dataclass
 
 from onecodex.exceptions import MethodNotSupported, OneCodexException
 from onecodex.lib.upload import upload_document, upload_asset
@@ -21,6 +22,12 @@ from onecodex.models.schemas.misc import (
 if TYPE_CHECKING:
     from onecodex.models.sample import Samples
     from onecodex.models.analysis import Analyses
+
+
+@dataclass(frozen=True)
+class DependencyOverride:
+    analysis_id: str
+    download_path: str | None
 
 
 class Tags(OneCodexBase, TagSchema):
@@ -66,11 +73,26 @@ class Projects(OneCodexBase, ProjectSchema):
 class Jobs(OneCodexBase, JobSchema):
     _resource_path = "/api/v1/jobs"
 
-    def run(self, sample: "Samples", job_args: dict[str, Any] | None = None) -> "Analyses":
+    def run(
+        self,
+        sample: "Samples",
+        job_args: dict[str, Any] | None = None,
+        dependency_overrides: list[DependencyOverride] | None = None,
+        populate_default_arguments: bool = True,
+    ) -> "Analyses":
         from onecodex.models.analysis import Analyses
 
         url = f"{self._api._base_url}{self._resource_path}/{self.id}/run"
-        payload = {"sample": sample.id, "job_args": job_args}
+        payload: dict[str, str | dict | list | bool] = {
+            "sample": sample.id,
+            "job_args": job_args,
+            "populate_default_arguments": populate_default_arguments,
+        }
+        if dependency_overrides:
+            payload["dependencies"] = [
+                {"analysis": dep.analysis_id, "download_path": dep.download_path}
+                for dep in dependency_overrides
+            ]
 
         resp = self._client.post(url, json=payload)
         resp.raise_for_status()
