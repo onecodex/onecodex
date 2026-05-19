@@ -636,12 +636,12 @@ def logout(ctx):
 
 
 # job run
-@onecodex.group("workflow", help="One Codex platform Workflow management.")
-def workflow_group():
+@onecodex.group("jobs", help="One Codex platform Workflow management.")
+def jobs_group():
     pass
 
 
-@workflow_group.command("run")
+@jobs_group.command("run")
 @click.argument(
     "job_id",
     nargs=1,
@@ -678,7 +678,7 @@ def workflow_group():
 @pretty_errors
 @telemetry
 @login_required
-def workflow_run(ctx, job_id, sample_id, args, dependency_overrides, populate_default_arguments):
+def jobs_run(ctx, job_id, sample_id, args, dependency_overrides, populate_default_arguments):
     """Run a OneCodex workflow with optional arguments."""
     from onecodex.models.misc import DependencyOverride
 
@@ -712,47 +712,5 @@ def workflow_run(ctx, job_id, sample_id, args, dependency_overrides, populate_de
         dependency_overrides=parsed_dependencies or None,
         populate_default_arguments=populate_default_arguments,
     )
-    click.echo(f"Job run successfully. New run ID: {run.id}")
-    click.echo(f"Get its status using `onecodex workflow status {run.id}`")
-
-
-@workflow_group.command("status")
-@click.argument(
-    "run_id",
-    nargs=1,
-    required=True,
-)
-@click.pass_context
-@pretty_errors
-@login_required
-def workflow_status(ctx, run_id):
-    """Get the status of an OneCodex workflow."""
-    run = ctx.obj["API"].Analyses.get(run_id)
-
-    if not run.complete:
-        status = "Running"
-    elif run.success:
-        status = "Succeeded"
-    else:
-        status = "Failed"
-
-    fields = [
-        ("Run ID", run.id),
-        ("Status", status),
-        ("Analysis type", run.analysis_type),
-        ("Job", run.job.id),
-        ("Sample", run.sample.id),
-        ("Created", run.created_at.isoformat()),
-    ]
-    if run.error_msg:
-        fields.append(("Error", run.error_msg))
-
-    width = max(len(label) for label, _ in fields)
-    for label, value in fields:
-        click.echo(f"{label + ':':<{width + 2}}{value}")
-
-    if run.job_args:
-        click.echo(f"{'Args:':<{width + 2}}", nl=False)
-        pad = " " * (width + 2)
-        for i, (key, value) in enumerate(run.job_args.items()):
-            click.echo(f"{'' if i == 0 else pad}{key}={value}")
+    click.echo(f"Job run successfully. New workflow ID: {run.id}")
+    click.echo(f"Get its status using `onecodex workflows {run.id}`")
