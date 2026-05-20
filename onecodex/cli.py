@@ -699,7 +699,7 @@ def jobs_run(ctx, job_id, sample_id, args, dependency_overrides, populate_defaul
                 f"Expected <analysis_id> or <analysis_id>=<download_path>, got {dep!r}.",
                 param_hint="-d/--dependency-override",
             )
-        dep_analysis = job = ctx.obj["API"].Analyses.get(analysis_id)
+        dep_analysis = ctx.obj["API"].Analyses.get(analysis_id)
         parsed_dependencies.append(
             DependencyOverride(analysis=dep_analysis, download_path=download_path or None)
         )
