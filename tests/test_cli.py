@@ -90,7 +90,6 @@ def test_documents_table(runner, api_data, mocked_creds_file):
 
 
 # Assets
-@pytest.mark.filterwarnings("ignore:Experimental API mode enabled:UserWarning")
 def test_assets_table(runner, api_data, mocked_creds_file):
     result = runner.invoke(Cli, ["assets", "list"])
     assert result.exit_code == 0
@@ -99,7 +98,7 @@ def test_assets_table(runner, api_data, mocked_creds_file):
     assert "057268a2ba9f6d7a" in result.stdout
     assert "reference_genome.fa.gz" in result.stdout
     assert "available" in result.stdout
-    assert "pending" in result.stdout
+    assert "importing" in result.stdout
 
     result = runner.invoke(Cli, ["assets", "list", "--json"])
     assert result.exit_code == 0
@@ -107,7 +106,6 @@ def test_assets_table(runner, api_data, mocked_creds_file):
     assert "reference_genome.fa.gz" in result.stdout
 
 
-@pytest.mark.filterwarnings("ignore:Experimental API mode enabled:UserWarning")
 def test_assets_list_empty(runner, custom_mock_requests, mocked_creds_file):
     with custom_mock_requests({"GET::api/v1/assets": []}):
         result = runner.invoke(Cli, ["assets", "list"])
