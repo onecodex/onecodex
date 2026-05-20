@@ -143,6 +143,19 @@ API_DATA = {
             "draft": False,
         }
     ],
+    "GET::api/v1/analyses/abc123def4567890": {
+        "$uri": "/api/v1/analyses/abc123def4567890",
+        "analysis_type": "classification",
+        "complete": True,
+        "created_at": "2015-09-25T17:27:30.622286-07:00",
+        "error_msg": "",
+        "job": {"$ref": "/api/v1/jobs/e4b1ab37ff554c53"},
+        "sample": {"$ref": "/api/v1/samples/7428cca4a3a04a8e"},
+        "success": True,
+        "cost": None,
+        "dependencies": [],
+        "draft": False,
+    },
     "GET::api/v1/classifications/45a573fb7833449a/results": {
         "table": [
             {

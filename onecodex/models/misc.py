@@ -26,7 +26,9 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class DependencyOverride:
-    analysis_id: str
+    from onecodex.models.analysis import Analyses
+
+    analysis: Analyses
     download_path: str | None
 
 
@@ -90,7 +92,7 @@ class Jobs(OneCodexBase, JobSchema):
         }
         if dependency_overrides:
             payload["dependencies"] = [
-                {"analysis": dep.analysis_id, "download_path": dep.download_path}
+                {"analysis": dep.analysis.id, "download_path": dep.download_path}
                 for dep in dependency_overrides
             ]
 

@@ -632,6 +632,8 @@ def test_jobs_run_with_dependency_overrides(ocx, api_data, custom_mock_requests)
     analysis_id = "593601a797914cbf"
     dep_analysis_id = "abc123def4567890"
 
+    dep_analysis = ocx.Analyses.get(dep_analysis_id)
+
     captured = {}
 
     def run_callback(request):
@@ -648,8 +650,8 @@ def test_jobs_run_with_dependency_overrides(ocx, api_data, custom_mock_requests)
         job.run(
             sample,
             dependency_overrides=[
-                DependencyOverride(analysis_id=dep_analysis_id, download_path="/results/out.txt"),
-                DependencyOverride(analysis_id=dep_analysis_id, download_path=None),
+                DependencyOverride(analysis=dep_analysis, download_path="/results/out.txt"),
+                DependencyOverride(analysis=dep_analysis, download_path=None),
             ],
         )
 

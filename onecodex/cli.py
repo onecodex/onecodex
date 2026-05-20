@@ -635,8 +635,8 @@ def logout(ctx):
     _logout()
 
 
-# job run
-@onecodex.group("jobs", help="One Codex platform Workflow management.")
+# jobs
+@onecodex.group("jobs", help="One Codex platform Job management.")
 def jobs_group():
     pass
 
@@ -679,16 +679,16 @@ def jobs_group():
 @telemetry
 @login_required
 def jobs_run(ctx, job_id, sample_id, args, dependency_overrides, populate_default_arguments):
-    """Run a OneCodex workflow with optional arguments."""
+    """Run a OneCodex job with optional arguments."""
     from onecodex.models.misc import DependencyOverride
 
     parsed_args = {}
-    for a in args:
-        if "=" not in a:
+    for arg in args:
+        if "=" not in arg:
             raise click.BadParameter(
-                "Expected key=value format, got {!r}.".format(a), param_hint="-a/--arg"
+                f"Expected key=value format, got {arg!r}.", param_hint="-a/--arg"
             )
-        key, value = a.split("=", 1)
+        key, value = arg.split("=", 1)
         parsed_args[key] = value
 
     parsed_dependencies = []
@@ -696,11 +696,12 @@ def jobs_run(ctx, job_id, sample_id, args, dependency_overrides, populate_defaul
         analysis_id, _, download_path = dep.partition("=")
         if not analysis_id:
             raise click.BadParameter(
-                "Expected <analysis_id> or <analysis_id>=<download_path>, got {!r}.".format(dep),
+                f"Expected <analysis_id> or <analysis_id>=<download_path>, got {dep!r}.",
                 param_hint="-d/--dependency-override",
             )
+        dep_analysis = job = ctx.obj["API"].Analyses.get(analysis_id)
         parsed_dependencies.append(
-            DependencyOverride(analysis_id=analysis_id, download_path=download_path or None)
+            DependencyOverride(analysis=dep_analysis, download_path=download_path or None)
         )
 
     job = ctx.obj["API"].Jobs.get(job_id)
@@ -712,5 +713,5 @@ def jobs_run(ctx, job_id, sample_id, args, dependency_overrides, populate_defaul
         dependency_overrides=parsed_dependencies or None,
         populate_default_arguments=populate_default_arguments,
     )
-    click.echo(f"Job run successfully. New workflow ID: {run.id}")
-    click.echo(f"Get its status using `onecodex workflows {run.id}`")
+    click.echo(f"Job run created successfully. New analysis ID: {run.id}")
+    click.echo(f"Get its status using `onecodex analyses {run.id}`", err=True)
