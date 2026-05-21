@@ -6,7 +6,6 @@ from onecodex.models.schemas.sample import (
 )
 from onecodex.models.schemas.analysis import (
     AnalysisSchema,
-    AnalysisUpdateSchema,
     AlignmentSchema,
     ClassificationSchema,
     FunctionalRunSchema,
@@ -37,7 +36,6 @@ __all__ = [
     "MetadataSchema",
     "MetadataPatchSchema",
     "AnalysisSchema",
-    "AnalysisUpdateSchema",
     "AlignmentSchema",
     "ClassificationSchema",
     "FunctionalRunSchema",

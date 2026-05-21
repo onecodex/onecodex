@@ -7,13 +7,12 @@ from typing import IO, TYPE_CHECKING, List, Optional, Union
 import click
 import requests
 
-from onecodex.exceptions import MethodNotSupported, OneCodexException
+from onecodex.exceptions import OneCodexException
 from onecodex.lib.enums import FunctionalAnnotations, FunctionalAnnotationsMetric
 from onecodex.models.base import ApiRef, OneCodexBase
 from onecodex.models.schemas.analysis import (
     AlignmentSchema,
     AnalysisSchema,
-    AnalysisUpdateSchema,
     ClassificationSchema,
     FunctionalRunSchema,
     MlstSchema,
@@ -28,20 +27,10 @@ if TYPE_CHECKING:
 class _AnalysesBase(OneCodexBase):
     _allowed_methods = {
         "instances_public": None,
-        "update": AnalysisUpdateSchema,
     }
     sample: Union["Samples", ApiRef]  # noqa: F821
     job: Union["Jobs", ApiRef]  # noqa: F821
     error_msg: Optional[str] = None
-
-    def update(self, **kwargs):
-        # Setting "update" in `_allowed_methods` would allow for calling `update()` which
-        # we don't want - we just want the schema to be able to refresh an Analyses object
-        # with new state from the API
-        raise MethodNotSupported(f"Cannot update {self.__class__.__name__} objects")
-
-    def save(self):
-        raise MethodNotSupported(f"Cannot save {self.__class__.__name__} objects")
 
     def __hash__(self) -> int:
         return hash(self.id)
@@ -212,10 +201,8 @@ class Analyses(_AnalysesBase, AnalysisSchema):
         resp.raise_for_status()
         new_obj = self.__class__.model_validate(resp.json())
         for field, value in new_obj:
-            try:
-                setattr(self, field, value)
-            except MethodNotSupported:
-                pass
+            setattr(self, field, value)
+        self._snapshot = self._object_snapshot()
 
 
 class Alignments(_AnalysesBase, AlignmentSchema):

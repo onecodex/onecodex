@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ConfigDict, Field
 
 from onecodex.models.base import ApiRef
 from onecodex.models.schemas.base import URIModel
@@ -40,15 +40,6 @@ class BaseAnalysisSchema(URIModel):
 
 class AnalysisSchema(BaseAnalysisSchema):
     analysis_type: str
-
-
-class AnalysisUpdateSchema(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
-    complete: Optional[bool] = None
-    success: Optional[bool] = None
-    error_msg: Optional[str] = Field(default=None, max_length=255)
-    cost: Optional[CostSchema] = None
 
 
 class AlignmentSchema(BaseAnalysisSchema):

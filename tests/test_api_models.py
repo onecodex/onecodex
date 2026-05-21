@@ -303,16 +303,27 @@ def test_model_deletions(ocx, api_data):
 
 def test_model_updates(ocx, api_data):
     sample = ocx.Samples.get("761bc54b97f64980")
-    sample.visibility = "public" if sample.visibility == "private" else "public"
+    new_visibility = "public" if sample.visibility == "private" else "private"
+    sample.visibility = new_visibility
+    sample.save()
+
+    # Ensure a PATCH request with only the updated field is submitted
+    sample_patches = [
+        c
+        for c in api_data.calls
+        if c.request.method == "PATCH" and c.request.url.endswith(f"/samples/{sample.id}")
+    ]
+    assert len(sample_patches) == 1
+    assert json.loads(sample_patches[0].request.body) == {"visibility": new_visibility}
 
     # Read-only field
     with pytest.raises(MethodNotSupported):
-        sample.filename = "something_else"
+        sample.update(filename="something_else")
 
     # No update resource
     analysis = sample.primary_classification
     with pytest.raises(MethodNotSupported):
-        analysis.created_at = datetime.datetime.now(datetime.timezone.utc)
+        analysis.update(created_at=datetime.datetime.now(datetime.timezone.utc))
 
 
 def test_sample_saving(ocx, api_data):
@@ -355,6 +366,20 @@ def test_metadata_saving_should_ignore_updated_at_prop(ocx, api_data):
     patch_data = json.loads(patch_request.body)
     assert "custom" in patch_data
     assert "updated_at" not in patch_data
+
+
+def test_metadata_nested_update(ocx, api_data):
+    m = ocx.Metadata.get("4fe05e748b5a4f0e")
+    assert m.custom == {}
+
+    # Nested attribute update is still registered and emits a PATCH
+    # request with the single updated field
+    m.custom["key"] = "val"
+    m.update()
+
+    patch_request = api_data.calls[-1].request
+    assert patch_request.method == "PATCH"
+    assert json.loads(patch_request.body) == {"custom": {"key": "val"}}
 
 
 def test_metadata_update_name(ocx, api_data):
