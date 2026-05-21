@@ -412,9 +412,7 @@ def _upload_asset_fileobj(file_obj, file_name, assets_resource, name=None):
         output_msg += f"\n{message}"
 
     log.info(output_msg)
-    asset_uuid = s3_upload.get("asset_uuid")
-
-    return asset_uuid
+    return s3_upload.get("asset_id")
 
 
 def _s3_intermediate_upload(file_obj, file_name, fields, session, callback_url, name=None):

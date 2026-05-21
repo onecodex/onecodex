@@ -86,20 +86,14 @@ class CostSchema(BaseModel):
     currency: str
 
 
-# NOTE: these Asset models are only accessible via `X-OneCodex-Api-Experimental` as of 10/2/2025
-
-
 class AssetUpdateSchema(BaseModel):
     name: str
 
 
-# NOTE: this model is unstable/experimental and likely to change
 class AssetSchema(URIModel):
     created_at: RFC3339Datetime
     name: str
     filename: str
-    s3_uri: Optional[str]
+    size: Optional[int] = None
     status: AssetStatus
-    organization_id: int
-    uploaded_by: Union[UserSchema, ApiRef]
-    uuid: str
+    uploader: Union[UserSchema, ApiRef]

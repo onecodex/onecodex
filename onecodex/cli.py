@@ -15,7 +15,6 @@ from onecodex.auth import (
     _logout,
     _remove_creds,
     login_required,
-    login_required_experimental_api,
 )
 from onecodex.input_helpers import (
     auto_detect_pairs,
@@ -266,7 +265,7 @@ def assets():
 @click.pass_context
 @pretty_errors
 @telemetry
-@login_required_experimental_api
+@login_required
 def assets_upload(ctx, max_threads, file, name):
     """Upload an asset to One Codex."""
     if len(file) == 0 or name == "":
@@ -287,7 +286,7 @@ def assets_upload(ctx, max_threads, file, name):
 @click.option("--json", is_flag=True, default=False, help="Output JSON instead of prettified table")
 @click.pass_context
 @telemetry
-@login_required_experimental_api
+@login_required
 def assets_list(ctx, json):
     assets_data = cli_resource_fetcher(ctx, "assets", [], print_results=json)
     if json:
@@ -313,7 +312,7 @@ def assets_list(ctx, json):
         fname = asset.filename
         table.append(
             [
-                asset.uuid,
+                asset.id,
                 fname if len(fname) <= 32 else fname[:29] + "...",
                 asset.status,
                 asset.created_at.strftime("%Y-%m-%d"),
