@@ -208,6 +208,16 @@ class _AnalysesBase(OneCodexBase):
 class Analyses(_AnalysesBase, AnalysisSchema):
     _resource_path = "/api/v1/analyses"
 
+    # Consider putting this in OneCodexBase
+    def refresh(self) -> None:
+        """Fetch the current state from the API and update this object's state fields in-place."""
+        resp = self._client.get(f"{self._api._base_url}{self._resource_path}/{self.id}?expand=all")
+        resp.raise_for_status()
+        new_obj = self.__class__.model_validate(resp.json())
+        for field, value in new_obj:
+            setattr(self, field, value)
+        self._snapshot = self._object_snapshot()
+
 
 class Alignments(_AnalysesBase, AlignmentSchema):
     _resource_path = "/api/v1/alignments"

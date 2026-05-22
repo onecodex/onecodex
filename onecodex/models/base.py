@@ -1,3 +1,4 @@
+import copy
 import inspect
 import json
 
@@ -149,6 +150,13 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
     def __init__(self, **data):
         super().__init__(**data)
         self._resolved_cache = {}
+        self._snapshot = self._object_snapshot()
+
+    def _object_snapshot(self):
+        # Dump a dict snapshot of this object to detect modifications.
+        # We can't just use `__pydantic_fields_set__` as that would miss
+        # nested updates (e.g. `obj.custom["k"] = v`).
+        return copy.deepcopy(self.model_dump(by_alias=True))
 
     @classmethod
     def _convert_id_to_uri(cls, uuid):
@@ -188,16 +196,6 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
 
     def __dir__(self):
         return _get_dir_fields(self.__class__, include_classmethods=False)
-
-    def __setattr__(self, key, value):
-        # Note: I'm not sure this is *really* desirable behavior, but this preserves backwards compatibility for <=0.18.0.
-        #       Consider deprecating and removing this behavior and only validating on save.
-        if key in self.__class__.model_fields and (
-            "update" not in self._allowed_methods
-            or key not in self._allowed_methods["update"].model_fields
-        ):
-            raise MethodNotSupported(f"Cannot set attribute {key} on {self.__class__.__name__}")
-        super().__setattr__(key, value)
 
     def _resolve_and_cache(self, api_ref, cache_key):
         """Resolve an ApiRef and cache the result."""
@@ -411,13 +409,23 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
 
     def update(self, **kwargs):
         if "update" not in self._allowed_methods:
-            raise MethodNotSupported("Cannot update {self.__class__.__name__} objects")
+            raise MethodNotSupported(f"Cannot update {self.__class__.__name__} objects")
 
         if not kwargs:
-            # TODO: Consider using `pydantic_changedetect` to only send the fields that have changed
-            kwargs = self.model_dump(exclude_unset=True, by_alias=True)
+            current = self.model_dump(by_alias=True)
+            kwargs = {k: v for k, v in current.items() if v != self._snapshot.get(k)}
 
-        patch_set = self._allowed_methods["update"].model_validate(kwargs)
+        if not kwargs:
+            return
+
+        update_model = self._allowed_methods["update"]
+        for key in kwargs:
+            if key in self.__class__.model_fields and key not in update_model.model_fields:
+                raise MethodNotSupported(
+                    f"Cannot update attribute {key} on {self.__class__.__name__}"
+                )
+
+        patch_set = update_model.model_validate(kwargs)
         resp = self._client.patch(
             f"{self._api._base_url}{self._resource_path}/{self.id}",
             json=patch_set.model_dump(exclude_unset=True, by_alias=True),
@@ -432,10 +440,8 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
         updated_data = resp.json()
         new_pydantic_obj = self.__class__.model_validate(updated_data)
         for field, value in new_pydantic_obj:
-            try:
-                setattr(self, field, value)
-            except MethodNotSupported:
-                pass
+            setattr(self, field, value)
+        self._snapshot = self._object_snapshot()
 
     def delete(self) -> bool:
         if "delete" not in self._allowed_methods:

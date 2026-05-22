@@ -642,3 +642,85 @@ def login(ctx):
 def logout(ctx):
     """Delete an API key (saved in ~/.onecodex)."""
     _logout()
+
+
+# jobs
+@onecodex.group("jobs", help="One Codex platform Job management.")
+def jobs_group():
+    pass
+
+
+@jobs_group.command("run")
+@click.argument(
+    "job_id",
+    nargs=1,
+    required=True,
+)
+@click.argument(
+    "sample_id",
+    nargs=1,
+    required=True,
+)
+@click.option(
+    "-a",
+    "--arg",
+    "args",
+    multiple=True,
+    help="Additional runtime arguments, example: -a min_quality=1 -a adapter=AGATC.",
+)
+@click.option(
+    "-d",
+    "--dependency-override",
+    "dependency_overrides",
+    multiple=True,
+    help=(
+        "Override a dependency with an existing analysis, example: "
+        "-d <analysis_id> or -d <analysis_id>=<relative_download_path>."
+    ),
+)
+@click.option(
+    "--populate-default-arguments/--no-populate-default-arguments",
+    default=True,
+    help="Populate job arguments with their defaults on the server (default: enabled).",
+)
+@click.pass_context
+@pretty_errors
+@telemetry
+@login_required
+def jobs_run(ctx, job_id, sample_id, args, dependency_overrides, populate_default_arguments):
+    """Run a OneCodex job with optional arguments."""
+    from onecodex.models.misc import DependencyOverride
+
+    parsed_args = {}
+    for arg in args:
+        if "=" not in arg:
+            raise click.BadParameter(
+                f"Expected key=value format, got {arg!r}.", param_hint="-a/--arg"
+            )
+        key, value = arg.split("=", 1)
+        parsed_args[key] = value
+
+    parsed_dependencies = []
+    for dep in dependency_overrides:
+        analysis_id, _, download_path = dep.partition("=")
+        if not analysis_id:
+            raise click.BadParameter(
+                f"Expected <analysis_id> or <analysis_id>=<download_path>, got {dep!r}.",
+                param_hint="-d/--dependency-override",
+            )
+        dep_analysis = ctx.obj["API"].Analyses.get(analysis_id)
+        parsed_dependencies.append(
+            DependencyOverride(analysis=dep_analysis, download_path=download_path or None)
+        )
+
+    job = ctx.obj["API"].Jobs.get(job_id)
+    sample = ctx.obj["API"].Samples.get(sample_id)
+
+    run = job.run(
+        sample,
+        parsed_args,
+        dependency_overrides=parsed_dependencies or None,
+        populate_default_arguments=populate_default_arguments,
+    )
+    click.echo(f"Job run created successfully. New analysis ID: {run.id}")
+    click.echo(f"Get its status using `onecodex analyses {run.id}`", err=True)
