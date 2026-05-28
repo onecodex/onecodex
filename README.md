@@ -274,3 +274,11 @@ ONE_CODEX_REPORT_FILENAME=example.pdf jupyter nbconvert --execute --to onecodex_
 ```
 
 Note that `OneCodexPDFExporter` requires the `vl-convert-python` package to be installed.
+
+## Docker
+
+Docker images are built against the `master` branch automatically, and available at:
+
+- `ghcr.io/onecodex/onecodex:latest`
+
+For a complete list of version-tagged images, see [Packages](https://github.com/orgs/onecodex/packages?repo_name=onecodex)
