@@ -282,3 +282,5 @@ Docker images are built against the `master` branch automatically, and available
 - `ghcr.io/onecodex/onecodex:latest`
 
 For a complete list of version-tagged images, see [Packages](https://github.com/orgs/onecodex/packages?repo_name=onecodex)
+
+The image contains only the base + all dependencies (equivalent of `pip install onecodex[all]`)
