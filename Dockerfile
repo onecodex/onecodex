@@ -27,9 +27,15 @@ RUN find /packages -depth -type d \
         \( -name tests -o -name __pycache__ \) \
         -exec rm -rf {} +
 
-FROM gcr.io/distroless/python3-debian12:nonroot
+FROM python:3.11-slim-bookworm
+
+RUN groupadd --system --gid 65532 nonroot \
+ && useradd  --system --uid 65532 --gid 65532 --home /home/nonroot --create-home --shell /sbin/nologin nonroot
 
 COPY --from=builder /packages /packages
 ENV PYTHONPATH=/packages
+
+USER nonroot
+WORKDIR /home/nonroot
 
 ENTRYPOINT ["python3"]
