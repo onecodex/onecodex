@@ -629,8 +629,10 @@ def test_jobs_run_no_args(ocx, api_data, custom_mock_requests):
     with custom_mock_requests({f"POST::api/v1/jobs/{job_id}/run": run_callback}):
         job = ocx.Jobs.get(job_id)
         sample = ocx.Samples.get(sample_id)
-        job.run(sample)
+        analysis = job.run(sample)
 
+    assert isinstance(analysis, onecodex.models.Analyses)
+    assert analysis.id == analysis_id
     assert captured["body"] == {
         "sample": sample_id,
         "job_args": None,
@@ -656,8 +658,10 @@ def test_jobs_run_no_populate_default_arguments(ocx, api_data, custom_mock_reque
     with custom_mock_requests({f"POST::api/v1/jobs/{job_id}/run": run_callback}):
         job = ocx.Jobs.get(job_id)
         sample = ocx.Samples.get(sample_id)
-        job.run(sample, populate_default_arguments=False)
+        analysis = job.run(sample, populate_default_arguments=False)
 
+    assert isinstance(analysis, onecodex.models.Analyses)
+    assert analysis.id == analysis_id
     assert captured["body"] == {
         "sample": sample_id,
         "job_args": None,
@@ -688,7 +692,7 @@ def test_jobs_run_with_dependency_overrides(ocx, api_data, custom_mock_requests)
     with custom_mock_requests({f"POST::api/v1/jobs/{job_id}/run": run_callback}):
         job = ocx.Jobs.get(job_id)
         sample = ocx.Samples.get(sample_id)
-        job.run(
+        analysis = job.run(
             sample,
             dependency_overrides=[
                 DependencyOverride(analysis=dep_analysis, download_path="/results/out.txt"),
@@ -696,6 +700,8 @@ def test_jobs_run_with_dependency_overrides(ocx, api_data, custom_mock_requests)
             ],
         )
 
+    assert isinstance(analysis, onecodex.models.Analyses)
+    assert analysis.id == analysis_id
     assert captured["body"] == {
         "sample": sample_id,
         "job_args": None,
@@ -705,6 +711,37 @@ def test_jobs_run_with_dependency_overrides(ocx, api_data, custom_mock_requests)
             {"analysis": dep_analysis_id, "download_path": None},
         ],
     }
+
+
+def test_jobs_run_with_bare_analyses_dependencies(ocx, api_data, custom_mock_requests):
+    job_id = "47c4fe23588640a9"
+    sample_id = "7428cca4a3a04a8e"
+    analysis_id = "593601a797914cbf"
+    dep_analysis_id = "abc123def4567890"
+
+    dep_analysis = ocx.Analyses.get(dep_analysis_id)
+
+    captured = {}
+
+    def run_callback(request):
+        captured["body"] = json.loads(request.body)
+        return (
+            200,
+            {"Content-Type": "application/json"},
+            json.dumps({"$ref": f"/api/v1/analyses/{analysis_id}"}),
+        )
+
+    with custom_mock_requests({f"POST::api/v1/jobs/{job_id}/run": run_callback}):
+        job = ocx.Jobs.get(job_id)
+        sample = ocx.Samples.get(sample_id)
+        # Pass an Analyses directly — equivalent to DependencyOverride(analysis, None)
+        analysis = job.run(sample, dependency_overrides=[dep_analysis])
+
+    assert isinstance(analysis, onecodex.models.Analyses)
+    assert analysis.id == analysis_id
+    assert captured["body"]["dependencies"] == [
+        {"analysis": dep_analysis_id, "download_path": None},
+    ]
 
 
 def test_jobs_run_invalid_response(ocx, api_data, custom_mock_requests):
@@ -722,8 +759,6 @@ def test_jobs_run_invalid_response(ocx, api_data, custom_mock_requests):
 
 
 def test_jobs_run_http_error(ocx, api_data, custom_mock_requests):
-    import requests
-
     job_id = "47c4fe23588640a9"
     sample_id = "7428cca4a3a04a8e"
 
@@ -733,8 +768,26 @@ def test_jobs_run_http_error(ocx, api_data, custom_mock_requests):
     with custom_mock_requests({f"POST::api/v1/jobs/{job_id}/run": run_callback}):
         job = ocx.Jobs.get(job_id)
         sample = ocx.Samples.get(sample_id)
-        with pytest.raises(requests.HTTPError):
+        with pytest.raises(OneCodexException, match="boom"):
             job.run(sample, {})
+
+
+def test_jobs_run_invalid_arguments(ocx, api_data, custom_mock_requests):
+    job_id = "47c4fe23588640a9"
+    sample_id = "7428cca4a3a04a8e"
+
+    def run_callback(request):
+        return (
+            400,
+            {"Content-Type": "application/json"},
+            json.dumps({"message": "Invalid run parameters: min_quality must be an integer"}),
+        )
+
+    with custom_mock_requests({f"POST::api/v1/jobs/{job_id}/run": run_callback}):
+        job = ocx.Jobs.get(job_id)
+        sample = ocx.Samples.get(sample_id)
+        with pytest.raises(OneCodexException, match="min_quality must be an integer"):
+            job.run(sample, {"min_quality": "not-a-number"})
 
 
 def test_analyses_refresh(ocx, custom_mock_requests):

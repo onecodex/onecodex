@@ -79,25 +79,107 @@ class Jobs(OneCodexBase, JobSchema):
         self,
         sample: "Samples",
         job_args: dict[str, Any] | None = None,
-        dependency_overrides: list[DependencyOverride] | None = None,
+        dependency_overrides: "list[Analyses | DependencyOverride] | None" = None,
         populate_default_arguments: bool = True,
     ) -> "Analyses":
+        """Run this job against a sample and return the resulting analysis.
+
+        Parameters
+        ----------
+        sample : `Samples`
+            The sample to run this job against.
+        job_args : `dict`, optional
+            Job arguments, validated server-side against the job's
+            ``job_args_schema``. Values are coerced from strings per the schema
+            (e.g. an ``integer`` field accepts ``"20"``). Passing arguments that
+            do not match the schema raises `OneCodexException` with the
+            server's validation message.
+        dependency_overrides : `list[Analyses | DependencyOverride]`, optional
+            Override one or more of the job's declared dependencies with
+            existing analyses. Pass an `Analyses` directly to swap in the
+            parent run while keeping the job-declared (or default) output
+            path. Wrap in `DependencyOverride` only when you also need to set
+            a custom ``download_path``.
+        populate_default_arguments : `bool`, default True
+            If True, the server fills in defaults for any args not provided in
+            ``job_args``. Set False to require every arg to be supplied
+            explicitly.
+
+        Returns
+        -------
+        `Analyses`
+            The newly-created analysis. Note: if an analysis with identical
+            inputs already exists, the server may return the existing one
+            rather than starting a new run.
+
+        Raises
+        ------
+        OneCodexException
+            If the server rejects the request (e.g. invalid ``job_args``,
+            permission denied, or unknown sample/dependency). The exception
+            message contains the server's explanation.
+
+        Examples
+        --------
+        Basic usage::
+
+            job = ocx.Jobs.get("47c4fe23588640a9")
+            sample = ocx.Samples.get("7428cca4a3a04a8e")
+            analysis = job.run(sample)
+
+        With job arguments::
+
+            analysis = job.run(sample, {"min_quality": "20", "adapter": "AGATC"})
+
+        Inspect the job's argument schema first::
+
+            job.job_args_schema  # JSON schema describing accepted args
+
+        Override a dependency to reuse a prior analysis::
+
+            prior = ocx.Analyses.get("abc123def4567890")
+            analysis = job.run(sample, dependency_overrides=[prior])
+
+        Override with a custom output path::
+
+            from onecodex.models.misc import DependencyOverride
+
+            analysis = job.run(
+                sample,
+                dependency_overrides=[
+                    DependencyOverride(analysis=prior, download_path="results/parent.tsv"),
+                ],
+            )
+        """
         from onecodex.models.analysis import Analyses
 
         url = f"{self._api._base_url}{self._resource_path}/{self.id}/run"
-        payload: dict[str, str | dict | list | bool] = {
+        payload: dict[str, Any] = {
             "sample": sample.id,
             "job_args": job_args,
             "populate_default_arguments": populate_default_arguments,
         }
         if dependency_overrides:
+            normalized = [
+                dep
+                if isinstance(dep, DependencyOverride)
+                else DependencyOverride(analysis=dep, download_path=None)
+                for dep in dependency_overrides
+            ]
             payload["dependencies"] = [
                 {"analysis": dep.analysis.id, "download_path": dep.download_path}
-                for dep in dependency_overrides
+                for dep in normalized
             ]
 
         resp = self._client.post(url, json=payload)
-        resp.raise_for_status()
+        if not resp.ok:
+            try:
+                message = resp.json().get("message")
+            except ValueError:
+                message = None
+            raise OneCodexException(
+                message or f"Error running job {self.id}: HTTP {resp.status_code}"
+            )
         if "$ref" not in resp.json():
             raise OneCodexException(f"Invalid response when running job {self.id}")
 

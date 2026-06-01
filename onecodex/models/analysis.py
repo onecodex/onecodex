@@ -44,6 +44,7 @@ class _AnalysesBase(OneCodexBase):
     }
     sample: Union["Samples", ApiRef]  # noqa: F821
     job: Union["Jobs", ApiRef]  # noqa: F821
+    dependencies: Union[list["Analyses"], list[ApiRef]] = []  # noqa: F821
     error_msg: Optional[str] = None
 
     def __hash__(self) -> int:
