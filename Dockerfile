@@ -6,12 +6,8 @@ ENV UV_LINK_MODE=copy \
 
 WORKDIR /app
 
-# Dependency layer: install only third-party deps. A package stub lets us
-# resolve the project metadata without invalidating this layer on source edits.
 COPY pyproject.toml README.md ./
-RUN mkdir -p onecodex \
- && printf '__version__ = "0.0.0"\n' > onecodex/version.py \
- && touch onecodex/__init__.py
+
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install --system ".[all]"
 
