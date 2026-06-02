@@ -130,12 +130,14 @@ onecodex panels 0123456789abcdef 0987654321fdecba
 
 ### Awaiting an analysis
 
-To block until an analysis reaches a terminal state, use the `await` subcommand. Polling starts at a few seconds and backs off, so failures surface quickly while long-running jobs don't get hammered:
+To block until an analysis reaches a terminal state, use the `analyses await` subcommand. Polling starts at a few seconds and backs off, so failures surface quickly while long-running jobs don't get hammered:
 
 ```shell
-onecodex await 0123456789abcdef
-onecodex await 0123456789abcdef --timeout 600
+onecodex analyses await 0123456789abcdef
+onecodex analyses await 0123456789abcdef --timeout 600
 ```
+
+The top-level `onecodex await <analysis_id>` is kept as an alias for backward compatibility.
 
 The command exits non-zero if the analysis finishes unsuccessfully or times out.
 
@@ -203,7 +205,7 @@ The CLI exposes the same functionality:
 
 ```shell
 onecodex jobs run <job_id> <sample_id> -a min_quality=30
-onecodex await <analysis_id>
+onecodex analyses await <analysis_id>
 
 # Or block in a single step:
 onecodex jobs run <job_id> <sample_id> --arg min_quality=30 --await

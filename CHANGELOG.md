@@ -10,8 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `Analyses.await_completion()` blocks until an analysis reaches a terminal
   state using adaptive polling.
-- `onecodex await <analysis_id>` CLI command, with `--timeout`,
-  `--initial-interval`, and `--max-interval` options.
+- `onecodex analyses await <analysis_id>` CLI command, with `--timeout`,
+  `--initial-interval`, and `--max-interval` options. Also available as
+  `onecodex await <analysis_id>` for backward compatibility.
 
 ## [v1.0.2] - 2026-05-06
 
