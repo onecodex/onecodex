@@ -722,18 +722,16 @@ def test_jobs_run_invalid_response(ocx, api_data, custom_mock_requests):
 
 
 def test_jobs_run_http_error(ocx, api_data, custom_mock_requests):
-    import requests
-
     job_id = "47c4fe23588640a9"
     sample_id = "7428cca4a3a04a8e"
 
     def run_callback(request):
-        return (500, {"Content-Type": "application/json"}, json.dumps({"message": "boom"}))
+        return (400, {"Content-Type": "application/json"}, json.dumps({"message": "bad arg foo"}))
 
     with custom_mock_requests({f"POST::api/v1/jobs/{job_id}/run": run_callback}):
         job = ocx.Jobs.get(job_id)
         sample = ocx.Samples.get(sample_id)
-        with pytest.raises(requests.HTTPError):
+        with pytest.raises(OneCodexException, match="bad arg foo"):
             job.run(sample, {})
 
 
