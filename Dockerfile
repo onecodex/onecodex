@@ -16,13 +16,6 @@ RUN rm -rf onecodex
 COPY onecodex/ ./onecodex/
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install --system --no-deps --force-reinstall .
-
-# Trim test suites and bytecode caches shipped inside wheels. Avoid name=test
-# or name=testing — both collide with real modules (e.g. numpy.testing).
-RUN find /usr/local/lib/python3.11/site-packages -depth -type d \
-        \( -name tests -o -name __pycache__ \) \
-        -exec rm -rf {} +
-
 FROM python:3.11-slim-bookworm
 
 RUN groupadd --system --gid 65532 nonroot \
