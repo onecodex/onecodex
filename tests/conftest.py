@@ -592,6 +592,13 @@ def custom_mock_requests():
     yield mock_requests
 
 
+@pytest.fixture(autouse=True)
+def _mask_credentials_env(monkeypatch):
+    """Mask developer-set credentials so tests never accidentally use real auth."""
+    monkeypatch.delenv("ONE_CODEX_API_KEY", raising=False)
+    monkeypatch.delenv("ONE_CODEX_BEARER_TOKEN", raising=False)
+
+
 @pytest.fixture(scope="function")
 def runner():
     runner = CliRunner(
