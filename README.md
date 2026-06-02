@@ -204,6 +204,9 @@ The CLI exposes the same functionality:
 ```shell
 onecodex jobs run <job_id> <sample_id> -a min_quality=30
 onecodex await <analysis_id>
+
+# Or block in a single step:
+onecodex jobs run <job_id> <sample_id> --arg min_quality=30 --await
 ```
 
 For long-running analyses, `await_completion()` polls until the analysis reaches a terminal state (`complete=True`). The cadence backs off over time, so failures surface in seconds while longer jobs poll on the order of minutes:

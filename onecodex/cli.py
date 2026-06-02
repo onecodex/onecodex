@@ -736,11 +736,26 @@ def jobs_group():
     default=True,
     help="Populate job arguments with their defaults on the server (default: enabled).",
 )
+@click.option(
+    "--await",
+    "await_completion",
+    is_flag=True,
+    default=False,
+    help="Block until the new analysis reaches a terminal state.",
+)
 @click.pass_context
 @pretty_errors
 @telemetry
 @login_required
-def jobs_run(ctx, job_id, sample_id, args, dependency_overrides, populate_default_arguments):
+def jobs_run(
+    ctx,
+    job_id,
+    sample_id,
+    args,
+    dependency_overrides,
+    populate_default_arguments,
+    await_completion,
+):
     """Run a OneCodex job with optional arguments."""
     from onecodex.models.misc import DependencyOverride
 
@@ -776,4 +791,12 @@ def jobs_run(ctx, job_id, sample_id, args, dependency_overrides, populate_defaul
         populate_default_arguments=populate_default_arguments,
     )
     click.echo(f"Job run created successfully. New analysis ID: {run.id}")
-    click.echo(f"Get its status using `onecodex analyses {run.id}`", err=True)
+    if await_completion:
+        run.await_completion()
+        click.echo(f"Analysis {run.id} complete (success={run.success}).")
+        if run.error_msg:
+            click.echo(f"Error: {run.error_msg}", err=True)
+        if run.success is False:
+            ctx.exit(1)
+    else:
+        click.echo(f"Get its status using `onecodex analyses {run.id}`", err=True)
