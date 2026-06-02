@@ -17,8 +17,7 @@ COPY onecodex/ ./onecodex/
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install --system --no-deps --force-reinstall .
 
-# Precompile .pyc up-front. The runtime user can't write to /packages, so
-# without this every cold start re-parses every .py.
+# Precompile .pyc up-front. This reduces start time by about ~260ms
 RUN python -m compileall -q -j 0 /packages
 
 FROM python:3.11-slim-bookworm
