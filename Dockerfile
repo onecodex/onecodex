@@ -5,17 +5,10 @@ ENV UV_LINK_MODE=copy \
     UV_NO_INSTALLER_METADATA=1
 
 WORKDIR /app
-
-COPY pyproject.toml README.md ./
+COPY . .
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install --system ".[all]"
-
-# Source layer: install just the project on top of the cached deps.
-RUN rm -rf onecodex
-COPY onecodex/ ./onecodex/
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install --system --no-deps --force-reinstall .
 
 # Precompile .pyc up-front. This reduces start time by about ~260ms
 RUN python -m compileall -q -j 0 /packages
