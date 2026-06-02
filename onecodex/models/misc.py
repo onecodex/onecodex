@@ -97,7 +97,20 @@ class Jobs(OneCodexBase, JobSchema):
             ]
 
         resp = self._client.post(url, json=payload)
-        resp.raise_for_status()
+        if not resp.ok:
+            try:
+                body = resp.json()
+            except ValueError:
+                body = None
+            detail = None
+            if isinstance(body, dict):
+                detail = body.get("message") or body.get("msg")
+            if not detail:
+                detail = (resp.text or "").strip() or None
+            msg = f"Job run failed ({resp.status_code})"
+            if detail:
+                msg = f"{msg}: {detail}"
+            raise OneCodexException(msg)
         if "$ref" not in resp.json():
             raise OneCodexException(f"Invalid response when running job {self.id}")
 
