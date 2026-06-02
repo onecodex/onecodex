@@ -10,9 +10,6 @@ COPY . .
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install --system ".[all]"
 
-# Precompile .pyc up-front. This reduces start time by about ~260ms
-RUN python -m compileall -q -j 0 /packages
-
 FROM python:3.11-slim-bookworm
 
 RUN groupadd --system --gid 65532 nonroot \
