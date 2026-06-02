@@ -341,6 +341,54 @@ def analyses(ctx, analyses):
     cli_resource_fetcher(ctx, "analyses", analyses)
 
 
+@onecodex.command("await")
+@click.argument("analysis_id", nargs=1, required=True)
+@click.option(
+    "--timeout",
+    type=float,
+    default=None,
+    help="Maximum number of seconds to wait. Waits indefinitely if not set.",
+)
+@click.option(
+    "--initial-interval",
+    type=float,
+    default=3.0,
+    show_default=True,
+    help="Seconds between the first polls.",
+)
+@click.option(
+    "--max-interval",
+    type=float,
+    default=120.0,
+    show_default=True,
+    help="Upper bound on the polling interval after backoff.",
+)
+@click.pass_context
+@pretty_errors
+@telemetry
+@login_required
+def analyses_await(ctx, analysis_id, timeout, initial_interval, max_interval):
+    """Poll an analysis until it reaches a terminal state."""
+    analysis = ctx.obj["API"].Analyses.get(analysis_id)
+    if not analysis:
+        raise click.ClickException(f"Could not find analysis {analysis_id} (404 status code)")
+
+    try:
+        analysis.await_completion(
+            timeout=timeout,
+            initial_interval=initial_interval,
+            max_interval=max_interval,
+        )
+    except TimeoutError as exc:
+        raise click.ClickException(str(exc))
+
+    click.echo(f"Analysis {analysis.id} complete (success={analysis.success}).")
+    if analysis.error_msg:
+        click.echo(f"Error: {analysis.error_msg}", err=True)
+    if analysis.success is False:
+        ctx.exit(1)
+
+
 @onecodex.command("classifications")
 @click.option("--read-level", "readlevel", is_flag=True, help=OPTION_HELP["readlevel"])
 @click.option(

@@ -1,3 +1,4 @@
+import json
 import os
 import os.path
 
@@ -63,6 +64,38 @@ def test_analyses(runner, api_data, mocked_creds_file):
     assert r1.exit_code == 0
     assert API_DATA["GET::api/v1/analyses/593601a797914cbf"]["$uri"] in r0.output
     assert API_DATA["GET::api/v1/analyses/593601a797914cbf"]["$uri"] in r1.output
+
+
+def test_analyses_await(runner, custom_mock_requests, mocked_creds_file, monkeypatch):
+    analysis_id = "593601a797914cbf"
+    base_payload = {
+        "$uri": f"/api/v1/analyses/{analysis_id}",
+        "analysis_type": "classification",
+        "created_at": "2015-09-25T17:27:30.622286-07:00",
+        "job": {"$ref": "/api/v1/jobs/e4b1ab37ff554c53"},
+        "sample": {"$ref": "/api/v1/samples/7428cca4a3a04a8e"},
+        "cost": None,
+        "dependencies": [],
+        "draft": False,
+        "job_args": {},
+    }
+    bodies = [
+        {**base_payload, "complete": False, "success": False, "error_msg": None},
+        {**base_payload, "complete": False, "success": False, "error_msg": None},
+        {**base_payload, "complete": True, "success": True, "error_msg": None},
+    ]
+
+    def get_callback(request):
+        body = bodies.pop(0)
+        return (200, {"Content-Type": "application/json"}, json.dumps(body))
+
+    with custom_mock_requests({f"GET::api/v1/analyses/{analysis_id}": get_callback}):
+        with mock.patch("onecodex.models.analysis.time.sleep"):
+            result = runner.invoke(Cli, ["await", analysis_id, "--initial-interval", "0.01"])
+
+    assert result.exit_code == 0, result.output
+    assert f"Analysis {analysis_id} complete" in result.output
+    assert "success=True" in result.output
 
 
 # Classifications

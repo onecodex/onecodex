@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os.path
+import time
 from functools import lru_cache
 from typing import IO, TYPE_CHECKING, List, Optional, Union
 
@@ -55,6 +56,73 @@ class _AnalysesBase(OneCodexBase):
         if not isinstance(other, _AnalysesBase):
             return NotImplemented
         return self.id == other.id
+
+    def refresh(self) -> None:
+        """Fetch the current state from the API and update this object's state fields in-place."""
+        resp = self._client.get(f"{self._api._base_url}{self._resource_path}/{self.id}?expand=all")
+        resp.raise_for_status()
+        new_obj = self.__class__.model_validate(resp.json())
+        for field, value in new_obj:
+            setattr(self, field, value)
+        self._snapshot = self._object_snapshot()
+
+    def await_completion(
+        self,
+        timeout: Optional[float] = None,
+        initial_interval: float = 3.0,
+        max_interval: float = 120.0,
+        backoff: float = 1.5,
+    ) -> "_AnalysesBase":
+        """Poll the API until the analysis reaches a terminal state.
+
+        An analysis is considered terminal when ``complete`` is True. The method refreshes
+        ``self`` in place and returns it.
+
+        Parameters
+        ----------
+        timeout : float, optional
+            Maximum number of seconds to wait. ``None`` (default) waits indefinitely.
+        initial_interval : float, optional
+            Seconds to wait between the first polls. Defaults to 3 seconds so failures
+            surface quickly.
+        max_interval : float, optional
+            Upper bound on the polling interval as it backs off. Defaults to 120 seconds.
+        backoff : float, optional
+            Multiplier applied to the interval after each poll. Defaults to 1.5.
+
+        Returns
+        -------
+        self : the analysis, refreshed to its terminal state.
+
+        Raises
+        ------
+        TimeoutError
+            If ``timeout`` elapses before the analysis completes.
+        """
+        if initial_interval <= 0 or max_interval <= 0:
+            raise ValueError("Polling intervals must be positive.")
+        if backoff < 1:
+            raise ValueError("backoff must be >= 1.")
+
+        deadline = None if timeout is None else time.monotonic() + timeout
+        interval = initial_interval
+
+        self.refresh()
+        while not self.complete:
+            if deadline is not None:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise TimeoutError(
+                        f"Analysis {self.id} did not complete within {timeout} seconds."
+                    )
+                sleep_for = min(interval, remaining)
+            else:
+                sleep_for = interval
+            time.sleep(sleep_for)
+            interval = min(interval * backoff, max_interval)
+            self.refresh()
+
+        return self
 
     def results(self, json: bool = True):
         """Fetch the results of an Analyses resource.
@@ -207,16 +275,6 @@ class _AnalysesBase(OneCodexBase):
 
 class Analyses(_AnalysesBase, AnalysisSchema):
     _resource_path = "/api/v1/analyses"
-
-    # Consider putting this in OneCodexBase
-    def refresh(self) -> None:
-        """Fetch the current state from the API and update this object's state fields in-place."""
-        resp = self._client.get(f"{self._api._base_url}{self._resource_path}/{self.id}?expand=all")
-        resp.raise_for_status()
-        new_obj = self.__class__.model_validate(resp.json())
-        for field, value in new_obj:
-            setattr(self, field, value)
-        self._snapshot = self._object_snapshot()
 
 
 class Alignments(_AnalysesBase, AlignmentSchema):
