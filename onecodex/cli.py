@@ -345,29 +345,34 @@ def analyses(ctx, analyses):
 @click.argument("analysis_id", nargs=1, required=True)
 @click.option(
     "--timeout",
+    "timeout_seconds",
     type=float,
     default=None,
     help="Maximum number of seconds to wait. Waits indefinitely if not set.",
 )
 @click.option(
     "--initial-interval",
-    type=float,
-    default=3.0,
+    "initial_interval_seconds",
+    type=click.IntRange(min=5),
+    default=5,
     show_default=True,
-    help="Seconds between the first polls.",
+    help="Seconds between the first polls (minimum 5).",
 )
 @click.option(
     "--max-interval",
-    type=float,
-    default=120.0,
+    "max_interval_seconds",
+    type=click.IntRange(min=5),
+    default=120,
     show_default=True,
-    help="Upper bound on the polling interval after backoff.",
+    help="Upper bound (in seconds) on the polling interval after backoff (minimum 5).",
 )
 @click.pass_context
 @pretty_errors
 @telemetry
 @login_required
-def analyses_await(ctx, analysis_id, timeout, initial_interval, max_interval):
+def analyses_await(
+    ctx, analysis_id, timeout_seconds, initial_interval_seconds, max_interval_seconds
+):
     """Poll an analysis until it reaches a terminal state."""
     analysis = ctx.obj["API"].Analyses.get(analysis_id)
     if not analysis:
@@ -375,9 +380,9 @@ def analyses_await(ctx, analysis_id, timeout, initial_interval, max_interval):
 
     try:
         analysis.await_completion(
-            timeout=timeout,
-            initial_interval=initial_interval,
-            max_interval=max_interval,
+            timeout=timeout_seconds,
+            initial_interval=initial_interval_seconds,
+            max_interval=max_interval_seconds,
         )
     except TimeoutError as exc:
         raise click.ClickException(str(exc))

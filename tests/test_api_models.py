@@ -839,7 +839,7 @@ def test_analyses_await_completion(ocx, custom_mock_requests):
     with custom_mock_requests({f"GET::api/v1/analyses/{analysis_id}": get_callback}):
         with mock.patch("onecodex.models.analysis.time.sleep", side_effect=sleeps.append):
             analysis = ocx.Analyses.get(analysis_id)
-            result = analysis.await_completion(initial_interval=1.0, backoff=2.0, max_interval=4.0)
+            result = analysis.await_completion(initial_interval=5, backoff=2.0, max_interval=20)
 
     assert result is analysis
     assert analysis.complete is True
@@ -847,7 +847,7 @@ def test_analyses_await_completion(ocx, custom_mock_requests):
     assert bodies == []
     # Analyses.get consumes body 1; await_completion's refresh loop consumes bodies 2-4
     # (incomplete, incomplete, complete) with one sleep after each non-terminal response.
-    assert sleeps == [1.0, 2.0]
+    assert sleeps == [5, 10]
 
 
 def test_analyses_await_completion_timeout(ocx, custom_mock_requests):
@@ -883,7 +883,7 @@ def test_analyses_await_completion_timeout(ocx, custom_mock_requests):
             with mock.patch("onecodex.models.analysis.time.sleep", side_effect=fake_sleep):
                 analysis = ocx.Analyses.get(analysis_id)
                 with pytest.raises(TimeoutError):
-                    analysis.await_completion(timeout=5.0, initial_interval=1.0, backoff=1.0)
+                    analysis.await_completion(timeout=10.0, initial_interval=5, backoff=1.0)
 
 
 def test_sample_preupload(ocx, upload_mocks, api_data):

@@ -91,7 +91,7 @@ def test_analyses_await(runner, custom_mock_requests, mocked_creds_file, monkeyp
 
     with custom_mock_requests({f"GET::api/v1/analyses/{analysis_id}": get_callback}):
         with mock.patch("onecodex.models.analysis.time.sleep"):
-            result = runner.invoke(Cli, ["await", analysis_id, "--initial-interval", "0.01"])
+            result = runner.invoke(Cli, ["await", analysis_id, "--initial-interval", "5"])
 
     assert result.exit_code == 0, result.output
     assert f"Analysis {analysis_id} complete" in result.output

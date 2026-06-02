@@ -3,7 +3,7 @@ from __future__ import annotations
 import os.path
 import time
 from functools import lru_cache
-from typing import IO, TYPE_CHECKING, List, Optional, Union
+from typing import IO, TYPE_CHECKING, ClassVar, List, Optional, Union
 
 import click
 import requests
@@ -66,11 +66,13 @@ class _AnalysesBase(OneCodexBase):
             setattr(self, field, value)
         self._snapshot = self._object_snapshot()
 
+    MIN_POLL_INTERVAL_SECONDS: ClassVar[int] = 5
+
     def await_completion(
         self,
         timeout: Optional[float] = None,
-        initial_interval: float = 3.0,
-        max_interval: float = 120.0,
+        initial_interval: int = 5,
+        max_interval: int = 120,
         backoff: float = 1.5,
     ) -> "_AnalysesBase":
         """Poll the API until the analysis reaches a terminal state.
@@ -82,11 +84,12 @@ class _AnalysesBase(OneCodexBase):
         ----------
         timeout : float, optional
             Maximum number of seconds to wait. ``None`` (default) waits indefinitely.
-        initial_interval : float, optional
-            Seconds to wait between the first polls. Defaults to 3 seconds so failures
-            surface quickly.
-        max_interval : float, optional
-            Upper bound on the polling interval as it backs off. Defaults to 120 seconds.
+        initial_interval : int, optional
+            Seconds to wait between the first polls. Must be at least
+            ``MIN_POLL_INTERVAL_SECONDS`` (5). Defaults to 5.
+        max_interval : int, optional
+            Upper bound on the polling interval as it backs off. Must be at least
+            ``MIN_POLL_INTERVAL_SECONDS`` (5). Defaults to 120 seconds.
         backoff : float, optional
             Multiplier applied to the interval after each poll. Defaults to 1.5.
 
@@ -99,8 +102,13 @@ class _AnalysesBase(OneCodexBase):
         TimeoutError
             If ``timeout`` elapses before the analysis completes.
         """
-        if initial_interval <= 0 or max_interval <= 0:
-            raise ValueError("Polling intervals must be positive.")
+        if (
+            initial_interval < self.MIN_POLL_INTERVAL_SECONDS
+            or max_interval < self.MIN_POLL_INTERVAL_SECONDS
+        ):
+            raise ValueError(
+                f"Polling intervals must be >= {self.MIN_POLL_INTERVAL_SECONDS} seconds."
+            )
         if backoff < 1:
             raise ValueError("backoff must be >= 1.")
 
