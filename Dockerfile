@@ -5,27 +5,10 @@ ENV UV_LINK_MODE=copy \
     UV_NO_INSTALLER_METADATA=1
 
 WORKDIR /app
+COPY . .
 
-# Dependency layer: install only third-party deps. A package stub lets us
-# resolve the project metadata without invalidating this layer on source edits.
-COPY pyproject.toml README.md ./
-RUN mkdir -p onecodex \
- && printf '__version__ = "0.0.0"\n' > onecodex/version.py \
- && touch onecodex/__init__.py
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install --system ".[all]"
-
-# Source layer: install just the project on top of the cached deps.
-RUN rm -rf onecodex
-COPY onecodex/ ./onecodex/
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install --system --no-deps --force-reinstall .
-
-# Trim test suites and bytecode caches shipped inside wheels. Avoid name=test
-# or name=testing — both collide with real modules (e.g. numpy.testing).
-RUN find /usr/local/lib/python3.11/site-packages -depth -type d \
-        \( -name tests -o -name __pycache__ \) \
-        -exec rm -rf {} +
 
 FROM python:3.11-slim-bookworm
 
