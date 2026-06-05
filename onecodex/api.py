@@ -110,6 +110,7 @@ class Api(object):
         telemetry=None,
         schema_path="/api/v1/schema",
         load_extensions=True,
+        cache_results: bool | str = False,
         **kwargs,
     ):
         if base_url is None:
@@ -182,6 +183,17 @@ class Api(object):
             headers["X-OneCodex-Api-Experimental"] = "1"
 
         self._client = HTTPClient(auth=auth, headers=headers)
+
+        env_cache = os.environ.get("ONECODEX_DISK_CACHE")
+        if cache_results is False and env_cache:
+            cache_results = env_cache
+        if cache_results:
+            from onecodex.cache import DiskCache
+
+            self._cache = DiskCache(path=cache_results if isinstance(cache_results, str) else None)
+        else:
+            self._cache = None
+
         self._copy_resources()
 
         # Optionally configure custom One Codex altair theme and renderer

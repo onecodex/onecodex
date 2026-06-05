@@ -7,6 +7,7 @@ from typing import IO, TYPE_CHECKING, List, Optional, Union
 import click
 import requests
 
+from onecodex.cache import disk_cached
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.enums import FunctionalAnnotations, FunctionalAnnotationsMetric
 from onecodex.models.base import ApiRef, OneCodexBase
@@ -74,6 +75,7 @@ class _AnalysesBase(OneCodexBase):
         else:
             raise NotImplementedError("No non-JSON result format implemented.")
 
+    @disk_cached
     @lru_cache
     def _results(self):
         resp = self._client.get(f"{self._api._base_url}{self.field_uri}/results")
@@ -235,6 +237,7 @@ class Classifications(_AnalysesBase, ClassificationSchema):
 
         return get_requests_session()
 
+    @disk_cached
     @lru_cache
     def _results(self):
         # results_uri is a pre-signed URL included in the API response; it's None when the
@@ -332,6 +335,7 @@ class Classifications(_AnalysesBase, ClassificationSchema):
 class FunctionalProfiles(_AnalysesBase, FunctionalRunSchema):
     _resource_path = "/api/v1/functional_profiles"
 
+    @disk_cached
     def _filtered_results(
         self,
         annotation: FunctionalAnnotations,
