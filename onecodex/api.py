@@ -51,9 +51,53 @@ class HTTPClient:
 
 
 class Api(object):
-    """One Codex Base API object class.
+    """Entry point to the One Codex API.
 
-    Instantiates a Potion-Client object under the hood for making requests.
+    Instantiating `Api()` wires up authentication, attaches every model class
+    (`Samples`, `Classifications`, `FunctionalProfiles`, ...) to this client, and
+    optionally configures a disk cache for analysis results.
+
+    Authentication is resolved in this order, stopping at the first match:
+        1. `api_key` / `bearer_token` passed explicitly.
+        2. `~/.onecodex` credentials file (written by `onecodex login`).
+        3. `ONE_CODEX_API_KEY` / `ONE_CODEX_BEARER_TOKEN` env vars.
+
+    Most users want the default::
+
+        from onecodex import Api
+        ocx = Api()
+        sample = ocx.Samples.get("...")
+
+    Parameters
+    ----------
+    api_key : str, optional
+        API key for HTTP basic auth. Falls back to creds file / env var.
+    bearer_token : str, optional
+        Bearer token. Preferred over `api_key` when both are available.
+    base_url : str, optional
+        API base URL. Defaults to `https://app.onecodex.com`, overridable via
+        the `ONE_CODEX_API_BASE` env var.
+    telemetry : bool, optional
+        Enable Sentry telemetry. Defaults to off unless `ONE_CODEX_AUTO_TELEMETRY`
+        is set.
+    schema_path : str, optional
+        Path to the API schema endpoint.
+    load_extensions : bool, optional
+        If True (default), install the One Codex Altair theme/renderer.
+    cache_results : bool or str, optional
+        Opt-in disk cache for analysis `.results()` / `.table()` fetches across
+        processes — useful when the same analysis is fetched repeatedly across sessions.
+        Defaults to False (no cache).
+
+        - `False` (default): no caching.
+        - `True`: cache under the system tempdir (per-user, ephemeral — the OS
+          reclaims it on its own schedule, so disk fill isn't a concern).
+        - `str`: an explicit path. Use this when you want the cache to persist
+          across reboots / sandbox runs. You manage the disk budget.
+
+        The `ONECODEX_DISK_CACHE` env var sets a path when `cache_results` is
+        left at the default. See `onecodex.cache.DiskCache` for the on-disk
+        format and freshness semantics.
     """
 
     # Because models are added dynamically at runtime, static analysis tools will not know about
@@ -104,12 +148,12 @@ class Api(object):
 
     def __init__(
         self,
-        api_key=None,
-        bearer_token=None,
-        base_url=None,
-        telemetry=None,
-        schema_path="/api/v1/schema",
-        load_extensions=True,
+        api_key: str | None = None,
+        bearer_token: str | None = None,
+        base_url: str | None = None,
+        telemetry: None | bool = None,
+        schema_path: str = "/api/v1/schema",
+        load_extensions: bool = True,
         cache_results: bool | str = False,
         **kwargs,
     ):
