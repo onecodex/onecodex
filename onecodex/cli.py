@@ -862,8 +862,8 @@ def jobs_run(
 JOB_TYPE_CHOICES = ["shell_script", "nextflow"]
 
 
-def _parse_dependency_specs(deps):
-    pairs = []
+def _parse_dependency_specs(deps: tuple[str, ...]) -> list[tuple[str, str]]:
+    pairs: list[tuple[str, str]] = []
     for dep in deps:
         job_id, sep, output_dir = dep.partition("=")
         if not sep or not job_id or not output_dir:
@@ -875,21 +875,7 @@ def _parse_dependency_specs(deps):
     return pairs
 
 
-def _read_arguments_schema(path):
-    if path is None:
-        return None
-    with open(path) as f:
-        return json.load(f)
-
-
-def _read_script(path):
-    if path is None:
-        return None
-    with open(path) as f:
-        return f.read()
-
-
-def _build_repository(url, tag):
+def _build_repository(url: str | None, tag: str | None) -> dict[str, str | None] | None:
     if url is None and tag is None:
         return None
     if url is None:
@@ -927,9 +913,11 @@ def _job_kwargs_from_options(
         if dependencies
         else None
     )
+    script = open(script_path).read() if script_path else None
+    arguments_schema = json.load(open(arguments_schema_path)) if arguments_schema_path else None
     payload = {
         "name": name,
-        "script": _read_script(script_path),
+        "script": script,
         "image_uri": image_uri,
         "job_type": job_type,
         "description": description,
@@ -940,7 +928,7 @@ def _job_kwargs_from_options(
         "repository": _build_repository(repository_url, repository_tag),
         "assets": asset_objs,
         "dependencies": dep_objs,
-        "arguments_schema": _read_arguments_schema(arguments_schema_path),
+        "arguments_schema": arguments_schema,
         "autorun_on_org_sample_upload": autorun_on_org_sample_upload,
     }
     return {k: v for k, v in payload.items() if v is not None}
@@ -994,6 +982,12 @@ _JOB_OPTIONS_COMMON = [
 
 
 def _apply_options(options):
+    """Apply a shared list of click.option() decorators to a command.
+
+    Reverses the list so help-text order matches the list's declaration order
+    (Click stacks decorators bottom-up).
+    """
+
     def decorator(func):
         for option in reversed(options):
             func = option(func)
