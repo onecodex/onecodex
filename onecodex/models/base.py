@@ -428,6 +428,10 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
         else:
             payload = kwargs
         resp = cls._client.post(f"{cls._api._base_url}{cls._resource_path}", json=payload)
+        if not resp.ok:
+            raise OneCodexException(
+                resp.json().get("message", f"Unknown error creating {cls.__name__}")
+            )
         return cls.model_validate(resp.json())
 
     def update(self, **kwargs):
@@ -454,7 +458,7 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
             json=patch_set.model_dump(exclude_unset=True, by_alias=True),
         )
         # TODO: Nicely format Pydantic error messages here
-        if resp.status_code >= 400:
+        if not resp.ok:
             raise OneCodexException(resp.json().get("message", f"Unknown error updating {self}"))
 
         # Finally, we update the model in-place with the validated server-side response.
