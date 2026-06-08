@@ -722,18 +722,16 @@ def test_jobs_run_invalid_response(ocx, api_data, custom_mock_requests):
 
 
 def test_jobs_run_http_error(ocx, api_data, custom_mock_requests):
-    import requests
-
     job_id = "47c4fe23588640a9"
     sample_id = "7428cca4a3a04a8e"
 
     def run_callback(request):
-        return (500, {"Content-Type": "application/json"}, json.dumps({"message": "boom"}))
+        return (400, {"Content-Type": "application/json"}, json.dumps({"message": "bad arg foo"}))
 
     with custom_mock_requests({f"POST::api/v1/jobs/{job_id}/run": run_callback}):
         job = ocx.Jobs.get(job_id)
         sample = ocx.Samples.get(sample_id)
-        with pytest.raises(requests.HTTPError):
+        with pytest.raises(OneCodexException, match="bad arg foo"):
             job.run(sample, {})
 
 
@@ -808,6 +806,82 @@ def test_analyses_refresh_http_error(ocx, custom_mock_requests):
             analysis.refresh()
         assert analysis.complete is False
         assert analysis.success is False
+
+
+def test_analyses_await_completion(ocx, custom_mock_requests):
+    analysis_id = "593601a797914cbf"
+    base_payload = {
+        "$uri": f"/api/v1/analyses/{analysis_id}",
+        "analysis_type": "classification",
+        "created_at": "2015-09-25T17:27:30.622286-07:00",
+        "job": {"$ref": "/api/v1/jobs/e4b1ab37ff554c53"},
+        "sample": {"$ref": "/api/v1/samples/7428cca4a3a04a8e"},
+        "cost": None,
+        "dependencies": [],
+        "draft": False,
+        "job_args": {},
+    }
+    bodies = [
+        {**base_payload, "complete": False, "success": False, "error_msg": None},
+        {**base_payload, "complete": False, "success": False, "error_msg": None},
+        {**base_payload, "complete": False, "success": False, "error_msg": None},
+        {**base_payload, "complete": True, "success": True, "error_msg": None},
+    ]
+
+    def get_callback(request):
+        body = bodies.pop(0)
+        return (200, {"Content-Type": "application/json"}, json.dumps(body))
+
+    sleeps = []
+
+    with custom_mock_requests({f"GET::api/v1/analyses/{analysis_id}": get_callback}):
+        with mock.patch("onecodex.models.analysis.time.sleep", side_effect=sleeps.append):
+            analysis = ocx.Analyses.get(analysis_id)
+            result = analysis.await_completion(initial_interval=5, backoff=2.0, max_interval=20)
+
+    assert result is analysis
+    assert analysis.complete is True
+    assert analysis.success is True
+    assert bodies == []
+    # Analyses.get consumes body 1; await_completion's refresh loop consumes bodies 2-4
+    # (incomplete, incomplete, complete) with one sleep after each non-terminal response.
+    assert sleeps == [5, 10]
+
+
+def test_analyses_await_completion_timeout(ocx, custom_mock_requests):
+    analysis_id = "593601a797914cbf"
+    payload = {
+        "$uri": f"/api/v1/analyses/{analysis_id}",
+        "analysis_type": "classification",
+        "created_at": "2015-09-25T17:27:30.622286-07:00",
+        "complete": False,
+        "success": False,
+        "error_msg": None,
+        "job": {"$ref": "/api/v1/jobs/e4b1ab37ff554c53"},
+        "sample": {"$ref": "/api/v1/samples/7428cca4a3a04a8e"},
+        "cost": None,
+        "dependencies": [],
+        "draft": False,
+        "job_args": {},
+    }
+
+    def get_callback(request):
+        return (200, {"Content-Type": "application/json"}, json.dumps(payload))
+
+    fake_now = [0.0]
+
+    def fake_monotonic():
+        return fake_now[0]
+
+    def fake_sleep(seconds):
+        fake_now[0] += seconds
+
+    with custom_mock_requests({f"GET::api/v1/analyses/{analysis_id}": get_callback}):
+        with mock.patch("onecodex.models.analysis.time.monotonic", side_effect=fake_monotonic):
+            with mock.patch("onecodex.models.analysis.time.sleep", side_effect=fake_sleep):
+                analysis = ocx.Analyses.get(analysis_id)
+                with pytest.raises(TimeoutError):
+                    analysis.await_completion(timeout=10.0, initial_interval=5, backoff=1.0)
 
 
 def test_sample_preupload(ocx, upload_mocks, api_data):

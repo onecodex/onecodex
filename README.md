@@ -128,6 +128,19 @@ onecodex samples
 onecodex panels 0123456789abcdef 0987654321fdecba
 ```
 
+### Awaiting an analysis
+
+To block until an analysis reaches a terminal state, use the `analyses await` subcommand. Polling starts at a few seconds and backs off, so failures surface quickly while long-running jobs don't get hammered:
+
+```shell
+onecodex analyses await 0123456789abcdef
+onecodex analyses await 0123456789abcdef --timeout 600
+```
+
+The top-level `onecodex await <analysis_id>` is kept as an alias for backward compatibility.
+
+The command exits non-zero if the analysis finishes unsuccessfully or times out.
+
 # Using the Python client library
 
 ## Initialization
@@ -157,6 +170,56 @@ sample_analysis = ocx.Classifications.get("1d9491c5c31345b6")   # Fetch an indiv
 sample_analysis.results()  # Returns classification results as JSON object
 sample_analysis.table()    # Returns a pandas dataframe
 ```
+
+## Running Workflows
+
+You can launch a job (workflow) against an uploaded sample directly from the Python client. `Jobs.run()` returns the freshly-created `Analyses` instance, which you can then poll for completion.
+
+```python
+job = ocx.Jobs.get("0123456789abcdef")     # or look up by name with .where()
+sample = ocx.Samples.get("fedcba9876543210")
+
+analysis = job.run(sample, job_args={"min_quality": 30})
+analysis.await_completion()                # block until the job finishes
+
+if analysis.success:
+    results = analysis.results()
+else:
+    print(f"Job failed: {analysis.error_msg}")
+```
+
+To re-use the output of a previous run as an input to a new one, pass `dependency_overrides`:
+
+```python
+from onecodex.models.misc import DependencyOverride
+
+prior = ocx.Analyses.get("abcdef0123456789")
+analysis = job.run(
+    sample,
+    job_args={"k": 31},
+    dependency_overrides=[DependencyOverride(analysis=prior)],
+)
+```
+
+The CLI exposes the same functionality:
+
+```shell
+onecodex jobs run <job_id> <sample_id> -a min_quality=30
+onecodex analyses await <analysis_id>
+
+# Or block in a single step:
+onecodex jobs run <job_id> <sample_id> --arg min_quality=30 --await
+```
+
+For long-running analyses, `await_completion()` polls until the analysis reaches a terminal state (`complete=True`). The cadence backs off over time, so failures surface in seconds while longer jobs poll on the order of minutes:
+
+```python
+analysis = ocx.Analyses.get("0123456789abcdef")
+analysis.await_completion()                # block indefinitely
+analysis.await_completion(timeout=600)     # raise TimeoutError after 10 minutes
+```
+
+The method refreshes `analysis` in place and returns it; check `analysis.success` to see whether it finished cleanly. `analysis.refresh()` is also available if you just need to re-fetch the current state without blocking.
 
 In addition to methods on individual instances of a given resource (e.g., a `Sample` or an `Analysis`), the library also provides methods for aggregating sets of samples or analyses:
 

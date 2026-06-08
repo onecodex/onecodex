@@ -331,14 +331,97 @@ assets.add_command(assets_list, "list")
 
 
 # resources
-@onecodex.command("analyses")
+class _AnalysesGroup(click.Group):
+    """Group that preserves ``analyses [ID]...`` while still dispatching subcommands.
+
+    Click's variadic ``nargs=-1`` argument on a group would otherwise eat the subcommand
+    name. We split args manually: if any arg matches a registered subcommand, dispatch to
+    it; otherwise treat the full arg list as analysis IDs for the group callback.
+    """
+
+    def parse_args(self, ctx, args):
+        for i, a in enumerate(args):
+            if a in self.commands:
+                # Temporarily strip the variadic Argument so MultiCommand's normal
+                # subcommand dispatch works; supply the captured IDs ourselves.
+                ids = tuple(args[:i])
+                variadic = [p for p in self.params if getattr(p, "name", None) == "analyses"]
+                self.params = [p for p in self.params if p not in variadic]
+                try:
+                    rest = super().parse_args(ctx, args[i:])
+                finally:
+                    self.params.extend(variadic)
+                ctx.params["analyses"] = ids
+                return rest
+        return click.Command.parse_args(self, ctx, args)
+
+
+@onecodex.group("analyses", cls=_AnalysesGroup, invoke_without_command=True)
 @click.argument("analyses", nargs=-1, required=False)
 @click.pass_context
 @telemetry
 @login_required
 def analyses(ctx, analyses):
     """Retrieve performed analyses."""
-    cli_resource_fetcher(ctx, "analyses", analyses)
+    if ctx.invoked_subcommand is None:
+        cli_resource_fetcher(ctx, "analyses", analyses)
+
+
+@click.command("await")
+@click.argument("analysis_id", nargs=1, required=True)
+@click.option(
+    "--timeout",
+    "timeout_seconds",
+    type=float,
+    default=None,
+    help="Maximum number of seconds to wait. Waits indefinitely if not set.",
+)
+@click.option(
+    "--initial-interval",
+    "initial_interval_seconds",
+    type=click.IntRange(min=5),
+    default=5,
+    show_default=True,
+    help="Seconds between the first polls (minimum 5).",
+)
+@click.option(
+    "--max-interval",
+    "max_interval_seconds",
+    type=click.IntRange(min=5),
+    default=120,
+    show_default=True,
+    help="Upper bound (in seconds) on the polling interval after backoff (minimum 5).",
+)
+@click.pass_context
+@pretty_errors
+@telemetry
+@login_required
+def analyses_await(
+    ctx, analysis_id, timeout_seconds, initial_interval_seconds, max_interval_seconds
+):
+    """Poll an analysis until it reaches a terminal state."""
+    analysis = ctx.obj["API"].Analyses.get(analysis_id)
+    if not analysis:
+        raise click.ClickException(f"Could not find analysis {analysis_id} (404 status code)")
+
+    try:
+        analysis.await_completion(
+            timeout=timeout_seconds,
+            initial_interval=initial_interval_seconds,
+            max_interval=max_interval_seconds,
+        )
+    except TimeoutError as exc:
+        raise click.ClickException(str(exc))
+
+    click.echo(f"Analysis {analysis.id} complete (success={analysis.success}).")
+    if analysis.error_msg:
+        click.echo(f"Error: {analysis.error_msg}", err=True)
+    if analysis.success is False:
+        ctx.exit(1)
+
+
+onecodex.add_command(analyses_await, "await")
+analyses.add_command(analyses_await, "await")
 
 
 @onecodex.command("classifications")
@@ -683,11 +766,26 @@ def jobs_group():
     default=True,
     help="Populate job arguments with their defaults on the server (default: enabled).",
 )
+@click.option(
+    "--await",
+    "await_completion",
+    is_flag=True,
+    default=False,
+    help="Block until the new analysis reaches a terminal state.",
+)
 @click.pass_context
 @pretty_errors
 @telemetry
 @login_required
-def jobs_run(ctx, job_id, sample_id, args, dependency_overrides, populate_default_arguments):
+def jobs_run(
+    ctx,
+    job_id,
+    sample_id,
+    args,
+    dependency_overrides,
+    populate_default_arguments,
+    await_completion,
+):
     """Run a OneCodex job with optional arguments."""
     from onecodex.models.misc import DependencyOverride
 
@@ -723,4 +821,12 @@ def jobs_run(ctx, job_id, sample_id, args, dependency_overrides, populate_defaul
         populate_default_arguments=populate_default_arguments,
     )
     click.echo(f"Job run created successfully. New analysis ID: {run.id}")
-    click.echo(f"Get its status using `onecodex analyses {run.id}`", err=True)
+    if await_completion:
+        run.await_completion()
+        click.echo(f"Analysis {run.id} complete (success={run.success}).")
+        if run.error_msg:
+            click.echo(f"Error: {run.error_msg}", err=True)
+        if run.success is False:
+            ctx.exit(1)
+    else:
+        click.echo(f"Get its status using `onecodex analyses {run.id}`", err=True)

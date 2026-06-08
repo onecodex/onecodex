@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import os.path
+import time
 from functools import lru_cache
-from typing import IO, TYPE_CHECKING, List, Optional, Union
+from typing import IO, TYPE_CHECKING, ClassVar, List, Optional, Union
 
 import click
 import requests
@@ -55,6 +56,81 @@ class _AnalysesBase(OneCodexBase):
         if not isinstance(other, _AnalysesBase):
             return NotImplemented
         return self.id == other.id
+
+    def refresh(self) -> None:
+        """Fetch the current state from the API and update this object's state fields in-place."""
+        resp = self._client.get(f"{self._api._base_url}{self._resource_path}/{self.id}?expand=all")
+        resp.raise_for_status()
+        new_obj = self.__class__.model_validate(resp.json())
+        for field, value in new_obj:
+            setattr(self, field, value)
+        self._snapshot = self._object_snapshot()
+
+    MIN_POLL_INTERVAL_SECONDS: ClassVar[int] = 5
+
+    def await_completion(
+        self,
+        timeout: Optional[float] = None,
+        initial_interval: int = 5,
+        max_interval: int = 120,
+        backoff: float = 1.5,
+    ) -> "_AnalysesBase":
+        """Poll the API until the analysis reaches a terminal state.
+
+        An analysis is considered terminal when ``complete`` is True. The method refreshes
+        ``self`` in place and returns it.
+
+        Parameters
+        ----------
+        timeout : float, optional
+            Maximum number of seconds to wait. ``None`` (default) waits indefinitely.
+        initial_interval : int, optional
+            Seconds to wait between the first polls. Must be at least
+            ``MIN_POLL_INTERVAL_SECONDS`` (5). Defaults to 5.
+        max_interval : int, optional
+            Upper bound on the polling interval as it backs off. Must be at least
+            ``MIN_POLL_INTERVAL_SECONDS`` (5). Defaults to 120 seconds.
+        backoff : float, optional
+            Multiplier applied to the interval after each poll. Defaults to 1.5.
+
+        Returns
+        -------
+        self : the analysis, refreshed to its terminal state.
+
+        Raises
+        ------
+        TimeoutError
+            If ``timeout`` elapses before the analysis completes.
+        """
+        if (
+            initial_interval < self.MIN_POLL_INTERVAL_SECONDS
+            or max_interval < self.MIN_POLL_INTERVAL_SECONDS
+        ):
+            raise ValueError(
+                f"Polling intervals must be >= {self.MIN_POLL_INTERVAL_SECONDS} seconds."
+            )
+        if backoff < 1:
+            raise ValueError("backoff must be >= 1.")
+
+        deadline = None if timeout is None else time.monotonic() + timeout
+        interval = initial_interval
+
+        self.refresh()
+        while not self.complete:
+            if deadline is not None:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise TimeoutError(
+                        f"Analysis {self.id} did not complete within {timeout} seconds."
+                    )
+                sleep_for = min(interval, remaining)
+            else:
+                sleep_for = interval
+            time.sleep(sleep_for)
+            interval = min(interval * backoff, max_interval)
+            self.refresh()
+
+        return self
 
     def results(self, json: bool = True):
         """Fetch the results of an Analyses resource.
@@ -207,16 +283,6 @@ class _AnalysesBase(OneCodexBase):
 
 class Analyses(_AnalysesBase, AnalysisSchema):
     _resource_path = "/api/v1/analyses"
-
-    # Consider putting this in OneCodexBase
-    def refresh(self) -> None:
-        """Fetch the current state from the API and update this object's state fields in-place."""
-        resp = self._client.get(f"{self._api._base_url}{self._resource_path}/{self.id}?expand=all")
-        resp.raise_for_status()
-        new_obj = self.__class__.model_validate(resp.json())
-        for field, value in new_obj:
-            setattr(self, field, value)
-        self._snapshot = self._object_snapshot()
 
 
 class Alignments(_AnalysesBase, AlignmentSchema):
