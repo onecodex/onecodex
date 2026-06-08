@@ -35,7 +35,14 @@ def _default_cache_dir() -> Path:
     # unboundedly on long-lived machines: tempdirs are reclaimed across reboots
     # (launchd on macOS, systemd-tmpfiles on Linux). Callers that want persistence
     # across reboots should pass an explicit path instead.
-    return Path(tempfile.gettempdir()) / f"onecodex-results-cache-{getuser()}"
+
+    try:
+        # we do not trust getuser to be a safe directory name, so we hash it
+        uid = hashlib.sha256(getuser().encode()).hexdigest()[:8]
+    except (OSError, ImportError, KeyError):
+        uid = "unknown"
+
+    return Path(tempfile.gettempdir()) / f"onecodex-results-cache-{uid}"
 
 
 class DiskCache:
