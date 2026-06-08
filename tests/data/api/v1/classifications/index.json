@@ -14,7 +14,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": "tests/data/api/v1/classifications/464a7ebcnocaffe1/results/index.json.zstd"
+        "results_uri": "tests/data/api/v1/classifications/464a7ebcnocaffe1/results/index.json.zstd",
+        "updated_at": "2025-04-26T13:25:38.016211-07:00"
     },
     {
         "$uri": "/api/v1/classifications/464a7ebcnocaffe2",
@@ -31,7 +32,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": "tests/data/api/v1/classifications/464a7ebcnocaffe2/results/index.json.zstd"
+        "results_uri": "tests/data/api/v1/classifications/464a7ebcnocaffe2/results/index.json.zstd",
+        "updated_at": "2025-04-26T13:25:38.016211-07:00"
     },
     {
         "$uri": "/api/v1/classifications/464a7ebcnocaffe3",
@@ -48,7 +50,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": "tests/data/api/v1/classifications/464a7ebcnocaffe3/results/index.json.zstd"
+        "results_uri": "tests/data/api/v1/classifications/464a7ebcnocaffe3/results/index.json.zstd",
+        "updated_at": "2025-04-26T13:25:38.016211-07:00"
     },
     {
         "$uri": "/api/v1/classifications/593601a797914cbf",
@@ -65,7 +68,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:27:30.622286-07:00"
     },
     {
         "$uri": "/api/v1/classifications/5a4b7e3bd3a44006",
@@ -82,7 +86,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:27:30.717406-07:00"
     },
     {
         "$uri": "/api/v1/classifications/c71dd3af59354d22",
@@ -99,7 +104,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:28:27.899013-07:00"
     },
     {
         "$uri": "/api/v1/classifications/fc1241eb270a4feb",
@@ -116,7 +122,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:28:28.062765-07:00"
     },
     {
         "$uri": "/api/v1/classifications/74d0e663422b476f",
@@ -133,7 +140,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:29:02.890603-07:00"
     },
     {
         "$uri": "/api/v1/classifications/84e8d40927794c11",
@@ -150,7 +158,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:29:03.016437-07:00"
     },
     {
         "$uri": "/api/v1/classifications/0a36ea12f63447c7",
@@ -167,7 +176,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:30:36.837904-07:00"
     },
     {
         "$uri": "/api/v1/classifications/9dfc2845f6574760",
@@ -184,7 +194,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:30:36.975657-07:00"
     },
     {
         "$uri": "/api/v1/classifications/aac178f0ab274a90",
@@ -201,7 +212,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:30:57.361633-07:00"
     },
     {
         "$uri": "/api/v1/classifications/543169f39b8449f6",
@@ -218,7 +230,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:30:57.447421-07:00"
     },
     {
         "$uri": "/api/v1/classifications/81346a1996404f2a",
@@ -235,7 +248,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:31:37.296320-07:00"
     },
     {
         "$uri": "/api/v1/classifications/26c0b2935b9a4e7d",
@@ -252,7 +266,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:31:37.407262-07:00"
     },
     {
         "$uri": "/api/v1/classifications/1394a1e922744e91",
@@ -269,7 +284,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:31:53.143129-07:00"
     },
     {
         "$uri": "/api/v1/classifications/d91daf9b9e8b427f",
@@ -286,7 +302,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:31:53.241293-07:00"
     },
     {
         "$uri": "/api/v1/classifications/45b90dd72c544a88",
@@ -303,7 +320,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:31:56.673896-07:00"
     },
     {
         "$uri": "/api/v1/classifications/25de3241e33e415b",
@@ -320,7 +338,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:31:56.750082-07:00"
     },
     {
         "$uri": "/api/v1/classifications/a6ca17701f9b475b",
@@ -337,7 +356,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:31:56.802839-07:00"
     },
     {
         "$uri": "/api/v1/classifications/440049979dc04a6a",
@@ -354,7 +374,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:31:56.925474-07:00"
     },
     {
         "$uri": "/api/v1/classifications/1e7faa4de5a945ee",
@@ -371,7 +392,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:33:18.735084-07:00"
     },
     {
         "$uri": "/api/v1/classifications/7c2d4d14af314fb9",
@@ -388,7 +410,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:33:18.849739-07:00"
     },
     {
         "$uri": "/api/v1/classifications/8c21d9bf4d474217",
@@ -405,7 +428,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:34:10.759052-07:00"
     },
     {
         "$uri": "/api/v1/classifications/72ba73fa18fe4863",
@@ -422,7 +446,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:34:10.847475-07:00"
     },
     {
         "$uri": "/api/v1/classifications/09095f4159a641ac",
@@ -439,7 +464,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:34:32.248318-07:00"
     },
     {
         "$uri": "/api/v1/classifications/9188bb538a064a81",
@@ -456,7 +482,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:34:32.356033-07:00"
     },
     {
         "$uri": "/api/v1/classifications/9c168eebc9ca4687",
@@ -473,7 +500,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:34:33.159995-07:00"
     },
     {
         "$uri": "/api/v1/classifications/5767cf28bc6b4f82",
@@ -490,7 +518,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:34:33.294681-07:00"
     },
     {
         "$uri": "/api/v1/classifications/8fa880f14ef14c94",
@@ -507,7 +536,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:34:54.496719-07:00"
     },
     {
         "$uri": "/api/v1/classifications/c22cc0441e23476a",
@@ -524,7 +554,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:34:54.595448-07:00"
     },
     {
         "$uri": "/api/v1/classifications/87dbe8f88b2c4441",
@@ -541,7 +572,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:35:04.526537-07:00"
     },
     {
         "$uri": "/api/v1/classifications/33c43a027b5a41a4",
@@ -558,7 +590,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:35:04.674533-07:00"
     },
     {
         "$uri": "/api/v1/classifications/fa8ebc7f17bc4f64",
@@ -575,7 +608,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:35:05.219228-07:00"
     },
     {
         "$uri": "/api/v1/classifications/8db2b7d308184808",
@@ -592,7 +626,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:35:05.349327-07:00"
     },
     {
         "$uri": "/api/v1/classifications/c4b3f5f2e8874cd9",
@@ -609,7 +644,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:35:18.628119-07:00"
     },
     {
         "$uri": "/api/v1/classifications/dce623b2363a407d",
@@ -626,7 +662,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:35:18.732487-07:00"
     },
     {
         "$uri": "/api/v1/classifications/6502c04516cd4869",
@@ -643,7 +680,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:35:36.422434-07:00"
     },
     {
         "$uri": "/api/v1/classifications/f6ea0241554b4db2",
@@ -660,7 +698,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:35:36.508145-07:00"
     },
     {
         "$uri": "/api/v1/classifications/26db2449d2054027",
@@ -677,7 +716,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:36:15.863989-07:00"
     },
     {
         "$uri": "/api/v1/classifications/58f3dc61ddbc47e6",
@@ -694,7 +734,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:36:15.948376-07:00"
     },
     {
         "$uri": "/api/v1/classifications/6ea6774e054a49a3",
@@ -711,7 +752,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:36:48.008581-07:00"
     },
     {
         "$uri": "/api/v1/classifications/e0491eff039f45ed",
@@ -728,7 +770,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:36:48.109981-07:00"
     },
     {
         "$uri": "/api/v1/classifications/fdb24f041a384fcf",
@@ -745,7 +788,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:36:50.852851-07:00"
     },
     {
         "$uri": "/api/v1/classifications/591f7e3513134445",
@@ -762,7 +806,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:36:50.951312-07:00"
     },
     {
         "$uri": "/api/v1/classifications/a7f713ab971d44ec",
@@ -779,7 +824,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:36:58.051825-07:00"
     },
     {
         "$uri": "/api/v1/classifications/834463e859bf4b7d",
@@ -796,7 +842,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:36:58.147417-07:00"
     },
     {
         "$uri": "/api/v1/classifications/8128a36cacff4f4b",
@@ -813,7 +860,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:37:03.579241-07:00"
     },
     {
         "$uri": "/api/v1/classifications/9187908c63c441f6",
@@ -830,7 +878,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:37:03.695018-07:00"
     },
     {
         "$uri": "/api/v1/classifications/2d6549f3457b4f21",
@@ -847,7 +896,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:37:12.770102-07:00"
     },
     {
         "$uri": "/api/v1/classifications/7f81d2506ae040b3",
@@ -864,7 +914,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:37:12.858471-07:00"
     },
     {
         "$uri": "/api/v1/classifications/03bcecf8f33444b6",
@@ -881,7 +932,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:37:32.684425-07:00"
     },
     {
         "$uri": "/api/v1/classifications/5e94d454b0114c9f",
@@ -898,7 +950,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:37:32.807876-07:00"
     },
     {
         "$uri": "/api/v1/classifications/b0147b983cd540ab",
@@ -915,7 +968,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:37:40.414152-07:00"
     },
     {
         "$uri": "/api/v1/classifications/156af13fc9b14cb1",
@@ -932,7 +986,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:37:40.503269-07:00"
     },
     {
         "$uri": "/api/v1/classifications/92ecd5feecb34f80",
@@ -949,7 +1004,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:37:43.122947-07:00"
     },
     {
         "$uri": "/api/v1/classifications/6328cdecef5a4b15",
@@ -966,7 +1022,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:37:43.223816-07:00"
     },
     {
         "$uri": "/api/v1/classifications/b27929f6302544f0",
@@ -983,7 +1040,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:37:48.462318-07:00"
     },
     {
         "$uri": "/api/v1/classifications/64b4e3fdc0924888",
@@ -1000,7 +1058,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:37:48.556746-07:00"
     },
     {
         "$uri": "/api/v1/classifications/2bc8baff048e485c",
@@ -1017,7 +1076,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:38:05.078520-07:00"
     },
     {
         "$uri": "/api/v1/classifications/e0bf8cc97ed04ba3",
@@ -1034,7 +1094,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:38:05.213103-07:00"
     },
     {
         "$uri": "/api/v1/classifications/903dcad434c44ebc",
@@ -1051,7 +1112,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:38:05.278102-07:00"
     },
     {
         "$uri": "/api/v1/classifications/c39148f8463740da",
@@ -1068,7 +1130,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:38:05.380259-07:00"
     },
     {
         "$uri": "/api/v1/classifications/c17e0084b01e49ed",
@@ -1085,7 +1148,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:38:19.318473-07:00"
     },
     {
         "$uri": "/api/v1/classifications/98b6b6d4caf14f2e",
@@ -1102,7 +1166,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:38:19.420152-07:00"
     },
     {
         "$uri": "/api/v1/classifications/98523a2f46bc4b1b",
@@ -1119,7 +1184,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:38:58.221193-07:00"
     },
     {
         "$uri": "/api/v1/classifications/5bcc3b4bb610452f",
@@ -1136,7 +1202,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:38:58.313820-07:00"
     },
     {
         "$uri": "/api/v1/classifications/570defe05fce4c31",
@@ -1153,7 +1220,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:39:30.966651-07:00"
     },
     {
         "$uri": "/api/v1/classifications/2df943a7ebfa4fed",
@@ -1170,7 +1238,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:39:31.081505-07:00"
     },
     {
         "$uri": "/api/v1/classifications/0478bb9ac92e422c",
@@ -1187,7 +1256,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:39:36.228377-07:00"
     },
     {
         "$uri": "/api/v1/classifications/61994bf528394bdb",
@@ -1204,7 +1274,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:39:36.319052-07:00"
     },
     {
         "$uri": "/api/v1/classifications/f8a49c0a2b76494f",
@@ -1221,7 +1292,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:39:36.571940-07:00"
     },
     {
         "$uri": "/api/v1/classifications/0075460d5416400d",
@@ -1238,7 +1310,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:39:36.722887-07:00"
     },
     {
         "$uri": "/api/v1/classifications/00f8db206f034f08",
@@ -1255,7 +1328,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:39:51.535644-07:00"
     },
     {
         "$uri": "/api/v1/classifications/1dfb18cca7b04665",
@@ -1272,7 +1346,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:39:51.641034-07:00"
     },
     {
         "$uri": "/api/v1/classifications/5d9ed68515c24a59",
@@ -1289,7 +1364,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:39:56.196995-07:00"
     },
     {
         "$uri": "/api/v1/classifications/8d26b55584df478b",
@@ -1306,7 +1382,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:39:56.294980-07:00"
     },
     {
         "$uri": "/api/v1/classifications/96a95808b0534770",
@@ -1323,7 +1400,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:39:56.770192-07:00"
     },
     {
         "$uri": "/api/v1/classifications/3ae055db07934bdc",
@@ -1340,7 +1418,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:39:56.863607-07:00"
     },
     {
         "$uri": "/api/v1/classifications/530ca58b36d24a07",
@@ -1357,7 +1436,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:40:08.227530-07:00"
     },
     {
         "$uri": "/api/v1/classifications/24eca2bbe5e248f0",
@@ -1374,7 +1454,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:40:08.368457-07:00"
     },
     {
         "$uri": "/api/v1/classifications/dbf40baa97664dda",
@@ -1391,7 +1472,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:40:15.699275-07:00"
     },
     {
         "$uri": "/api/v1/classifications/c23269af3b064737",
@@ -1408,7 +1490,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:40:15.978794-07:00"
     },
     {
         "$uri": "/api/v1/classifications/83c7bef179704c24",
@@ -1425,7 +1508,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:40:21.497450-07:00"
     },
     {
         "$uri": "/api/v1/classifications/14be1d75bf50469f",
@@ -1442,7 +1526,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:40:21.592902-07:00"
     },
     {
         "$uri": "/api/v1/classifications/f040c2c9132d4014",
@@ -1459,7 +1544,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:40:22.445533-07:00"
     },
     {
         "$uri": "/api/v1/classifications/76a1f98380054f1c",
@@ -1476,7 +1562,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:40:22.564025-07:00"
     },
     {
         "$uri": "/api/v1/classifications/e524b54b18f2414f",
@@ -1493,7 +1580,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:40:26.196804-07:00"
     },
     {
         "$uri": "/api/v1/classifications/1bfe380c2bd646ff",
@@ -1510,7 +1598,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:40:26.297925-07:00"
     },
     {
         "$uri": "/api/v1/classifications/0833bb7c5f604d43",
@@ -1527,7 +1616,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:40:28.088170-07:00"
     },
     {
         "$uri": "/api/v1/classifications/ee89b233d017495e",
@@ -1544,7 +1634,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:40:28.193288-07:00"
     },
     {
         "$uri": "/api/v1/classifications/e29c7e8df26a4a6f",
@@ -1561,7 +1652,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:40:33.565873-07:00"
     },
     {
         "$uri": "/api/v1/classifications/ebbea5d9aba84348",
@@ -1578,7 +1670,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:40:33.669264-07:00"
     },
     {
         "$uri": "/api/v1/classifications/9bd4587930f147b6",
@@ -1595,7 +1688,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:40:33.688452-07:00"
     },
     {
         "$uri": "/api/v1/classifications/052e5166115f4b70",
@@ -1612,7 +1706,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:40:33.802447-07:00"
     },
     {
         "$uri": "/api/v1/classifications/d8e30747cde24bc9",
@@ -1629,7 +1724,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:40:34.949683-07:00"
     },
     {
         "$uri": "/api/v1/classifications/9a0e58688548469e",
@@ -1646,7 +1742,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:40:35.044151-07:00"
     },
     {
         "$uri": "/api/v1/classifications/965185f01841480c",
@@ -1663,7 +1760,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:40:37.736744-07:00"
     },
     {
         "$uri": "/api/v1/classifications/7be323d094864d8d",
@@ -1680,7 +1778,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:40:37.824160-07:00"
     },
     {
         "$uri": "/api/v1/classifications/e68b892a364345f7",
@@ -1697,7 +1796,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:41:21.675187-07:00"
     },
     {
         "$uri": "/api/v1/classifications/e93225628d854647",
@@ -1714,7 +1814,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:41:21.795581-07:00"
     },
     {
         "$uri": "/api/v1/classifications/d73d40223b324b1e",
@@ -1731,7 +1832,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:41:33.008475-07:00"
     },
     {
         "$uri": "/api/v1/classifications/a7bfb446d6944519",
@@ -1748,7 +1850,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:41:33.115194-07:00"
     },
     {
         "$uri": "/api/v1/classifications/e8ed98efb7bc440e",
@@ -1765,7 +1868,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:41:43.158177-07:00"
     },
     {
         "$uri": "/api/v1/classifications/0d7ae07690e44818",
@@ -1782,7 +1886,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:41:43.278028-07:00"
     },
     {
         "$uri": "/api/v1/classifications/61b054b5893e4180",
@@ -1799,7 +1904,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:42:26.631865-07:00"
     },
     {
         "$uri": "/api/v1/classifications/9ccc234517f8472e",
@@ -1816,7 +1922,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:42:26.758067-07:00"
     },
     {
         "$uri": "/api/v1/classifications/6cf472c667b9477b",
@@ -1833,7 +1940,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:42:32.392777-07:00"
     },
     {
         "$uri": "/api/v1/classifications/3ace183ccd1b403a",
@@ -1850,7 +1958,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:42:32.494275-07:00"
     },
     {
         "$uri": "/api/v1/classifications/347cca1c67fb4fb6",
@@ -1867,7 +1976,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:42:53.716466-07:00"
     },
     {
         "$uri": "/api/v1/classifications/fc14fdb8ba8b4bca",
@@ -1884,7 +1994,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:42:53.886758-07:00"
     },
     {
         "$uri": "/api/v1/classifications/0ec3aa76da774310",
@@ -1901,7 +2012,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:43:15.610581-07:00"
     },
     {
         "$uri": "/api/v1/classifications/5f7e27201ecf48f5",
@@ -1918,7 +2030,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:43:15.694784-07:00"
     },
     {
         "$uri": "/api/v1/classifications/273b741ff54a4438",
@@ -1935,7 +2048,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:43:35.377038-07:00"
     },
     {
         "$uri": "/api/v1/classifications/0c13f754dfb04768",
@@ -1952,7 +2066,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:43:35.459882-07:00"
     },
     {
         "$uri": "/api/v1/classifications/2b2ca35700514711",
@@ -1969,7 +2084,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:43:45.231230-07:00"
     },
     {
         "$uri": "/api/v1/classifications/e0b736080f4e49f2",
@@ -1986,7 +2102,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:43:45.316706-07:00"
     },
     {
         "$uri": "/api/v1/classifications/bc94b2b45ca341be",
@@ -2003,7 +2120,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:43:52.163866-07:00"
     },
     {
         "$uri": "/api/v1/classifications/a34b7db411d945ea",
@@ -2020,7 +2138,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:43:52.279394-07:00"
     },
     {
         "$uri": "/api/v1/classifications/9528bd3597214443",
@@ -2037,7 +2156,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:43:54.723075-07:00"
     },
     {
         "$uri": "/api/v1/classifications/27abc768fafc4197",
@@ -2054,7 +2174,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:43:54.809115-07:00"
     },
     {
         "$uri": "/api/v1/classifications/7a4ee5fb060c4adb",
@@ -2071,7 +2192,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:43:56.924632-07:00"
     },
     {
         "$uri": "/api/v1/classifications/887fb22b28b84d7b",
@@ -2088,7 +2210,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:43:57.020648-07:00"
     },
     {
         "$uri": "/api/v1/classifications/f9e4a5506b154953",
@@ -2105,7 +2228,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:44:08.343070-07:00"
     },
     {
         "$uri": "/api/v1/classifications/92f5b5f2adb8464b",
@@ -2122,7 +2246,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:44:08.465332-07:00"
     },
     {
         "$uri": "/api/v1/classifications/91cf1b5d217b4c57",
@@ -2139,7 +2264,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:44:24.173508-07:00"
     },
     {
         "$uri": "/api/v1/classifications/668dd4949dc74960",
@@ -2156,7 +2282,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:44:24.289057-07:00"
     },
     {
         "$uri": "/api/v1/classifications/0cb4c0457fd144f0",
@@ -2173,7 +2300,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:44:28.585360-07:00"
     },
     {
         "$uri": "/api/v1/classifications/13a11f29aa2541e6",
@@ -2190,7 +2318,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:44:28.677978-07:00"
     },
     {
         "$uri": "/api/v1/classifications/7e9bcbeea1754ed0",
@@ -2207,7 +2336,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:44:38.068516-07:00"
     },
     {
         "$uri": "/api/v1/classifications/44e9218b717844dc",
@@ -2224,7 +2354,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:44:38.169100-07:00"
     },
     {
         "$uri": "/api/v1/classifications/0ee89daf510b4a65",
@@ -2241,7 +2372,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:45:06.156385-07:00"
     },
     {
         "$uri": "/api/v1/classifications/7eed533a94e94574",
@@ -2258,7 +2390,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:45:06.284385-07:00"
     },
     {
         "$uri": "/api/v1/classifications/d055654b7bdb4aed",
@@ -2275,7 +2408,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:45:07.033533-07:00"
     },
     {
         "$uri": "/api/v1/classifications/8ba25e3642344037",
@@ -2292,7 +2426,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:45:07.148088-07:00"
     },
     {
         "$uri": "/api/v1/classifications/ad957dda53264d54",
@@ -2309,7 +2444,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:47:19.445914-07:00"
     },
     {
         "$uri": "/api/v1/classifications/2903f9434ce74225",
@@ -2326,7 +2462,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:47:19.547653-07:00"
     },
     {
         "$uri": "/api/v1/classifications/605827fb037842ff",
@@ -2343,7 +2480,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:49:28.835166-07:00"
     },
     {
         "$uri": "/api/v1/classifications/b1d61d9706cf418e",
@@ -2360,7 +2498,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2015-09-25T17:49:28.927537-07:00"
     },
     {
         "$uri": "/api/v1/classifications/6ffd6b1a425d41ff",
@@ -2377,7 +2516,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-03-10T15:46:57.238154-08:00"
     },
     {
         "$uri": "/api/v1/classifications/fadd35dd60074a5c",
@@ -2394,7 +2534,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": "tests/data/api/v1/classifications/fadd35dd60074a5c/results/index.json.zstd"
+        "results_uri": "tests/data/api/v1/classifications/fadd35dd60074a5c/results/index.json.zstd",
+        "updated_at": "2016-04-26T13:25:09.512517-07:00"
     },
     {
         "$uri": "/api/v1/classifications/3e03c1d8ac6244a1",
@@ -2411,7 +2552,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:09.804413-07:00"
     },
     {
         "$uri": "/api/v1/classifications/df7b3b7d43bb4924",
@@ -2428,7 +2570,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:10.123811-07:00"
     },
     {
         "$uri": "/api/v1/classifications/03abbabb8057453b",
@@ -2445,7 +2588,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:10.630538-07:00"
     },
     {
         "$uri": "/api/v1/classifications/bef60be6d90d4025",
@@ -2462,7 +2606,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:11.039828-07:00"
     },
     {
         "$uri": "/api/v1/classifications/d3de74c4b6324ac0",
@@ -2479,7 +2624,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:11.881271-07:00"
     },
     {
         "$uri": "/api/v1/classifications/8d728c2496f54b96",
@@ -2496,7 +2642,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:12.571439-07:00"
     },
     {
         "$uri": "/api/v1/classifications/45a573fb7833449a",
@@ -2513,7 +2660,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:13.414129-07:00"
     },
     {
         "$uri": "/api/v1/classifications/db2d11923977475d",
@@ -2530,7 +2678,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:14.119730-07:00"
     },
     {
         "$uri": "/api/v1/classifications/23ffcc8b1e0b49a0",
@@ -2547,7 +2696,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:14.475606-07:00"
     },
     {
         "$uri": "/api/v1/classifications/5c9883c0d7234325",
@@ -2564,7 +2714,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:14.751303-07:00"
     },
     {
         "$uri": "/api/v1/classifications/bff9dafc2a4f4b23",
@@ -2581,7 +2732,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:15.629829-07:00"
     },
     {
         "$uri": "/api/v1/classifications/4851a0d22b02486c",
@@ -2598,7 +2750,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:16.288011-07:00"
     },
     {
         "$uri": "/api/v1/classifications/a255c9aa8a764ec8",
@@ -2615,7 +2768,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:16.566290-07:00"
     },
     {
         "$uri": "/api/v1/classifications/8adb298751584d99",
@@ -2632,7 +2786,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:17.183756-07:00"
     },
     {
         "$uri": "/api/v1/classifications/c72633fb6cac4bde",
@@ -2649,7 +2804,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:17.493611-07:00"
     },
     {
         "$uri": "/api/v1/classifications/937677e2f16f4682",
@@ -2666,7 +2822,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:17.797473-07:00"
     },
     {
         "$uri": "/api/v1/classifications/113756ce1cf941a7",
@@ -2683,7 +2840,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:18.478021-07:00"
     },
     {
         "$uri": "/api/v1/classifications/6aa6c122af854650",
@@ -2700,7 +2858,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:18.854437-07:00"
     },
     {
         "$uri": "/api/v1/classifications/af2e596c899b4f4e",
@@ -2717,7 +2876,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:19.113591-07:00"
     },
     {
         "$uri": "/api/v1/classifications/b02efd00eb5b4cb0",
@@ -2734,7 +2894,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:20.912511-07:00"
     },
     {
         "$uri": "/api/v1/classifications/7b6cfe572fa94463",
@@ -2751,7 +2912,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:21.239236-07:00"
     },
     {
         "$uri": "/api/v1/classifications/c523dc451d7f4ae6",
@@ -2768,7 +2930,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:21.905768-07:00"
     },
     {
         "$uri": "/api/v1/classifications/bea85fbc96904e4d",
@@ -2785,7 +2948,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:22.376900-07:00"
     },
     {
         "$uri": "/api/v1/classifications/fb6887b58b104f16",
@@ -2802,7 +2966,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:22.719546-07:00"
     },
     {
         "$uri": "/api/v1/classifications/0b1c149215224ce0",
@@ -2819,7 +2984,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:23.177397-07:00"
     },
     {
         "$uri": "/api/v1/classifications/935c2a3611944e39",
@@ -2836,7 +3002,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:23.522087-07:00"
     },
     {
         "$uri": "/api/v1/classifications/033ede113bc5492e",
@@ -2853,7 +3020,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:23.980513-07:00"
     },
     {
         "$uri": "/api/v1/classifications/01023a286e8c4ed0",
@@ -2870,7 +3038,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:24.688662-07:00"
     },
     {
         "$uri": "/api/v1/classifications/51a9926992234ab5",
@@ -2887,7 +3056,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:25.069860-07:00"
     },
     {
         "$uri": "/api/v1/classifications/59022858cf3840db",
@@ -2904,7 +3074,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:26.054076-07:00"
     },
     {
         "$uri": "/api/v1/classifications/a7fbafe3c73645cd",
@@ -2921,7 +3092,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:26.602755-07:00"
     },
     {
         "$uri": "/api/v1/classifications/90fac9b68e2548a0",
@@ -2938,7 +3110,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:26.746907-07:00"
     },
     {
         "$uri": "/api/v1/classifications/69a99eaa91bd4744",
@@ -2955,7 +3128,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:27.384334-07:00"
     },
     {
         "$uri": "/api/v1/classifications/24fb5d62d5294e17",
@@ -2972,7 +3146,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:27.885418-07:00"
     },
     {
         "$uri": "/api/v1/classifications/92cef992c3444f38",
@@ -2989,7 +3164,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:28.549818-07:00"
     },
     {
         "$uri": "/api/v1/classifications/a9d13707d1a444b8",
@@ -3006,7 +3182,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:28.894184-07:00"
     },
     {
         "$uri": "/api/v1/classifications/9396787732c54ad5",
@@ -3023,7 +3200,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:29.198107-07:00"
     },
     {
         "$uri": "/api/v1/classifications/4467ee3c81884834",
@@ -3040,7 +3218,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:29.806039-07:00"
     },
     {
         "$uri": "/api/v1/classifications/5515bdbfa78346c4",
@@ -3057,7 +3236,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:30.224349-07:00"
     },
     {
         "$uri": "/api/v1/classifications/35bda05550a64487",
@@ -3074,7 +3254,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:30.498816-07:00"
     },
     {
         "$uri": "/api/v1/classifications/464a7ebcf9f84050",
@@ -3091,7 +3272,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:38.016211-07:00"
     },
     {
         "$uri": "/api/v1/classifications/6a3620b009ad4cd1",
@@ -3108,7 +3290,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:38.210617-07:00"
     },
     {
         "$uri": "/api/v1/classifications/2f75eca20f774a56",
@@ -3125,7 +3308,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:38.392441-07:00"
     },
     {
         "$uri": "/api/v1/classifications/1b98a62ae6004cbf",
@@ -3142,7 +3326,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:39.053190-07:00"
     },
     {
         "$uri": "/api/v1/classifications/572ebf613e5c4687",
@@ -3159,7 +3344,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:39.536041-07:00"
     },
     {
         "$uri": "/api/v1/classifications/cfa3595d312d4be6",
@@ -3176,7 +3362,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:41.356029-07:00"
     },
     {
         "$uri": "/api/v1/classifications/dca746bcbedc462d",
@@ -3193,7 +3380,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:42.479482-07:00"
     },
     {
         "$uri": "/api/v1/classifications/65858d514537459a",
@@ -3210,7 +3398,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:42.816532-07:00"
     },
     {
         "$uri": "/api/v1/classifications/68a049032c0b4433",
@@ -3227,7 +3416,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:43.472425-07:00"
     },
     {
         "$uri": "/api/v1/classifications/d0b30c0a43684e4c",
@@ -3244,7 +3434,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:45.518038-07:00"
     },
     {
         "$uri": "/api/v1/classifications/0ea313c3ef4e4fcb",
@@ -3261,7 +3452,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:46.607100-07:00"
     },
     {
         "$uri": "/api/v1/classifications/b899ea3192a84da2",
@@ -3278,7 +3470,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:48.232483-07:00"
     },
     {
         "$uri": "/api/v1/classifications/495d7e4c16934e12",
@@ -3295,7 +3488,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:48.522148-07:00"
     },
     {
         "$uri": "/api/v1/classifications/92a7377281874cf2",
@@ -3312,7 +3506,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:49.109372-07:00"
     },
     {
         "$uri": "/api/v1/classifications/d4ac7a191cb448f1",
@@ -3329,7 +3524,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:49.447572-07:00"
     },
     {
         "$uri": "/api/v1/classifications/0d055c0ecc2643e1",
@@ -3346,7 +3542,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:50.694090-07:00"
     },
     {
         "$uri": "/api/v1/classifications/d558cc3635f74790",
@@ -3363,7 +3560,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:50.986507-07:00"
     },
     {
         "$uri": "/api/v1/classifications/ca51742700b440ca",
@@ -3380,7 +3578,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:51.327092-07:00"
     },
     {
         "$uri": "/api/v1/classifications/41fda997ec4749fc",
@@ -3397,7 +3596,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:51.873712-07:00"
     },
     {
         "$uri": "/api/v1/classifications/20d07f451d2148a0",
@@ -3414,7 +3614,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:52.331534-07:00"
     },
     {
         "$uri": "/api/v1/classifications/35bf51c3cf234d2e",
@@ -3431,7 +3632,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:53.214598-07:00"
     },
     {
         "$uri": "/api/v1/classifications/2d45e0e1584c4bf5",
@@ -3448,7 +3650,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:53.664301-07:00"
     },
     {
         "$uri": "/api/v1/classifications/b518b3bdaa1b46ad",
@@ -3465,7 +3668,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:54.560250-07:00"
     },
     {
         "$uri": "/api/v1/classifications/25d472014c0d4f03",
@@ -3482,7 +3686,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:55.108004-07:00"
     },
     {
         "$uri": "/api/v1/classifications/35685b8dfb0c4e9f",
@@ -3499,7 +3704,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:55.505547-07:00"
     },
     {
         "$uri": "/api/v1/classifications/1a19739f12034508",
@@ -3516,7 +3722,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:56.878065-07:00"
     },
     {
         "$uri": "/api/v1/classifications/33abcb47cc3649cc",
@@ -3533,7 +3740,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-04-26T13:25:57.253153-07:00"
     },
     {
         "$uri": "/api/v1/classifications/1111e9a681e6439d",
@@ -3550,7 +3758,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-11-21T21:53:05.175124-08:00"
     },
     {
         "$uri": "/api/v1/classifications/2682f32aed434c14",
@@ -3567,7 +3776,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": null
+        "results_uri": null,
+        "updated_at": "2016-11-21T21:53:05.238931-08:00"
     },
     {
         "$uri": "/api/v1/classifications/bef0bc57dd7f4c43",
@@ -3584,7 +3794,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": "tests/data/api/v1/classifications/bef0bc57dd7f4c43/results/index.json.zstd"
+        "results_uri": "tests/data/api/v1/classifications/bef0bc57dd7f4c43/results/index.json.zstd",
+        "updated_at": "2018-11-07T17:35:28.029542+00:00"
     },
     {
         "$uri": "/api/v1/classifications/0f4ee4ecb3a3412f",
@@ -3601,7 +3812,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": "tests/data/api/v1/classifications/0f4ee4ecb3a3412f/results/index.json.zstd"
+        "results_uri": "tests/data/api/v1/classifications/0f4ee4ecb3a3412f/results/index.json.zstd",
+        "updated_at": "2018-11-07T17:35:41.778824+00:00"
     },
     {
         "$uri": "/api/v1/classifications/6579e99943f84ad2",
@@ -3618,7 +3830,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": "tests/data/api/v1/classifications/6579e99943f84ad2/results/index.json.zstd"
+        "results_uri": "tests/data/api/v1/classifications/6579e99943f84ad2/results/index.json.zstd",
+        "updated_at": "2017-06-23T23:52:51.685255+00:00"
     },
     {
         "$uri": "/api/v1/classifications/b50c176668234fe7",
@@ -3635,7 +3848,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": "tests/data/api/v1/classifications/b50c176668234fe7/results/index.json.zstd"
+        "results_uri": "tests/data/api/v1/classifications/b50c176668234fe7/results/index.json.zstd",
+        "updated_at": "2017-06-23T23:56:19.880424+00:00"
     },
     {
         "$uri": "/api/v1/classifications/e0422602de41479f",
@@ -3652,7 +3866,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": "tests/data/api/v1/classifications/e0422602de41479f/results/index.json.zstd"
+        "results_uri": "tests/data/api/v1/classifications/e0422602de41479f/results/index.json.zstd",
+        "updated_at": "2017-06-23T23:59:23.536666+00:00"
     },
     {
         "$uri": "/api/v1/classifications/1198c7ce565643f9",
@@ -3669,7 +3884,8 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": "tests/data/api/v1/classifications/1198c7ce565643f9/results/index.json.zstd"
+        "results_uri": "tests/data/api/v1/classifications/1198c7ce565643f9/results/index.json.zstd",
+        "updated_at": "2017-06-23T23:59:23.536666+00:00"
     },
     {
         "$uri": "/api/v1/classifications/4eed25415f6945dd",
@@ -3686,6 +3902,7 @@
         "cost": null,
         "dependencies": [],
         "draft": false,
-        "results_uri": "tests/data/api/v1/classifications/4eed25415f6945dd/results/index.json.zstd"
+        "results_uri": "tests/data/api/v1/classifications/4eed25415f6945dd/results/index.json.zstd",
+        "updated_at": "2017-06-23T23:59:23.536666+00:00"
     }
 ]
