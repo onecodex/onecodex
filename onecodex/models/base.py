@@ -39,12 +39,23 @@ class ApiRef(PydanticBaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def validate_ref(cls, data):
+    def validate_ref(
+        cls, data: dict[str, str] | PydanticBaseModel
+    ) -> dict[str, str] | PydanticBaseModel:
+        """Coerce common shapes into the canonical `{"$ref": "..."}` form.
+
+        Accepts:
+        - A `URIModel` instance (or anything else with a `field_uri: str` attribute) —
+          lets callers pass fetched objects directly, e.g. `assets=[ocx.Assets.get(id)]`.
+        - A dict carrying `$uri` or `field_uri` instead of `$ref` — covers raw API
+          payloads where a resource is embedded inline rather than referenced.
+        - Any other input is passed through unchanged so normal `$ref` dicts and
+          existing `ApiRef` instances validate as-is.
+        """
         # Accept a URIModel-bearing model instance (anything with a field_uri attribute).
         field_uri = getattr(data, "field_uri", None)
         if isinstance(field_uri, str):
             return {"$ref": field_uri}
-        # Special case wherein we autoconvert another model to a $ref and ignore the other fields
         if isinstance(data, dict):
             if "$uri" in data and "$ref" not in data:
                 return {"$ref": data["$uri"]}
