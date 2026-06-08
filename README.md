@@ -223,6 +223,43 @@ onecodex analyses await <analysis_id>
 onecodex jobs run <job_id> <sample_id> --arg min_quality=30 --await
 ```
 
+## Creating and updating jobs
+
+You can create and update custom jobs from the client. Resource references
+(assets, parent jobs) accept fetched model instances directly — no `$ref`
+boilerplate.
+
+```python
+asset = ocx.Assets.upload("reference.fa.gz")
+parent = ocx.Jobs.get("0123456789abcdef")
+
+job = ocx.Jobs.create(
+    name="my-custom-job",
+    script=open("run.sh").read(),
+    image_uri="docker.io/library/python:3.12",
+    job_type="shell_script",
+    cpu=1, ram_gb=1, storage_gb=1,
+    assets=[asset],
+    dependencies=[{"job": parent, "output_dir": "parent_out"}],
+)
+
+job.update(name="renamed", description="now with a description")
+```
+
+The CLI mirrors this:
+
+```shell
+onecodex jobs create \
+    --name my-custom-job \
+    --script ./run.sh \
+    --image-uri docker.io/library/python:3.12 \
+    --cpu 1 --ram-gb 1 --storage-gb 1 \
+    --asset-id <asset_id> \
+    -d <parent_job_id>=parent_out
+
+onecodex jobs update <job_id> --name renamed
+```
+
 For long-running analyses, `await_completion()` polls until the analysis reaches a terminal state (`complete=True`). The cadence backs off over time, so failures surface in seconds while longer jobs poll on the order of minutes:
 
 ```python
