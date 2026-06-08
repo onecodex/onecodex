@@ -18,6 +18,7 @@ import logging
 import os
 import secrets
 import tempfile
+from getpass import getuser
 from pathlib import Path
 from typing import Any, Optional
 
@@ -34,7 +35,7 @@ def _default_cache_dir() -> Path:
     # unboundedly on long-lived machines: tempdirs are reclaimed across reboots
     # (launchd on macOS, systemd-tmpfiles on Linux). Callers that want persistence
     # across reboots should pass an explicit path instead.
-    return Path(tempfile.gettempdir()) / f"onecodex-results-cache-{os.getuid()}"
+    return Path(tempfile.gettempdir()) / f"onecodex-results-cache-{getuser()}"
 
 
 class DiskCache:
