@@ -41,7 +41,7 @@ def test_cache_results_true_uses_tempdir(tmp_path, monkeypatch):
 
 
 def test_env_var_enables_cache(tmp_path, monkeypatch):
-    monkeypatch.setenv("ONECODEX_DISK_CACHE", str(tmp_path / "envcache"))
+    monkeypatch.setenv("ONE_CODEX_DISK_CACHE", str(tmp_path / "envcache"))
     ocx = Api(api_key="x", base_url="http://localhost:3000")
     assert ocx._cache.path == tmp_path / "envcache"
 

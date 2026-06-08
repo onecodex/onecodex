@@ -95,7 +95,7 @@ class Api(object):
         - `str`: an explicit path. Use this when you want the cache to persist
           across reboots / sandbox runs. You manage the disk budget.
 
-        The `ONECODEX_DISK_CACHE` env var sets a path when `cache_results` is
+        The `ONE_CODEX_DISK_CACHE` env var sets a path when `cache_results` is
         left at the default. See `onecodex.cache.DiskCache` for the on-disk
         format and freshness semantics.
     """
@@ -228,7 +228,7 @@ class Api(object):
 
         self._client = HTTPClient(auth=auth, headers=headers)
 
-        env_cache = os.environ.get("ONECODEX_DISK_CACHE")
+        env_cache = os.environ.get("ONE_CODEX_DISK_CACHE")
         if cache_results is False and env_cache:
             cache_results = env_cache
         if cache_results:
