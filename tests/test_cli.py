@@ -234,6 +234,125 @@ def test_workflow_instances(runner, api_data, mocked_creds_file):
     assert result.exit_code == 0
 
 
+# Jobs create/update
+def test_jobs_create_cli(runner, api_data, custom_mock_requests, mocked_creds_file, tmp_path):
+    new_job_id = "0123456789abcdef"
+    captured = {}
+
+    def create_callback(request):
+        captured["body"] = json.loads(request.body)
+        return (
+            200,
+            {"Content-Type": "application/json"},
+            json.dumps(
+                {
+                    "$uri": f"/api/v1/jobs/{new_job_id}",
+                    "created_at": "2026-01-01T00:00:00+00:00",
+                    "name": "my-job",
+                    "analysis_type": "custom",
+                    "public": False,
+                    "job_args_schema": {},
+                }
+            ),
+        )
+
+    script = tmp_path / "run.sh"
+    script.write_text("echo hello\n")
+    schema = tmp_path / "schema.json"
+    schema.write_text(json.dumps([{"fields": [{"name": "min_quality", "type": "integer"}]}]))
+
+    asset_id = "057268a2ba9f6d7a"
+    parent_job_id = "cc1d331e1ee54bac"
+
+    with custom_mock_requests({"POST::api/v1/jobs": create_callback}):
+        result = runner.invoke(
+            Cli,
+            [
+                "jobs",
+                "create",
+                *("--name", "my-job"),
+                *("--script", str(script)),
+                *("--image-uri", "docker.io/library/python:3.12"),
+                *("--cpu", "1"),
+                *("--ram-gb", "1"),
+                *("--storage-gb", "1"),
+                *("--asset-id", asset_id),
+                *("-d", f"{parent_job_id}=outdir"),
+                *("--arguments-schema", str(schema)),
+            ],
+        )
+
+    assert result.exit_code == 0, result.output
+    assert f"Created job {new_job_id}" in result.output
+    assert captured["body"] == {
+        "name": "my-job",
+        "script": "echo hello\n",
+        "image_uri": "docker.io/library/python:3.12",
+        "cpu": 1.0,
+        "ram_gb": 1.0,
+        "storage_gb": 1.0,
+        "assets": [{"$ref": f"/api/v1/assets/{asset_id}"}],
+        "dependencies": [
+            {"job": {"$ref": f"/api/v1/jobs/{parent_job_id}"}, "output_dir": "outdir"}
+        ],
+        "arguments_schema": [{"fields": [{"name": "min_quality", "type": "integer"}]}],
+    }
+
+
+def test_jobs_create_missing_image_uri(runner, mocked_creds_file, tmp_path):
+    script = tmp_path / "run.sh"
+    script.write_text("echo hi\n")
+    result = runner.invoke(
+        Cli,
+        ["jobs", "create", *("--name", "x"), *("--script", str(script))],
+    )
+    assert result.exit_code != 0
+    assert "image-uri" in result.output
+
+
+def test_jobs_update_cli(runner, api_data, custom_mock_requests, mocked_creds_file):
+    job_id = "cc1d331e1ee54bac"
+    captured = {}
+
+    def patch_callback(request):
+        captured["body"] = json.loads(request.body)
+        return (
+            200,
+            {"Content-Type": "application/json"},
+            json.dumps(
+                {
+                    "$uri": f"/api/v1/jobs/{job_id}",
+                    "created_at": "2016-05-05T17:27:02.116480+00:00",
+                    "name": "Renamed",
+                    "analysis_type": "classification",
+                    "public": True,
+                    "job_args_schema": {},
+                }
+            ),
+        )
+
+    with custom_mock_requests({f"PATCH::api/v1/jobs/{job_id}": patch_callback}):
+        result = runner.invoke(Cli, ["jobs", "update", job_id, *("--name", "Renamed")])
+
+    assert result.exit_code == 0, result.output
+    assert captured["body"] == {"name": "Renamed"}
+    assert f"Updated job {job_id}" in result.output
+
+
+def test_jobs_update_no_fields(runner, api_data, mocked_creds_file):
+    job_id = "cc1d331e1ee54bac"
+    result = runner.invoke(Cli, ["jobs", "update", job_id])
+    assert result.exit_code != 0
+    assert "No fields provided" in result.output
+
+
+def test_jobs_update_rejects_job_type(runner, api_data, mocked_creds_file):
+    job_id = "cc1d331e1ee54bac"
+    result = runner.invoke(Cli, ["jobs", "update", job_id, *("--job-type", "shell_script")])
+    assert result.exit_code != 0
+    assert "job-type" in result.output
+
+
 # Samples
 def test_samples(runner, api_data, mocked_creds_file):
     r0 = runner.invoke(Cli, ["samples"])

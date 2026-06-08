@@ -40,11 +40,16 @@ class ApiRef(PydanticBaseModel):
     @model_validator(mode="before")
     @classmethod
     def validate_ref(cls, data):
+        # Accept a URIModel-bearing model instance (anything with a field_uri attribute).
+        field_uri = getattr(data, "field_uri", None)
+        if isinstance(field_uri, str):
+            return {"$ref": field_uri}
         # Special case wherein we autoconvert another model to a $ref and ignore the other fields
-        if "$uri" in data and "$ref" not in data:
-            return {"$ref": data["$uri"]}
-        if "field_uri" in data and "$ref" not in data:
-            return {"$ref": data["field_uri"]}
+        if isinstance(data, dict):
+            if "$uri" in data and "$ref" not in data:
+                return {"$ref": data["$uri"]}
+            if "field_uri" in data and "$ref" not in data:
+                return {"$ref": data["field_uri"]}
         return data
 
     def __init__(self, **data):
@@ -404,7 +409,14 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
     def create(cls, **kwargs):
         if "create" not in cls._allowed_methods:
             raise MethodNotSupported(f"Cannot create {cls.__name__} objects")
-        resp = cls._client.post(f"{cls._api._base_url}{cls._resource_path}", json=kwargs)
+        create_model = cls._allowed_methods["create"]
+        if create_model is not None:
+            payload = create_model.model_validate(kwargs).model_dump(
+                exclude_unset=True, by_alias=True
+            )
+        else:
+            payload = kwargs
+        resp = cls._client.post(f"{cls._api._base_url}{cls._resource_path}", json=payload)
         return cls.model_validate(resp.json())
 
     def update(self, **kwargs):

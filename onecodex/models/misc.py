@@ -14,6 +14,8 @@ from onecodex.models.schemas.misc import (
     UserSchema,
     ProjectSchema,
     JobSchema,
+    JobCreateSchema,
+    JobUpdateSchema,
     DocumentSchema,
     AssetSchema,
     AssetUpdateSchema,
@@ -74,6 +76,10 @@ class Projects(OneCodexBase, ProjectSchema):
 
 class Jobs(OneCodexBase, JobSchema):
     _resource_path = "/api/v1/jobs"
+    _allowed_methods = {
+        "create": JobCreateSchema,
+        "update": JobUpdateSchema,
+    }
 
     def run(
         self,
