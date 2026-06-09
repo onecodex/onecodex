@@ -132,6 +132,34 @@ class _AnalysesBase(OneCodexBase):
 
         return self
 
+    def logs(self, tail: Optional[int] = None) -> str:
+        """Fetch the job run logs for this analysis.
+
+        Parameters
+        ----------
+        tail : int, optional
+            If set, return only the last ``tail`` lines of the logs. Must be >= 1.
+
+        Returns
+        -------
+        str
+            The job run logs as a plain-text string. Empty if the analysis has not
+            produced any logs.
+        """
+        params = {}
+        if tail is not None:
+            if tail < 1:
+                raise ValueError("tail must be >= 1.")
+            params["tail"] = tail
+        resp = self._client.get(f"{self._api._base_url}{self.field_uri}/logs", params=params)
+        try:
+            resp.raise_for_status()
+        except requests.HTTPError as exc:
+            if exc.response is not None and exc.response.status_code == 404:
+                raise OneCodexException(f"Logs not found for analysis {self.id}.")
+            raise
+        return resp.text
+
     def results(self, json: bool = True):
         """Fetch the results of an Analyses resource.
 
