@@ -141,6 +141,18 @@ The top-level `onecodex await <analysis_id>` is kept as an alias for backward co
 
 The command exits non-zero if the analysis finishes unsuccessfully or times out.
 
+### Fetching analysis logs
+
+To view the job run logs for a custom workflow analysis, use `analyses logs`:
+
+```shell
+onecodex analyses logs 0123456789abcdef
+onecodex analyses logs 0123456789abcdef --tail 200
+```
+
+`--tail` defaults to the last 1000 lines. Logs are only available for custom
+workflow runs.
+
 # Using the Python client library
 
 ## Initialization
@@ -217,6 +229,14 @@ For long-running analyses, `await_completion()` polls until the analysis reaches
 analysis = ocx.Analyses.get("0123456789abcdef")
 analysis.await_completion()                # block indefinitely
 analysis.await_completion(timeout=600)     # raise TimeoutError after 10 minutes
+```
+
+For custom workflow runs, `.logs()` returns the job run logs as a string:
+
+```python
+analysis = ocx.Analyses.get("0123456789abcdef")
+print(analysis.logs())                     # full log
+print(analysis.logs(tail=200))             # last 200 lines
 ```
 
 The method refreshes `analysis` in place and returns it; check `analysis.success` to see whether it finished cleanly. `analysis.refresh()` is also available if you just need to re-fetch the current state without blocking.
