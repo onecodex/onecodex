@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `onecodex analyses await <analysis_id>` CLI command, with `--timeout`,
   `--initial-interval`, and `--max-interval` options. Also available as
   `onecodex await <analysis_id>` for backward compatibility.
+- `Analyses.logs()` fetches the job run logs for an analysis, with an optional
+  `tail` parameter to limit the output to the last N lines.
+- `onecodex analyses logs <analysis_id>` CLI command, with `--tail` to limit
+  the number of log lines returned (defaults to 1000). Only available for
+  custom workflow runs.
 
 ## [v1.0.2] - 2026-05-06
 

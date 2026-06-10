@@ -424,6 +424,31 @@ onecodex.add_command(analyses_await, "await")
 analyses.add_command(analyses_await, "await")
 
 
+@click.command("logs")
+@click.argument("analysis_id", nargs=1, required=True)
+@click.option(
+    "--tail",
+    "tail",
+    type=click.IntRange(min=1),
+    default=1000,
+    show_default=True,
+    help="Fetch only the last N log lines.",
+)
+@click.pass_context
+@pretty_errors
+@telemetry
+@login_required
+def analyses_logs(ctx, analysis_id, tail):
+    """Fetch the job run logs for an analysis."""
+    analysis = ctx.obj["API"].Analyses.get(analysis_id)
+    if not analysis:
+        raise click.ClickException(f"Could not find analysis {analysis_id} (404 status code)")
+    click.echo(analysis.logs(tail=tail), nl=False)
+
+
+analyses.add_command(analyses_logs, "logs")
+
+
 @onecodex.command("classifications")
 @click.option("--read-level", "readlevel", is_flag=True, help=OPTION_HELP["readlevel"])
 @click.option(

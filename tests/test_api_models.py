@@ -884,6 +884,64 @@ def test_analyses_await_completion_timeout(ocx, custom_mock_requests):
                     analysis.await_completion(timeout=10.0, initial_interval=5, backoff=1.0)
 
 
+def test_analyses_logs(ocx, api_data, custom_mock_requests):
+    analysis_id = "593601a797914cbf"
+    captured = {}
+
+    def logs_callback(request):
+        captured["url"] = request.url
+        return (200, {"Content-Type": "text/plain"}, "line 1\nline 2\nline 3\n")
+
+    with custom_mock_requests(
+        {f"GET:text/plain:api/v1/analyses/{analysis_id}/logs": logs_callback}
+    ):
+        analysis = ocx.Analyses.get(analysis_id)
+        out = analysis.logs()
+
+    assert out == "line 1\nline 2\nline 3\n"
+    assert "tail" not in captured["url"]
+
+
+def test_analyses_logs_tail(ocx, api_data, custom_mock_requests):
+    analysis_id = "593601a797914cbf"
+    captured = {}
+
+    def logs_callback(request):
+        captured["url"] = request.url
+        return (200, {"Content-Type": "text/plain"}, "line 2\nline 3\n")
+
+    with custom_mock_requests(
+        {f"GET:text/plain:api/v1/analyses/{analysis_id}/logs": logs_callback}
+    ):
+        analysis = ocx.Analyses.get(analysis_id)
+        out = analysis.logs(tail=2)
+
+    assert out == "line 2\nline 3\n"
+    assert "tail=2" in captured["url"]
+
+
+def test_analyses_logs_tail_invalid(ocx, api_data):
+    analysis = ocx.Analyses.get("593601a797914cbf")
+    with pytest.raises(ValueError, match="tail must be >= 1"):
+        analysis.logs(tail=0)
+
+
+def test_analyses_logs_404(ocx, api_data, custom_mock_requests):
+    from onecodex.exceptions import OneCodexException
+
+    analysis_id = "593601a797914cbf"
+
+    def logs_callback(request):
+        return (404, {"Content-Type": "text/plain"}, "Not Found")
+
+    with custom_mock_requests(
+        {f"GET:text/plain:api/v1/analyses/{analysis_id}/logs": logs_callback}
+    ):
+        analysis = ocx.Analyses.get(analysis_id)
+        with pytest.raises(OneCodexException, match="Logs not found"):
+            analysis.logs()
+
+
 def test_sample_preupload(ocx, upload_mocks, api_data):
     projects = ocx.Projects.where(project_name="One Codex Project")
     sample_id = ocx.Samples.preupload(

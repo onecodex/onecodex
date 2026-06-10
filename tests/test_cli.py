@@ -98,6 +98,82 @@ def test_analyses_await(runner, custom_mock_requests, mocked_creds_file, monkeyp
     assert "success=True" in result.output
 
 
+def test_analyses_logs(runner, custom_mock_requests, mocked_creds_file):
+    analysis_id = "593601a797914cbf"
+    base_payload = {
+        "$uri": f"/api/v1/analyses/{analysis_id}",
+        "analysis_type": "classification",
+        "created_at": "2015-09-25T17:27:30.622286-07:00",
+        "complete": True,
+        "success": True,
+        "error_msg": None,
+        "job": {"$ref": "/api/v1/jobs/e4b1ab37ff554c53"},
+        "sample": {"$ref": "/api/v1/samples/7428cca4a3a04a8e"},
+        "cost": None,
+        "dependencies": [],
+        "draft": False,
+        "job_args": {},
+    }
+
+    captured = {}
+
+    def get_callback(request):
+        return (200, {"Content-Type": "application/json"}, json.dumps(base_payload))
+
+    def logs_callback(request):
+        captured["url"] = request.url
+        return (200, {"Content-Type": "text/plain"}, "log line A\nlog line B\n")
+
+    with custom_mock_requests(
+        {
+            f"GET::api/v1/analyses/{analysis_id}": get_callback,
+            f"GET:text/plain:api/v1/analyses/{analysis_id}/logs": logs_callback,
+        }
+    ):
+        result = runner.invoke(Cli, ["analyses", "logs", analysis_id, "--tail", "2"])
+
+    assert result.exit_code == 0, result.output
+    assert "log line A" in result.output
+    assert "log line B" in result.output
+    assert "tail=2" in captured["url"]
+
+
+def test_analyses_logs_404(runner, custom_mock_requests, mocked_creds_file):
+    analysis_id = "593601a797914cbf"
+    base_payload = {
+        "$uri": f"/api/v1/analyses/{analysis_id}",
+        "analysis_type": "classification",
+        "created_at": "2015-09-25T17:27:30.622286-07:00",
+        "complete": True,
+        "success": True,
+        "error_msg": None,
+        "job": {"$ref": "/api/v1/jobs/e4b1ab37ff554c53"},
+        "sample": {"$ref": "/api/v1/samples/7428cca4a3a04a8e"},
+        "cost": None,
+        "dependencies": [],
+        "draft": False,
+        "job_args": {},
+    }
+
+    def get_callback(request):
+        return (200, {"Content-Type": "application/json"}, json.dumps(base_payload))
+
+    def logs_callback(request):
+        return (404, {"Content-Type": "text/plain"}, "Not Found")
+
+    with custom_mock_requests(
+        {
+            f"GET::api/v1/analyses/{analysis_id}": get_callback,
+            f"GET:text/plain:api/v1/analyses/{analysis_id}/logs": logs_callback,
+        }
+    ):
+        result = runner.invoke(Cli, ["analyses", "logs", analysis_id])
+
+    assert result.exit_code != 0
+    assert "Logs not found" in result.output
+    assert "Traceback" not in result.output
+
+
 # Classifications
 def test_classification_instance(runner, api_data, mocked_creds_file):
     result = runner.invoke(Cli, ["classifications", "593601a797914cbf"])
