@@ -225,9 +225,7 @@ onecodex jobs run <job_id> <sample_id> --arg min_quality=30 --await
 
 ## Creating and updating jobs
 
-You can create and update custom jobs from the client. Resource references
-(assets, parent jobs) accept fetched model instances directly — no `$ref`
-boilerplate.
+You can create and update custom jobs from the client.
 
 ```python
 asset = ocx.Assets.upload("reference.fa.gz")
