@@ -517,6 +517,10 @@ class VizDistanceMixin(DistanceMixin):
 
             plot_data = ord_result.samples.iloc[:, [0, 1]]  # get first two components
             plot_data = plot_data.div(plot_data.abs().max(axis=0), axis=1)  # normalize to [0,1]
+            # eigenvector signs are arbitrary. pin them so axes don't flip between runs
+            signs = np.sign(plot_data.values[np.argmax(np.abs(plot_data.values), axis=0), [0, 1]])
+            signs[signs == 0] = 1
+            plot_data = plot_data.mul(signs, axis=1)
             plot_data.index = dists.index
             plot_data.index.names = ["classification_id"]
             x_field, y_field = plot_data.columns.tolist()  # name of first two components
