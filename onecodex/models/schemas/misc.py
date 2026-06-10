@@ -42,7 +42,38 @@ class ProjectSchema(URIModel):
     public: bool = False
 
 
-class JobSchema(URIModel):
+class RepositorySchema(BaseModel):
+    url: str = Field(description="The URL of the git repository (https only).")
+    tag: Optional[str] = Field(default=None, description="The git tag to use for this repository.")
+
+
+class JobDependencyRef(BaseModel):
+    job: ApiRef
+    output_dir: str
+
+
+class _JobMutableFields(BaseModel):
+    """Fields that may be set when creating or updating a Job.
+
+    Optional here so the type is shared between Create/Update/read schemas;
+    subclasses tighten required fields as appropriate.
+    """
+
+    name: Optional[str] = None
+    script: Optional[str] = None
+    image_uri: Optional[str] = None
+    description: Optional[str] = None
+    cpu: Optional[float] = None
+    ram_gb: Optional[float] = None
+    storage_gb: Optional[float] = None
+    inject_bearer_token: Optional[bool] = None
+    repository: Optional[RepositorySchema] = None
+    assets: Optional[list[ApiRef]] = None
+    dependencies: Optional[list[JobDependencyRef]] = None
+    arguments_schema: Optional[list[dict[str, Any]]] = None
+
+
+class JobSchema(URIModel, _JobMutableFields):
     created_at: RFC3339Datetime
     name: str = Field(
         description="The name of the job (this is displayed in the dropdown on the analysis page of the One Codex web application)."
@@ -57,6 +88,7 @@ class JobSchema(URIModel):
     public: bool = Field(
         description="Whether the job is publicly available. For most jobs this will be `true`. Custom, private jobs are also available, and will only be visible to users whose samples (or samples shared with them) have been analyzed using that job."
     )
+    job_type: Optional[str] = None
 
 
 class DocumentSchema(URIModel):
@@ -88,6 +120,21 @@ class CostSchema(BaseModel):
 
 class AssetUpdateSchema(BaseModel):
     name: str
+
+
+class JobCreateSchema(_JobMutableFields):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+    script: str
+    image_uri: str
+    job_type: Optional[str] = None
+
+
+class JobUpdateSchema(_JobMutableFields):
+    model_config = ConfigDict(extra="forbid")
+
+    autorun_on_org_sample_upload: Optional[bool] = None
 
 
 class AssetSchema(URIModel):

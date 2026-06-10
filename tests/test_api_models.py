@@ -735,6 +735,132 @@ def test_jobs_run_http_error(ocx, api_data, custom_mock_requests):
             job.run(sample, {})
 
 
+def test_jobs_create(ocx, api_data, custom_mock_requests):
+    new_job_id = "0123456789abcdef"
+    captured = {}
+
+    def create_callback(request):
+        captured["url"] = request.url
+        captured["body"] = json.loads(request.body)
+        return (
+            200,
+            {"Content-Type": "application/json"},
+            json.dumps(
+                {
+                    "$uri": f"/api/v1/jobs/{new_job_id}",
+                    "created_at": "2026-01-01T00:00:00+00:00",
+                    "name": "my-custom-job",
+                    "analysis_type": "custom",
+                    "public": False,
+                    "job_args_schema": {},
+                    "script": "echo hi",
+                    "image_uri": "docker.io/library/python:3.12",
+                    "job_type": "shell_script",
+                    "cpu": 1.0,
+                    "ram_gb": 1.0,
+                    "storage_gb": 1.0,
+                }
+            ),
+        )
+
+    parent_job = ocx.Jobs.get("cc1d331e1ee54bac")
+    asset = ocx.Assets.get("057268a2ba9f6d7a")
+
+    with custom_mock_requests({"POST::api/v1/jobs": create_callback}):
+        job = ocx.Jobs.create(
+            name="my-custom-job",
+            script="echo hi",
+            image_uri="docker.io/library/python:3.12",
+            job_type="shell_script",
+            description="A demo job",
+            cpu=1,
+            ram_gb=1,
+            storage_gb=1,
+            inject_bearer_token=True,
+            repository={"url": "https://github.com/example/repo", "tag": "v1.0.0"},
+            assets=[asset],
+            dependencies=[{"job": parent_job, "output_dir": "parent_out"}],
+            arguments_schema=[
+                {
+                    "fields": [
+                        {"name": "min_quality", "type": "integer", "default": 20},
+                        {"name": "adapter", "type": "string"},
+                    ],
+                },
+            ],
+        )
+
+    assert captured["url"].endswith("/api/v1/jobs")
+    assert captured["body"] == {
+        "name": "my-custom-job",
+        "script": "echo hi",
+        "image_uri": "docker.io/library/python:3.12",
+        "job_type": "shell_script",
+        "description": "A demo job",
+        "cpu": 1,
+        "ram_gb": 1,
+        "storage_gb": 1,
+        "inject_bearer_token": True,
+        "repository": {"url": "https://github.com/example/repo", "tag": "v1.0.0"},
+        "assets": [{"$ref": "/api/v1/assets/057268a2ba9f6d7a"}],
+        "dependencies": [
+            {
+                "job": {"$ref": "/api/v1/jobs/cc1d331e1ee54bac"},
+                "output_dir": "parent_out",
+            },
+        ],
+        "arguments_schema": [
+            {
+                "fields": [
+                    {"name": "min_quality", "type": "integer", "default": 20},
+                    {"name": "adapter", "type": "string"},
+                ],
+            },
+        ],
+    }
+    assert job.id == new_job_id
+    assert job.name == "my-custom-job"
+    assert job.script == "echo hi"
+    assert job.cpu == 1.0
+
+
+def test_jobs_update(ocx, api_data, custom_mock_requests):
+    job_id = "cc1d331e1ee54bac"
+    captured = {}
+
+    def patch_callback(request):
+        captured["url"] = request.url
+        captured["body"] = json.loads(request.body)
+        return (
+            200,
+            {"Content-Type": "application/json"},
+            json.dumps(
+                {
+                    "$uri": f"/api/v1/jobs/{job_id}",
+                    "created_at": "2016-05-05T17:27:02.116480+00:00",
+                    "name": "Renamed Job",
+                    "analysis_type": "classification",
+                    "public": True,
+                    "job_args_schema": {},
+                }
+            ),
+        )
+
+    with custom_mock_requests({f"PATCH::api/v1/jobs/{job_id}": patch_callback}):
+        job = ocx.Jobs.get(job_id)
+        job.update(name="Renamed Job")
+
+    assert captured["url"].endswith(f"/api/v1/jobs/{job_id}")
+    assert captured["body"] == {"name": "Renamed Job"}
+    assert job.name == "Renamed Job"
+
+
+def test_jobs_update_rejects_unknown_field(ocx, api_data):
+    job = ocx.Jobs.get("cc1d331e1ee54bac")
+    with pytest.raises(MethodNotSupported):
+        job.update(analysis_type="something_else")
+
+
 def test_analyses_refresh(ocx, custom_mock_requests):
     analysis_id = "593601a797914cbf"
     base_payload = {

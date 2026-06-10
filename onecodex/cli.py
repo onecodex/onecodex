@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import copy
+import json
 import logging
 import os
 import time
@@ -846,6 +847,7 @@ def jobs_run(
         populate_default_arguments=populate_default_arguments,
     )
     click.echo(f"Job run created successfully. New analysis ID: {run.id}")
+
     if await_completion:
         run.await_completion()
         click.echo(f"Analysis {run.id} complete (success={run.success}).")
@@ -855,3 +857,270 @@ def jobs_run(
             ctx.exit(1)
     else:
         click.echo(f"Get its status using `onecodex analyses {run.id}`", err=True)
+
+
+JOB_TYPE_CHOICES = ["shell_script", "nextflow"]
+
+
+def _parse_dependency_specs(deps: tuple[str, ...]) -> list[tuple[str, str]]:
+    pairs: list[tuple[str, str]] = []
+    for dep in deps:
+        job_id, sep, output_dir = dep.partition("=")
+        if not sep or not job_id or not output_dir:
+            raise click.BadParameter(
+                f"Expected <job_id>=<output_dir>, got {dep!r}.",
+                param_hint="-d/--dependency",
+            )
+        pairs.append((job_id, output_dir))
+    return pairs
+
+
+def _build_repository(url: str | None, tag: str | None) -> dict[str, str | None] | None:
+    if url is None and tag is None:
+        return None
+    if url is None:
+        raise click.BadParameter(
+            "--repository-tag requires --repository-url.",
+            param_hint="--repository-tag",
+        )
+    return {"url": url, "tag": tag}
+
+
+def _job_kwargs_from_options(
+    api,
+    name,
+    script_path,
+    image_uri,
+    job_type,
+    description,
+    cpu,
+    ram_gb,
+    storage_gb,
+    inject_bearer_token,
+    repository_url,
+    repository_tag,
+    assets,
+    dependencies,
+    arguments_schema_path,
+    autorun_on_org_sample_upload=None,
+):
+    asset_objs = [api.Assets.get(aid) for aid in assets] if assets else None
+    dep_objs = (
+        [
+            {"job": api.Jobs.get(jid), "output_dir": out}
+            for jid, out in _parse_dependency_specs(dependencies)
+        ]
+        if dependencies
+        else None
+    )
+    script = open(script_path).read() if script_path else None
+    arguments_schema = json.load(open(arguments_schema_path)) if arguments_schema_path else None
+    payload = {
+        "name": name,
+        "script": script,
+        "image_uri": image_uri,
+        "job_type": job_type,
+        "description": description,
+        "cpu": cpu,
+        "ram_gb": ram_gb,
+        "storage_gb": storage_gb,
+        "inject_bearer_token": inject_bearer_token,
+        "repository": _build_repository(repository_url, repository_tag),
+        "assets": asset_objs,
+        "dependencies": dep_objs,
+        "arguments_schema": arguments_schema,
+        "autorun_on_org_sample_upload": autorun_on_org_sample_upload,
+    }
+    return {k: v for k, v in payload.items() if v is not None}
+
+
+_JOB_OPTIONS_COMMON = [
+    click.option("--image-uri", default=None, help="Fully qualified OCI image URI."),
+    click.option(
+        "--job-type",
+        type=click.Choice(JOB_TYPE_CHOICES),
+        default=None,
+        help="Type of job (shell_script or nextflow).",
+    ),
+    click.option("--description", default=None, help="Human-readable description (markdown)."),
+    click.option("--cpu", type=float, default=None, help="CPU cores (shell_script jobs)."),
+    click.option("--ram-gb", type=float, default=None, help="RAM in GB (shell_script jobs)."),
+    click.option(
+        "--storage-gb", type=float, default=None, help="Storage in GB (shell_script jobs)."
+    ),
+    click.option(
+        "--inject-bearer-token/--no-inject-bearer-token",
+        "inject_bearer_token",
+        default=None,
+        help="Inject the user's bearer token into the job environment.",
+    ),
+    click.option("--repository-url", default=None, help="HTTPS URL of the git repository."),
+    click.option("--repository-tag", default=None, help="Git tag for the repository."),
+    click.option(
+        "--asset-id",
+        "assets",
+        multiple=True,
+        metavar="ASSET_ID",
+        help="Asset to associate with the job (repeatable).",
+    ),
+    click.option(
+        "--dependency",
+        "-d",
+        "dependencies",
+        multiple=True,
+        metavar="JOB_ID=OUTPUT_DIR",
+        help="Job dependency, e.g. -d <job_id>=<output_dir>. Repeatable.",
+    ),
+    click.option(
+        "--arguments-schema",
+        "arguments_schema_path",
+        type=click.Path(exists=True, dir_okay=False),
+        default=None,
+        help="Path to a JSON file containing the arguments schema (list of FieldGroup).",
+    ),
+]
+
+
+def _apply_options(options):
+    """Apply a shared list of click.option() decorators to a command.
+
+    Reverses the list so help-text order matches the list's declaration order
+    (Click stacks decorators bottom-up).
+    """
+
+    def decorator(func):
+        for option in reversed(options):
+            func = option(func)
+        return func
+
+    return decorator
+
+
+@jobs_group.command("create")
+@click.option("--name", required=True, help="Human-readable name of the job.")
+@click.option(
+    "--script",
+    "script_path",
+    type=click.Path(exists=True, dir_okay=False),
+    required=True,
+    help="Path to the script file to be executed.",
+)
+@_apply_options(_JOB_OPTIONS_COMMON)
+@click.pass_context
+@pretty_errors
+@telemetry
+@login_required
+def jobs_create(
+    ctx,
+    name,
+    script_path,
+    image_uri,
+    job_type,
+    description,
+    cpu,
+    ram_gb,
+    storage_gb,
+    inject_bearer_token,
+    repository_url,
+    repository_tag,
+    assets,
+    dependencies,
+    arguments_schema_path,
+):
+    """Create a new Job."""
+    if image_uri is None:
+        raise click.BadParameter("--image-uri is required.", param_hint="--image-uri")
+
+    kwargs = _job_kwargs_from_options(
+        api=ctx.obj["API"],
+        name=name,
+        script_path=script_path,
+        image_uri=image_uri,
+        job_type=job_type,
+        description=description,
+        cpu=cpu,
+        ram_gb=ram_gb,
+        storage_gb=storage_gb,
+        inject_bearer_token=inject_bearer_token,
+        repository_url=repository_url,
+        repository_tag=repository_tag,
+        assets=assets,
+        dependencies=dependencies,
+        arguments_schema_path=arguments_schema_path,
+    )
+    job = ctx.obj["API"].Jobs.create(**kwargs)
+    click.echo(f"Created job {job.id}: {job.name}")
+
+
+@jobs_group.command("update")
+@click.argument("job_id", nargs=1, required=True)
+@click.option("--name", default=None, help="Human-readable name of the job.")
+@click.option(
+    "--script",
+    "script_path",
+    type=click.Path(exists=True, dir_okay=False),
+    default=None,
+    help="Path to the script file to be executed.",
+)
+@_apply_options(_JOB_OPTIONS_COMMON)
+@click.option(
+    "--autorun-on-org-sample-upload/--no-autorun-on-org-sample-upload",
+    "autorun_on_org_sample_upload",
+    default=None,
+    help="Auto-run this job on every newly uploaded org sample (admins only).",
+)
+@click.pass_context
+@pretty_errors
+@telemetry
+@login_required
+def jobs_update(
+    ctx,
+    job_id,
+    name,
+    script_path,
+    image_uri,
+    job_type,
+    description,
+    cpu,
+    ram_gb,
+    storage_gb,
+    inject_bearer_token,
+    repository_url,
+    repository_tag,
+    assets,
+    dependencies,
+    arguments_schema_path,
+    autorun_on_org_sample_upload,
+):
+    """Update an existing Job."""
+    if job_type is not None:
+        # The server-side UpdateJobSchema does not accept job_type.
+        raise click.BadParameter(
+            "--job-type cannot be changed after job creation.", param_hint="--job-type"
+        )
+
+    kwargs = _job_kwargs_from_options(
+        api=ctx.obj["API"],
+        name=name,
+        script_path=script_path,
+        image_uri=image_uri,
+        job_type=None,
+        description=description,
+        cpu=cpu,
+        ram_gb=ram_gb,
+        storage_gb=storage_gb,
+        inject_bearer_token=inject_bearer_token,
+        repository_url=repository_url,
+        repository_tag=repository_tag,
+        assets=assets,
+        dependencies=dependencies,
+        arguments_schema_path=arguments_schema_path,
+        autorun_on_org_sample_upload=autorun_on_org_sample_upload,
+    )
+
+    if not kwargs:
+        raise click.UsageError("No fields provided to update.")
+
+    job = ctx.obj["API"].Jobs.get(job_id)
+    job.update(**kwargs)
+    click.echo(f"Updated job {job.id}: {job.name}")
