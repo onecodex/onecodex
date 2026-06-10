@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `dependencies=[{"job": parent_job, "output_dir": "..."}]` accepts `Jobs`
   instances directly.
 - `onecodex jobs create` and `onecodex jobs update <job_id>` CLI commands.
+- `onecodex download samples` accepts `-s/--sample-id` (repeatable) to download
+  specific samples by ID. Mutually exclusive with `--project` and `--tags`.
 
 ### Changed
 

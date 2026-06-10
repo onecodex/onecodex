@@ -50,11 +50,21 @@ def download_samples(
     outdir,
     project_name_or_id=None,
     tag_names=None,
+    sample_ids=None,
     prompt=False,
     min_samples_for_prompt=50,
     progressbar=False,
 ):
-    if project_name_or_id:
+    if sample_ids:
+        samples = []
+        for sample_id in sample_ids:
+            log.info("Fetching sample '{}'...".format(sample_id))
+            sample = ocx.Samples.get(sample_id)
+            if sample is None:
+                warnings.warn("No sample found with ID '{}'.".format(sample_id))
+                continue
+            samples.append(sample)
+    elif project_name_or_id:
         log.info("Fetching samples in project '{}'...".format(project_name_or_id))
         project = get_project(ocx, project_name_or_id)
         samples = ocx.Samples.where(project=project)
