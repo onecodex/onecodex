@@ -35,6 +35,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   already worked. Surfaces server error messages instead of failing on
   response parsing.
 
+### Fixed
+
+- `plot_pcoa` no longer flips axis orientation between runs; PCoA eigenvector
+  signs are now pinned so the entry with the largest absolute value on each
+  axis is positive.
+
 ## [v1.0.2] - 2026-05-06
 
 ### Added
