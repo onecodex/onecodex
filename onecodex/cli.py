@@ -557,7 +557,7 @@ def download_group():
 )
 @click.option(
     "-s",
-    "--sample-id",
+    "--sample",
     "sample_ids",
     multiple=True,
     help="Download a specific sample by its ID. Can be passed multiple times. Mutually "
