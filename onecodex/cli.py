@@ -556,6 +556,14 @@ def download_group():
     "-t", "--tags", multiple=True, help="Filter to samples that include *any* of these tag names."
 )
 @click.option(
+    "-s",
+    "--sample",
+    "sample_ids",
+    multiple=True,
+    help="Download a specific sample by its ID. Can be passed multiple times. Mutually "
+    "exclusive with --project and --tags.",
+)
+@click.option(
     "--prompt/--no-prompt",
     is_flag=True,
     default=True,
@@ -566,22 +574,26 @@ def download_group():
 @pretty_errors
 @telemetry
 @login_required
-def download_samples_command(ctx, outdir, project, tags, prompt):
+def download_samples_command(ctx, outdir, project, tags, sample_ids, prompt):
     """Download FASTA/Q files from One Codex.
 
-    Samples may optionally be filtered by project and/or tags. By default, all samples in your
-    account will be downloaded.
+    Samples may optionally be filtered by project and/or tags, or selected directly by ID with
+    --sample-id. By default, all samples in your account will be downloaded.
 
     OUTDIR is the name of the output directory where downloaded files will be saved.
 
     """
     from onecodex.lib.download import download_samples
 
+    if sample_ids and (project or tags):
+        raise click.UsageError("--sample-id cannot be combined with --project or --tags.")
+
     download_samples(
         ctx.obj["API"],
         outdir,
         project_name_or_id=project,
         tag_names=tags,
+        sample_ids=sample_ids or None,
         prompt=prompt,
         progressbar=True,
     )
