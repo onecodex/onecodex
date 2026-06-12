@@ -58,7 +58,7 @@ def download_samples(
     if sample_ids:
         samples = []
         for sample_id in sample_ids:
-            log.info("Fetching sample '{}'...".format(sample_id))
+            log.info(f"Fetching sample '{sample_id}")
             sample = ocx.Samples.get(sample_id)
             if sample is None:
                 warnings.warn("No sample found with ID '{}'.".format(sample_id))
