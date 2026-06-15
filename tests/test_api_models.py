@@ -721,6 +721,75 @@ def test_jobs_run_invalid_response(ocx, api_data, custom_mock_requests):
             job.run(sample, {})
 
 
+def test_jobs_fetch_details(ocx, api_data, custom_mock_requests):
+    job_id = "47c4fe23588640a9"
+    captured = {}
+
+    def details_callback(request):
+        captured["url"] = request.url
+        return (
+            200,
+            {"Content-Type": "application/json"},
+            json.dumps(
+                {
+                    "$uri": f"/api/v1/jobs/{job_id}",
+                    "created_at": "2026-01-01T00:00:00+00:00",
+                    "name": "my-custom-job",
+                    "analysis_type": "workflow",
+                    "public": False,
+                    "job_type": "shell_script",
+                    "description": "My custom job",
+                    "script": "echo 'hi'",
+                    "image_uri": "docker.io/library/python:3.12",
+                    "cpu": 1.5,
+                    "ram_gb": 2.0,
+                    "storage_gb": 3.0,
+                    "repository": {"url": "https://github.com/org/repo", "tag": "v0.1.0"},
+                    "assets": [],
+                    "dependencies": [],
+                    "arguments_schema": [],
+                    "inject_bearer_token": False,
+                    "autorun_on_org_sample_upload": False,
+                }
+            ),
+        )
+
+    with custom_mock_requests({f"GET::api/v1/jobs/{job_id}/details": details_callback}):
+        job = ocx.Jobs.get(job_id)
+        details = job.fetch_details()
+
+    assert captured["url"].endswith(f"/api/v1/jobs/{job_id}/details")
+    assert isinstance(details, onecodex.models.schemas.misc.JobDetails)
+    assert details.script == "echo 'hi'"
+    assert details.image_uri == "docker.io/library/python:3.12"
+    assert details.cpu == 1.5
+    assert details.ram_gb == 2.0
+    assert details.storage_gb == 3.0
+    assert details.repository.url == "https://github.com/org/repo"
+    assert details.repository.tag == "v0.1.0"
+    assert details.description == "My custom job"
+    assert details.assets == []
+    assert details.dependencies == []
+    assert details.inject_bearer_token is False
+    assert details.autorun_on_org_sample_upload is False
+
+
+def test_jobs_fetch_details_http_error(ocx, api_data, custom_mock_requests):
+    job_id = "47c4fe23588640a9"
+
+    def details_callback(request):
+        return (
+            403,
+            {"Content-Type": "application/json"},
+            json.dumps({"message": "Forbidden"}),
+        )
+
+    with custom_mock_requests({f"GET::api/v1/jobs/{job_id}/details": details_callback}):
+        job = ocx.Jobs.get(job_id)
+        with pytest.raises(OneCodexException, match="Forbidden"):
+            job.fetch_details()
+
+
 def test_jobs_run_http_error(ocx, api_data, custom_mock_requests):
     job_id = "47c4fe23588640a9"
     sample_id = "7428cca4a3a04a8e"
@@ -820,8 +889,6 @@ def test_jobs_create(ocx, api_data, custom_mock_requests):
     }
     assert job.id == new_job_id
     assert job.name == "my-custom-job"
-    assert job.script == "echo hi"
-    assert job.cpu == 1.0
 
 
 def test_jobs_update(ocx, api_data, custom_mock_requests):
