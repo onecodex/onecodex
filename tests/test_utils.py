@@ -105,8 +105,12 @@ def test_init_sentry(
 ):
     if ONE_CODEX_NO_TELEMETRY:
         monkeypatch.setenv("ONE_CODEX_NO_TELEMETRY", ONE_CODEX_NO_TELEMETRY)
+    else:
+        monkeypatch.delenv("ONE_CODEX_NO_TELEMETRY", raising=False)
     if ONE_CODEX_SENTRY_DSN:
         monkeypatch.setenv("ONE_CODEX_SENTRY_DSN", ONE_CODEX_SENTRY_DSN)
+    else:
+        monkeypatch.delenv("ONE_CODEX_SENTRY_DSN", raising=False)
 
     with (
         mock.patch("onecodex.utils._setup_sentry_for_ipython") as _,
