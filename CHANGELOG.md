@@ -42,6 +42,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `plot_pcoa` no longer flips axis orientation between runs; PCoA eigenvector
   signs are now pinned so the entry with the largest absolute value on each
   axis is positive.
+- CLI commands that take One Codex IDs (`onecodex samples`, `analyses`,
+  `classifications`, `panels`, `workflows`, `documents download`,
+  `jobs run`/`update`, `upload --sample-id`, `download samples --sample`) now
+  validate the format up front and fail with a helpful error instead of an
+  opaque 404.
 
 ## [v1.0.2] - 2026-05-06
 
