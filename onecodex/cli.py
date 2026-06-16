@@ -790,6 +790,17 @@ def jobs_group():
     help="Additional runtime arguments, example: -a min_quality=1 -a adapter=AGATC.",
 )
 @click.option(
+    "--args-json",
+    "args_json",
+    default=None,
+    help=(
+        "Runtime arguments as a JSON object (preserves non-string types). "
+        'Example: --args-json \'{"min_quality": 1, "adapter": "AGATC"}\'. '
+        'To read from a file: --args-json "$(cat args.json)". '
+        "Mutually exclusive with -a/--arg."
+    ),
+)
+@click.option(
     "-d",
     "--dependency-override",
     "dependency_overrides",
@@ -820,6 +831,7 @@ def jobs_run(
     job_id,
     sample_id,
     args,
+    args_json,
     dependency_overrides,
     populate_default_arguments,
     await_completion,
@@ -827,14 +839,29 @@ def jobs_run(
     """Run a OneCodex job with optional arguments."""
     from onecodex.models.misc import DependencyOverride
 
-    parsed_args = {}
-    for arg in args:
-        if "=" not in arg:
+    if args and args_json is not None:
+        raise click.BadParameter(
+            "Cannot combine -a/--arg with --args-json.", param_hint="--args-json"
+        )
+
+    if args_json is not None:
+        try:
+            parsed_args = json.loads(args_json)
+        except json.JSONDecodeError as e:
+            raise click.BadParameter(f"Invalid JSON: {e}", param_hint="--args-json")
+        if not isinstance(parsed_args, dict):
             raise click.BadParameter(
-                f"Expected key=value format, got {arg!r}.", param_hint="-a/--arg"
+                "Expected a JSON object (e.g. '{\"key\": value}').", param_hint="--args-json"
             )
-        key, value = arg.split("=", 1)
-        parsed_args[key] = value
+    else:
+        parsed_args = {}
+        for arg in args:
+            if "=" not in arg:
+                raise click.BadParameter(
+                    f"Expected key=value format, got {arg!r}.", param_hint="-a/--arg"
+                )
+            key, value = arg.split("=", 1)
+            parsed_args[key] = value
 
     parsed_dependencies = []
     for dep in dependency_overrides:
