@@ -787,7 +787,10 @@ def jobs_group():
     "--arg",
     "args",
     multiple=True,
-    help="Additional runtime arguments, example: -a min_quality=1 -a adapter=AGATC.",
+    help=(
+        "Additional runtime arguments, example: -a min_quality=1 -a adapter=AGATC. "
+        "Always interpreted as a string. For typed arguments, use --args-json"
+    ),
 )
 @click.option(
     "--args-json",
