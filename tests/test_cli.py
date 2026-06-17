@@ -339,6 +339,80 @@ def test_jobs_update_cli(runner, api_data, custom_mock_requests, mocked_creds_fi
     assert f"Updated job {job_id}" in result.output
 
 
+def _jobs_run_mock(captured, analysis_id):
+    def callback(request):
+        captured["body"] = json.loads(request.body)
+        return (
+            200,
+            {"Content-Type": "application/json"},
+            json.dumps({"$ref": f"/api/v1/analyses/{analysis_id}"}),
+        )
+
+    return callback
+
+
+def test_jobs_run_args_json(runner, api_data, custom_mock_requests, mocked_creds_file):
+    job_id = "47c4fe23588640a9"
+    sample_id = "7428cca4a3a04a8e"
+    analysis_id = "593601a797914cbf"
+    captured = {}
+
+    with custom_mock_requests(
+        {f"POST::api/v1/jobs/{job_id}/run": _jobs_run_mock(captured, analysis_id)}
+    ):
+        result = runner.invoke(
+            Cli,
+            [
+                "jobs",
+                "run",
+                job_id,
+                sample_id,
+                *("--args-json", '{"min_quality": 30, "trim": true, "adapter": "AGATC"}'),
+            ],
+        )
+
+    assert result.exit_code == 0, result.output
+    assert captured["body"]["job_args"] == {
+        "min_quality": 30,
+        "trim": True,
+        "adapter": "AGATC",
+    }
+
+
+def test_jobs_run_args_json_mutually_exclusive(runner, mocked_creds_file):
+    result = runner.invoke(
+        Cli,
+        [
+            "jobs",
+            "run",
+            "47c4fe23588640a9",
+            "7428cca4a3a04a8e",
+            *("-a", "x=1"),
+            *("--args-json", "{}"),
+        ],
+    )
+    assert result.exit_code != 0
+    assert "Cannot combine" in result.output
+
+
+def test_jobs_run_args_json_invalid_json(runner, mocked_creds_file):
+    result = runner.invoke(
+        Cli,
+        ["jobs", "run", "47c4fe23588640a9", "7428cca4a3a04a8e", *("--args-json", "not json")],
+    )
+    assert result.exit_code != 0
+    assert "Invalid JSON" in result.output
+
+
+def test_jobs_run_args_json_not_object(runner, mocked_creds_file):
+    result = runner.invoke(
+        Cli,
+        ["jobs", "run", "47c4fe23588640a9", "7428cca4a3a04a8e", *("--args-json", "[1, 2, 3]")],
+    )
+    assert result.exit_code != 0
+    assert "JSON object" in result.output
+
+
 def test_jobs_update_no_fields(runner, api_data, mocked_creds_file):
     job_id = "cc1d331e1ee54bac"
     result = runner.invoke(Cli, ["jobs", "update", job_id])

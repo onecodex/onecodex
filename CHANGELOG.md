@@ -26,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `onecodex jobs create` and `onecodex jobs update <job_id>` CLI commands.
 - `onecodex download samples` accepts `-s/--sample` (repeatable) to download
   specific samples by ID. Mutually exclusive with `--project` and `--tags`.
+- `onecodex jobs run` accepts `--args-json` to pass runtime arguments as a JSON
+  object, preserving non-string types (integers, floats, booleans, arrays,
+  objects). `-a/--arg` only supports string values; use `--args-json` when a job
+  argument expects another type. Mutually exclusive with `-a/--arg`.
 
 ### Changed
 

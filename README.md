@@ -223,6 +223,19 @@ onecodex analyses await <analysis_id>
 onecodex jobs run <job_id> <sample_id> --arg min_quality=30 --await
 ```
 
+`-a/--arg` only supports string values — every `key=value` is sent to the server as a
+string. If a job argument expects another type (integer, float, boolean, array, object),
+use `--args-json` to pass the full argument set as a JSON object, which preserves types:
+
+```shell
+onecodex jobs run <job_id> <sample_id> --args-json '{"min_quality": 30, "trim": true}'
+
+# To read arguments from a file, use shell substitution:
+onecodex jobs run <job_id> <sample_id> --args-json "$(cat args.json)"
+```
+
+`--args-json` is mutually exclusive with `-a/--arg`.
+
 ## Creating and updating jobs
 
 You can create and update custom jobs from the client.
