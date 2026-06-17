@@ -3,7 +3,25 @@ import inspect
 import json
 
 
-from typing import ClassVar, Optional, List, Type, TypedDict
+from typing import Any, ClassVar, Optional, List, Type, TypedDict
+from typing_extensions import Self, Sentinel
+
+# PEP 661 sentinel marking 'kwarg not provided' on ``where()`` overrides.
+# Distinct from ``None`` so ``where(field=None)`` still means "filter for IS
+# NULL" rather than "no filter on this field."
+UNSET: Any = Sentinel("UNSET")
+
+
+def _drop_unset(**kwargs: Any) -> dict[str, Any]:
+    """Drop entries whose value is the ``UNSET`` sentinel.
+
+    Used by per-model ``where()`` overrides to forward only the kwargs the
+    caller actually provided. ``None`` survives — ``where(field=None)``
+    continues to mean "filter for IS NULL".
+    """
+    return {k: v for k, v in kwargs.items() if v is not UNSET}
+
+
 from pprint import pformat
 from html import escape
 
@@ -258,18 +276,18 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
         return value
 
     @classmethod
-    def all(cls, sort=None, limit=None) -> List["OneCodexBase"]:
+    def all(cls, sort=None, limit=None) -> List[Self]:
         return cls.where(sort=sort, limit=limit)
 
     @classmethod
-    def get(cls, id: str) -> Optional["OneCodexBase"]:
+    def get(cls, id: str) -> Self | None:
         resp = cls._client.get(f"{cls._api._base_url}{cls._resource_path}/{id}?expand=all")
         if resp.status_code == 200:
             return cls.model_validate(resp.json())
         return None
 
     @classmethod
-    def where(cls, *filters, **keyword_filters) -> List["OneCodexBase"]:
+    def where(cls, *filters, **keyword_filters) -> List[Self]:
         """Filter model records of this type from the One Codex server.
 
         This method works for all OneCodex model types including Samples,
@@ -314,6 +332,11 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
             A list of all objects matching these filters. If no filters are passed, this
             matches all objects.
         """
+        # Drop UNSET-valued kwargs (the "not provided" sentinel forwarded by
+        # per-model ``where()`` overrides). ``None`` survives — it means
+        # "filter for IS NULL".
+        keyword_filters = {k: v for k, v in keyword_filters.items() if v is not UNSET}
+
         # Special case a `filter` kwarg, which is a local function
         filter_func = keyword_filters.pop("filter", None)
 
