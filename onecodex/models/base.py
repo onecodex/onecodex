@@ -335,7 +335,7 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
         # Drop UNSET-valued kwargs (the "not provided" sentinel forwarded by
         # per-model ``where()`` overrides). ``None`` survives — it means
         # "filter for IS NULL".
-        keyword_filters = {k: v for k, v in keyword_filters.items() if v is not UNSET}
+        keyword_filters = _drop_unset(**keyword_filters)
 
         # Special case a `filter` kwarg, which is a local function
         filter_func = keyword_filters.pop("filter", None)
