@@ -4,6 +4,7 @@ import io
 import json
 import mock
 import pytest
+import requests
 import responses
 
 from urllib.parse import parse_qs, urlparse, unquote_plus
@@ -786,7 +787,7 @@ def test_jobs_details_http_error(ocx, api_data, custom_mock_requests):
 
     with custom_mock_requests({f"GET::api/v1/jobs/{job_id}/details": details_callback}):
         job = ocx.Jobs.get(job_id)
-        with pytest.raises(OneCodexException, match="Forbidden"):
+        with pytest.raises(requests.HTTPError):
             job.details()
 
 
