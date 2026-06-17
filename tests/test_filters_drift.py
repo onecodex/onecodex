@@ -108,6 +108,8 @@ OMITTED: dict[type, set[str]] = {
         "dependencies",
         "job_args",
         "cost",
+        # Per-request signed S3 URL — filtering on it is meaningless.
+        "results_uri",
     },
 }
 
