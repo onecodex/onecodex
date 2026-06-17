@@ -55,8 +55,8 @@ class JobDependencyRef(BaseModel):
 class _JobMutableFields(BaseModel):
     """Fields that may be set when creating or updating a Job.
 
-    Optional here so the type is shared between Create/Update/read schemas;
-    subclasses tighten required fields as appropriate.
+    Optional here so the type is shared between Create and Update schemas;
+    Create tightens the required fields.
     """
 
     name: Optional[str] = None
@@ -73,7 +73,7 @@ class _JobMutableFields(BaseModel):
     arguments_schema: Optional[list[dict[str, Any]]] = None
 
 
-class JobSchema(URIModel, _JobMutableFields):
+class JobSchema(URIModel):
     created_at: RFC3339Datetime
     name: str = Field(
         description="The name of the job (this is displayed in the dropdown on the analysis page of the One Codex web application)."
@@ -89,6 +89,26 @@ class JobSchema(URIModel, _JobMutableFields):
         description="Whether the job is publicly available. For most jobs this will be `true`. Custom, private jobs are also available, and will only be visible to users whose samples (or samples shared with them) have been analyzed using that job."
     )
     job_type: Optional[str] = None
+
+
+class JobDetails(BaseModel):
+    """These are the editable inputs on a Job."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    description: str
+    job_type: str
+    script: str
+    image_uri: str
+    cpu: float
+    ram_gb: float
+    storage_gb: float
+    repository: RepositorySchema
+    assets: list[ApiRef]
+    dependencies: list[JobDependencyRef]
+    arguments_schema: list[dict[str, Any]]
+    inject_bearer_token: bool
+    autorun_on_org_sample_upload: bool
 
 
 class DocumentSchema(URIModel):

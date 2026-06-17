@@ -16,6 +16,7 @@ from onecodex.models.schemas.misc import (
     JobSchema,
     JobCreateSchema,
     JobUpdateSchema,
+    JobDetails,
     DocumentSchema,
     AssetSchema,
     AssetUpdateSchema,
@@ -122,6 +123,18 @@ class Jobs(OneCodexBase, JobSchema):
 
         analysis_id = resp.json()["$ref"].split("/")[-1]
         return Analyses.get(analysis_id)
+
+    def details(self) -> JobDetails:
+        """Fetch the job's detail fields and return them as a `JobDetails`.
+
+        Includes script, image_uri, cpu, ram_gb, storage_gb, repository, assets,
+        dependencies, and arguments_schema. Only available for user-created jobs the
+        current user has permission to view the details of.
+        """
+        url = f"{self._api._base_url}{self._resource_path}/{self.id}/details"
+        resp = self._client.get(url)
+        resp.raise_for_status()
+        return JobDetails.model_validate(resp.json())
 
     def __repr__(self):
         return f"<{self.__class__.__name__} {self.name} - {self.analysis_type} ({self.id})>"

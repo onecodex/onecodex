@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   object, preserving non-string types (integers, floats, booleans, arrays,
   objects). `-a/--arg` only supports string values; use `--args-json` when a job
   argument expects another type. Mutually exclusive with `-a/--arg`.
+- `ocx.Jobs.get("...").details()` for retrieving CPU/memory/script/etc for Custom Workflows.
 
 ### Changed
 
