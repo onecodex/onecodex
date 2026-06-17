@@ -95,6 +95,21 @@ EqStrFilter = TypedDict(
     total=False,
 )
 
+# For string fields backed by an enum column. Equality, membership, and
+# ``$contains`` work; the prefix / suffix matchers (``$startswith`` etc.)
+# crash server-side on enum columns, so they're omitted.
+EnumStrFilter = TypedDict(
+    "EnumStrFilter",
+    {
+        "$eq": str | None,
+        "$ne": str | None,
+        "$in": Sequence[str],
+        "$contains": str,
+        "$icontains": str,
+    },
+    total=False,
+)
+
 RefFilter = TypedDict(
     "RefFilter",
     {
@@ -121,6 +136,7 @@ __all__ = [
     "DatetimeFilter",
     "BoolFilter",
     "EqStrFilter",
+    "EnumStrFilter",
     "RefFilter",
     "ListRefFilter",
 ]

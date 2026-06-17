@@ -507,14 +507,12 @@ class Classifications(_AnalysesBase, ClassificationSchema):
         error_msg: str | StrFilter | None = UNSET,
         job: Jobs | str | RefFilter = UNSET,
         sample: Samples | str | RefFilter = UNSET,
-        results_uri: str | StrFilter | None = UNSET,
     ) -> "SampleCollection":
         """Query classifications and return a :class:`SampleCollection`.
 
         Classifications are taxonomic results — typically the One Codex
         Database run against each sample. Filters mirror those on
-        :meth:`Analyses.where`, plus the classification-specific
-        ``results_uri``.
+        :meth:`Analyses.where`.
 
         Examples
         --------
@@ -550,7 +548,6 @@ class Classifications(_AnalysesBase, ClassificationSchema):
             error_msg=error_msg,
             job=job,
             sample=sample,
-            results_uri=results_uri,
         )
         return SampleCollection(classifications, Classifications)
 
