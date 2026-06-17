@@ -721,7 +721,7 @@ def test_jobs_run_invalid_response(ocx, api_data, custom_mock_requests):
             job.run(sample, {})
 
 
-def test_jobs_fetch_details(ocx, api_data, custom_mock_requests):
+def test_jobs_details(ocx, api_data, custom_mock_requests):
     job_id = "47c4fe23588640a9"
     captured = {}
 
@@ -756,7 +756,7 @@ def test_jobs_fetch_details(ocx, api_data, custom_mock_requests):
 
     with custom_mock_requests({f"GET::api/v1/jobs/{job_id}/details": details_callback}):
         job = ocx.Jobs.get(job_id)
-        details = job.fetch_details()
+        details = job.details()
 
     assert captured["url"].endswith(f"/api/v1/jobs/{job_id}/details")
     assert isinstance(details, onecodex.models.schemas.misc.JobDetails)
@@ -774,7 +774,7 @@ def test_jobs_fetch_details(ocx, api_data, custom_mock_requests):
     assert details.autorun_on_org_sample_upload is False
 
 
-def test_jobs_fetch_details_http_error(ocx, api_data, custom_mock_requests):
+def test_jobs_details_http_error(ocx, api_data, custom_mock_requests):
     job_id = "47c4fe23588640a9"
 
     def details_callback(request):
@@ -787,7 +787,7 @@ def test_jobs_fetch_details_http_error(ocx, api_data, custom_mock_requests):
     with custom_mock_requests({f"GET::api/v1/jobs/{job_id}/details": details_callback}):
         job = ocx.Jobs.get(job_id)
         with pytest.raises(OneCodexException, match="Forbidden"):
-            job.fetch_details()
+            job.details()
 
 
 def test_jobs_run_http_error(ocx, api_data, custom_mock_requests):

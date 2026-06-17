@@ -92,11 +92,7 @@ class JobSchema(URIModel):
 
 
 class JobDetails(BaseModel):
-    """Detail fields returned by `Jobs.fetch_details()`.
-
-    These are the editable inputs the job was created/updated with, beyond the
-    summary fields available on `Jobs`.
-    """
+    """These are the editable inputs on a Job."""
 
     model_config = ConfigDict(extra="ignore")
 

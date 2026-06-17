@@ -124,7 +124,7 @@ class Jobs(OneCodexBase, JobSchema):
         analysis_id = resp.json()["$ref"].split("/")[-1]
         return Analyses.get(analysis_id)
 
-    def fetch_details(self) -> JobDetails:
+    def details(self) -> JobDetails:
         """Fetch the job's detail fields and return them as a `JobDetails`.
 
         Includes script, image_uri, cpu, ram_gb, storage_gb, repository, assets,
