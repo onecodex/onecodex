@@ -4,6 +4,7 @@ import copy
 import json
 import logging
 import os
+import re
 import time
 import warnings
 from functools import partial
@@ -44,6 +45,26 @@ from onecodex.version import __version__
 # set the context for getting -h also
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 log = logging.getLogger("onecodex")
+
+
+class OneCodexID(click.ParamType):
+    name = "id"
+    ID_RE = re.compile(r"^[0-9a-f]{16}$")
+
+    def convert(self, value, param, ctx):
+        if isinstance(value, str):
+            v = value.strip().lower()
+            if self.ID_RE.fullmatch(v):
+                return v
+        self.fail(
+            f"{value!r} is not a valid One Codex ID. IDs are 16-character hex strings "
+            "(e.g. 'abc123def4567890').",
+            param,
+            ctx,
+        )
+
+
+OCX_ID = OneCodexID()
 
 
 def warning_msg(message, category, filename, lineno, file=None, line=None):
@@ -202,7 +223,7 @@ def documents_upload(ctx, max_threads, files):
 
 
 @click.command("download", help="Download a file that has been shared with you")
-@click.argument("file_id", nargs=1, required=True)
+@click.argument("file_id", nargs=1, required=True, type=OCX_ID)
 @click.option(
     "--output-document",
     "-O",
@@ -358,18 +379,22 @@ class _AnalysesGroup(click.Group):
 
 
 @onecodex.group("analyses", cls=_AnalysesGroup, invoke_without_command=True)
-@click.argument("analyses", nargs=-1, required=False)
+@click.argument("analyses", nargs=-1, required=False, type=OCX_ID)
 @click.pass_context
 @telemetry
 @login_required
 def analyses(ctx, analyses):
-    """Retrieve performed analyses."""
+    """Retrieve performed analyses.
+
+    With no arguments, lists all analyses in your account. Pass one or more
+    analysis IDs to fetch those analyses specifically.
+    """
     if ctx.invoked_subcommand is None:
         cli_resource_fetcher(ctx, "analyses", analyses)
 
 
 @click.command("await")
-@click.argument("analysis_id", nargs=1, required=True)
+@click.argument("analysis_id", nargs=1, required=True, type=OCX_ID)
 @click.option(
     "--timeout",
     "timeout_seconds",
@@ -426,7 +451,7 @@ analyses.add_command(analyses_await, "await")
 
 
 @click.command("logs")
-@click.argument("analysis_id", nargs=1, required=True)
+@click.argument("analysis_id", nargs=1, required=True, type=OCX_ID)
 @click.option(
     "--tail",
     "tail",
@@ -462,11 +487,15 @@ analyses.add_command(analyses_logs, "logs")
 )
 @click.option("--results", "results", is_flag=True, help=OPTION_HELP["results"])
 @click.pass_context
-@click.argument("classifications", nargs=-1, required=False)
+@click.argument("classifications", nargs=-1, required=False, type=OCX_ID)
 @telemetry
 @login_required
 def classifications(ctx, classifications, results, readlevel, readlevel_path):
-    """Retrieve performed metagenomic classifications."""
+    """Retrieve performed metagenomic classifications.
+
+    With no arguments, lists all classifications in your account. Pass one or
+    more classification IDs to fetch those classifications specifically.
+    """
 
     # basic operation -- just print
     if not readlevel and not results:
@@ -508,31 +537,45 @@ def classifications(ctx, classifications, results, readlevel, readlevel_path):
 
 @onecodex.command("panels")
 @click.pass_context
-@click.argument("panels", nargs=-1, required=False)
+@click.argument("panels", nargs=-1, required=False, type=OCX_ID)
 @telemetry
 @login_required
 def panels(ctx, panels):
-    """Retrieve performed in silico panel results."""
+    """Retrieve performed in silico panel results.
+
+    With no arguments, lists all panels in your account. Pass one or more panel
+    IDs to fetch those panels specifically.
+    """
     cli_resource_fetcher(ctx, "panels", panels)
 
 
 @onecodex.command("workflows")
 @click.pass_context
-@click.argument("workflows", nargs=-1, required=False)
+@click.argument("workflows", nargs=-1, required=False, type=OCX_ID)
 @telemetry
 @login_required
 def workflows(ctx, workflows):
-    """Retrieve performed workflow results."""
+    """Retrieve performed workflow results.
+
+    With no arguments, lists all workflows in your account. Pass one or more
+    workflow IDs to fetch those workflows specifically.
+    """
     cli_resource_fetcher(ctx, "workflows", workflows)
 
 
 @onecodex.command("samples")
 @click.pass_context
-@click.argument("samples", nargs=-1, required=False)
+@click.argument("samples", nargs=-1, required=False, type=OCX_ID)
 @telemetry
 @login_required
 def samples(ctx, samples):
-    """Retrieve uploaded samples."""
+    """Retrieve uploaded samples.
+
+    With no arguments, lists all samples in your account. Pass one or more sample
+    IDs to fetch those samples specifically:
+
+        onecodex samples <id1> <id2> ...
+    """
     cli_resource_fetcher(ctx, "samples", samples)
 
 
@@ -560,6 +603,7 @@ def download_group():
     "--sample",
     "sample_ids",
     multiple=True,
+    type=OCX_ID,
     help="Download a specific sample by its ID. Can be passed multiple times. Mutually "
     "exclusive with --project and --tags.",
 )
@@ -630,7 +674,7 @@ def download_samples_command(ctx, outdir, project, tags, sample_ids, prompt):
 @click.option("--tag", "-t", "tags", multiple=True, help=OPTION_HELP["tag"])
 @click.option("--metadata", "-md", multiple=True, help=OPTION_HELP["metadata"])
 @click.option("--project", "-p", "project_id", help=OPTION_HELP["project"])
-@click.option("--sample-id", help=OPTION_HELP["sample_id"])
+@click.option("--sample-id", type=OCX_ID, help=OPTION_HELP["sample_id"])
 @click.option("--external-sample-id", help=OPTION_HELP["external_sample_id"])
 @click.pass_context
 @pretty_errors
@@ -776,11 +820,13 @@ def jobs_group():
     "job_id",
     nargs=1,
     required=True,
+    type=OCX_ID,
 )
 @click.argument(
     "sample_id",
     nargs=1,
     required=True,
+    type=OCX_ID,
 )
 @click.option(
     "-a",
@@ -1095,7 +1141,7 @@ def jobs_create(
 
 
 @jobs_group.command("update")
-@click.argument("job_id", nargs=1, required=True)
+@click.argument("job_id", nargs=1, required=True, type=OCX_ID)
 @click.option("--name", default=None, help="Human-readable name of the job.")
 @click.option(
     "--script",
