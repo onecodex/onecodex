@@ -16,6 +16,10 @@ class ServerError(OneCodexException):
     pass
 
 
+class ConnectivityError(OneCodexException):
+    pass
+
+
 class UnboundObject(OneCodexException):
     """To use against the One Codex server, all classes must be derived from an Api() instance."""
 

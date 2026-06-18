@@ -5,7 +5,7 @@ from urllib.parse import urlencode
 import orjson
 
 from onecodex.viz import configure_onecodex_theme
-from onecodex.exceptions import OneCodexException
+from onecodex.exceptions import ConnectivityError, OneCodexException
 from .collection import SampleCollection, Samples
 from .enums import PlotType, SamplesFilter, SuggestionType
 from .models import BaseParams, PlotParams, StatsParams
@@ -124,8 +124,8 @@ async def _fetch_ndjson(url: str, headers: dict | None = None) -> list[dict[str,
         return [orjson.loads(line) for line in text.splitlines() if line.strip()]
     except AttributeError:
         # Converting pyfetch exceptions to Python exceptions sometimes fails with AttributeError
-        # Raising a OneCodexException that will get handled gracefully
-        raise OneCodexException("Cannot load samples, please try again later")
+        # Raising a ConnectivityError that will get handled gracefully
+        raise ConnectivityError("Cannot load samples, please try again later")
 
 
 async def _fetch_batch_sample_results(base_url: str, data: list[dict], headers: dict | None = None):
