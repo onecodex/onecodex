@@ -1,5 +1,16 @@
 import warnings
+from datetime import datetime
 from typing import Any, List, Optional, Union, TYPE_CHECKING
+from typing_extensions import Self
+
+from onecodex.models.base import UNSET
+from onecodex.models.filters import (
+    DatetimeFilter,
+    EqStrFilter,
+    NumFilter,
+    RefFilter,
+    StrFilter,
+)
 
 from pydantic import Field
 from dataclasses import dataclass
@@ -47,6 +58,42 @@ class Tags(OneCodexBase, TagSchema):
     def __hash__(self):
         return hash(self.name)
 
+    @classmethod
+    def where(
+        cls,
+        *filters: str | dict,
+        sort: str | list[str] | None = None,
+        limit: int | None = None,
+        public: bool = False,
+        filter: Any = None,
+        name: str | StrFilter = UNSET,
+    ) -> list[Self]:
+        """Query tags.
+
+        Tags are short labels attached to samples for organizing and
+        filtering them.
+
+        Examples
+        --------
+        Find a tag by exact name::
+
+            tag = ocx.Tags.where(name="trimmed")[0]
+
+        Find tags containing a substring::
+
+            ocx.Tags.where(name={"$icontains": "qc"})
+
+        See :meth:`OneCodexBase.where` for the full operator reference.
+        """
+        return super().where(
+            *filters,
+            sort=sort,
+            limit=limit,
+            public=public,
+            filter=filter,
+            name=name,
+        )
+
     def save(self):
         # Tags cannot be saved directly this way; instruct user to save via a sample
         raise MethodNotSupported(
@@ -56,6 +103,39 @@ class Tags(OneCodexBase, TagSchema):
 
 class Users(OneCodexBase, UserSchema):
     _resource_path = "/api/v1/users"
+
+    @classmethod
+    def where(
+        cls,
+        *filters: str | dict,
+        sort: str | list[str] | None = None,
+        limit: int | None = None,
+        public: bool = False,
+        filter: Any = None,
+        email: str | EqStrFilter | None = UNSET,
+    ) -> list[Self]:
+        """Query users.
+
+        Users are account holders in your organization. The only filterable
+        field is ``email``, and the API only supports exact-match (``$eq``)
+        — substring operators are not accepted server-side.
+
+        Example
+        -------
+        Find a user by exact email::
+
+            user = ocx.Users.where(email="alice@example.com")[0]
+
+        See :meth:`OneCodexBase.where` for the full operator reference.
+        """
+        return super().where(
+            *filters,
+            sort=sort,
+            limit=limit,
+            public=public,
+            filter=filter,
+            email=email,
+        )
 
 
 class Projects(OneCodexBase, ProjectSchema):
@@ -70,9 +150,51 @@ class Projects(OneCodexBase, ProjectSchema):
     @classmethod
     def search_public(cls, *filters, **keyword_filters):
         warnings.warn("Now supported via `.where(..., public=True)`", DeprecationWarning)
-        keyword_filters["public"] = True
-        keyword_filters["limit"] = 1000
-        return cls.where(*filters, **keyword_filters)
+        return cls.where(*filters, public=True, limit=1000, **keyword_filters)
+
+    @classmethod
+    def where(
+        cls,
+        *filters: str | dict,
+        sort: str | list[str] | None = None,
+        limit: int | None = None,
+        public: bool = False,
+        filter: Any = None,
+        name: str | StrFilter | None = UNSET,
+        project_name: str | StrFilter | None = UNSET,
+        description: str | StrFilter | None = UNSET,
+        external_id: str | StrFilter | None = UNSET,
+        owner: Users | str | RefFilter | None = UNSET,
+    ) -> list[Self]:
+        """Query projects.
+
+        Projects group related samples. Set ``public=True`` to search across
+        all public projects on One Codex.
+
+        Examples
+        --------
+        Find a project by exact name::
+
+            proj = ocx.Projects.where(name="HMP Phase II")[0]
+
+        Find public projects containing a keyword::
+
+            ocx.Projects.where(name={"$icontains": "gut"}, public=True)
+
+        See :meth:`OneCodexBase.where` for the full operator reference.
+        """
+        return super().where(
+            *filters,
+            sort=sort,
+            limit=limit,
+            public=public,
+            filter=filter,
+            name=name,
+            project_name=project_name,
+            description=description,
+            external_id=external_id,
+            owner=owner,
+        )
 
 
 class Jobs(OneCodexBase, JobSchema):
@@ -81,6 +203,48 @@ class Jobs(OneCodexBase, JobSchema):
         "create": JobCreateSchema,
         "update": JobUpdateSchema,
     }
+
+    @classmethod
+    def where(
+        cls,
+        *filters: str | dict,
+        sort: str | list[str] | None = None,
+        limit: int | None = None,
+        public: bool = False,
+        filter: Any = None,
+        created_at: datetime | DatetimeFilter = UNSET,
+        name: str | StrFilter = UNSET,
+        analysis_type: str | StrFilter = UNSET,
+    ) -> list[Self]:
+        """Query jobs.
+
+        Jobs are runnable workflows — both built-in (e.g. ``classification``)
+        and custom (Nextflow pipelines, shell scripts). Use ``public=True``
+        to include One Codex's built-in jobs and any other public custom
+        jobs in addition to your own.
+
+        Examples
+        --------
+        Find your custom jobs by name::
+
+            ocx.Jobs.where(name={"$icontains": "amplicon"})
+
+        Find all classification-type jobs (yours + public)::
+
+            ocx.Jobs.where(analysis_type="classification", public=True)
+
+        See :meth:`OneCodexBase.where` for the full operator reference.
+        """
+        return super().where(
+            *filters,
+            sort=sort,
+            limit=limit,
+            public=public,
+            filter=filter,
+            created_at=created_at,
+            name=name,
+            analysis_type=analysis_type,
+        )
 
     def run(
         self,
@@ -150,6 +314,54 @@ class Documents(OneCodexBase, DocumentSchema, ResourceDownloadMixin):
     size: Optional[int] = None
 
     @classmethod
+    def where(
+        cls,
+        *filters: str | dict,
+        sort: str | list[str] | None = None,
+        limit: int | None = None,
+        public: bool = False,
+        filter: Any = None,
+        created_at: datetime | DatetimeFilter = UNSET,
+        filename: str | StrFilter = UNSET,
+        size: int | NumFilter | None = UNSET,
+        uploader: Users | str | RefFilter = UNSET,
+    ) -> list[Self]:
+        """Query documents.
+
+        Documents are arbitrary files (PDFs, spreadsheets, etc.) uploaded to
+        your account, optionally shared with other users.
+
+        Examples
+        --------
+        Find documents uploaded since a date::
+
+            from datetime import datetime, timedelta, timezone
+            since = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+            ocx.Documents.where(created_at={"$gte": since})
+
+        Find documents larger than 10 MB::
+
+            ocx.Documents.where(size={"$gte": 10 * 1024 * 1024})
+
+        Find documents uploaded by a specific user::
+
+            ocx.Documents.where(uploader=user)
+
+        See :meth:`OneCodexBase.where` for the full operator reference.
+        """
+        return super().where(
+            *filters,
+            sort=sort,
+            limit=limit,
+            public=public,
+            filter=filter,
+            created_at=created_at,
+            filename=filename,
+            size=size,
+            uploader=uploader,
+        )
+
+    @classmethod
     def upload(cls, file_path, progressbar=None):
         """Upload a series of files to the One Codex server.
 
@@ -175,6 +387,53 @@ class Assets(OneCodexBase, AssetSchema, ResourceDownloadMixin):
         "update": AssetUpdateSchema,
     }
     uploader: Union[Users, ApiRef]
+
+    @classmethod
+    def where(
+        cls,
+        *filters: str | dict,
+        sort: str | list[str] | None = None,
+        limit: int | None = None,
+        public: bool = False,
+        filter: Any = None,
+        created_at: datetime | DatetimeFilter = UNSET,
+        name: str | StrFilter = UNSET,
+        filename: str | StrFilter = UNSET,
+        size: int | NumFilter | None = UNSET,
+        status: str | StrFilter = UNSET,
+        uploader: Users | str | RefFilter = UNSET,
+    ) -> list[Self]:
+        """Query assets.
+
+        Assets are reusable inputs to custom jobs — reference databases,
+        index files, anything you want available at job run time. Shared
+        with everyone in your organization.
+
+        Examples
+        --------
+        Find assets by name::
+
+            ocx.Assets.where(name={"$icontains": "kraken"})
+
+        Find only assets ready to use (``status="available"``)::
+
+            ocx.Assets.where(status="available")
+
+        See :meth:`OneCodexBase.where` for the full operator reference.
+        """
+        return super().where(
+            *filters,
+            sort=sort,
+            limit=limit,
+            public=public,
+            filter=filter,
+            created_at=created_at,
+            name=name,
+            filename=filename,
+            size=size,
+            status=status,
+            uploader=uploader,
+        )
 
     @classmethod
     def upload(cls, file_path, progressbar=None, name=None):

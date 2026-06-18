@@ -1,9 +1,25 @@
-from typing import Optional, List, Union
+from __future__ import annotations
+
+from typing import Any, TYPE_CHECKING, Optional, List, Union
 from datetime import datetime
+
+if TYPE_CHECKING:
+    from onecodex.models.collection import SampleCollection
 
 from requests.exceptions import HTTPError
 
+from typing_extensions import Self
+
 from onecodex.exceptions import OneCodexException
+from onecodex.models.base import UNSET, _drop_unset
+from onecodex.models.filters import (
+    BoolFilter,
+    DatetimeFilter,
+    EnumStrFilter,
+    NumFilter,
+    RefFilter,
+    StrFilter,
+)
 from onecodex.models.helpers import ResourceDownloadMixin
 from onecodex.models.base import OneCodexBase, ApiRef
 from onecodex.models.analysis import Classifications
@@ -74,6 +90,77 @@ class Metadata(OneCodexBase, _MetadataSchema):
     }
     _use_cursor_pagination = True
 
+    @classmethod
+    def where(
+        cls,
+        *filters: str | dict,
+        sort: str | list[str] | None = None,
+        limit: int | None = None,
+        public: bool = False,
+        filter: Any = None,
+        updated_at: datetime | DatetimeFilter | None = UNSET,
+        date_collected: datetime | DatetimeFilter | None = UNSET,
+        date_sequenced: datetime | DatetimeFilter | None = UNSET,
+        description: str | StrFilter | None = UNSET,
+        external_sample_id: str | StrFilter | None = UNSET,
+        library_type: str | EnumStrFilter | None = UNSET,
+        location_lat: float | NumFilter | None = UNSET,
+        location_lon: float | NumFilter | None = UNSET,
+        location_string: str | StrFilter | None = UNSET,
+        name: str | StrFilter | None = UNSET,
+        platform: str | EnumStrFilter | None = UNSET,
+        sample_type: str | EnumStrFilter | None = UNSET,
+        starred: bool | BoolFilter = UNSET,
+        sample: Samples | str | RefFilter = UNSET,
+    ) -> list[Self]:
+        """Query sample metadata.
+
+        Metadata holds per-sample structured fields — sequencing platform,
+        sample type, collection date, lat/lon, plus an arbitrary ``custom``
+        dict. Only metadata for samples you own is queryable; public and
+        organization-shared samples cannot be searched by metadata field.
+
+        Examples
+        --------
+        Find metadata by collection date::
+
+            from datetime import datetime, timedelta, timezone
+            cutoff = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+            ocx.Metadata.where(date_collected={"$gte": cutoff})
+
+        Find by external (e.g. LIMS) ID::
+
+            md = ocx.Metadata.where(external_sample_id="LIMS-12345")[0]
+
+        ``custom`` is not server-filterable. Fetch a broader set and filter
+        in Python::
+
+            ocx.Samples.where(...).filter(lambda s: s.metadata.custom.get("lab") == "X")
+
+        See :meth:`OneCodexBase.where` for the full operator reference.
+        """
+        return super().where(
+            *filters,
+            sort=sort,
+            limit=limit,
+            public=public,
+            filter=filter,
+            updated_at=updated_at,
+            date_collected=date_collected,
+            date_sequenced=date_sequenced,
+            description=description,
+            external_sample_id=external_sample_id,
+            library_type=library_type,
+            location_lat=location_lat,
+            location_lon=location_lon,
+            location_string=location_string,
+            name=name,
+            platform=platform,
+            sample_type=sample_type,
+            starred=starred,
+            sample=sample,
+        )
+
 
 class _SampleSchema(SampleSchema):
     _resource_path = "/api/v1/samples"
@@ -109,48 +196,98 @@ class Samples(OneCodexBase, _SampleSchema, ResourceDownloadMixin):
         )
 
     @classmethod
-    def where(cls, *filters, **keyword_filters):
-        """Query and retrieve a set of samples.
+    def where(  # type: ignore[override]
+        cls,
+        *filters: str | dict,
+        sort: str | list[str] | None = None,
+        limit: int | None = None,
+        public: bool = False,
+        organization: bool = False,
+        filter: Any = None,
+        tags: list | None = None,
+        created_at: datetime | DatetimeFilter = UNSET,
+        updated_at: datetime | DatetimeFilter = UNSET,
+        filename: str | StrFilter | None = UNSET,
+        error_msg: str | StrFilter | None = UNSET,
+        size: int | NumFilter | None = UNSET,
+        status: str | StrFilter = UNSET,
+        visibility: str | StrFilter = UNSET,
+        metadata: Metadata | str | RefFilter = UNSET,
+        owner: Users | str | RefFilter = UNSET,
+        project: Projects | str | RefFilter | None = UNSET,
+        **keyword_filters: Any,  # Metadata fields are forwarded; see body.
+    ) -> "SampleCollection":
+        """Query samples and return a :class:`SampleCollection`.
+
+        Samples are the uploaded sequencing files (FASTA/FASTQ). Filter by
+        any sample field, by metadata field (transparently joined), or by
+        tags.
+
+        Examples
+        --------
+        Find your recent FASTQ uploads::
+
+            from datetime import datetime, timedelta, timezone
+            since = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+            ocx.Samples.where(
+                created_at={"$gte": since},
+                filename={"$iendswith": ".fastq.gz"},
+            )
+
+        Filter by tag (resolved by name, id, or :class:`Tags` instance)::
+
+            ocx.Samples.where(tags=["trimmed", "human-depleted"])
+
+        Filter by a metadata field — transparently joined::
+
+            ocx.Samples.where(platform="Illumina NovaSeq 6000")
+
+        Search public or organization-shared samples::
+
+            ocx.Samples.where(filename={"$icontains": "hmp"}, public=True)
+            ocx.Samples.where(organization=True)
+
+        Apply a client-side predicate after fetching::
+
+            ocx.Samples.where(filter=lambda s: not s.tags)
 
         Parameters
         ----------
-        limit : `int`, optional
-            If set, retrieve a maximum of `limit` samples. Note a limit of 1000 samples is automatically
-            enforced for queries of all public samples (`public=True`)
-        organization : `bool`, optional
-            If True, search all samples within your organization (including your samples). May not be combined with `public=True`.
-        public : `bool`, optional
-            If True, search all public samples (limited to 1000 results). May not be combined with `organization=True`.
-        tags : `list`, optional
-            A list of optional Tags to filter by. Tags should be `Tag` objects retrieved
-            with `ocx.Tags.get()` or `ocx.Tags.where()`
-        project : `Project`, optional
-            Filter by a Project
-        **keyword_filters : dict, optional
-            Pass any additional sample or metadata attribute to filter by that attribute. Metadata filtering
-            is *not* currently supported for
+        organization
+            Search samples shared across your organization. Mutually
+            exclusive with ``public``.
+        public
+            Search public samples (capped at 1000 results). Mutually
+            exclusive with ``organization``.
+        tags
+            Tags to filter by. Accepts :class:`Tags` instances, tag ids, or
+            tag names — all resolved to refs and combined with
+            ``$containsall``.
 
         Returns
         -------
-        A `SampleCollection` object with samples matching the query
+        :class:`SampleCollection`
+
+        Notes
+        -----
+        Metadata ``custom`` fields aren't server-filterable — filter
+        client-side via :meth:`SampleCollection.filter`.
+
+        See :meth:`OneCodexBase.where` for the full operator reference.
         """
         from onecodex.models.collection import SampleCollection
 
-        public = keyword_filters.pop("public", False)
-        organization = keyword_filters.pop("organization", False)
         instances_route = "instances"
         if organization is True:
             instances_route = "instances_organization"
         if public is True:
             instances_route = "instances_public"
 
-        # Set default filters
-        keyword_filters["_instances"] = instances_route
-        keyword_filters.setdefault("limit", 1000 if public else None)
+        effective_limit = limit if limit is not None else (1000 if public else None)
 
         # handle conversion of tag UUIDs or names to Tags objects
-        tags = keyword_filters.pop("tags", [])
-
+        if tags is None:
+            tags = []
         if not isinstance(tags, list):
             tags = [tags]
 
@@ -172,15 +309,29 @@ class Samples(OneCodexBase, _SampleSchema, ResourceDownloadMixin):
                     raise OneCodexException("Unknown tag specified: {}".format(t))
             new_tags.append(new_tag)
 
+        # Merge inline field kwargs with leftover **keyword_filters.
+        merged_filters = _drop_unset(
+            created_at=created_at,
+            updated_at=updated_at,
+            filename=filename,
+            error_msg=error_msg,
+            size=size,
+            status=status,
+            visibility=visibility,
+            metadata=metadata,
+            owner=owner,
+            project=project,
+        )
+        merged_filters.update(keyword_filters)
         if new_tags:
-            keyword_filters["tags"] = {"$containsall": new_tags}
+            merged_filters["tags"] = {"$containsall": new_tags}
 
         # we can only search metadata on our own samples currently
         # FIXME: we need to add `instances_public` and `instances_project` metadata routes to
         # mirror the ones on the samples
         md_search_keywords = {
             k: v
-            for k, v in keyword_filters.items()
+            for k, v in merged_filters.items()
             if k in Metadata.model_fields and k not in Samples.model_fields
         }
         if not public and not organization:
@@ -192,21 +343,35 @@ class Samples(OneCodexBase, _SampleSchema, ResourceDownloadMixin):
             if not metadata_samples:
                 # there were no results, so don't bother with a slower query on Samples
                 samples = []
-            elif not (filters or keyword_filters):
+            elif not (filters or merged_filters):
                 # there were results, and there are no other filters to apply, so return them
                 samples = metadata_samples
             else:
                 # there were results, and we want to return the intersection of those with a query
                 # on Samples using any non-metadata filters
                 metadata_sample_ids = {s.id for s in metadata_samples}
-                samples = super(Samples, cls).where(*filters, **keyword_filters)
+                samples = super(Samples, cls).where(
+                    *filters,
+                    sort=sort,
+                    limit=effective_limit,
+                    filter=filter,
+                    _instances=instances_route,
+                    **merged_filters,
+                )
                 samples = [s for s in samples if s.id in metadata_sample_ids]
         else:
             # we did not try searching by metadata fields, so return whatever this gives us. in the
             # case that no filters/keyword_filters are specified, this is identical to Samples.all()
-            samples = super(Samples, cls).where(*filters, **keyword_filters)
+            samples = super(Samples, cls).where(
+                *filters,
+                sort=sort,
+                limit=effective_limit,
+                filter=filter,
+                _instances=instances_route,
+                **merged_filters,
+            )
 
-        return SampleCollection([s for s in samples[: keyword_filters["limit"]]], Samples)
+        return SampleCollection([s for s in samples[:effective_limit]], Samples)
 
     def save(self):
         """Send changes on this Samples object to the One Codex server.

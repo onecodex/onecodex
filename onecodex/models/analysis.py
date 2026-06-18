@@ -3,7 +3,17 @@ from __future__ import annotations
 import os.path
 import time
 from functools import lru_cache
-from typing import IO, TYPE_CHECKING, ClassVar, List, Optional, Union
+from datetime import datetime
+from typing import IO, TYPE_CHECKING, Any, ClassVar, List, Optional, Union
+from typing_extensions import Self
+
+from onecodex.models.base import UNSET
+from onecodex.models.filters import (
+    BoolFilter,
+    DatetimeFilter,
+    RefFilter,
+    StrFilter,
+)
 
 import click
 import requests
@@ -24,6 +34,10 @@ from onecodex.models.schemas.misc import FileDetailSchema
 
 if TYPE_CHECKING:
     import pandas as pd
+
+    from onecodex.models.collection import SampleCollection
+    from onecodex.models.misc import Jobs
+    from onecodex.models.sample import Samples
 
 
 def _decompress(data: bytes) -> bytes:
@@ -56,6 +70,68 @@ class _AnalysesBase(OneCodexBase):
         if not isinstance(other, _AnalysesBase):
             return NotImplemented
         return self.id == other.id
+
+    @classmethod
+    def where(
+        cls,
+        *filters: str | dict,
+        sort: str | list[str] | None = None,
+        limit: int | None = None,
+        public: bool = False,
+        filter: Any = None,
+        created_at: datetime | DatetimeFilter = UNSET,
+        updated_at: datetime | DatetimeFilter = UNSET,
+        complete: bool | BoolFilter = UNSET,
+        draft: bool | BoolFilter = UNSET,
+        success: bool | BoolFilter = UNSET,
+        error_msg: str | StrFilter | None = UNSET,
+        analysis_type: str | StrFilter = UNSET,
+        job: Jobs | str | RefFilter = UNSET,
+        sample: Samples | str | RefFilter = UNSET,
+        **keyword_filters: Any,
+    ) -> list[Self]:
+        """Query analyses.
+
+        An analysis is the result of running a job on a sample. Use this
+        when you want results across analysis types (classifications,
+        panels, functional profiles, etc.); for a single type, prefer the
+        dedicated subclass (e.g. :class:`Classifications`).
+
+        Examples
+        --------
+        Find completed analyses since yesterday::
+
+            from datetime import datetime, timedelta, timezone
+            since = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+            ocx.Analyses.where(complete=True, created_at={"$gte": since})
+
+        Find failed analyses (terminal but unsuccessful)::
+
+            ocx.Analyses.where(complete=True, success=False)
+
+        Find all analyses for a given sample::
+
+            ocx.Analyses.where(sample=sample)
+
+        See :meth:`OneCodexBase.where` for the full operator reference.
+        """
+        return super().where(
+            *filters,
+            sort=sort,
+            limit=limit,
+            public=public,
+            filter=filter,
+            created_at=created_at,
+            updated_at=updated_at,
+            complete=complete,
+            draft=draft,
+            success=success,
+            error_msg=error_msg,
+            analysis_type=analysis_type,
+            job=job,
+            sample=sample,
+            **keyword_filters,
+        )
 
     def refresh(self) -> None:
         """Fetch the current state from the API and update this object's state fields in-place."""
@@ -416,10 +492,63 @@ class Classifications(_AnalysesBase, ClassificationSchema):
         }
 
     @classmethod
-    def where(cls, *filters, **keyword_filters):
+    def where(  # type: ignore[override]
+        cls,
+        *filters: str | dict,
+        sort: str | list[str] | None = None,
+        limit: int | None = None,
+        public: bool = False,
+        filter: Any = None,
+        created_at: datetime | DatetimeFilter = UNSET,
+        updated_at: datetime | DatetimeFilter = UNSET,
+        complete: bool | BoolFilter = UNSET,
+        draft: bool | BoolFilter = UNSET,
+        success: bool | BoolFilter = UNSET,
+        error_msg: str | StrFilter | None = UNSET,
+        job: Jobs | str | RefFilter = UNSET,
+        sample: Samples | str | RefFilter = UNSET,
+    ) -> "SampleCollection":
+        """Query classifications and return a :class:`SampleCollection`.
+
+        Classifications are taxonomic results — typically the One Codex
+        Database run against each sample. Filters mirror those on
+        :meth:`Analyses.where`.
+
+        Examples
+        --------
+        Find recent successful classifications::
+
+            from datetime import datetime, timedelta, timezone
+            since = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+            ocx.Classifications.where(
+                complete=True,
+                success=True,
+                created_at={"$gte": since},
+            )
+
+        Find the classification for a specific sample::
+
+            cls_run = ocx.Classifications.where(sample=sample)[0]
+
+        See :meth:`OneCodexBase.where` for the full operator reference.
+        """
         from onecodex.models.collection import SampleCollection
 
-        classifications = super(Classifications, cls).where(*filters, **keyword_filters)
+        classifications = super(Classifications, cls).where(
+            *filters,
+            sort=sort,
+            limit=limit,
+            public=public,
+            filter=filter,
+            created_at=created_at,
+            updated_at=updated_at,
+            complete=complete,
+            draft=draft,
+            success=success,
+            error_msg=error_msg,
+            job=job,
+            sample=sample,
+        )
         return SampleCollection(classifications, Classifications)
 
 
