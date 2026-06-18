@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added `updated_at` to `Analyses` schema
 - `onecodex.models.Workflows` (a type of `onecodex.models.Analyses`) for [Custom Workflows](https://docs.onecodex.com/en/collections/9673389-your-authored-workflows-on-one-codex)
+- Added `Jobs.run()` for running analyses including Workflows
 - `onecodex.models.Assets` for querying and creating Workflow assets
 - `Analyses.await_completion()` blocks until an analysis reaches a terminal
   state using adaptive polling.
