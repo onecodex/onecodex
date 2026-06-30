@@ -149,12 +149,13 @@ class VizFunctionalHeatmapMixin(BaseSampleCollection):
         }
 
         metadata["functional_profile_id"] = [
-            sample_id_to_functional_profile_id[sample_id]
-            if sample_id in sample_id_to_functional_profile_id
-            else None
-            for sample_id in metadata["sample_id"]
+            sample_id_to_functional_profile_id.get(sample_id) for sample_id in metadata["sample_id"]
         ]
 
+        # Drop samples without a functional profile. They aren't in `df` (so the
+        # left join would drop them anyway), and keeping them would put multiple
+        # null join keys in the index, breaking the one-to-one merge (DEV-11818).
+        metadata = metadata[metadata["functional_profile_id"].notna()]
         metadata = metadata.set_index("functional_profile_id")
 
         df = df.join(metadata, validate="one_to_one", how="left")

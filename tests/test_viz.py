@@ -1100,3 +1100,23 @@ def test_plot_bargraph_to_calc_total_errors_out_if_df_is_empty(samples):
 
     assert len(values) == 1
     assert values[0] == 0.0
+
+
+def test_plot_functional_heatmap_multiple_samples_without_functional_results(ocx, api_data):
+    # DEV-11818: >1 sample lacking functional results put multiple null join keys
+    # in the metadata index, breaking the one-to-one merge with the functional df.
+    sample_ids = [
+        "543c9c046e3e4e09",
+        "66c1531cb0b244f6",
+        "37e5151e7bcb4f87",
+        "7428cca4nocaffe1",  # no functional results
+        "7428cca4nocaffe2",  # no functional results
+    ]
+    samples = SampleCollection([ocx.Samples.get(x) for x in sample_ids], skip_missing=True)
+
+    with pytest.warns(UserWarning, match="Functional profile not found"):
+        chart = samples.plot_functional_heatmap(return_chart=True, top_n=3)
+
+    # Only the 3 samples with functional results are plotted (3 samples * 3 top_n).
+    assert len(chart.data.index) == 9
+    assert set(chart.data["Label"]) == {p.sample.filename for p in samples._functional_profiles}
