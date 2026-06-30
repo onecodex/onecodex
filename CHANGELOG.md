@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- `plot_functional_heatmap()` no longer raises a `MergeError` when the sample
+  collection contains more than one sample without functional profile results.
+  Samples lacking functional results are now dropped from the plot (they were
+  never plotted anyway).
+
 ## [v1.1.0] - 2026-06-18
 
 ### Added
