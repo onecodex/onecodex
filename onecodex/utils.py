@@ -10,6 +10,7 @@ import sys
 import tempfile
 from contextlib import contextmanager
 from functools import partial, wraps
+from typing import TYPE_CHECKING
 
 import click
 import requests
@@ -33,6 +34,9 @@ except ImportError:
 from onecodex.lib.auth import BearerTokenAuth
 from onecodex.exceptions import OneCodexException, UploadException
 from onecodex.version import __version__
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 log = logging.getLogger("onecodex")
 
@@ -494,14 +498,19 @@ def click_path_autocomplete_helper(ctx, args, incomplete, filename=True, directo
     return suggestions
 
 
-def is_continuous(series):
+def is_categorical_metadata(series: pd.Series) -> bool:
     import pandas as pd
 
-    return not (
+    return (
         pd.api.types.is_bool_dtype(series)
         or isinstance(series.dtype, pd.CategoricalDtype)
         or pd.api.types.is_object_dtype(series)
+        or pd.api.types.is_string_dtype(series)
     )
+
+
+def is_continuous(series: pd.Series) -> bool:
+    return not is_categorical_metadata(series)
 
 
 def has_missing_values(dataframe_or_series):

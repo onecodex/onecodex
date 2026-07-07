@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any, Literal, Optional, Type, overload
 from typing_extensions import Annotated, deprecated
 
 from onecodex.exceptions import NoTaxaException, OneCodexException, OneCodexUserWarning
+from onecodex.utils import is_categorical_metadata
 from onecodex.lib.enums import (
     AnalysisType,
     FunctionalAnnotations,
@@ -1337,11 +1338,7 @@ class BaseSampleCollection(
                             f"Metadata field {field} not found. Choose from: {help_metadata}"
                         )
 
-                    if not (
-                        pd.api.types.is_bool_dtype(self.metadata[field])
-                        or isinstance(self.metadata[field].dtype, pd.CategoricalDtype)
-                        or pd.api.types.is_object_dtype(self.metadata[field])
-                    ):
+                    if not is_categorical_metadata(self.metadata[field]):
                         raise OneCodexException(
                             "When specifying multiple metadata fields, all must be categorical"
                         )

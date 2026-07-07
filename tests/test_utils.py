@@ -11,6 +11,8 @@ from onecodex.utils import (
     check_for_allowed_file,
     valid_api_key,
     has_missing_values,
+    is_categorical_metadata,
+    is_continuous,
     init_sentry,
 )
 
@@ -90,6 +92,28 @@ def test_has_missing_values():
 
     assert has_missing_values(pd.DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", None]}))
     assert not has_missing_values(pd.DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", "c"]}))
+
+
+@pytest.mark.parametrize(
+    "make_series,expected_categorical",
+    [
+        (lambda pd: pd.Series(["a", "b", "c"]), True),
+        (lambda pd: pd.Series(["a", "b"], dtype=object), True),
+        (lambda pd: pd.Series(["a", "b"], dtype="string"), True),
+        (lambda pd: pd.Series([True, False, True]), True),
+        (lambda pd: pd.Series(["a", "b", "a"], dtype="category"), True),
+        (lambda pd: pd.Series([1, 2, 3]), False),
+        (lambda pd: pd.Series([1.0, 2.5, 3.0]), False),
+        (lambda pd: pd.Series(pd.to_datetime(["2020-01-01", "2020-01-02"])), False),
+    ],
+)
+def test_is_categorical_metadata(make_series, expected_categorical):
+    pytest.importorskip("pandas")
+    import pandas as pd
+
+    series = make_series(pd)
+    assert is_categorical_metadata(series) == expected_categorical
+    assert is_continuous(series) == (not expected_categorical)
 
 
 @pytest.mark.parametrize(

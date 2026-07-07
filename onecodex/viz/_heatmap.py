@@ -2,6 +2,7 @@ import warnings
 from typing import Union
 
 from onecodex.exceptions import OneCodexException, PlottingException, PlottingWarning
+from onecodex.utils import is_categorical_metadata
 from onecodex.lib.enums import (
     BetaDiversityMetric,
     Link,
@@ -211,11 +212,7 @@ class VizHeatmapMixin(BaseSampleCollection):
                 )
                 labels_in_order = magic_metadata["Label"][sample_cluster["ids_in_order"]].tolist()
             else:
-                if not (
-                    pd.api.types.is_bool_dtype(df[magic_fields[haxis]])
-                    or isinstance(df[magic_fields[haxis]].dtype, pd.CategoricalDtype)
-                    or pd.api.types.is_object_dtype(df[magic_fields[haxis]])
-                ):
+                if not is_categorical_metadata(df[magic_fields[haxis]]):
                     raise OneCodexException(
                         "Metadata field on horizontal axis can not be numerical"
                     )
