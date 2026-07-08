@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added support for pandas 3
+- Added support for pandas 3. pandas 2 remains supported.
 
 ### Fixed
 
