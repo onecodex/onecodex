@@ -190,7 +190,7 @@ def test_plot_metadata_alpha_diversity_with_nans(samples):
 def test_plot_metadata_haxis_date_coercion(samples, coerce_haxis_dates):
     for sample in samples:
         sample.metadata.custom["date_collected"] = datetime.now().isoformat()
-    assert samples.metadata["date_collected"].dtype == object
+    assert pd.api.types.is_string_dtype(samples.metadata["date_collected"])
 
     chart = samples.plot_metadata(
         vaxis="shannon",
@@ -207,7 +207,7 @@ def test_plot_metadata_haxis_date_coercion(samples, coerce_haxis_dates):
     if coerce_haxis_dates:
         assert pd.api.types.is_datetime64_any_dtype(chart.data["date_collected"])
     else:
-        assert chart.data["date_collected"].dtype == object
+        assert pd.api.types.is_string_dtype(chart.data["date_collected"])
 
 
 def test_plot_metadata_exceptions(samples):

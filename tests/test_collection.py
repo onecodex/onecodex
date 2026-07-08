@@ -161,7 +161,7 @@ def test_normalize_results(samples, metric, rank, expected_top_6):
     }
 
     df = collection.to_df(rank=rank, metric=metric)
-    vals = df.values[0]
+    vals = df.values[0].copy()
     vals.sort()
 
     # Check top 6 values

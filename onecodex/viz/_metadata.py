@@ -3,6 +3,7 @@ from typing import Optional, Literal, Union
 
 from onecodex.lib.enums import AlphaDiversityMetric, Metric, Rank, BaseEnum
 from onecodex.exceptions import OneCodexException, PlottingException, PlottingWarning
+from onecodex.utils import is_categorical_metadata
 from onecodex.viz._primitives import (
     prepare_props,
     sort_helper,
@@ -174,12 +175,9 @@ class VizMetadataMixin(BaseSampleCollection):
             )
 
             # we require the vertical axis to be numerical otherwise plots get weird
-            if (
-                pd.api.types.is_bool_dtype(vert_df[vert_magic_fields[vaxis]])
-                or isinstance(vert_df[vert_magic_fields[vaxis]].dtype, pd.CategoricalDtype)
-                or pd.api.types.is_object_dtype(vert_df[vert_magic_fields[vaxis]])
-                or not pd.api.types.is_numeric_dtype(vert_df[vert_magic_fields[vaxis]])
-            ):
+            if is_categorical_metadata(
+                vert_df[vert_magic_fields[vaxis]]
+            ) or not pd.api.types.is_numeric_dtype(vert_df[vert_magic_fields[vaxis]]):
                 raise OneCodexException("Metadata field on vertical axis must be numerical")
 
             df = pd.concat([df, vert_df], axis=1).dropna(subset=[vert_magic_fields[vaxis]])
@@ -212,11 +210,7 @@ class VizMetadataMixin(BaseSampleCollection):
                 df[magic_fields[haxis]] = pd.to_datetime(df[magic_fields[haxis]], utc=True)
             if plot_type == PlotType.Auto:
                 plot_type = PlotType.BoxPlot
-        elif (
-            pd.api.types.is_bool_dtype(df[magic_fields[haxis]])
-            or isinstance(df[magic_fields[haxis]].dtype, pd.CategoricalDtype)
-            or pd.api.types.is_object_dtype(df[magic_fields[haxis]])
-        ):
+        elif is_categorical_metadata(df[magic_fields[haxis]]):
             df = df.fillna({field: "N/A" for field in df.columns})
 
             if plot_type == PlotType.Auto:

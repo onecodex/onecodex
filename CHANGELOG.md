@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added support for pandas 3. pandas 2 remains supported.
+
 ### Fixed
 
 - `plot_functional_heatmap()` no longer raises a `MergeError` when the sample

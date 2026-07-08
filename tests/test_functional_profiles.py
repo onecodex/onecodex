@@ -36,11 +36,11 @@ def test_functional_profiles_table(ocx, api_data):
 
     eggnog_df = func_profile.table(annotation="eggnog", taxa_stratified=False)
     assert set(eggnog_df["group_name"]) == {"eggnog"}
-    assert list(eggnog_df["taxon_name"].unique()) == [None]
+    assert eggnog_df["taxon_name"].isna().all()
 
     all_df = func_profile.table(taxa_stratified=False)
     assert len(all_df) == 358
-    assert list(all_df["taxon_name"].unique()) == [None]
+    assert all_df["taxon_name"].isna().all()
     assert list(all_df["group_name"].unique()) == [
         "gene_family",
         "metacyc",
