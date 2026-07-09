@@ -10,6 +10,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added support for pandas 3. pandas 2 remains supported.
+- Added filtered readcount metrics (`filtered_readcount`,
+  `filtered_readcount_w_children`, and their normalized variants), which are
+  computed after [artifact
+  filtering](https://docs.onecodex.com/en/articles/3761205-one-codex-database)
+  and are consistent across samples with and without abundance estimates.
+
+### Changed
+
+- Renamed the `Metric.is_filtered_readcount_metric` property to
+  `Metric.is_abundance_sensitive` to better describe what it flags.
+
+### Removed
+
+- Removed the `unfiltered_readcount` metrics (`Metric.UnfilteredReadcount`,
+  `Metric.NormalizedUnfilteredReadcount`, etc.) in favor of the new
+  `filtered_readcount` metrics. Note the semantics differ: unfiltered
+  readcounts were computed *before* artifact filtering, whereas filtered
+  readcounts are computed *after*.
 
 ### Fixed
 
