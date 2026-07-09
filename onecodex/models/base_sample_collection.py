@@ -1053,9 +1053,9 @@ class BaseSampleCollection(
         :class:`~onecodex.dataframes.ClassificationsDataFrame`
         """
 
-        # if the metric is derived from filtered readcounts (readcount or readcount_w_children)
+        # if the metric is derived from readcounts (readcount or readcount_w_children)
         # and the samples contain a mix of +/- abundance samples, then the metric may not be
-        # comparable. warn the user and advise to use the unfiltered readcounts instead
+        # comparable. warn the user and advise to use the filtered readcounts instead
 
         # this check needs to be performed outside of _to_classification_df (which is cached) so that
         # multiple invocations each issue their own warning
@@ -1065,13 +1065,13 @@ class BaseSampleCollection(
 
         metric = Metric(metric)
 
-        if metric.is_filtered_readcount_metric and (
+        if metric.is_abundance_sensitive and (
             0 < len(self._classification_ids_without_abundances) < len(self._classifications)
         ):
             warnings.warn(
                 f"{len(self._classification_ids_without_abundances)} sample(s) have no abundances "
                 f"calculated. {metric.display_name} values may not be comparable across samples when abundance "
-                "status is mixed. Consider using an unfiltered metric instead.",
+                "status is mixed. Consider using a filtered metric instead.",
                 OneCodexUserWarning,
             )
 
@@ -1173,8 +1173,8 @@ class BaseSampleCollection(
             Metric.PropClassifiedWChildren,
             Metric.NormalizedReadcount,
             Metric.NormalizedReadcountWChildren,
-            Metric.NormalizedUnfilteredReadcount,
-            Metric.NormalizedUnfilteredReadcountWChildren,
+            Metric.NormalizedFilteredReadcount,
+            Metric.NormalizedFilteredReadcountWChildren,
         ):
             if metric in (Metric.PropClassified, Metric.PropClassifiedWChildren):
                 denoms = [
@@ -1186,8 +1186,8 @@ class BaseSampleCollection(
             elif metric in (
                 Metric.NormalizedReadcount,
                 Metric.NormalizedReadcountWChildren,
-                Metric.NormalizedUnfilteredReadcount,
-                Metric.NormalizedUnfilteredReadcountWChildren,
+                Metric.NormalizedFilteredReadcount,
+                Metric.NormalizedFilteredReadcountWChildren,
             ):
                 denoms = df.sum(axis=1)
             else:

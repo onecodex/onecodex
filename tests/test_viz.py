@@ -401,8 +401,8 @@ def test_plot_pca_missing_abundances(ocx, api_data, samples, samples_without_abu
     ):
         samples.plot_pca(metric=Metric.Readcount, return_chart=True)
 
-    # raw readcount metric does not warn
-    samples.plot_pca(metric=Metric.UnfilteredReadcount, return_chart=True)
+    # filtered readcount metric does not warn
+    samples.plot_pca(metric=Metric.FilteredReadcount, return_chart=True)
 
 
 def test_plot_pca_exceptions(samples):

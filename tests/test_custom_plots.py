@@ -41,7 +41,7 @@ def generate_id() -> str:
 
 
 def load_classification_results_json(classification_uuid: str) -> dict | list:
-    # Loads results directly into Samples (bypasses HTTP mocks). Adds unfiltered_readcount fields
+    # Loads results directly into Samples (bypasses HTTP mocks). Adds filtered_readcount fields
     # since the /results endpoint doesn't include them but the model expects them.
     base = f"tests/data/api/v1/classifications/{classification_uuid}/results/index.json"
     if os.path.exists(base + ".zstd"):
@@ -56,8 +56,8 @@ def load_classification_results_json(classification_uuid: str) -> dict | list:
         with open(base, "r") as f:
             data = json.load(f)
     for row in data.get("table", []):
-        row["unfiltered_readcount"] = row["readcount"]
-        row["unfiltered_readcount_w_children"] = row["readcount_w_children"]
+        row["filtered_readcount"] = row["readcount"]
+        row["filtered_readcount_w_children"] = row["readcount_w_children"]
     return data
 
 
@@ -245,10 +245,10 @@ def test_plot(sample_collection, default_plot_params_payload, params):
 @pytest.mark.parametrize(
     "metric",
     [
-        Metric.UnfilteredReadcount,
-        Metric.UnfilteredReadcountWChildren,
-        Metric.NormalizedUnfilteredReadcount,
-        Metric.NormalizedUnfilteredReadcountWChildren,
+        Metric.FilteredReadcount,
+        Metric.FilteredReadcountWChildren,
+        Metric.NormalizedFilteredReadcount,
+        Metric.NormalizedFilteredReadcountWChildren,
         Metric.Abundance,
         Metric.AbundanceWChildren,
     ],
@@ -256,7 +256,7 @@ def test_plot(sample_collection, default_plot_params_payload, params):
 def test_plot_no_warning_metrics(
     sample_collection_mixed_abundances, default_plot_params_payload, metric
 ):
-    """Unfiltered readcount and abundance metrics must not emit a OneCodexUserWarning for mixed-abundance
+    """Filtered readcount and abundance metrics must not emit a OneCodexUserWarning for mixed-abundance
     collections."""
     params = PlotParams.model_validate(default_plot_params_payload | {"metric": metric})
     result = sample_collection_mixed_abundances.plot(params)
