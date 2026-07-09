@@ -153,7 +153,7 @@ async def _fetch_batch_sample_results(base_url: str, data: list[dict], headers: 
     if classification_uuids:
         from .utils import format_classification_results
 
-        url = f"{base_url}/api/v2/custom-plots/classification-results?uuids={','.join(classification_uuids)}"
+        url = f"{base_url}/api/frontend/custom-plots/classification-results?uuids={','.join(classification_uuids)}"
         # Results are ordered according to order in the uuid list
         results = await _fetch_ndjson(url, headers=headers)
         for uuid, result in zip(classification_uuids, results):
@@ -162,9 +162,7 @@ async def _fetch_batch_sample_results(base_url: str, data: list[dict], headers: 
             )
 
     if functional_uuids:
-        url = (
-            f"{base_url}/api/v2/custom-plots/functional-results?uuids={','.join(functional_uuids)}"
-        )
+        url = f"{base_url}/api/frontend/custom-plots/functional-results?uuids={','.join(functional_uuids)}"
         results = await _fetch_ndjson(url, headers=headers)
         for uuid, result in zip(functional_uuids, results):
             data[uuid_pos[uuid]]["functional_profile"]["results"] = result
@@ -192,7 +190,7 @@ async def _fetch_samples(
     import js  # available from pyodide
 
     base_url = js.self.location.origin
-    url = f"{base_url}/api/v2/custom-plots/sample-data"
+    url = f"{base_url}/api/frontend/custom-plots/sample-data"
     headers = {
         "X-CSRFToken": csrf_token,
         "Accept": "application/json",

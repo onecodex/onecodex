@@ -46,9 +46,9 @@ METADATA_FIELD_STATS_PARAMS = [
 
 
 ###
-# SampleCollection shims to support data fetched via the internal v2 API instead of the v1 API. The
-# v2 API has an endpoint that provides all the necessary/minimal sample data, and is more efficient
-# than fetching the data via the v1 API.
+# SampleCollection shims to support data fetched via the internal frontend API instead of the v1
+# API. The frontend API has an endpoint that provides all the necessary/minimal sample data, and
+# is more efficient than fetching the data via the v1 API.
 ###
 
 
@@ -86,7 +86,7 @@ class Classifications(dict):
 
     id: str | None = None
     sample: Samples | None = None
-    # all should be successful at this point if retrieved from the V2 API
+    # all should be successful at this point if retrieved from the frontend API
     success: Literal[True] = True
     job: Jobs
 
