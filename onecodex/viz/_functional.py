@@ -109,6 +109,9 @@ class VizFunctionalHeatmapMixin(BaseSampleCollection):
             taxa_stratified=False,
             fill_missing=True,
         )
+        # to_functional_df has (function id x functional_profile_id) format, while
+        # heatmap expects (functional_profile_id x function id) - transposing
+        df = df.T
         num_of_items = len(df.index)
         ocx_feature_name_map = df.ocx_feature_name_map
 

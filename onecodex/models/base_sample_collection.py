@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import warnings
 from collections import Counter, OrderedDict, defaultdict
 from collections.abc import MutableSequence
@@ -50,6 +51,18 @@ CANONICAL_RANKS = (
     "genus",
     "species",
 )
+
+
+def _normalize_taxon_field(value: Any) -> str:
+    """Coerce a taxon id/name to a string for use in a DataFrame index.
+
+    Required to consistently handle missing values, ints and floats (like 386414.0).
+    """
+    if value is None or (isinstance(value, float) and math.isnan(value)):
+        return ""
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
 
 
 class BaseSampleCollection(
@@ -688,6 +701,10 @@ class BaseSampleCollection(
         """
         Return a dataframe of all functional profile data and feature id to name mapping.
 
+        The returned DataFrame is (feature id x feature profile id) - feature ids as rows.
+        When `taxa_stratified` is True, the row index becomes (feature_id, taxon_id, taxon_name).
+        Otherwise, the row index is just feature_id.
+
         Parameters
         ----------
         annotation : {onecodex.lib.enum.FunctionalAnnotations, str}
@@ -721,51 +738,75 @@ class BaseSampleCollection(
                 f"If using annotation={annotation.value}, 'metric' must be one of ['cpm', 'rpk']"
             )
 
-        # iterate over functional profiles, subset data, and store in data dict
         data = {}
-        all_features = set()
         feature_id_to_name = {}
 
-        sample_id_to_profile_id = {}
+        # Each entry is either feature_id (non-stratified) or (feature_id, taxon_id, taxon_name) (stratified)
+        row_keys = []
+        seen_rows = set()
+        # Each entry is a functional profile id (one per sample)
+        functional_profile_ids = []
+        sample_ids_seen = set()
 
         for profile in self._functional_profiles:
             sample_id = profile.sample.id
 
-            if sample_id in sample_id_to_profile_id:
+            if sample_id in sample_ids_seen:
                 raise ValueError(f"More than one functional profile for sample {sample_id}")
-
-            sample_id_to_profile_id[sample_id] = profile.id
+            sample_ids_seen.add(sample_id)
 
             # get table using One Codex API
             table = profile.filtered_table(
                 annotation=annotation, metric=metric, taxa_stratified=taxa_stratified
             )
 
-            # store tables for later retrieval
-            data[sample_id] = dict(zip(table.id, table.value))
-            feature_id_to_name.update(dict(zip(table.id, table.name)))
-            all_features.update(set(table["id"]))
+            feature_id_to_name.update(dict(zip(table["id"], table["name"])))
 
-        features_to_ix = {}
-        feature_list = []
-        for ix, feature in enumerate(all_features):
-            features_to_ix[feature] = ix
-            feature_list.append(feature)
+            if taxa_stratified:
+                taxon_ids = [_normalize_taxon_field(v) for v in table["taxon_id"]]
+                taxon_names = [_normalize_taxon_field(v) for v in table["taxon_name"]]
+                keys = list(zip(table["id"], taxon_ids, taxon_names))
+            else:
+                keys = list(table["id"])
 
-        # initialize an array and fill it
-        array = np.full(shape=(len(data), len(features_to_ix)), dtype=float, fill_value=np.nan)
-        sample_ids = []
-        for sample_index, sample_id in enumerate(data):
-            for feature_id in data[sample_id]:
-                array[sample_index, features_to_ix[feature_id]] = data[sample_id][feature_id]
-            sample_ids.append(sample_id)
+            # map of row key to its value, e.g. stratified:
+            # {("GO:0000015", "301302", "g__Roseburia.s__Roseburia_faecis"): 45.8, ...}
+            # non-stratified: {"GO:0000015": 45.8, ...}
+            profile_values = dict(zip(keys, table["value"]))
+            data[profile.id] = profile_values
+            functional_profile_ids.append(profile.id)
 
-        functional_profile_ids = [sample_id_to_profile_id[sample_id] for sample_id in sample_ids]
+            for key in keys:
+                if key not in seen_rows:
+                    seen_rows.add(key)
+                    row_keys.append(key)
+
+        row_to_ix = {key: ix for ix, key in enumerate(row_keys)}
+
+        # initialize an array (rows=function id (*taxa), columns=functional profiles) and fill it
+        array = np.full(
+            shape=(len(row_keys), len(functional_profile_ids)), dtype=float, fill_value=np.nan
+        )
+        for col_index, profile_id in enumerate(functional_profile_ids):
+            for key, value in data[profile_id].items():
+                array[row_to_ix[key], col_index] = value
+
+        if taxa_stratified:
+            multiindex_columns = ["feature_id", "taxon_id", "taxon_name"]
+            index = (
+                pd.MultiIndex.from_tuples(row_keys, names=multiindex_columns)
+                if row_keys
+                else pd.MultiIndex.from_arrays(
+                    [[]] * len(multiindex_columns), names=multiindex_columns
+                )
+            )
+        else:
+            index = pd.Index(row_keys, name="feature_id")
 
         df = pd.DataFrame(
             array,
-            index=pd.Index(functional_profile_ids, name="functional_profile_id"),
-            columns=feature_list,
+            index=index,
+            columns=pd.Index(functional_profile_ids, name="functional_profile_id"),
             copy=False,
         )
 
@@ -970,6 +1011,11 @@ class BaseSampleCollection(
     ):
         """
         Generate a FunctionalDataFrame associated with functional analysis results.
+
+        Functional annotations are listed along the rows and functional profiles along the
+        columns. When `taxa_stratified=True`, the row index is a MultiIndex of
+        (feature_id, taxon_id, taxon_name). Otherwise, the row index is an index
+        of feature_id.
 
         Parameters
         ----------
