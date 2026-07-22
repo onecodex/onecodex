@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Renamed the `Metric.is_filtered_readcount_metric` property to
   `Metric.is_abundance_sensitive` to better describe what it flags.
+- In `plot_metadata(width="container", ...)`, boxplot width is now dynamically adjusted based on the
+  number of boxes
 
 ### Removed
 

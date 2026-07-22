@@ -12,6 +12,14 @@ from onecodex.viz._primitives import (
 )
 
 
+# Constants used for automatic boxplot sizing. The width automatically decreases as more boxes are added
+# Since we cannot know the true container width, we based it off of the nominal (min. supported) width
+MAX_BOXPLOT_SIZE = 45
+MIN_BOXPLOT_SIZE = 5
+BOXPLOT_SIZE_INCREMENT = 5
+NOMINAL_BOXPLOT_WIDTH = 400
+
+
 class PlotType(BaseEnum):
     Auto = "auto"
     BoxPlot = "boxplot"
@@ -269,15 +277,25 @@ class VizMetadataMixin(BaseSampleCollection):
                 raise OneCodexException("Must not specify sort_x when plot_type is boxplot")
 
             boxplot_kwargs = {"median": {"stroke": "black"}}
+
+            # when the width is set by the container, we cannot know the true container size.
+            # So in order to ensure that the boxes do not overlap, we assume a container width
+            # (NOMINAL_BOXPLOT_WIDTH) and set the individual box widths based on the number of
+            # boxes with a floor set by MIN_BOXPLOT_SIZE
             if not secondary_haxis or width == "container":
-                box_size = 45
-                increment = 5
                 n_boxes = len(df[magic_fields[haxis]].unique())
+                if secondary_haxis and secondary_haxis in df.columns:
+                    n_boxes *= len(df[secondary_haxis].unique())
+                if facet_by and facet_by in df.columns:
+                    n_boxes *= len(df[facet_by].unique())
 
-                if width and width != "container" and (n_boxes * (box_size + increment)) > width:
-                    box_size = ((width / n_boxes) // increment) * increment - increment
+                effective_width = width if isinstance(width, int) else NOMINAL_BOXPLOT_WIDTH
 
-                boxplot_kwargs["size"] = box_size
+                box_size = (
+                    effective_width // n_boxes // BOXPLOT_SIZE_INCREMENT
+                ) * BOXPLOT_SIZE_INCREMENT
+
+                boxplot_kwargs["size"] = min(MAX_BOXPLOT_SIZE, max(MIN_BOXPLOT_SIZE, box_size))
 
             chart = (
                 alt.Chart(df)
