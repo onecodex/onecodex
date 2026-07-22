@@ -543,6 +543,20 @@ def test_plot_heatmap_all_samples_are_nan(ocx, api_data, samples_without_abundan
         samples_without_abundances.plot_heatmap(top_n=10, metric="abundance")
 
 
+@pytest.mark.parametrize(
+    "legend,metric,expected_title",
+    [
+        ("auto", "readcount_w_children", "Readcount With Children"),
+        ("auto", "abundance", "Relative Abundance"),
+        ("my plot title", "readcount_w_children", "my plot title"),
+    ],
+)
+def test_plot_heatmap_legend(samples, metric, legend, expected_title):
+    chart = samples.plot_heatmap(return_chart=True, legend=legend, metric=metric)
+
+    assert_expected_legend_title(chart, expected_title)
+
+
 def test_plot_bargraph_no_samples_have_abundances(ocx, api_data, samples_without_abundances):
     assert len(samples_without_abundances._classification_ids_without_abundances) == 3
     chart = samples_without_abundances.plot_bargraph(return_chart=True)
