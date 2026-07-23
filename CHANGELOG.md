@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   collection contains more than one sample without functional profile results.
   Samples lacking functional results are now dropped from the plot (they were
   never plotted anyway).
+- Plots no longer raise a `ValueError` when a metadata field name contains a colon character (`:`).
 
 ## [v1.1.0] - 2026-06-18
 

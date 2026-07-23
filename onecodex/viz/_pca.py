@@ -240,12 +240,12 @@ class VizPCAMixin(BaseSampleCollection):
             )
 
         chart = chart.encode(**alt_kwargs)
+        escape_chart_fields(chart)
 
         if vector_chart:
             chart = alt.layer(chart, vector_chart).resolve_scale(color="independent")
 
         chart = chart.properties(**prepare_props(title=title, height=height, width=width))
-        escape_chart_fields(chart)
 
         if return_chart:
             return chart
