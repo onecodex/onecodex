@@ -164,6 +164,28 @@ def get_unique_column(preferred_name, existing_columns):
     return result
 
 
+# Altair encoding type codes (single-letter and full names). A trailing ":<code>" in a
+# shorthand is a real field:type separator, not part of the field name.
+_ALTAIR_TYPECODES = frozenset(
+    ["O", "N", "Q", "T", "G", "ordinal", "nominal", "quantitative", "temporal", "geojson"]
+)
+
+
+def _escape_shorthand(shorthand):
+    """Backslash-escape characters Altair would interpret as shorthand syntax.
+
+    Escapes JS object access paths (``.``, ``[``, ``]``) and the ``field:type`` separator (``:``).
+    A trailing ``:<type>`` is preserved as a real type separator.
+    """
+    field, sep, maybe_type = shorthand.rpartition(":")
+    if sep and maybe_type in _ALTAIR_TYPECODES:
+        suffix = sep + maybe_type
+    else:
+        field, suffix = shorthand, ""
+    field = field.replace(".", r"\.").replace("[", r"\[").replace("]", r"\]").replace(":", r"\:")
+    return field + suffix
+
+
 def escape_chart_fields(chart):
     """Escape fields to be not evaluated as JS object access pathes.
 
@@ -186,9 +208,7 @@ def escape_chart_fields(chart):
                         _escape_iter(v)
 
             elif key == "shorthand" and isinstance(val, str):
-                schema_item._kwds[key] = (
-                    val.replace(".", r"\.").replace("[", r"\[").replace("]", r"\]")
-                )
+                schema_item._kwds[key] = _escape_shorthand(val)
 
     if isinstance(chart.encoding, alt.VegaLiteSchema):
         _escape_iter(chart.encoding)

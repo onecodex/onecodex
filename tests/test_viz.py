@@ -1038,9 +1038,12 @@ def test_plot_functional_heatmap_when_metadata_contains_function_id(ocx, api_dat
     [
         ("foo.bar", r"foo\.bar"),
         ("foo[bar]", r"foo\[bar\]"),
+        ("foo:", r"foo\:"),
+        ("foo:bar", r"foo\:bar"),
+        ("foo:bar:baz", r"foo\:bar\:baz"),
     ],
 )
-def test_plot_bargraph_escape_js_like_fields(samples, metadata_key, escaped_key):
+def test_plot_bargraph_escape_special_field_chars(samples, metadata_key, escaped_key):
     for i, sample in enumerate(samples):
         sample.metadata.custom[metadata_key] = f"value_{i}"
     chart = samples.plot_bargraph(
