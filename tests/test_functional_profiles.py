@@ -130,13 +130,13 @@ def test_collate_functional_results(ocx, api_data):
         annotation="go", metric="rpk", taxa_stratified=True, fill_missing=False, filler=0
     )
 
-    assert df.columns.name == "functional_profile_id"
-    assert df.index.names == ["feature_id", "taxon_id", "taxon_name"]
+    assert df.index.name == "functional_profile_id"
+    assert df.columns.names == ["feature_id", "taxon_name"]
 
     assert isinstance(df, pd.DataFrame)
-    assert df.shape == (39, 3)
-    assert len(mapping) == len(df.index.get_level_values("feature_id").unique())
-    assert set(mapping.keys()) == set(df.index.get_level_values("feature_id"))
+    assert df.shape == (3, 39)
+    assert len(mapping) == len(df.columns.get_level_values("feature_id").unique())
+    assert set(mapping.keys()) == set(df.columns.get_level_values("feature_id"))
 
     df, mapping = sc._functional_results(
         annotation="eggnog", metric="cpm", taxa_stratified=False, fill_missing=True, filler=0
@@ -146,9 +146,9 @@ def test_collate_functional_results(ocx, api_data):
         annotation="pathways", metric="coverage", taxa_stratified=True, fill_missing=False, filler=0
     )
 
-    assert df.shape == (27, 3)
-    assert len(mapping) == len(df.index.get_level_values("feature_id").unique())
-    assert set(mapping.keys()) == set(df.index.get_level_values("feature_id"))
+    assert df.shape == (3, 27)
+    assert len(mapping) == len(df.columns.get_level_values("feature_id").unique())
+    assert set(mapping.keys()) == set(df.columns.get_level_values("feature_id"))
 
     with pytest.raises(ValueError):
         sc._functional_results(
@@ -168,15 +168,15 @@ def test_collate_functional_results(ocx, api_data):
     result, _ = sc._functional_results(
         annotation="pfam", metric="cpm", taxa_stratified=False, fill_missing=False, filler=0
     )
-    assert result.shape == (2, 3)
+    assert result.shape == (3, 2)
     result, _ = sc._functional_results(
         annotation="pfam", metric="rpk", taxa_stratified=False, fill_missing=False, filler=0
     )
-    assert result.shape == (2, 3)
+    assert result.shape == (3, 2)
     result, _ = sc._functional_results(
         annotation="go", metric="rpk", taxa_stratified=True, fill_missing=False, filler=0
     )
-    assert result.shape == (39, 3)
+    assert result.shape == (3, 39)
 
 
 def test_to_df_for_functional_profiles(ocx, api_data):
@@ -184,7 +184,7 @@ def test_to_df_for_functional_profiles(ocx, api_data):
     samples = [ocx.Samples.get(sample_id) for sample_id in sample_ids]
     sc = SampleCollection(samples)
     df = sc.to_df(analysis_type="functional")
-    assert df.shape == (27, 3)
+    assert df.shape == (3, 27)
     df = sc.to_df(
         analysis_type="functional",
         annotation="eggnog",
@@ -193,14 +193,14 @@ def test_to_df_for_functional_profiles(ocx, api_data):
         fill_missing=True,
         filler=0,
     )
-    assert df.shape == (7, 3)
+    assert df.shape == (3, 7)
     assert df.ocx_functional_group == "eggnog"
     assert df.ocx_metric == "cpm"
     assert df.ocx_metadata.shape == (3, 92)
-    assert df.columns.name == "functional_profile_id"
-    assert df.index.name == "feature_id"
+    assert df.index.name == "functional_profile_id"
+    assert df.columns.name == "feature_id"
     assert set(df.ocx_metadata["sample_id"]) == set(sample_ids)
-    assert set(df.ocx_feature_name_map.keys()) == set(df.index)
+    assert set(df.ocx_feature_name_map.keys()) == set(df.columns)
 
     # Functional df doesn't have classification df attributes
     with pytest.raises(AttributeError):
@@ -258,9 +258,9 @@ def test_filter_functional_runs_to_newest_job(ocx, raw_api_data, custom_mock_req
         with pytest.warns(UserWarning, match="mixing functional profile versions"):
             df = sc.to_df(analysis_type="functional")
 
-        # All samples are included (one column per functional profile)
-        assert df.shape[1] == 3
-        assert "eec4ac90d9104d1f" in df.columns
+        # All samples are included (one row per functional profile)
+        assert df.shape[0] == 3
+        assert "eec4ac90d9104d1f" in df.index
         # The newer version has correct PF00005 value for Campylobacter hominis
-        key = ("PF00005", "76517", "g__Campylobacter.s__Campylobacter_hominis")
-        assert df.loc[key, "eec4ac90d9104d1f"] == 256.524
+        key = ("PF00005", "g__Campylobacter.s__Campylobacter_hominis")
+        assert df.loc["eec4ac90d9104d1f", key] == 256.524

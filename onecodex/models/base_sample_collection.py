@@ -701,9 +701,9 @@ class BaseSampleCollection(
         """
         Return a dataframe of all functional profile data and feature id to name mapping.
 
-        The returned DataFrame is (feature id x feature profile id) - feature ids as rows.
-        When `taxa_stratified` is True, the row index becomes (feature_id, taxon_id, taxon_name).
-        Otherwise, the row index is just feature_id.
+        The returned DataFrame is (functional profile id x feature id) - functional profile
+        ids as rows. When `taxa_stratified` is True, the columns are a MultiIndex of
+        (feature_id, taxon_name). Otherwise, the columns are a flat index of feature_id.
 
         Parameters
         ----------
@@ -741,10 +741,11 @@ class BaseSampleCollection(
         data = {}
         feature_id_to_name = {}
 
-        # Each entry is either feature_id (non-stratified) or (feature_id, taxon_id, taxon_name) (stratified)
-        row_keys = []
-        seen_rows = set()
-        # Each entry is a functional profile id (one per sample)
+        # Each entry (a column in the output) is either feature_id (non-stratified) or
+        # (feature_id, taxon_id) (stratified)
+        feature_keys = []
+        seen_features = set()
+        # Each entry is a functional profile id (one per sample); these are the output rows
         functional_profile_ids = []
         sample_ids_seen = set()
 
@@ -763,50 +764,49 @@ class BaseSampleCollection(
             feature_id_to_name.update(dict(zip(table["id"], table["name"])))
 
             if taxa_stratified:
-                taxon_ids = [_normalize_taxon_field(v) for v in table["taxon_id"]]
+                # Using taxon_name rather than taxon_id because taxon_id is frequently
+                # missing (empty)
                 taxon_names = [_normalize_taxon_field(v) for v in table["taxon_name"]]
-                keys = list(zip(table["id"], taxon_ids, taxon_names))
+                keys = list(zip(table["id"], taxon_names))
             else:
                 keys = list(table["id"])
 
-            # map of row key to its value, e.g. stratified:
-            # {("GO:0000015", "301302", "g__Roseburia.s__Roseburia_faecis"): 45.8, ...}
+            # map of feature key to its value, e.g. stratified:
+            # {("GO:0000015", "g__Roseburia.s__Roseburia_faecis"): 45.8, ...}
             # non-stratified: {"GO:0000015": 45.8, ...}
             profile_values = dict(zip(keys, table["value"]))
             data[profile.id] = profile_values
             functional_profile_ids.append(profile.id)
 
             for key in keys:
-                if key not in seen_rows:
-                    seen_rows.add(key)
-                    row_keys.append(key)
+                if key not in seen_features:
+                    seen_features.add(key)
+                    feature_keys.append(key)
 
-        row_to_ix = {key: ix for ix, key in enumerate(row_keys)}
+        col_to_ix = {key: ix for ix, key in enumerate(feature_keys)}
 
-        # initialize an array (rows=function id (*taxa), columns=functional profiles) and fill it
+        # initialize an array (rows=functional profiles, columns=feature id (*taxa)) and fill it
         array = np.full(
-            shape=(len(row_keys), len(functional_profile_ids)), dtype=float, fill_value=np.nan
+            shape=(len(functional_profile_ids), len(feature_keys)), dtype=float, fill_value=np.nan
         )
-        for col_index, profile_id in enumerate(functional_profile_ids):
+        for row_index, profile_id in enumerate(functional_profile_ids):
             for key, value in data[profile_id].items():
-                array[row_to_ix[key], col_index] = value
+                array[row_index, col_to_ix[key]] = value
 
         if taxa_stratified:
-            multiindex_columns = ["feature_id", "taxon_id", "taxon_name"]
-            index = (
-                pd.MultiIndex.from_tuples(row_keys, names=multiindex_columns)
-                if row_keys
-                else pd.MultiIndex.from_arrays(
-                    [[]] * len(multiindex_columns), names=multiindex_columns
-                )
+            column_names = ["feature_id", "taxon_name"]
+            columns = (
+                pd.MultiIndex.from_tuples(feature_keys, names=column_names)
+                if feature_keys
+                else pd.MultiIndex.from_arrays([[]] * len(column_names), names=column_names)
             )
         else:
-            index = pd.Index(row_keys, name="feature_id")
+            columns = pd.Index(feature_keys, name="feature_id")
 
         df = pd.DataFrame(
             array,
-            index=index,
-            columns=pd.Index(functional_profile_ids, name="functional_profile_id"),
+            index=pd.Index(functional_profile_ids, name="functional_profile_id"),
+            columns=columns,
             copy=False,
         )
 
@@ -1012,10 +1012,9 @@ class BaseSampleCollection(
         """
         Generate a FunctionalDataFrame associated with functional analysis results.
 
-        Functional annotations are listed along the rows and functional profiles along the
-        columns. When `taxa_stratified=True`, the row index is a MultiIndex of
-        (feature_id, taxon_id, taxon_name). Otherwise, the row index is an index
-        of feature_id.
+        Functional profiles are listed along the rows and functional annotations along the
+        columns. When `taxa_stratified=True`, the columns are a MultiIndex of
+        (feature_id, taxon_name). Otherwise, the columns are an index of feature_id.
 
         Parameters
         ----------
