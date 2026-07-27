@@ -697,6 +697,7 @@ class BaseSampleCollection(
         taxa_stratified: bool,
         fill_missing: bool,
         filler: Any,
+        sparse: bool = False,
     ):
         """
         Return a dataframe of all functional profile data and feature id to name mapping.
@@ -719,6 +720,8 @@ class BaseSampleCollection(
             Fill `np.nan` values
         filler : float, optional
             Value with which to fill `np.nan` values
+        sparse : bool, optional
+            Return the DataFrame using a sparse (`pandas.SparseDtype`) representation
         """
         import numpy as np
         import pandas as pd
@@ -742,10 +745,10 @@ class BaseSampleCollection(
         feature_id_to_name = {}
 
         # Each entry (a column in the output) is either feature_id (non-stratified) or
-        # (feature_id, taxon_id) (stratified)
+        # (feature_id, taxon_name) (stratified)
         feature_keys = []
         seen_features = set()
-        # Each entry is a functional profile id (one per sample); these are the output rows
+        # Each entry is a functional profile id (one per sample)
         functional_profile_ids = []
         sample_ids_seen = set()
 
@@ -784,15 +787,9 @@ class BaseSampleCollection(
                     feature_keys.append(key)
 
         col_to_ix = {key: ix for ix, key in enumerate(feature_keys)}
+        shape = (len(functional_profile_ids), len(feature_keys))
 
-        # initialize an array (rows=functional profiles, columns=feature id (*taxa)) and fill it
-        array = np.full(
-            shape=(len(functional_profile_ids), len(feature_keys)), dtype=float, fill_value=np.nan
-        )
-        for row_index, profile_id in enumerate(functional_profile_ids):
-            for key, value in data[profile_id].items():
-                array[row_index, col_to_ix[key]] = value
-
+        index = pd.Index(functional_profile_ids, name="functional_profile_id")
         if taxa_stratified:
             column_names = ["feature_id", "taxon_name"]
             columns = (
@@ -803,15 +800,45 @@ class BaseSampleCollection(
         else:
             columns = pd.Index(feature_keys, name="feature_id")
 
-        df = pd.DataFrame(
-            array,
-            index=pd.Index(functional_profile_ids, name="functional_profile_id"),
-            columns=columns,
-            copy=False,
-        )
+        if sparse:
+            from scipy.sparse import coo_matrix
 
-        if fill_missing:
-            df.fillna(filler, inplace=True)
+            nnz = sum(len(data[pid]) for pid in functional_profile_ids)
+            rows = np.empty(nnz, dtype=np.int32)
+            cols = np.empty(nnz, dtype=np.int32)
+            values = np.empty(nnz, dtype=float)
+
+            pos = 0
+            for row_index, profile_id in enumerate(functional_profile_ids):
+                profile_data = data[profile_id]
+                n = len(profile_data)
+                rows[pos : pos + n] = row_index
+                # np.fromiter converts the generators straight into numpy arrays
+                cols[pos : pos + n] = np.fromiter(
+                    (col_to_ix[key] for key in profile_data), dtype=np.int32, count=n
+                )
+                # save the actual values into a numpy array instead of Python dicts
+                values[pos : pos + n] = np.fromiter(profile_data.values(), dtype=float, count=n)
+                pos += n
+
+            matrix = coo_matrix((values, (rows, cols)), shape=shape, dtype=float)
+
+            df = pd.DataFrame.sparse.from_spmatrix(matrix, index=index, columns=columns)
+            # astype performs a copy, apply only if really needed (empty values are NaN by default)
+            if fill_missing and not (isinstance(filler, float) and np.isnan(filler)):
+                df = df.astype(pd.SparseDtype("float", filler))
+        else:
+            # full numpy dense array
+            array = np.full(shape=shape, dtype=float, fill_value=np.nan)
+            for row_index, profile_id in enumerate(functional_profile_ids):
+                for key, value in data[profile_id].items():
+                    array[row_index, col_to_ix[key]] = value
+
+            df = pd.DataFrame(array, index=index, columns=columns, copy=False)
+
+            # empty cells are NaN by default, skip fillna if not needed
+            if fill_missing and not (isinstance(filler, float) and np.isnan(filler)):
+                df.fillna(filler, inplace=True)
 
         return df, feature_id_to_name
 
@@ -1008,6 +1035,7 @@ class BaseSampleCollection(
         metric: FunctionalAnnotationsMetric = FunctionalAnnotationsMetric.Coverage,
         fill_missing: bool = True,
         filler: Any = 0,
+        sparse: bool = False,
     ):
         """
         Generate a FunctionalDataFrame associated with functional analysis results.
@@ -1039,6 +1067,7 @@ class BaseSampleCollection(
             metric=metric,
             fill_missing=fill_missing,
             filler=filler,
+            sparse=sparse,
         )
         return FunctionalDataFrame(
             df,

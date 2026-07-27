@@ -178,6 +178,27 @@ def test_collate_functional_results(ocx, api_data):
     )
     assert result.shape == (3, 39)
 
+    for fill_missing in (True, False):
+        dense, _ = sc._functional_results(
+            annotation="go",
+            metric="rpk",
+            taxa_stratified=True,
+            fill_missing=fill_missing,
+            filler=0,
+        )
+        sparse, _ = sc._functional_results(
+            annotation="go",
+            metric="rpk",
+            taxa_stratified=True,
+            fill_missing=fill_missing,
+            filler=0,
+            sparse=True,
+        )
+        assert sparse.shape == dense.shape
+        assert all(isinstance(dtype, pd.SparseDtype) for dtype in sparse.dtypes)
+        # Sparse and dense representations should be equal
+        pd.testing.assert_frame_equal(sparse.sparse.to_dense(), dense)
+
 
 def test_to_df_for_functional_profiles(ocx, api_data):
     sample_ids = ["543c9c046e3e4e09", "66c1531cb0b244f6", "37e5151e7bcb4f87"]
