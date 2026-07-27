@@ -2,7 +2,6 @@ import warnings
 from typing import Union
 
 from onecodex.exceptions import OneCodexException, PlottingException, PlottingWarning
-from onecodex.utils import is_categorical_metadata
 from onecodex.lib.enums import (
     BetaDiversityMetric,
     Link,
@@ -11,6 +10,7 @@ from onecodex.lib.enums import (
     Rank,
 )
 from onecodex.models.base_sample_collection import BaseSampleCollection
+from onecodex.utils import is_categorical_metadata
 from onecodex.viz._primitives import (
     escape_chart_fields,
     get_classification_url,
@@ -80,8 +80,8 @@ class VizHeatmapMixin(BaseSampleCollection):
             plot is hovered over, the value of the metadata associated with that sample will be
             displayed in a modal.
         legend: `string`, optional
-            Title for color scale. Defaults to the field used to generate the plot, e.g.
-            readcount_w_children or abundance.
+            Title for color scale. Defaults to the prettified field name used to generate the plot, e.g.
+            "Readcount With Children" or "Relative Abundance".
         label : `string` or `callable`, optional
             A metadata field (or function) used to label each analysis. If passing a function, a
             dict containing the metadata for each analysis is passed as the first and only
@@ -151,9 +151,6 @@ class VizHeatmapMixin(BaseSampleCollection):
                 "There are too few taxa for heatmap clustering after filtering. Please select a "
                 "rank or threshold that includes at least 2 taxa."
             )
-
-        if legend == "auto":
-            legend = df.ocx_metric
 
         if tooltip:
             if not isinstance(tooltip, list):
@@ -240,6 +237,9 @@ class VizHeatmapMixin(BaseSampleCollection):
             labels_in_order = sort_helper(sort_x, magic_metadata["Label"].tolist())
 
         pretty_metric_name = self._display_name_for_metric(metric=df.ocx_metric)
+
+        if legend == "auto":
+            legend = pretty_metric_name
 
         # should ultimately be Label, tax_name, readcount_w_children, then custom fields
         tooltip_for_altair = [magic_fields[f] for f in tooltip]
