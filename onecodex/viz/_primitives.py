@@ -1,9 +1,15 @@
+from __future__ import annotations
+
 import os
 from itertools import chain
 from collections.abc import Iterable
 from math import ceil
+from typing import TYPE_CHECKING
 
 from onecodex.exceptions import OneCodexException
+
+if TYPE_CHECKING:
+    import altair as alt
 
 
 # We use custom IDs in some databases and we don't want to link them to NCBI. They are always after 2e9
@@ -164,8 +170,33 @@ def get_unique_column(preferred_name, existing_columns):
     return result
 
 
-def escape_chart_fields(chart):
-    """Escape fields to be not evaluated as JS object access pathes.
+# Altair shorthand type codes (trailing ":<code>", e.g. "foo:N")
+_ALTAIR_TYPECODES = frozenset(
+    ["O", "N", "Q", "T", "G", "ordinal", "nominal", "quantitative", "temporal", "geojson"]
+)
+
+
+def _escape_field(field: str) -> str:
+    """Escape nested object/array access path characters for Vega-Lite's field accessor."""
+    return field.replace(".", r"\.").replace("[", r"\[").replace("]", r"\]")
+
+
+def _field_name_has_colon(shorthand: str, columns: set[str]) -> bool:
+    """Report whether the shorthand's field name contains a colon Altair would misread as a type."""
+    if ":" not in shorthand:
+        return False
+
+    if shorthand in columns:
+        # column literally named e.g. "foo:N"
+        return True
+
+    field, sep, maybe_type = shorthand.rpartition(":")
+    real_field = field if (sep and maybe_type in _ALTAIR_TYPECODES) else shorthand
+    return ":" in real_field
+
+
+def escape_chart_fields(chart: alt.Chart) -> None:
+    """Escape characters in field names that Altair/Vega-Lite would otherwise treat as syntax.
 
     WARNING: it modifies `chart` in-place.
 
@@ -175,8 +206,33 @@ def escape_chart_fields(chart):
 
     """
     import altair as alt
+    import pandas as pd
+    from altair.utils import parse_shorthand
 
-    def _escape_iter(schema_item):
+    data = chart.data if isinstance(getattr(chart, "data", None), pd.DataFrame) else None
+    columns = set(data.columns) if data is not None else set()
+
+    def _to_explicit_field(schema_item: alt.VegaLiteSchema, shorthand: str) -> None:
+        schema_item._kwds["shorthand"] = alt.Undefined
+        schema_item._kwds["field"] = _escape_field(shorthand)
+        if shorthand not in columns:
+            # Not in the data, let Vega-Lite infer the type at render
+            return
+
+        # Infer type/sort if they aren't explicitly declared
+        infer_type = schema_item._kwds.get("type") is alt.Undefined
+        infer_sort = schema_item._kwds.get("sort") is alt.Undefined
+        if not infer_type and not infer_sort:
+            return
+
+        # Infer type/sort using Altair
+        attrs = parse_shorthand({"field": shorthand.replace(":", r"\:")}, data)
+        if infer_type and "type" in attrs:
+            schema_item._kwds["type"] = attrs["type"]
+        if infer_sort and "sort" in attrs:
+            schema_item._kwds["sort"] = attrs["sort"]
+
+    def _escape_iter(schema_item: alt.VegaLiteSchema) -> None:
         for key, val in schema_item._kwds.items():
             if isinstance(val, alt.VegaLiteSchema):
                 _escape_iter(val)
@@ -186,9 +242,10 @@ def escape_chart_fields(chart):
                         _escape_iter(v)
 
             elif key == "shorthand" and isinstance(val, str):
-                schema_item._kwds[key] = (
-                    val.replace(".", r"\.").replace("[", r"\[").replace("]", r"\]")
-                )
+                if _field_name_has_colon(val, columns):
+                    _to_explicit_field(schema_item, val)
+                else:
+                    schema_item._kwds[key] = _escape_field(val)
 
     if isinstance(chart.encoding, alt.VegaLiteSchema):
         _escape_iter(chart.encoding)

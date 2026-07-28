@@ -21,6 +21,7 @@ from onecodex.lib.enums import Link, Metric, Rank
 from onecodex.models.collection import SampleCollection
 from onecodex.utils import has_missing_values
 from onecodex.viz._primitives import (
+    escape_chart_fields,
     get_classification_url,
     get_ncbi_taxonomy_browser_url,
     interleave_palette,
@@ -384,6 +385,13 @@ def test_plot_pca_color_by_field_with_nans(samples):
     assert_expected_legend_title(chart, "name")
     assert_expected_color_scale_domain_len(chart, 3)
     assert_expected_color_scale_range_len(chart, 1)
+
+
+def test_plot_pca_layered_biplot_color_field_with_colon(samples):
+    for i, sample in enumerate(samples):
+        sample.metadata.custom["group:name"] = f"g{i}"
+    chart = samples.plot_pca(color="group:name", org_vectors=3, return_chart=True).to_dict()
+    assert chart["layer"][0]["encoding"]["color"]["field"] == "group:name"
 
 
 def test_plot_pca_missing_abundances(ocx, api_data, samples, samples_without_abundances):
@@ -1047,14 +1055,78 @@ def test_plot_functional_heatmap_when_metadata_contains_function_id(ocx, api_dat
     }
 
 
+def test_escape_chart_fields_colon_field_keeps_inferred_type():
+    df = pd.DataFrame({"str:col": ["a", "b"], "num:col": [1.0, 2.0], "y": [1.0, 2.0]})
+    chart = (
+        alt.Chart(df)
+        .mark_bar()
+        .encode(
+            x=alt.X("str:col"),
+            color=alt.Color("num:col"),
+            tooltip=["str:col"],
+            y="y",
+        )
+    )
+    escape_chart_fields(chart)
+    enc = chart.to_dict()["encoding"]
+    assert enc["x"] == {"field": "str:col", "type": "nominal"}
+    assert enc["color"] == {"field": "num:col", "type": "quantitative"}
+    assert enc["tooltip"][0]["field"] == "str:col"
+
+
+def test_escape_chart_fields_colon_field_ordered_categorical_sort():
+    cat = pd.Categorical(["lo", "hi", "lo"], categories=["lo", "hi"], ordered=True)
+    df = pd.DataFrame({"cat:col": cat, "y": [1.0, 2.0, 3.0]})
+    chart = (
+        alt.Chart(df)
+        .mark_bar()
+        .encode(
+            x=alt.X("cat:col"),
+            tooltip=["cat:col"],
+            y="y",
+        )
+    )
+    escape_chart_fields(chart)
+    enc = chart.to_dict()["encoding"]
+    assert enc["x"] == {"field": "cat:col", "type": "ordinal", "sort": ["lo", "hi"]}
+    assert enc["tooltip"][0] == {"field": "cat:col", "type": "ordinal"}
+
+
+def test_escape_chart_fields_colon_field_infers_sort_when_type_explicit():
+    cat = pd.Categorical(["lo", "hi", "lo"], categories=["lo", "hi"], ordered=True)
+    df = pd.DataFrame({"cat:col": cat, "y": [1.0, 2.0, 3.0]})
+    chart = alt.Chart(df).mark_bar().encode(x=alt.X("cat:col", type="ordinal"), y="y")
+    escape_chart_fields(chart)
+    assert chart.to_dict()["encoding"]["x"] == {
+        "field": "cat:col",
+        "type": "ordinal",
+        "sort": ["lo", "hi"],
+    }
+
+
+def test_escape_chart_fields_colon_field_on_secondary_channel():
+    df = pd.DataFrame({"a": [1.0, 2.0], "foo:bar": [3.0, 4.0]})
+    chart = alt.Chart(df).mark_bar().encode(x="a", x2="foo:bar")
+    escape_chart_fields(chart)
+    assert chart.to_dict()["encoding"]["x2"] == {"field": "foo:bar"}
+
+
 @pytest.mark.parametrize(
-    ("metadata_key", "escaped_key"),
+    ("metadata_key", "expected_field"),
     [
+        # `.`, `[`, and `]` are escaped (Vega-Lite nested-access syntax)...
         ("foo.bar", r"foo\.bar"),
         ("foo[bar]", r"foo\[bar\]"),
+        # ...while `:` is kept literal
+        ("foo:", "foo:"),
+        ("foo:bar", "foo:bar"),
+        ("foo:bar:baz", "foo:bar:baz"),
+        ("foo:N", "foo:N"),
+        ("foo.bar:baz", r"foo\.bar:baz"),
+        ("a.b[c]:d", r"a\.b\[c\]:d"),
     ],
 )
-def test_plot_bargraph_escape_js_like_fields(samples, metadata_key, escaped_key):
+def test_plot_bargraph_escape_special_field_chars(samples, metadata_key, expected_field):
     for i, sample in enumerate(samples):
         sample.metadata.custom[metadata_key] = f"value_{i}"
     chart = samples.plot_bargraph(
@@ -1063,7 +1135,7 @@ def test_plot_bargraph_escape_js_like_fields(samples, metadata_key, escaped_key)
         metric="readcount_w_children",
         rank="genus",
     ).to_dict()
-    assert chart["encoding"]["x"]["field"] == escaped_key
+    assert chart["encoding"]["x"]["field"] == expected_field
 
 
 @pytest.mark.parametrize(
