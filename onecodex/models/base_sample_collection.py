@@ -13,7 +13,6 @@ from typing import TYPE_CHECKING, Any, Literal, Optional, Type, overload
 from typing_extensions import Annotated, deprecated
 
 from onecodex.exceptions import NoTaxaException, OneCodexException, OneCodexUserWarning
-from onecodex.utils import is_categorical_metadata
 from onecodex.lib.enums import (
     AnalysisType,
     FunctionalAnnotations,
@@ -23,6 +22,7 @@ from onecodex.lib.enums import (
 )
 from onecodex.models.analysis import Classifications, FunctionalProfiles
 from onecodex.models.sample import Samples
+from onecodex.utils import is_categorical_metadata
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -54,7 +54,7 @@ CANONICAL_RANKS = (
 
 
 def _normalize_taxon_field(value: Any) -> str:
-    """Coerce a taxon id/name to a string for use in a DataFrame index.
+    """Coerce a taxon id to a string for use in a DataFrame index.
 
     Required to consistently handle missing values, ints and floats (like 386414.0).
     """
@@ -703,7 +703,7 @@ class BaseSampleCollection(
 
         The returned DataFrame is (functional profile id x feature id) - functional profile
         ids as rows. When `taxa_stratified` is True, the columns are a MultiIndex of
-        (feature_id, taxon_name). Otherwise, the columns are a flat index of feature_id.
+        (feature_id, taxon_id). Otherwise, the columns are a flat index of feature_id.
 
         Parameters
         ----------
@@ -740,7 +740,7 @@ class BaseSampleCollection(
 
         feature_id_to_name = {}
 
-        # Each entry is either feature_id (non-stratified) or (feature_id, taxon_name) (stratified)
+        # Each entry is either feature_id (non-stratified) or (feature_id, taxon_id) (stratified)
         feature_keys = []
         col_to_ix = {}
         # Per-profile column indices and values, in profile (row) order
@@ -765,15 +765,13 @@ class BaseSampleCollection(
             feature_id_to_name.update(dict(zip(table["id"], table["name"])))
 
             if taxa_stratified:
-                # Using taxon_name rather than taxon_id because taxon_id is frequently
-                # missing (empty)
-                taxon_names = [_normalize_taxon_field(v) for v in table["taxon_name"]]
-                keys = list(zip(table["id"], taxon_names))
+                taxon_ids = [_normalize_taxon_field(v) for v in table["taxon_id"]]
+                keys = list(zip(table["id"], taxon_ids))
             else:
                 keys = list(table["id"])
 
             # Map of feature key to its value, e.g. stratified:
-            # {("GO:0000015", "g__Roseburia.s__Roseburia_faecis"): 45.8, ...}
+            # {("GO:0000015", "562"): 45.8, ...}
             # non-stratified: {"GO:0000015": 45.8, ...}
             profile_values = dict(zip(keys, table["value"]))
             functional_profile_ids.append(profile.id)
@@ -797,7 +795,7 @@ class BaseSampleCollection(
 
         index = pd.Index(functional_profile_ids, name="functional_profile_id")
         if taxa_stratified:
-            column_names = ["feature_id", "taxon_name"]
+            column_names = ["feature_id", "taxon_id"]
             columns = (
                 pd.MultiIndex.from_tuples(feature_keys, names=column_names)
                 if feature_keys
@@ -1020,7 +1018,7 @@ class BaseSampleCollection(
 
         Functional profiles are listed along the rows and functional annotations along the
         columns. When `taxa_stratified=True`, the columns are a MultiIndex of
-        (feature_id, taxon_name). Otherwise, the columns are an index of feature_id.
+        (feature_id, taxon_id). Otherwise, the columns are an index of feature_id.
 
         Parameters
         ----------

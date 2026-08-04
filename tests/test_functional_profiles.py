@@ -1,11 +1,9 @@
 import json
 
 import pandas as pd
-
 import pytest
 
-from onecodex.models import SampleCollection
-from onecodex.models import FunctionalProfiles
+from onecodex.models import FunctionalProfiles, SampleCollection
 
 
 def test_query_for_functional_analysis(ocx, api_data):
@@ -131,7 +129,7 @@ def test_collate_functional_results(ocx, api_data):
     )
 
     assert df.index.name == "functional_profile_id"
-    assert df.columns.names == ["feature_id", "taxon_name"]
+    assert df.columns.names == ["feature_id", "taxon_id"]
 
     assert isinstance(df, pd.DataFrame)
     assert df.shape == (3, 39)
@@ -261,6 +259,6 @@ def test_filter_functional_runs_to_newest_job(ocx, raw_api_data, custom_mock_req
         # All samples are included (one row per functional profile)
         assert df.shape[0] == 3
         assert "eec4ac90d9104d1f" in df.index
-        # The newer version has correct PF00005 value for Campylobacter hominis
-        key = ("PF00005", "g__Campylobacter.s__Campylobacter_hominis")
+        # The newer version has correct PF00005 value for Campylobacter hominis (76517)
+        key = ("PF00005", "76517")
         assert df.loc["eec4ac90d9104d1f", key] == 256.524
