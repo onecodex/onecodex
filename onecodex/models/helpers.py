@@ -203,3 +203,36 @@ class ResourceDownloadMixin(object):
                 )
 
         return path
+
+
+def error_messge_from_response(resp: requests.Response, attempted_action: str) -> str:
+    """Download files from One Codex.
+
+    Parameters
+    ----------
+    resp : `requests.Response`
+        Failed response (It is assumed that `resp.ok` is `False`.
+    attempted_action : `string`
+        Human readable action that have failed. Example: "Job run".
+    progressbar : `bool`
+        Display a progress bar using Click for the download?
+
+    Returns
+    -------
+    `string`
+        The path the file was downloaded to, if applicable. Otherwise, None.
+    """
+    try:
+        body = resp.json()
+    except ValueError:
+        body = None
+    detail = None
+    if isinstance(body, dict):
+        detail = body.get("message") or body.get("msg")
+    if not detail:
+        detail = (resp.text or "").strip() or None
+
+    msg = f"{attempted_action} failed ({resp.status_code})"
+    if detail:
+        msg = f"{msg}: {detail}"
+    return msg
