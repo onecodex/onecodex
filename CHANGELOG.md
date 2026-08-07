@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   computed after [artifact
   filtering](https://docs.onecodex.com/en/articles/3761205-one-codex-database)
   and are consistent across samples with and without abundance estimates.
+- Added `Jobs.publish()` for publishing draft Workflows.
 
 ### Changed
 
