@@ -16,7 +16,11 @@ from onecodex.models.filters import (
     RefFilter,
     StrFilter,
 )
-from onecodex.models.helpers import ResourceDownloadMixin, truncate_string, error_messge_from_response
+from onecodex.models.helpers import (
+    ResourceDownloadMixin,
+    truncate_string,
+    error_messge_from_response,
+)
 from onecodex.models.schemas.misc import (
     AssetSchema,
     AssetUpdateSchema,
