@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import warnings
 from collections import Counter, OrderedDict, defaultdict
 from collections.abc import MutableSequence
@@ -12,7 +13,6 @@ from typing import TYPE_CHECKING, Any, Literal, Optional, Type, overload
 from typing_extensions import Annotated, deprecated
 
 from onecodex.exceptions import NoTaxaException, OneCodexException, OneCodexUserWarning
-from onecodex.utils import is_categorical_metadata
 from onecodex.lib.enums import (
     AnalysisType,
     FunctionalAnnotations,
@@ -22,6 +22,7 @@ from onecodex.lib.enums import (
 )
 from onecodex.models.analysis import Classifications, FunctionalProfiles
 from onecodex.models.sample import Samples
+from onecodex.utils import is_categorical_metadata
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -50,6 +51,18 @@ CANONICAL_RANKS = (
     "genus",
     "species",
 )
+
+
+def _normalize_taxon_field(value: Any) -> str:
+    """Coerce a taxon id to a string for use in a DataFrame index.
+
+    Required to consistently handle missing values, ints and floats (like 386414.0).
+    """
+    if value is None or (isinstance(value, float) and math.isnan(value)):
+        return ""
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
 
 
 class BaseSampleCollection(
@@ -688,6 +701,10 @@ class BaseSampleCollection(
         """
         Return a dataframe of all functional profile data and feature id to name mapping.
 
+        The returned DataFrame is (functional profile id x feature id) - functional profile
+        ids as rows. When `taxa_stratified` is True, the columns are a MultiIndex of
+        (feature_id, taxon_id). Otherwise, the columns are a flat index of feature_id.
+
         Parameters
         ----------
         annotation : {onecodex.lib.enum.FunctionalAnnotations, str}
@@ -706,7 +723,7 @@ class BaseSampleCollection(
         import numpy as np
         import pandas as pd
 
-        # validate args
+        # Validate args
         annotation = FunctionalAnnotations(annotation)
         metric = FunctionalAnnotationsMetric(metric)
 
@@ -721,55 +738,83 @@ class BaseSampleCollection(
                 f"If using annotation={annotation.value}, 'metric' must be one of ['cpm', 'rpk']"
             )
 
-        # iterate over functional profiles, subset data, and store in data dict
-        data = {}
-        all_features = set()
         feature_id_to_name = {}
 
-        sample_id_to_profile_id = {}
+        # Each entry is either feature_id (non-stratified) or (feature_id, taxon_id) (stratified)
+        feature_keys = []
+        col_to_ix = {}
+        # Per-profile column indices and values, in profile (row) order
+        profile_cols = []
+        profile_values_arrays = []
+        # Each entry is a functional profile id (one per sample)
+        functional_profile_ids = []
+        sample_ids_seen = set()
 
         for profile in self._functional_profiles:
             sample_id = profile.sample.id
 
-            if sample_id in sample_id_to_profile_id:
+            if sample_id in sample_ids_seen:
                 raise ValueError(f"More than one functional profile for sample {sample_id}")
-
-            sample_id_to_profile_id[sample_id] = profile.id
+            sample_ids_seen.add(sample_id)
 
             # get table using One Codex API
             table = profile.filtered_table(
                 annotation=annotation, metric=metric, taxa_stratified=taxa_stratified
             )
 
-            # store tables for later retrieval
-            data[sample_id] = dict(zip(table.id, table.value))
-            feature_id_to_name.update(dict(zip(table.id, table.name)))
-            all_features.update(set(table["id"]))
+            feature_id_to_name.update(dict(zip(table["id"], table["name"])))
 
-        features_to_ix = {}
-        feature_list = []
-        for ix, feature in enumerate(all_features):
-            features_to_ix[feature] = ix
-            feature_list.append(feature)
+            if taxa_stratified:
+                taxon_ids = [_normalize_taxon_field(v) for v in table["taxon_id"]]
+                keys = list(zip(table["id"], taxon_ids))
+            else:
+                keys = list(table["id"])
 
-        # initialize an array and fill it
-        array = np.full(shape=(len(data), len(features_to_ix)), dtype=float, fill_value=np.nan)
-        sample_ids = []
-        for sample_index, sample_id in enumerate(data):
-            for feature_id in data[sample_id]:
-                array[sample_index, features_to_ix[feature_id]] = data[sample_id][feature_id]
-            sample_ids.append(sample_id)
+            # Map of feature key to its value, e.g. stratified:
+            # {("GO:0000015", "562"): 45.8, ...}
+            # non-stratified: {"GO:0000015": 45.8, ...}
+            profile_values = dict(zip(keys, table["value"]))
+            functional_profile_ids.append(profile.id)
 
-        functional_profile_ids = [sample_id_to_profile_id[sample_id] for sample_id in sample_ids]
+            col_ix = np.empty(len(profile_values), dtype=np.int32)
+            for i, key in enumerate(profile_values):
+                ix = col_to_ix.get(key)
+                if ix is None:
+                    ix = len(feature_keys)
+                    col_to_ix[key] = ix
+                    feature_keys.append(key)
+                col_ix[i] = ix
+            profile_cols.append(col_ix)
+            # Iteration order matches between keys and values, so profile_cols
+            # and profile_values_arrays are aligned
+            profile_values_arrays.append(
+                np.fromiter(profile_values.values(), dtype=float, count=len(profile_values))
+            )
 
-        df = pd.DataFrame(
-            array,
-            index=pd.Index(functional_profile_ids, name="functional_profile_id"),
-            columns=feature_list,
-            copy=False,
-        )
+        shape = (len(functional_profile_ids), len(feature_keys))
 
-        if fill_missing:
+        index = pd.Index(functional_profile_ids, name="functional_profile_id")
+        if taxa_stratified:
+            column_names = ["feature_id", "taxon_id"]
+            columns = (
+                pd.MultiIndex.from_tuples(feature_keys, names=column_names)
+                if feature_keys
+                else pd.MultiIndex.from_arrays([[]] * len(column_names), names=column_names)
+            )
+        else:
+            columns = pd.Index(feature_keys, name="feature_id")
+
+        # Dense numpy array
+        array = np.full(shape=shape, dtype=float, fill_value=np.nan)
+        for row_index, (col_ix, profile_values_array) in enumerate(
+            zip(profile_cols, profile_values_arrays)
+        ):
+            array[row_index, col_ix] = profile_values_array
+
+        df = pd.DataFrame(array, index=index, columns=columns, copy=False)
+
+        # Empty cells are NaN by default, skip fillna if not needed
+        if fill_missing and not (isinstance(filler, float) and np.isnan(filler)):
             df.fillna(filler, inplace=True)
 
         return df, feature_id_to_name
@@ -970,6 +1015,10 @@ class BaseSampleCollection(
     ):
         """
         Generate a FunctionalDataFrame associated with functional analysis results.
+
+        Functional profiles are listed along the rows and functional annotations along the
+        columns. When `taxa_stratified=True`, the columns are a MultiIndex of
+        (feature_id, taxon_id). Otherwise, the columns are an index of feature_id.
 
         Parameters
         ----------
