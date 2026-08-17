@@ -677,13 +677,16 @@ class FunctionalProfiles(_AnalysesBase, FunctionalRunSchema):
             annotation=annotation, metric=metric, taxa_stratified=taxa_stratified
         )
         if not result_json["table"]:
-            return pd.DataFrame(
-                {
-                    "id": pd.Series(dtype="str"),
-                    "name": pd.Series(dtype="str"),
-                    "value": pd.Series(dtype="float"),
-                }
-            )
+            columns = {
+                "id": pd.Series(dtype="str"),
+                "name": pd.Series(dtype="str"),
+                "value": pd.Series(dtype="float"),
+            }
+            if taxa_stratified:
+                # ensure taxon_id and taxon_name are present for downstream processing
+                columns["taxon_id"] = pd.Series(dtype="str")
+                columns["taxon_name"] = pd.Series(dtype="str")
+            return pd.DataFrame(columns)
         return pd.DataFrame(result_json["table"])
 
 

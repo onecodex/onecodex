@@ -1,11 +1,9 @@
 import json
 
 import pandas as pd
-
 import pytest
 
-from onecodex.models import SampleCollection
-from onecodex.models import FunctionalProfiles
+from onecodex.models import FunctionalProfiles, SampleCollection
 
 
 def test_query_for_functional_analysis(ocx, api_data):
@@ -71,6 +69,38 @@ def test_functional_profiles_results(ocx, api_data):
     }
 
 
+def test_filtered_table_includes_taxon_columns_when_stratified(ocx, api_data):
+    func_profile = ocx.FunctionalProfiles.get("31ddae978aff475f")
+
+    stratified = func_profile.filtered_table(annotation="go", metric="rpk", taxa_stratified=True)
+    assert not stratified.empty
+    assert {"taxon_id", "taxon_name"} <= set(stratified.columns)  # is subset
+
+    unstratified = func_profile.filtered_table(annotation="go", metric="rpk", taxa_stratified=False)
+    assert not unstratified.empty
+    assert "taxon_id" not in unstratified.columns
+    assert "taxon_name" not in unstratified.columns
+
+
+def test_filtered_table_empty_result_includes_taxon_columns(ocx, api_data, monkeypatch):
+    func_profile = ocx.FunctionalProfiles.get("31ddae978aff475f")
+    monkeypatch.setattr(
+        func_profile,
+        "_filtered_results",
+        lambda **kwargs: {"table": [], "n_reads": 0, "n_mapped": 0},
+    )
+
+    stratified = func_profile.filtered_table(annotation="go", metric="rpk", taxa_stratified=True)
+    assert stratified.empty
+    # An empty table should still include "taxon_id" and "taxon_name" for downstream processing
+    assert {"id", "name", "value", "taxon_id", "taxon_name"} <= set(stratified.columns)
+
+    unstratified = func_profile.filtered_table(annotation="go", metric="rpk", taxa_stratified=False)
+    assert unstratified.empty
+    assert "taxon_id" not in unstratified.columns
+    assert "taxon_name" not in unstratified.columns
+
+
 def test_functional_profiles_fetch(ocx, api_data):
     sample_ids = [
         "543c9c046e3e4e09",
@@ -99,11 +129,12 @@ def test_collate_functional_results(ocx, api_data):
     )
 
     assert df.index.name == "functional_profile_id"
+    assert df.columns.names == ["feature_id", "taxon_id"]
 
     assert isinstance(df, pd.DataFrame)
     assert df.shape == (3, 39)
-    assert len(mapping) == 39
-    assert sorted(list(mapping.keys())) == sorted(list(df.columns))
+    assert len(mapping) == len(df.columns.get_level_values("feature_id").unique())
+    assert set(mapping.keys()) == set(df.columns.get_level_values("feature_id"))
 
     df, mapping = sc._functional_results(
         annotation="eggnog", metric="cpm", taxa_stratified=False, fill_missing=True, filler=0
@@ -114,8 +145,8 @@ def test_collate_functional_results(ocx, api_data):
     )
 
     assert df.shape == (3, 27)
-    assert len(mapping) == 27
-    assert sorted(list(mapping.keys())) == sorted(list(df.columns))
+    assert len(mapping) == len(df.columns.get_level_values("feature_id").unique())
+    assert set(mapping.keys()) == set(df.columns.get_level_values("feature_id"))
 
     with pytest.raises(ValueError):
         sc._functional_results(
@@ -165,6 +196,7 @@ def test_to_df_for_functional_profiles(ocx, api_data):
     assert df.ocx_metric == "cpm"
     assert df.ocx_metadata.shape == (3, 92)
     assert df.index.name == "functional_profile_id"
+    assert df.columns.name == "feature_id"
     assert set(df.ocx_metadata["sample_id"]) == set(sample_ids)
     assert set(df.ocx_feature_name_map.keys()) == set(df.columns)
 
@@ -224,6 +256,9 @@ def test_filter_functional_runs_to_newest_job(ocx, raw_api_data, custom_mock_req
         with pytest.warns(UserWarning, match="mixing functional profile versions"):
             df = sc.to_df(analysis_type="functional")
 
-        # All samples are included, one with newer version has proper values
-        assert df.shape == (3, 112)
-        assert df.loc["eec4ac90d9104d1f", "PF00005"] == 256.524  # older version has 4919.47
+        # All samples are included (one row per functional profile)
+        assert df.shape[0] == 3
+        assert "eec4ac90d9104d1f" in df.index
+        # The newer version has correct PF00005 value for Campylobacter hominis (76517)
+        key = ("PF00005", "76517")
+        assert df.loc["eec4ac90d9104d1f", key] == 256.524
