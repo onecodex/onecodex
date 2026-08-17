@@ -19,7 +19,7 @@ from onecodex.models.filters import (
 from onecodex.models.helpers import (
     ResourceDownloadMixin,
     truncate_string,
-    error_messge_from_response,
+    error_message_from_response,
 )
 from onecodex.models.schemas.misc import (
     AssetSchema,
@@ -270,7 +270,7 @@ class Jobs(OneCodexBase, JobSchema):
 
         resp = self._client.post(url, json=payload)
         if not resp.ok:
-            raise OneCodexException(error_messge_from_response(resp, "Job run"))
+            raise OneCodexException(error_message_from_response(resp, "Job run"))
         if "$ref" not in resp.json():
             raise OneCodexException(f"Invalid response when running job {self.id}")
 
@@ -284,7 +284,7 @@ class Jobs(OneCodexBase, JobSchema):
             payload["autorun_on_org_sample_upload"] = autorun_on_org_sample_upload
         resp = self._client.post(url, json=payload)
         if not resp.ok:
-            raise OneCodexException(error_messge_from_response(resp, "Job publish"))
+            raise OneCodexException(error_message_from_response(resp, "Job publish"))
 
         return JobSchema(**resp.json())
 
