@@ -581,10 +581,10 @@ def test_public_analyses(ocx, api_data):
 
 def test_jobs(ocx, api_data):
     jobs = ocx.Jobs.all()
-    assert len(jobs) == 24
+    assert len(jobs) == 25
 
     jobs = ocx.Jobs.where(public=True)
-    assert len(jobs) == 24
+    assert len(jobs) == 25
 
 
 def test_jobs_run(ocx, api_data, custom_mock_requests):

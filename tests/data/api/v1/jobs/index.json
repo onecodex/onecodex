@@ -196,7 +196,7 @@
         "analysis_type": "workflow",
         "created_at": "2026-08-16T11:38:04.135380-07:00",
         "name": "Custom Workflow",
-        "public": false,
+        "public": true,
         "draft": true
     }
 ]
