@@ -233,6 +233,7 @@ def test_filter_functional_runs_to_newest_job(ocx, raw_api_data, custom_mock_req
         "created_at": "2016-05-05T17:27:02.116480+00:00",
         "name": "Functional v1",
         "public": True,
+        "draft": False,
     }
     # Newer job
     raw_api_data["GET::api/v1/jobs/59e7904ea8ed4244"] = {
@@ -241,6 +242,7 @@ def test_filter_functional_runs_to_newest_job(ocx, raw_api_data, custom_mock_req
         "created_at": "2023-09-27T17:27:02.116480+00:00",
         "name": "Functional v2",
         "public": True,
+        "draft": False,
     }
 
     with open("tests/data/api/v1/functional_profiles/bde18eb9407d4c2f/results/index.json") as fin:

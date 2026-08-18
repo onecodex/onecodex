@@ -60,6 +60,7 @@ def test_experimental_expanded_models_hydrate_properly():
         "job_args_schema": {},
         "name": "Assembly job",
         "public": False,
+        "draft": False,
     }
     sample = {
         "$uri": "/api/v1/samples/sample123456789",
@@ -743,6 +744,7 @@ def test_jobs_details(ocx, api_data, custom_mock_requests):
                     "name": "my-custom-job",
                     "analysis_type": "workflow",
                     "public": False,
+                    "draft": False,
                     "job_type": "shell_script",
                     "description": "My custom job",
                     "script": "echo 'hi'",
@@ -858,6 +860,7 @@ def test_jobs_create(ocx, api_data, custom_mock_requests):
                     "name": "my-custom-job",
                     "analysis_type": "custom",
                     "public": False,
+                    "draft": False,
                     "job_args_schema": {},
                     "script": "echo hi",
                     "image_uri": "docker.io/library/python:3.12",
@@ -945,6 +948,7 @@ def test_jobs_update(ocx, api_data, custom_mock_requests):
                     "name": "Renamed Job",
                     "analysis_type": "classification",
                     "public": True,
+                    "draft": False,
                     "job_args_schema": {},
                 }
             ),
