@@ -1,16 +1,19 @@
 from __future__ import print_function
+
 import datetime
 import io
 import json
+from urllib.parse import parse_qs, unquote_plus, urlparse
+
 import mock
 import pytest
 import requests
 import responses
 
-from urllib.parse import parse_qs, urlparse, unquote_plus
 import onecodex
 from onecodex import Api
 from onecodex.exceptions import MethodNotSupported, OneCodexException
+from onecodex.models.schemas.misc import JobSchema
 from onecodex.models.schemas.sample import SampleUpdateSchema
 
 
@@ -442,7 +445,9 @@ def test_classification_methods(ocx, api_data):
 
 def test_decompress():
     import gzip
+
     import zstandard
+
     from onecodex.models.analysis import _decompress
 
     payload = b'{"hello": "world"}'
@@ -803,6 +808,37 @@ def test_jobs_run_http_error(ocx, api_data, custom_mock_requests):
         sample = ocx.Samples.get(sample_id)
         with pytest.raises(OneCodexException, match="bad arg foo"):
             job.run(sample, {})
+
+
+def test_jobs_publish(ocx, api_data, custom_mock_requests):
+    job_id = "8d2609ce2a0841a2"
+    job = ocx.Jobs.get(job_id)
+    assert job.draft
+
+    mock_out = JobSchema.model_dump(job, by_alias=True)
+    mock_out["draft"] = False
+    with custom_mock_requests({f"POST::api/v1/jobs/{job_id}/publish": mock_out}):
+        res = job.publish()
+
+        a = JobSchema.model_dump(res)
+        b = JobSchema.model_dump(job)
+
+        assert a.pop("draft") != b.pop("draft")
+        assert a == b
+
+
+def test_jobs_publish_http_error(ocx, api_data, custom_mock_requests):
+    job_id = "8d2609ce2a0841a2"
+    job = ocx.Jobs.get(job_id)
+
+    def callback(request):
+        return (400, {"Content-Type": "application/json"}, json.dumps({"message": "publish error"}))
+
+    with (
+        custom_mock_requests({f"POST::api/v1/jobs/{job_id}/publish": callback}),
+        pytest.raises(OneCodexException, match="publish error"),
+    ):
+        job.publish()
 
 
 def test_jobs_create(ocx, api_data, custom_mock_requests):

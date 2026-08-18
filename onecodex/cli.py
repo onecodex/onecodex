@@ -1084,6 +1084,30 @@ def _apply_options(options):
     return decorator
 
 
+@jobs_group.command("publish")
+@click.argument(
+    "job_id",
+    nargs=1,
+    required=True,
+    type=OCX_ID,
+)
+@click.pass_context
+@pretty_errors
+@telemetry
+@login_required
+def jobs_publish(
+    ctx,
+    job_id,
+):
+    """Publish a custom job.
+
+    WARNING: You can't undo it.
+    """
+    job = ctx.obj["API"].Jobs.get(job_id)
+    job.publish()
+    click.echo("Job published successfully.")
+
+
 @jobs_group.command("create")
 @click.option("--name", required=True, help="Human-readable name of the job.")
 @click.option(

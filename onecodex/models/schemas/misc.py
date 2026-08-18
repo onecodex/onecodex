@@ -1,12 +1,11 @@
 import re
-
 from typing import Any, List, Optional, Union
-from pydantic import Field, ConfigDict, BaseModel
+
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from onecodex.models.base import ApiRef
 from onecodex.models.schemas.base import URIModel
 from onecodex.models.schemas.types import RFC3339Datetime
-
 
 # FIXME: Make these literals or enums
 AssetStatus = str
@@ -89,6 +88,14 @@ class JobSchema(URIModel):
         description="Whether the job is publicly available. For most jobs this will be `true`. Custom, private jobs are also available, and will only be visible to users whose samples (or samples shared with them) have been analyzed using that job."
     )
     job_type: Optional[str] = None
+    draft: bool = Field(
+        description="Whether the job is an unpublished draft. Draft jobs are only visible to their creator.",
+        frozen=True,
+    )
+
+    @property
+    def is_published(self) -> bool:
+        return not self.draft
 
 
 class JobDetails(BaseModel):

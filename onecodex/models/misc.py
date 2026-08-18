@@ -18,8 +18,8 @@ from onecodex.models.filters import (
 )
 from onecodex.models.helpers import (
     ResourceDownloadMixin,
-    truncate_string,
     error_message_from_response,
+    truncate_string,
 )
 from onecodex.models.schemas.misc import (
     AssetSchema,
