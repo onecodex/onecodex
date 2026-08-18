@@ -1,7 +1,7 @@
 import re
 from typing import Any, List, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field
+from pydantic import BaseModel, ConfigDict, Field
 
 from onecodex.models.base import ApiRef
 from onecodex.models.schemas.base import URIModel
