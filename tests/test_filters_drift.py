@@ -92,6 +92,7 @@ OMITTED: dict[type, set[str]] = {
         "job_type",
         "description",
         "inject_bearer_token",
+        "draft",
     },
     Documents: {
         "downloaders",  # server 500s on filter

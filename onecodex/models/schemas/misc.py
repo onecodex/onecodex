@@ -89,9 +89,8 @@ class JobSchema(URIModel):
     )
     job_type: Optional[str] = None
     draft: bool = Field(
-        description="Whether the job is an unpublished draft. Draft jobs are only visible to their creator.",
-        frozen=True,
-    )
+        description="Whether the job is an unpublished draft. Draft jobs are only visible to their creator."
+   )
 
     @property
     def is_published(self) -> bool:
