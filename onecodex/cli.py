@@ -1091,6 +1091,12 @@ def _apply_options(options):
     required=True,
     type=OCX_ID,
 )
+@click.option(
+    "--autorun-on-org-sample-upload",
+    is_flag=True,
+    help="Auto-run this job on every newly uploaded org sample (admins only).",
+    default=None,
+)
 @click.pass_context
 @pretty_errors
 @telemetry
@@ -1098,13 +1104,14 @@ def _apply_options(options):
 def jobs_publish(
     ctx,
     job_id,
+    autorun_on_org_sample_upload,
 ):
     """Publish a custom job.
 
     WARNING: You can't undo it.
     """
     job = ctx.obj["API"].Jobs.get(job_id)
-    job.publish()
+    job.publish(autorun_on_org_sample_upload=autorun_on_org_sample_upload)
     click.echo("Job published successfully.")
 
 
