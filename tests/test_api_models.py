@@ -1,16 +1,19 @@
 from __future__ import print_function
+
 import datetime
 import io
 import json
+from urllib.parse import parse_qs, unquote_plus, urlparse
+
 import mock
 import pytest
 import requests
 import responses
 
-from urllib.parse import parse_qs, urlparse, unquote_plus
 import onecodex
 from onecodex import Api
 from onecodex.exceptions import MethodNotSupported, OneCodexException
+from onecodex.models.schemas.misc import JobSchema
 from onecodex.models.schemas.sample import SampleUpdateSchema
 
 
@@ -57,6 +60,7 @@ def test_experimental_expanded_models_hydrate_properly():
         "job_args_schema": {},
         "name": "Assembly job",
         "public": False,
+        "draft": False,
     }
     sample = {
         "$uri": "/api/v1/samples/sample123456789",
@@ -442,7 +446,9 @@ def test_classification_methods(ocx, api_data):
 
 def test_decompress():
     import gzip
+
     import zstandard
+
     from onecodex.models.analysis import _decompress
 
     payload = b'{"hello": "world"}'
@@ -575,10 +581,10 @@ def test_public_analyses(ocx, api_data):
 
 def test_jobs(ocx, api_data):
     jobs = ocx.Jobs.all()
-    assert len(jobs) == 24
+    assert len(jobs) == 25
 
     jobs = ocx.Jobs.where(public=True)
-    assert len(jobs) == 24
+    assert len(jobs) == 25
 
 
 def test_jobs_run(ocx, api_data, custom_mock_requests):
@@ -738,6 +744,7 @@ def test_jobs_details(ocx, api_data, custom_mock_requests):
                     "name": "my-custom-job",
                     "analysis_type": "workflow",
                     "public": False,
+                    "draft": False,
                     "job_type": "shell_script",
                     "description": "My custom job",
                     "script": "echo 'hi'",
@@ -805,6 +812,32 @@ def test_jobs_run_http_error(ocx, api_data, custom_mock_requests):
             job.run(sample, {})
 
 
+def test_jobs_publish(ocx, api_data, custom_mock_requests):
+    job_id = "8d2609ce2a0841a2"
+    job = ocx.Jobs.get(job_id)
+    assert job.draft
+
+    mock_out = JobSchema.model_dump(job, by_alias=True)
+    mock_out["draft"] = False
+    with custom_mock_requests({f"POST::api/v1/jobs/{job_id}/publish": mock_out}):
+        job.publish()
+        assert not job.draft
+
+
+def test_jobs_publish_http_error(ocx, api_data, custom_mock_requests):
+    job_id = "8d2609ce2a0841a2"
+    job = ocx.Jobs.get(job_id)
+
+    def callback(request):
+        return (400, {"Content-Type": "application/json"}, json.dumps({"message": "publish error"}))
+
+    with (
+        custom_mock_requests({f"POST::api/v1/jobs/{job_id}/publish": callback}),
+        pytest.raises(OneCodexException, match="publish error"),
+    ):
+        job.publish()
+
+
 def test_jobs_create(ocx, api_data, custom_mock_requests):
     new_job_id = "0123456789abcdef"
     captured = {}
@@ -822,6 +855,7 @@ def test_jobs_create(ocx, api_data, custom_mock_requests):
                     "name": "my-custom-job",
                     "analysis_type": "custom",
                     "public": False,
+                    "draft": False,
                     "job_args_schema": {},
                     "script": "echo hi",
                     "image_uri": "docker.io/library/python:3.12",
@@ -909,6 +943,7 @@ def test_jobs_update(ocx, api_data, custom_mock_requests):
                     "name": "Renamed Job",
                     "analysis_type": "classification",
                     "public": True,
+                    "draft": False,
                     "job_args_schema": {},
                 }
             ),

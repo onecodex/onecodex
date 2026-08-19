@@ -125,6 +125,7 @@ API_DATA = {
                 "created_at": "2016-05-05T17:27:02.116480+00:00",
                 "name": "One Codex Database",
                 "public": True,
+                "draft": False,
             },
             "sample": {
                 "$uri": "/api/v1/samples/205bef56b3d6457d",
@@ -342,6 +343,7 @@ API_DATA = {
         "created_at": "2016-05-05T17:27:02.116480+00:00",
         "name": "One Codex Database (2017)",
         "public": True,
+        "draft": False,
     },
     "GET::api/v1/jobs\\?.*where=%7B%22%24uri%22%3A\\+%7B%22%24in%22%3A\\+%5B%22%2Fapi%2Fv1%2Fjobs%2F59e7904ea8ed4202%22%5D%7D%7D&sort=%7B%22created_at%22%3A\\+true%7D": [
         {
@@ -350,6 +352,7 @@ API_DATA = {
             "created_at": "2023-04-28T15:27:40.140791-07:00",
             "name": "Functional v1",
             "public": True,
+            "draft": False,
         }
     ],
     "GET::api/v1/projects/4b53797444f846c4": {

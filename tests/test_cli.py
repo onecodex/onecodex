@@ -251,6 +251,7 @@ def test_jobs_create_cli(runner, api_data, custom_mock_requests, mocked_creds_fi
                     "name": "my-job",
                     "analysis_type": "custom",
                     "public": False,
+                    "draft": False,
                     "job_args_schema": {},
                 }
             ),
@@ -326,6 +327,7 @@ def test_jobs_update_cli(runner, api_data, custom_mock_requests, mocked_creds_fi
                     "name": "Renamed",
                     "analysis_type": "classification",
                     "public": True,
+                    "draft": False,
                     "job_args_schema": {},
                 }
             ),

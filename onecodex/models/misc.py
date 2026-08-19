@@ -1,9 +1,14 @@
 import warnings
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, List, Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, List, Optional, Union
+
+from pydantic import Field
 from typing_extensions import Self
 
-from onecodex.models.base import UNSET
+from onecodex.exceptions import MethodNotSupported, OneCodexException
+from onecodex.lib.upload import upload_asset, upload_document
+from onecodex.models.base import UNSET, ApiRef, OneCodexBase
 from onecodex.models.filters import (
     DatetimeFilter,
     EqStrFilter,
@@ -11,31 +16,27 @@ from onecodex.models.filters import (
     RefFilter,
     StrFilter,
 )
-
-from pydantic import Field
-from dataclasses import dataclass
-
-from onecodex.exceptions import MethodNotSupported, OneCodexException
-from onecodex.lib.upload import upload_document, upload_asset
-from onecodex.models.helpers import truncate_string, ResourceDownloadMixin
-
-from onecodex.models.base import OneCodexBase, ApiRef
+from onecodex.models.helpers import (
+    ResourceDownloadMixin,
+    error_message_from_response,
+    truncate_string,
+)
 from onecodex.models.schemas.misc import (
-    TagSchema,
-    UserSchema,
-    ProjectSchema,
-    JobSchema,
-    JobCreateSchema,
-    JobUpdateSchema,
-    JobDetails,
-    DocumentSchema,
     AssetSchema,
     AssetUpdateSchema,
+    DocumentSchema,
+    JobCreateSchema,
+    JobDetails,
+    JobSchema,
+    JobUpdateSchema,
+    ProjectSchema,
+    TagSchema,
+    UserSchema,
 )
 
 if TYPE_CHECKING:
-    from onecodex.models.sample import Samples
     from onecodex.models.analysis import Analyses
+    from onecodex.models.sample import Samples
 
 
 @dataclass(frozen=True)
@@ -269,24 +270,22 @@ class Jobs(OneCodexBase, JobSchema):
 
         resp = self._client.post(url, json=payload)
         if not resp.ok:
-            try:
-                body = resp.json()
-            except ValueError:
-                body = None
-            detail = None
-            if isinstance(body, dict):
-                detail = body.get("message") or body.get("msg")
-            if not detail:
-                detail = (resp.text or "").strip() or None
-            msg = f"Job run failed ({resp.status_code})"
-            if detail:
-                msg = f"{msg}: {detail}"
-            raise OneCodexException(msg)
+            raise OneCodexException(error_message_from_response(resp, "Job run"))
         if "$ref" not in resp.json():
             raise OneCodexException(f"Invalid response when running job {self.id}")
 
         analysis_id = resp.json()["$ref"].split("/")[-1]
         return Analyses.get(analysis_id)
+
+    def publish(self, autorun_on_org_sample_upload: bool | None = None):
+        url = f"{self._api._base_url}{self._resource_path}/{self.id}/publish"
+        payload = {}
+        if autorun_on_org_sample_upload:
+            payload["autorun_on_org_sample_upload"] = autorun_on_org_sample_upload
+        resp = self._client.post(url, json=payload)
+        if not resp.ok:
+            raise OneCodexException(error_message_from_response(resp, "Job publish"))
+        self._update_self_in_place(resp.json())
 
     def details(self) -> JobDetails:
         """Fetch the job's detail fields and return them as a `JobDetails`.
