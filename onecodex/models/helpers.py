@@ -206,7 +206,7 @@ class ResourceDownloadMixin(object):
 
 
 def error_message_from_response(resp: requests.Response, attempted_action: str) -> str:
-    """Download files from One Codex.
+    """Extract error message from failed response.
 
     Parameters
     ----------

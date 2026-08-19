@@ -93,7 +93,7 @@ class JobSchema(URIModel):
     )
 
     @property
-    def is_published(self) -> bool:
+    def published(self) -> bool:
         return not self.draft
 
 
