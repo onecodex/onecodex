@@ -1,9 +1,8 @@
 import copy
 import inspect
 import json
+from typing import Any, ClassVar, List, Optional, Type, TypedDict
 
-
-from typing import Any, ClassVar, Optional, List, Type, TypedDict
 from typing_extensions import Self, Sentinel
 
 # PEP 661 sentinel marking 'kwarg not provided' on ``where()`` overrides.
@@ -22,8 +21,8 @@ def _drop_unset(**kwargs: Any) -> dict[str, Any]:
     return {k: v for k, v in kwargs.items() if v is not UNSET}
 
 
-from pprint import pformat
 from html import escape
+from pprint import pformat
 
 from pydantic import BaseModel as PydanticBaseModel
 from pydantic import ConfigDict, Field, model_validator
@@ -31,10 +30,9 @@ from pydantic._internal._model_construction import ModelMetaclass
 
 from onecodex.exceptions import MethodNotSupported, OneCodexException
 from onecodex.models.helpers import (
-    generate_potion_sort_clause,
     generate_potion_keyword_where,
+    generate_potion_sort_clause,
 )
-
 
 # This Pydantic magic callable needs to be removed
 _EXCLUDE_PYDANTIC_CALLABLES = {"model_post_init"}
@@ -485,9 +483,11 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
             raise OneCodexException(resp.json().get("message", f"Unknown error updating {self}"))
 
         # Finally, we update the model in-place with the validated server-side response.
+        self._update_self_in_place(resp.json())
+
+    def _update_self_in_place(self, updated_data: dict[str, Any]):
         # Note that this is lazy and does *not* trigger `getattr` and cache resolution
         # whereas `setattr(self, field, getattr(new_pydantic_obj, field))` does.
-        updated_data = resp.json()
         new_pydantic_obj = self.__class__.model_validate(updated_data)
         for field, value in new_pydantic_obj:
             setattr(self, field, value)

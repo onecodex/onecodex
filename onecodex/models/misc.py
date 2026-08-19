@@ -277,7 +277,7 @@ class Jobs(OneCodexBase, JobSchema):
         analysis_id = resp.json()["$ref"].split("/")[-1]
         return Analyses.get(analysis_id)
 
-    def publish(self, autorun_on_org_sample_upload: bool | None = None) -> JobSchema:
+    def publish(self, autorun_on_org_sample_upload: bool | None = None):
         url = f"{self._api._base_url}{self._resource_path}/{self.id}/publish"
         payload = {}
         if autorun_on_org_sample_upload:
@@ -285,8 +285,7 @@ class Jobs(OneCodexBase, JobSchema):
         resp = self._client.post(url, json=payload)
         if not resp.ok:
             raise OneCodexException(error_message_from_response(resp, "Job publish"))
-
-        return JobSchema(**resp.json())
+        self._update_self_in_place(resp.json())
 
     def details(self) -> JobDetails:
         """Fetch the job's detail fields and return them as a `JobDetails`.

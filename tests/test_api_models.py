@@ -820,13 +820,8 @@ def test_jobs_publish(ocx, api_data, custom_mock_requests):
     mock_out = JobSchema.model_dump(job, by_alias=True)
     mock_out["draft"] = False
     with custom_mock_requests({f"POST::api/v1/jobs/{job_id}/publish": mock_out}):
-        res = job.publish()
-
-        a = JobSchema.model_dump(res)
-        b = JobSchema.model_dump(job)
-
-        assert a.pop("draft") != b.pop("draft")
-        assert a == b
+        job.publish()
+        assert not job.draft
 
 
 def test_jobs_publish_http_error(ocx, api_data, custom_mock_requests):
