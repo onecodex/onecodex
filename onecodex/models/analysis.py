@@ -61,10 +61,7 @@ def _get_s3_session():
 
 
 def _load_results_uri(uri: str) -> dict:
-    """Retrieve and load a results.json file from a presigned S3 URL.
-
-    Will also open and return local file contents if the uri points to a file.
-    """
+    """Retrieve and load a results.json file from a presigned S3 URL or a local file."""
 
     import orjson
 
