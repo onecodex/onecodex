@@ -871,6 +871,11 @@ def jobs_group():
     default=False,
     help="Block until the new analysis reaches a terminal state.",
 )
+@click.option(
+    "--description",
+    default=None,
+    help="Human-readable description. Maximum 250 characters.",
+)
 @click.pass_context
 @pretty_errors
 @telemetry
@@ -884,6 +889,7 @@ def jobs_run(
     dependency_overrides,
     populate_default_arguments,
     await_completion,
+    description,
 ):
     """Run a OneCodex job with optional arguments."""
     from onecodex.models.misc import DependencyOverride
@@ -933,6 +939,7 @@ def jobs_run(
         parsed_args,
         dependency_overrides=parsed_dependencies or None,
         populate_default_arguments=populate_default_arguments,
+        description=description,
     )
     click.echo(f"Job run created successfully. New analysis ID: {run.id}")
 

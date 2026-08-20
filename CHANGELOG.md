@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and are consistent across samples with and without abundance estimates.
 - Added `Jobs.publish()` for publishing draft Workflows.
 - Added `onecodex jobs publish` CLI command.
+- Added `description` argument to `Jobs.run()`.
+- Added `--description` option to `onecodex jobs run` CLI command.
 - Fixed `plot_bargraph`: passing non-existing `group_by` should not throw an error.
 
 ### Changed

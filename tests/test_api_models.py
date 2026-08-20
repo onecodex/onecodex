@@ -812,6 +812,26 @@ def test_jobs_run_http_error(ocx, api_data, custom_mock_requests):
             job.run(sample, {})
 
 
+def test_jobs_run_with_description(ocx, api_data, custom_mock_requests):
+    job_id = "47c4fe23588640a9"
+    sample_id = "7428cca4a3a04a8e"
+    analysis_id = "593601a797914cbf"
+
+    def run_callback(request):
+        payload = json.loads(request.body)
+        assert payload["description"] == "Test Description"
+        return (
+            200,
+            {"Content-Type": "application/json"},
+            json.dumps({"$ref": f"/api/v1/analyses/{analysis_id}"}),
+        )
+
+    with custom_mock_requests({f"POST::api/v1/jobs/{job_id}/run": run_callback}):
+        job = ocx.Jobs.get(job_id)
+        sample = ocx.Samples.get(sample_id)
+        job.run(sample, description="   Test Description  ")
+
+
 def test_jobs_publish(ocx, api_data, custom_mock_requests):
     job_id = "8d2609ce2a0841a2"
     job = ocx.Jobs.get(job_id)

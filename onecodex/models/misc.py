@@ -253,6 +253,7 @@ class Jobs(OneCodexBase, JobSchema):
         job_args: dict[str, Any] | None = None,
         dependency_overrides: list[DependencyOverride] | None = None,
         populate_default_arguments: bool = True,
+        description: str | None = None,
     ) -> "Analyses":
         from onecodex.models.analysis import Analyses
 
@@ -267,6 +268,8 @@ class Jobs(OneCodexBase, JobSchema):
                 {"analysis": dep.analysis.id, "download_path": dep.download_path}
                 for dep in dependency_overrides
             ]
+        if description:
+            payload["description"] = description.strip()
 
         resp = self._client.post(url, json=payload)
         if not resp.ok:
