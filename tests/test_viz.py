@@ -796,7 +796,6 @@ def test_plot_mds_exceptions(samples):
         ({"group_by": "foo", "haxis": "bar"}, None, "not supported with `group_by`"),
         ({"group_by": "foo", "label": "bar"}, None, "not supported with `group_by`"),
         ({"group_by": "foo", "sort_x": []}, None, "not supported with `group_by`"),
-        ({"group_by": "foo"}, None, "field foo not found"),
     ],
 )
 def test_plot_bargraph_errors(samples, kwargs, metric, msg):
@@ -869,6 +868,13 @@ def test_plot_bargraph_with_group_by(samples, metric, kwargs):
 
     assert [x.shorthand for x in chart.encoding.tooltip] == ["barley", "tax_name", metric_label]
     assert not hasattr(chart.encoding.href, "shorthand")
+
+
+def test_plot_bargraph_with_nonexisting_group_by(samples):
+    chart = samples.plot_bargraph(group_by="does_not_exist", return_chart=True)
+    values = set(chart.data["does_not_exist"])
+    assert len(values) == 1
+    assert values.pop() == "N/A"
 
 
 def test_plot_bargraph_include_other_with_empty_samples(samples_without_abundances):
