@@ -1,5 +1,7 @@
 from typing import Union
 
+import numpy as np
+
 from onecodex.exceptions import OneCodexException, PlottingException
 from onecodex.lib.enums import Link, Metric, Rank
 from onecodex.models.base_sample_collection import BaseSampleCollection
@@ -109,10 +111,6 @@ class VizBargraphMixin(BaseSampleCollection):
                 raise OneCodexException(
                     "`tooltip`, `haxis`, `label`, and `sort_x` are not supported with `group_by`."
                 )
-            if group_by not in self.metadata:
-                raise OneCodexException(
-                    f"Metadata field {group_by} not found. Choose from: {', '.join(self.metadata.keys())}"
-                )
 
         metric, rank = self._parse_classification_config_args(metric=metric, rank=rank)
 
@@ -138,6 +136,10 @@ class VizBargraphMixin(BaseSampleCollection):
 
         if group_by:
             # calculate per-group mean of each taxon
+
+            # In case `group_by` does not exist
+            if group_by not in self.metadata:
+                self.metadata[group_by] = np.nan
 
             df = df.fillna(0.0).join(self.metadata[group_by]).groupby(group_by, dropna=False).mean()
 
