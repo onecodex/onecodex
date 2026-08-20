@@ -2,25 +2,23 @@ from __future__ import annotations
 
 import os.path
 import time
-from functools import lru_cache
 from datetime import datetime
+from functools import lru_cache
 from typing import IO, TYPE_CHECKING, Any, ClassVar, List, Optional, Union
+
+import click
+import requests
 from typing_extensions import Self
 
-from onecodex.models.base import UNSET
+from onecodex.exceptions import OneCodexException
+from onecodex.lib.enums import FunctionalAnnotations, FunctionalAnnotationsMetric
+from onecodex.models.base import UNSET, ApiRef, OneCodexBase
 from onecodex.models.filters import (
     BoolFilter,
     DatetimeFilter,
     RefFilter,
     StrFilter,
 )
-
-import click
-import requests
-
-from onecodex.exceptions import OneCodexException
-from onecodex.lib.enums import FunctionalAnnotations, FunctionalAnnotationsMetric
-from onecodex.models.base import ApiRef, OneCodexBase
 from onecodex.models.schemas.analysis import (
     AlignmentSchema,
     AnalysisSchema,
@@ -51,6 +49,35 @@ def _decompress(data: bytes) -> bytes:
 
         return gzip.decompress(data)
     return data
+
+
+@lru_cache(maxsize=1)
+def _get_s3_session():
+    """Return a requsets session that can be used for retrieving results from S3 using presigned URLs."""
+
+    from onecodex.utils import get_requests_session
+
+    return get_requests_session()
+
+
+def _load_results_uri(uri: str) -> dict:
+    """Retrieve and load a results.json file from a presigned S3 URL.
+
+    Will also open and return local file contents if the uri points to a file.
+    """
+
+    import orjson
+
+    if uri.startswith(("http://", "https://")):
+        resp = _get_s3_session().get(uri, timeout=30)
+        resp.raise_for_status()
+
+        data = resp.content
+    else:
+        with open(uri, "rb") as f:
+            data = f.read()
+
+    return orjson.loads(_decompress(data))
 
 
 class _AnalysesBase(OneCodexBase):
@@ -398,12 +425,12 @@ class Classifications(_AnalysesBase, ClassificationSchema):
     # root & cellular organisms
     _NONSPECIFIC_TAX_IDS = {"1", "131567"}
 
-    @staticmethod
-    @lru_cache(maxsize=1)
-    def _get_s3_session():
-        from onecodex.utils import get_requests_session
+    # @staticmethod
+    # @lru_cache(maxsize=1)
+    # def _get_s3_session():
+    #    from onecodex.utils import get_requests_session
 
-        return get_requests_session()
+    #    return get_requests_session()
 
     @lru_cache
     def _results(self):
@@ -411,20 +438,12 @@ class Classifications(_AnalysesBase, ClassificationSchema):
         # analysis isn't available. Fetch directly from the URL when present to avoid the round-trip
         # through the API server. Local paths are supported for testing.
         if self.results_uri is not None:
-            import orjson
+            try:
+                return _load_results_uri(self.results_uri)
+            except requests.HTTPError:
+                # Pre-signed URL may have expired; fall through to the API.
+                pass
 
-            uri = self.results_uri
-            if uri.startswith(("http://", "https://")):
-                try:
-                    resp = Classifications._get_s3_session().get(uri, timeout=30)
-                    resp.raise_for_status()
-                    return orjson.loads(_decompress(resp.content))
-                except requests.HTTPError:
-                    # Pre-signed URL may have expired; fall through to the API.
-                    pass
-            else:
-                with open(uri, "rb") as f:
-                    return orjson.loads(_decompress(f.read()))
         # Fall back to the /results API endpoint (e.g. analysis not yet available, older API,
         # or expired pre-signed URL).
         resp = self._client.get(f"{self._api._base_url}{self.field_uri}/results")
