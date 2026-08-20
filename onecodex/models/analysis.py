@@ -422,13 +422,6 @@ class Classifications(_AnalysesBase, ClassificationSchema):
     # root & cellular organisms
     _NONSPECIFIC_TAX_IDS = {"1", "131567"}
 
-    # @staticmethod
-    # @lru_cache(maxsize=1)
-    # def _get_s3_session():
-    #    from onecodex.utils import get_requests_session
-
-    #    return get_requests_session()
-
     @lru_cache
     def _results(self):
         # results_uri is a pre-signed URL included in the API response; it's None when the
