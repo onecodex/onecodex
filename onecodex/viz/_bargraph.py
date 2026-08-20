@@ -1,7 +1,5 @@
 from typing import Union
 
-import numpy as np
-
 from onecodex.exceptions import OneCodexException, PlottingException
 from onecodex.lib.enums import Link, Metric, Rank
 from onecodex.models.base_sample_collection import BaseSampleCollection
@@ -102,6 +100,7 @@ class VizBargraphMixin(BaseSampleCollection):
 
         # Deferred imports
         import altair as alt
+        import numpy as np
 
         if not (threshold or top_n):
             raise OneCodexException("Please specify at least one of: threshold, top_n")
