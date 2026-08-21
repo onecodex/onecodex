@@ -229,6 +229,89 @@ def _rehydrate_functional_results(condensed_results: dict) -> dict:
     }
 
 
+def _rehydrate_filtered_functional_results(
+    condensed_results: dict,
+    annotation: FunctionalAnnotations,
+    metric: FunctionalAnnotationsMetric,
+    taxa_stratified: bool,
+) -> dict:
+    """Rehydrate condensed functional results into the public filtered API results format."""
+
+    _SKIP_FUNCTIONAL_IDS = {"UNMAPPED", "UNGROUPED", "UNINTEGRATED"}
+
+    annotation = FunctionalAnnotations.from_value(annotation)
+    metric = FunctionalAnnotationsMetric.from_value(metric)
+
+    if metric not in FunctionalAnnotationsMetric.metrics_for_annotation(annotation):
+        raise OneCodexException(
+            f"metric {metric} cannot be retrieved for functional group {annotation}"
+        )
+
+    effective_metric = metric
+
+    if annotation in (FunctionalAnnotations.Pathways, FunctionalAnnotations.MetaCyc):
+        selected = [
+            pathway
+            for pathway in condensed_results["results"].get("pathways", [])
+            if pathway[0] not in _SKIP_FUNCTIONAL_IDS
+        ]
+
+        # complete abundance means annotations where the community level coverage is 1.0
+        if (
+            annotation == FunctionalAnnotations.Pathways
+            and metric == FunctionalAnnotationsMetric.CompleteAbundance
+        ):
+            # pathway[3] == community_coverage
+            selected = [pathway for pathway in selected if pathway[3] == 1.0]
+            effective_metric = FunctionalAnnotationsMetric.Abundance
+
+        selected_results = {"pathways": selected}
+    else:
+        selected_results = {
+            annotation.value: [
+                feature
+                for feature in condensed_results["results"].get(annotation.value, [])
+                if feature[0] not in _SKIP_FUNCTIONAL_IDS
+            ]
+        }
+
+    # shouldn't mutate the original otherwise we change what @lru_cache._condensed_results()
+    # stores
+    filtered_condensed_results = {
+        **condensed_results,
+        "results": selected_results,
+    }
+
+    hydrated = _rehydrate_functional_results(filtered_condensed_results)
+
+    table = []
+    for row in hydrated["table"]:
+        if (
+            row["group_name"] != annotation.value
+            or row["metric"] != effective_metric.value
+            or row["taxa_stratified"] != taxa_stratified
+        ):
+            continue
+
+        filtered_row = {
+            "id": row["id"],
+            "name": row["name"],
+            "value": row["value"],
+        }
+
+        if taxa_stratified:
+            filtered_row["taxon_id"] = row["taxon_id"]
+            filtered_row["taxon_name"] = row["taxon_name"]
+
+        table.append(filtered_row)
+
+    return {
+        "table": table,
+        "n_reads": condensed_results["n_reads"],
+        "n_mapped": condensed_results["n_mapped"],
+    }
+
+
 class _AnalysesBase(OneCodexBase):
     _allowed_methods = {
         "instances_public": None,
@@ -752,6 +835,16 @@ class FunctionalProfiles(_AnalysesBase, FunctionalRunSchema):
         metric: FunctionalAnnotationsMetric,
         taxa_stratified: bool,
     ):
+        condensed_results = self._condensed_results()
+
+        if condensed_results is not None:
+            return _rehydrate_filtered_functional_results(
+                condensed_results,
+                annotation=annotation,
+                metric=metric,
+                taxa_stratified=taxa_stratified,
+            )
+
         resp = self._client.get(
             f"{self._api._base_url}{self.field_uri}/filtered_results",
             params={
