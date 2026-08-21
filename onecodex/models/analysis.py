@@ -112,6 +112,32 @@ def _rehydrate_functional_results(condensed_results: dict) -> dict:
             }
         )
 
+    def add_species_rows(
+        group_name: str,
+        feature_id: str,
+        feature_name: Optional[str],
+        taxon_id: str,
+        metric_values: tuple[tuple[str, float], ...],
+        destination: Optional[list] = None,
+    ) -> None:
+        """Add a species-level (taxa stratified) row formatted for results['table'].
+
+        For all functional groups, except pathways, a taxa stratified row will have one of
+        two metrics: cpm or rpk. For pathways, these metrics are abundance (synonymous with RPK)
+        and coverage.
+        """
+        for metric, value in metric_values:
+            add_row(
+                group_name,
+                feature_id,
+                feature_name,
+                metric,
+                value,
+                taxa_stratified=True,
+                taxon_id=taxon_id,
+                destination=destination,
+            )
+
     # standard functional groups use the following format:
     # [id, name, total_cpm, total_rpk, [[taxid, cpm, rpk], ...]]
     for group_name, features in condensed_results["results"].items():
@@ -129,23 +155,12 @@ def _rehydrate_functional_results(condensed_results: dict) -> dict:
             add_row(group_name, feature_id, feature_name, "rpk", total_rpk)
 
             for taxon_id, cpm, rpk in contributions:
-                add_row(
+                add_species_rows(
                     group_name,
                     feature_id,
                     feature_name,
-                    "rpk",
-                    rpk,
-                    taxa_stratified=True,
-                    taxon_id=taxon_id,
-                )
-                add_row(
-                    group_name,
-                    feature_id,
-                    feature_name,
-                    "cpm",
-                    cpm,
-                    taxa_stratified=True,
-                    taxon_id=taxon_id,
+                    taxon_id,
+                    (("rpk", rpk), ("cpm", cpm)),
                 )
 
     pathways = condensed_results["results"].get("pathways", [])
@@ -184,53 +199,31 @@ def _rehydrate_functional_results(condensed_results: dict) -> dict:
             destination=pathway_table,
         )
 
-        for taxon_id, taxon_abundance, taxon_coverage, taxon_cpm in contributions:
+        for taxon_id, abundance, coverage, cpm in contributions:
             # todo: to keep strict compatibility with current results we set the
             # metacyc name to be None (it's merged/included with feature ID). But
             # I think it would be better to split out the name from the ID.
-            add_row(
+            add_species_rows(
                 "metacyc",
                 metacyc_id,
                 None,
-                "rpk",
-                taxon_abundance,
-                taxa_stratified=True,
-                taxon_id=taxon_id,
+                taxon_id,
+                (("rpk", abundance), ("cpm", cpm)),
             )
-            add_row(
-                "metacyc",
-                metacyc_id,
-                None,
-                "cpm",
-                taxon_cpm,
-                taxa_stratified=True,
-                taxon_id=taxon_id,
-            )
-            # add these to pathways separately so they aren't interleaved with
-            # metacyc
-            add_row(
+            # add these to pathways separately so they aren't interleaved with metacyc
+            add_species_rows(
                 "pathways",
                 pathway_id,
                 pathway_name,
-                "coverage",
-                taxon_coverage,
-                taxa_stratified=True,
-                taxon_id=taxon_id,
-                destination=pathway_table,
-            )
-            add_row(
-                "pathways",
-                pathway_id,
-                pathway_name,
-                "abundance",
-                taxon_abundance,
-                taxa_stratified=True,
-                taxon_id=taxon_id,
+                taxon_id,
+                (("coverage", coverage), ("abundance", abundance)),
                 destination=pathway_table,
             )
 
+    table.extend(pathway_table)
+
     return {
-        "table": table + pathway_table,
+        "table": table,
         "n_reads": condensed_results["n_reads"],
         "n_mapped": condensed_results["n_mapped"],
     }
