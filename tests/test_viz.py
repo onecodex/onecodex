@@ -875,6 +875,7 @@ def test_plot_bargraph_with_nonexisting_group_by(samples):
     values = set(chart.data["does_not_exist"])
     assert len(values) == 1
     assert values.pop() == "N/A"
+    assert "does_not_exist" not in samples.metadata
 
 
 def test_plot_bargraph_include_other_with_empty_samples(samples_without_abundances):

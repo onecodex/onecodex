@@ -100,7 +100,7 @@ class VizBargraphMixin(BaseSampleCollection):
 
         # Deferred imports
         import altair as alt
-        import numpy as np
+        import pandas as pd
 
         if not (threshold or top_n):
             raise OneCodexException("Please specify at least one of: threshold, top_n")
@@ -136,11 +136,13 @@ class VizBargraphMixin(BaseSampleCollection):
         if group_by:
             # calculate per-group mean of each taxon
 
-            # In case `group_by` does not exist
-            if group_by not in self.metadata:
-                self.metadata[group_by] = np.nan
+            if group_by in self.metadata:
+                metadata_series = self.metadata[group_by]
+            else:
+                # Let's group everything into one artificial/fake group
+                metadata_series = pd.Series(pd.NA, index=self.metadata.index, name=group_by)
 
-            df = df.fillna(0.0).join(self.metadata[group_by]).groupby(group_by, dropna=False).mean()
+            df = df.fillna(0.0).join(metadata_series).groupby(group_by, dropna=False).mean()
 
             # Nicer display for missing metadata values than `null`
             df.index = df.index.fillna("N/A")
