@@ -1,9 +1,14 @@
 import json
+from collections import Counter
 
 import pandas as pd
 import pytest
 
 from onecodex.models import FunctionalProfiles, SampleCollection
+from onecodex.models.analysis import (
+    _load_results_uri,
+    _rehydrate_functional_results,
+)
 
 
 def test_query_for_functional_analysis(ocx, api_data):
@@ -264,3 +269,53 @@ def test_filter_functional_runs_to_newest_job(ocx, raw_api_data, custom_mock_req
         # The newer version has correct PF00005 value for Campylobacter hominis (76517)
         key = ("PF00005", "76517")
         assert df.loc["eec4ac90d9104d1f", key] == 256.524
+
+
+def test_rehydrate_condensed_functional_results(ocx, api_data):
+    profile = ocx.FunctionalProfiles.get("a888fdc70221befa")
+
+    assert profile.results_uri is not None
+
+    condensed = _load_results_uri(profile.results_uri)
+    actual = _rehydrate_functional_results(condensed)
+
+    # the results directly from the API endpoint
+    response = profile._client.get(f"{profile._api._base_url}{profile.field_uri}/results")
+    response.raise_for_status()
+    expected = response.json()
+
+    assert actual["n_reads"] == expected["n_reads"]
+    assert actual["n_mapped"] == expected["n_mapped"]
+
+    def normalize(rows):
+        recoverable_keys = (
+            "group_name",
+            "id",
+            "name",
+            "metric",
+            "value",
+            "taxa_stratified",
+            "taxon_id",
+        )
+
+        return [tuple(row[key] for key in recoverable_keys) for row in rows]
+
+    actual_rows = normalize(actual["table"])
+    expected_rows = normalize(expected["table"])
+
+    # all rows in results['table'] must match exactly
+    assert Counter(actual_rows) == Counter(expected_rows)
+
+    # the order of all functional groups annotations should be the same except for metacyc
+    assert [row for row in actual_rows if row[0] != "metacyc"] == [
+        row for row in expected_rows if row[0] != "metacyc"
+    ]
+
+    taxa_map = {node["id"]: node.get("name") for node in condensed["taxonomy"]["nodes"]}
+    taxa_map["0"] = "unclassified"
+
+    # condensed results reconstructs taxa names from its own taxonomy rather than using
+    # the clade strings which are no longer supported
+    for row in actual["table"]:
+        expected_taxon_name = taxa_map.get(row["taxon_id"]) if row["taxa_stratified"] else None
+        assert row["taxon_name"] == expected_taxon_name
