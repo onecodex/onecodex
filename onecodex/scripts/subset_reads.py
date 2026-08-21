@@ -5,6 +5,8 @@ import gzip
 import io
 import os
 import warnings
+import cProfile
+import time
 
 from onecodex.auth import login_required
 from onecodex.exceptions import OneCodexException, ValidationError
@@ -233,11 +235,11 @@ def cli(
         click.echo("Using cached read-level results: {}".format(readlevel_path), err=True)
 
     # count the number of rows in the TSV file
-    with gzip.open(readlevel_path, "rt") as tsv:
+    with gzip.open(readlevel_path, "rb") as tsv:
         try:
             tsv_row_count = 0
-            for _ in tsv:
-                tsv_row_count += 1
+            while chunk := tsv.read(1024 * 1024):
+                tsv_row_count += chunk.count(b"\n")
             tsv_row_count -= 1  # discount header line
         except EOFError:
             click.echo(
@@ -246,6 +248,11 @@ def cli(
                 err=True,
             )
             raise
+
+    # profile = cProfile.Profile()
+    # profile.enable()
+    # profile.disable()
+    # profile.dump_stats("./tsv_row_count.prof")
 
     if reverse:
         if tsv_row_count % 2 != 0:
@@ -405,3 +412,4 @@ def cli(
             )
 
         bar.finish()
+
