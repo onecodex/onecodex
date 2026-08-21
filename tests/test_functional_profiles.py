@@ -5,10 +5,6 @@ import pandas as pd
 import pytest
 
 from onecodex.models import FunctionalProfiles, SampleCollection
-from onecodex.models.analysis import (
-    _load_results_uri,
-    _rehydrate_functional_results,
-)
 
 
 def test_query_for_functional_analysis(ocx, api_data):
@@ -276,8 +272,10 @@ def test_rehydrate_condensed_functional_results(ocx, api_data):
 
     assert profile.results_uri is not None
 
-    condensed = _load_results_uri(profile.results_uri)
-    actual = _rehydrate_functional_results(condensed)
+    condensed = profile._condensed_results()
+    assert condensed is not None
+
+    actual = profile.results()
 
     # the results directly from the API endpoint
     response = profile._client.get(f"{profile._api._base_url}{profile.field_uri}/results")

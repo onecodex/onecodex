@@ -737,6 +737,15 @@ class FunctionalProfiles(_AnalysesBase, FunctionalRunSchema):
 
         return results
 
+    @lru_cache
+    def _results(self) -> dict:
+        condensed_results = self._condensed_results()
+
+        if condensed_results is not None:
+            return _rehydrate_functional_results(condensed_results)
+
+        return super()._results()
+
     def _filtered_results(
         self,
         annotation: FunctionalAnnotations,
