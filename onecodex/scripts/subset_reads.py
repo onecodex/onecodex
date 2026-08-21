@@ -1,10 +1,10 @@
 import bz2
-import cProfile
 import gzip
 import io
 import os
 import warnings
 from typing import Optional, Tuple
+from functools import partial
 
 import click
 
@@ -60,17 +60,6 @@ def get_filtered_filename(file_path):
         filename, ext = os.path.splitext(filename)
 
     return "{}.filtered{}".format(filename, ext), ext
-
-
-def _tax_id_and_passed_filter_from_tsv_row(
-    tsv_row: bytes,
-    tax_id_idx: int,
-    passed_filter_idx: Optional[int],
-) -> Tuple[bytes, bytes]:
-    values = tsv_row.split(b"\t")
-    tax_id = values[tax_id_idx]
-    passed_filter = values[passed_filter_idx] if passed_filter_idx is not None else b"T"
-    return (tax_id, passed_filter)
 
 
 def make_taxonomy_dict(classification, parent=False):
@@ -140,6 +129,25 @@ def too_many_fastx_records():
     )
 
 
+def _tax_id_and_passed_filter_from_tsv_row(
+    tsv_row: bytes,
+    tax_id_idx: int,
+    passed_filter_idx: Optional[int],
+) -> Tuple[bytes, bytes]:
+    values = tsv_row.split(b"\t")
+    tax_id = values[tax_id_idx]
+    passed_filter = values[passed_filter_idx] if passed_filter_idx is not None else b"T"
+    return (tax_id, passed_filter)
+
+
+def _make_output_writer(gzip_output, gzip_output_compresslevel):
+    # TODO: gzip output does not work
+    if gzip_output:
+        return partial(gzip.open, mode="rb", compresslevel=gzip_output_compresslevel)
+    else:
+        return partial(io.open, mode="rb")
+
+
 @click.command(
     "subset_reads",
     help="Subset a FASTX file based on the taxonomic results from a CLASSIFICATION_ID. "
@@ -193,6 +201,17 @@ def too_many_fastx_records():
     "Choose this option to include them.",
 )
 @click.option(
+    "--gzip-output",
+    default=False,
+    is_flag=True,
+    help="Compress output using gzip.",
+)
+@click.option(
+    "--gzip-output-compresslevel",
+    default=9,
+    help="Sets gzip compresslevel if --gzip-output is on.",
+)
+@click.option(
     "-o", "--out", default=".", type=click.Path(), help="Where to save the filtered outputs"
 )
 @click.pass_context
@@ -210,6 +229,8 @@ def cli(
     include_lowconf,
     out,
     validate,
+    gzip_output,
+    gzip_output_compresslevel,
 ):
     if ctx.info_name == "filter_reads":
         warnings.warn(
@@ -223,6 +244,8 @@ def cli(
     classification = ctx.obj["API"].Classifications.get(classification_id)
     if classification is None:
         raise ValidationError("Classification {} not found.".format(classification_id))
+
+    out_open = _make_output_writer(gzip_output, gzip_output_compresslevel)
 
     # if with children, expand tax_ids by referring to the taxonomic tree
     if with_children:
@@ -300,9 +323,7 @@ def cli(
     with click.progressbar(length=tsv_row_count) as bar, gzip.open(readlevel_path, "rb") as tsv:
         headers = next(tsv)[:-1].split(b"\t")
         tax_id_idx = headers.index(b"Tax ID")
-        passed_filter_idx = (
-            headers.index(b"Passed Filter") if b"Passed Filter" in headers else None
-        )
+        passed_filter_idx = headers.index(b"Passed Filter") if b"Passed Filter" in headers else None
 
         # TODO: comment
         # reader = csv.DictReader(tsv, delimiter="\t")
@@ -319,8 +340,8 @@ def cli(
                 rev_iter = validating_parser(reverse, **io_kwargs)
 
             with (
-                io.open(filtered_filename, "wb") as out_file,
-                io.open(rev_filtered_filename, "wb") as rev_out_file,
+                out_open(filtered_filename) as out_file,
+                out_open(rev_filtered_filename) as rev_out_file,
             ):
                 for idx, (fwd, rev) in enumerate(zip(fwd_iter, rev_iter)):
                     if idx == tsv_row_count:
@@ -382,7 +403,7 @@ def cli(
             else:
                 fwd_iter = validating_parser(fastx, **io_kwargs)
 
-            with io.open(filtered_filename, "wb") as out_file:
+            with out_open(filtered_filename) as out_file:
                 for idx, (fwd, (row_tax_id, row_passed_filter)) in enumerate(
                     zip(fwd_iter, all_rows)
                 ):
