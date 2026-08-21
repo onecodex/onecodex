@@ -1,12 +1,12 @@
-import click
 import bz2
-import csv
+import cProfile
 import gzip
 import io
 import os
 import warnings
-import cProfile
-import time
+from typing import Optional, Tuple
+
+import click
 
 from onecodex.auth import login_required
 from onecodex.exceptions import OneCodexException, ValidationError
@@ -60,6 +60,17 @@ def get_filtered_filename(file_path):
         filename, ext = os.path.splitext(filename)
 
     return "{}.filtered{}".format(filename, ext), ext
+
+
+def _tax_id_and_passed_filter_from_tsv_row(
+    tsv_row: bytes,
+    tax_id_idx: int,
+    passed_filter_idx: Optional[int],
+) -> Tuple[bytes, bytes]:
+    values = tsv_row.split(b"\t")
+    tax_id = values[tax_id_idx]
+    passed_filter = values[passed_filter_idx] if passed_filter_idx is not None else b"T"
+    return (tax_id, passed_filter)
 
 
 def make_taxonomy_dict(classification, parent=False):
@@ -224,7 +235,7 @@ def cli(
 
         tax_ids = new_tax_ids
 
-    tax_ids = set(tax_ids)
+    tax_ids = set(x.encode() for x in tax_ids)
 
     # pull the classification result TSV
     tsv_url = classification._readlevel()["url"]
@@ -233,6 +244,9 @@ def cli(
         download_file_helper(tsv_url, "./")
     else:
         click.echo("Using cached read-level results: {}".format(readlevel_path), err=True)
+
+    # profile = cProfile.Profile()
+    # profile.enable()
 
     # count the number of rows in the TSV file
     with gzip.open(readlevel_path, "rb") as tsv:
@@ -248,11 +262,6 @@ def cli(
                 err=True,
             )
             raise
-
-    # profile = cProfile.Profile()
-    # profile.enable()
-    # profile.disable()
-    # profile.dump_stats("./tsv_row_count.prof")
 
     if reverse:
         if tsv_row_count % 2 != 0:
@@ -287,8 +296,19 @@ def cli(
     # see mainline/#3513. we must set idx=0 here for cases where the fastx file is empty
     idx = 0
 
-    with click.progressbar(length=tsv_row_count) as bar, gzip.open(readlevel_path, "rt") as tsv:
-        reader = csv.DictReader(tsv, delimiter="\t")
+    # with click.progressbar(length=tsv_row_count) as bar, gzip.open(readlevel_path, "rt") as tsv:
+    with click.progressbar(length=tsv_row_count) as bar, gzip.open(readlevel_path, "rb") as tsv:
+        headers = next(tsv)[:-1].split(b"\t")
+        tax_id_idx = headers.index(b"Tax ID")
+        passed_filter_idx = (
+            headers.index(b"Passed Filter") if b"Passed Filter" in headers else None
+        )
+
+        # TODO: comment
+        # reader = csv.DictReader(tsv, delimiter="\t")
+        all_rows = (
+            _tax_id_and_passed_filter_from_tsv_row(x, tax_id_idx, passed_filter_idx) for x in tsv
+        )
 
         if reverse:
             if not validate and io_kwargs["format"] == "fastq":
@@ -307,72 +327,52 @@ def cli(
                         too_many_fastx_records()
                     if idx % 1000 == 0:
                         bar.update(1000)
-                    row = next(reader)  # necessary to do it this way for py2 compat
-                    row2 = next(reader)
+                    row_tax_id, row_passed_filter = next(all_rows)
+                    row2_tax_id, row2_passed_filter = next(all_rows)
 
                     if subset_pairs_independently:
                         if include_lowconf:
                             if exclude_reads:
-                                if row["Tax ID"] not in tax_ids:
+                                if row_tax_id not in tax_ids:
                                     out_file.write(fwd)
-                                if row2["Tax ID"] not in tax_ids:
+                                if row2_tax_id not in tax_ids:
                                     rev_out_file.write(rev)
                             else:
-                                if row["Tax ID"] in tax_ids:
+                                if row_tax_id in tax_ids:
                                     out_file.write(fwd)
-                                if row2["Tax ID"] in tax_ids:
+                                if row2_tax_id in tax_ids:
                                     rev_out_file.write(rev)
                         else:
                             if exclude_reads:
-                                if (
-                                    row.get("Passed Filter", "T") == "T"
-                                    and row["Tax ID"] not in tax_ids
-                                ):
+                                if row_passed_filter == b"T" and row_tax_id not in tax_ids:
                                     out_file.write(fwd)
-                                if (
-                                    row2.get("Passed Filter", "T") == "T"
-                                    and row2["Tax ID"] not in tax_ids
-                                ):
+                                if row2_passed_filter == b"T" and row2_tax_id not in tax_ids:
                                     rev_out_file.write(rev)
                             else:
-                                if (
-                                    row.get("Passed Filter", "T") == "T"
-                                    and row["Tax ID"] in tax_ids
-                                ):
+                                if row_passed_filter == b"T" and row_tax_id in tax_ids:
                                     out_file.write(fwd)
-                                if (
-                                    row2.get("Passed Filter", "T") == "T"
-                                    and row2["Tax ID"] in tax_ids
-                                ):
+                                if row2_passed_filter == b"T" and row2_tax_id in tax_ids:
                                     rev_out_file.write(rev)
                     else:
                         if include_lowconf:
                             if exclude_reads:
-                                if row["Tax ID"] not in tax_ids or row2["Tax ID"] not in tax_ids:
+                                if row_tax_id not in tax_ids or row2_tax_id not in tax_ids:
                                     out_file.write(fwd)
                                     rev_out_file.write(rev)
                             else:
-                                if row["Tax ID"] in tax_ids or row2["Tax ID"] in tax_ids:
+                                if row_tax_id in tax_ids or row2_tax_id in tax_ids:
                                     out_file.write(fwd)
                                     rev_out_file.write(rev)
                         else:
                             if exclude_reads:
-                                if (
-                                    row.get("Passed Filter", "T") == "T"
-                                    and row["Tax ID"] not in tax_ids
-                                ) or (
-                                    row2.get("Passed Filter", "T") == "T"
-                                    and row2["Tax ID"] not in tax_ids
+                                if (row_passed_filter == b"T" and row_tax_id not in tax_ids) or (
+                                    row2_passed_filter == b"T" and row2_tax_id not in tax_ids
                                 ):
                                     out_file.write(fwd)
                                     rev_out_file.write(rev)
                             else:
-                                if (
-                                    row.get("Passed Filter", "T") == "T"
-                                    and row["Tax ID"] in tax_ids
-                                ) or (
-                                    row2.get("Passed Filter", "T") == "T"
-                                    and row2["Tax ID"] in tax_ids
+                                if (row_passed_filter == b"T" and row_tax_id in tax_ids) or (
+                                    row2_passed_filter == b"T" and row2_tax_id in tax_ids
                                 ):
                                     out_file.write(fwd)
                                     rev_out_file.write(rev)
@@ -383,27 +383,26 @@ def cli(
                 fwd_iter = validating_parser(fastx, **io_kwargs)
 
             with io.open(filtered_filename, "wb") as out_file:
-                for idx, (fwd, row) in enumerate(zip(fwd_iter, reader)):
+                for idx, (fwd, (row_tax_id, row_passed_filter)) in enumerate(
+                    zip(fwd_iter, all_rows)
+                ):
                     if idx == tsv_row_count:
                         too_many_fastx_records()
                     if idx % 1000 == 0:
                         bar.update(1000)
                     if include_lowconf:
                         if exclude_reads:
-                            if row["Tax ID"] not in tax_ids:
+                            if row_tax_id not in tax_ids:
                                 out_file.write(fwd)
                         else:
-                            if row["Tax ID"] in tax_ids:
+                            if row_tax_id in tax_ids:
                                 out_file.write(fwd)
                     else:
                         if exclude_reads:
-                            if (
-                                row.get("Passed Filter", "T") == "T"
-                                and row["Tax ID"] not in tax_ids
-                            ):
+                            if row_passed_filter == b"T" and row_tax_id not in tax_ids:
                                 out_file.write(fwd)
                         else:
-                            if row.get("Passed Filter", "T") == "T" and row["Tax ID"] in tax_ids:
+                            if row_passed_filter == b"T" and row_tax_id in tax_ids:
                                 out_file.write(fwd)
 
         if idx < tsv_row_count - 1:  # 0-based idx, 1-based tsv_row_count
@@ -413,3 +412,5 @@ def cli(
 
         bar.finish()
 
+    # profile.disable()
+    # profile.dump_stats("./tsv_row_count.prof")
