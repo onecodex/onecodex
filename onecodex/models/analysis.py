@@ -77,6 +77,165 @@ def _load_results_uri(uri: str) -> dict:
     return orjson.loads(_decompress(data))
 
 
+def _rehydrate_functional_results(condensed_results: dict) -> dict:
+    """Rehydrate condensed functional results into the public API results format."""
+
+    # maps tax IDs -> names
+    taxa_map = {node["id"]: node.get("name") for node in condensed_results["taxonomy"]["nodes"]}
+    taxa_map["0"] = "unclassified"
+
+    table = []
+    pathway_table = []
+
+    def add_row(
+        group_name: str,
+        feature_id: str,
+        feature_name: Optional[str],
+        metric: str,
+        value: float,
+        taxa_stratified: bool = False,
+        taxon_id: Optional[str] = None,
+        destination: Optional[list] = None,
+    ) -> None:
+        """Add a row formatted for results['table']."""
+        destination = table if destination is None else destination
+        destination.append(
+            {
+                "group_name": group_name,
+                "id": feature_id,
+                "name": feature_name,
+                "metric": metric,
+                "value": value,
+                "taxa_stratified": taxa_stratified,
+                "taxon_id": taxon_id,
+                "taxon_name": taxa_map.get(taxon_id) if taxa_stratified else None,
+            }
+        )
+
+    # standard functional groups use the following format:
+    # [id, name, total_cpm, total_rpk, [[taxid, cpm, rpk], ...]]
+    for group_name, features in condensed_results["results"].items():
+        # we'll do pathways separately because we neeed to split pathways into
+        # the metacyc functional group, has cpm/rpk metrics, and the pathways
+        # group, which has abundance/coverage metrics
+        if group_name == "pathways":
+            continue
+
+        for feature_id, encoded_name, community_cpm, total_rpk, contributions in features:
+            # Missing metadata is encoded by repeating the feature ID.
+            feature_name = None if encoded_name == feature_id else encoded_name
+
+            add_row(group_name, feature_id, feature_name, "cpm", community_cpm)
+            add_row(group_name, feature_id, feature_name, "rpk", total_rpk)
+
+            for taxon_id, cpm, rpk in contributions:
+                add_row(
+                    group_name,
+                    feature_id,
+                    feature_name,
+                    "rpk",
+                    rpk,
+                    taxa_stratified=True,
+                    taxon_id=taxon_id,
+                )
+                add_row(
+                    group_name,
+                    feature_id,
+                    feature_name,
+                    "cpm",
+                    cpm,
+                    taxa_stratified=True,
+                    taxon_id=taxon_id,
+                )
+
+    pathways = condensed_results["results"].get("pathways", [])
+
+    # metacyc values are folded into each condensed pathway:
+    # [id, name, community_abundance, community_coverage, metacyc_cpm,
+    #  [[taxid, species_abundance, species_coverage, metacyc_cpm], ...]]
+    for (
+        pathway_id,
+        pathway_name,
+        community_abundance,
+        community_coverage,
+        community_cpm,
+        contributions,
+    ) in pathways:
+        # see todo below but this preserves compatibility with current names/ids
+        metacyc_id = f"{pathway_id}: {pathway_name}" if pathway_name is not None else pathway_id
+
+        add_row("metacyc", metacyc_id, None, "cpm", community_cpm)
+        add_row("metacyc", metacyc_id, None, "rpk", community_abundance)
+
+        add_row(
+            "pathways",
+            pathway_id,
+            pathway_name,
+            "coverage",
+            community_coverage,
+            destination=pathway_table,
+        )
+        add_row(
+            "pathways",
+            pathway_id,
+            pathway_name,
+            "abundance",
+            community_abundance,
+            destination=pathway_table,
+        )
+
+        for taxon_id, taxon_abundance, taxon_coverage, taxon_cpm in contributions:
+            # todo: to keep strict compatibility with current results we set the
+            # metacyc name to be None (it's merged/included with feature ID). But
+            # I think it would be better to split out the name from the ID.
+            add_row(
+                "metacyc",
+                metacyc_id,
+                None,
+                "rpk",
+                taxon_abundance,
+                taxa_stratified=True,
+                taxon_id=taxon_id,
+            )
+            add_row(
+                "metacyc",
+                metacyc_id,
+                None,
+                "cpm",
+                taxon_cpm,
+                taxa_stratified=True,
+                taxon_id=taxon_id,
+            )
+            # add these to pathways separately so they aren't interleaved with
+            # metacyc
+            add_row(
+                "pathways",
+                pathway_id,
+                pathway_name,
+                "coverage",
+                taxon_coverage,
+                taxa_stratified=True,
+                taxon_id=taxon_id,
+                destination=pathway_table,
+            )
+            add_row(
+                "pathways",
+                pathway_id,
+                pathway_name,
+                "abundance",
+                taxon_abundance,
+                taxa_stratified=True,
+                taxon_id=taxon_id,
+                destination=pathway_table,
+            )
+
+    return {
+        "table": table + pathway_table,
+        "n_reads": condensed_results["n_reads"],
+        "n_mapped": condensed_results["n_mapped"],
+    }
+
+
 class _AnalysesBase(OneCodexBase):
     _allowed_methods = {
         "instances_public": None,
@@ -563,6 +722,27 @@ class Classifications(_AnalysesBase, ClassificationSchema):
 
 class FunctionalProfiles(_AnalysesBase, FunctionalRunSchema):
     _resource_path = "/api/v1/functional_profiles"
+
+    _FUNCTIONAL_RESULTS_VERSION = 1
+
+    @lru_cache
+    def _condensed_results(self) -> Optional[dict]:
+        if self.results_uri is None:
+            return None
+
+        try:
+            results = _load_results_uri(self.results_uri)
+        except requests.HTTPError:
+            # presigned URL may have expired
+            return None
+
+        # any updates to the condensed results may impact the positional arrays,
+        # e.g., [id, name, cpm, rpk] and we should disallow version mismatches to
+        # prevent possible issues when rehydrating results
+        if results.get("version") != self._FUNCTIONAL_RESULTS_VERSION:
+            return None
+
+        return results
 
     def _filtered_results(
         self,
