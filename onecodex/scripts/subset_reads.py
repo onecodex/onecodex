@@ -134,7 +134,7 @@ def _tax_id_and_passed_filter_from_tsv_row(
     tax_id_idx: int,
     passed_filter_idx: Optional[int],
 ) -> Tuple[bytes, bytes]:
-    values = tsv_row.split(b"\t")
+    values = tsv_row.strip(b"\n").split(b"\t")
     tax_id = values[tax_id_idx]
     passed_filter = values[passed_filter_idx] if passed_filter_idx is not None else b"T"
     return (tax_id, passed_filter)
@@ -143,9 +143,9 @@ def _tax_id_and_passed_filter_from_tsv_row(
 def _make_output_writer(gzip_output, gzip_output_compresslevel):
     # TODO: gzip output does not work
     if gzip_output:
-        return partial(gzip.open, mode="rb", compresslevel=gzip_output_compresslevel)
+        return partial(gzip.open, mode="wb", compresslevel=gzip_output_compresslevel)
     else:
-        return partial(io.open, mode="rb")
+        return partial(io.open, mode="wb")
 
 
 @click.command(
@@ -297,9 +297,13 @@ def cli(
     # determine the name of the output file(s)
     filtered_filename, ext = get_filtered_filename(fastx)
     filtered_filename = os.path.join(out, filtered_filename)
+    if gzip_output and not filtered_filename.endswith(".gz"):
+        filtered_filename += ".gz"
     if reverse:
         rev_filtered_filename = get_filtered_filename(reverse)[0]
         rev_filtered_filename = os.path.join(out, rev_filtered_filename)
+        if gzip_output and not rev_filtered_filename.endswith(".gz"):
+            rev_filtered_filename += ".gz"
 
     if ext in {".fa", ".fna", ".fasta"}:
         io_kwargs = {"format": "fasta"}
