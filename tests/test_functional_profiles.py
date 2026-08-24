@@ -3,6 +3,7 @@ from collections import Counter
 
 import pandas as pd
 import pytest
+import requests
 
 from onecodex.models import FunctionalProfiles, SampleCollection
 
@@ -369,10 +370,10 @@ def test_rehydrate_condensed_filtered_functional_results(
         taxa_stratified=taxa_stratified,
     )
 
-    # Condensed results should be loaded locally without calling the API endpoint.
+    # condensed results should be loaded locally without calling the API endpoint
     assert len(api_data.calls) == request_count
 
-    # Fetch the same selection from the mocked filtered-results API endpoint.
+    # Fetch the same selection from the mocked filtered-results API endpoint
     response = profile._client.get(
         f"{profile._api._base_url}{profile.field_uri}/filtered_results",
         params={
@@ -410,3 +411,94 @@ def test_rehydrate_condensed_filtered_functional_results(
 
     # Filtering must not alter the cached condensed payload.
     assert tuple(condensed["results"]) == original_groups
+
+
+def test_to_functional_df_with_condensed_results(ocx, api_data):
+    profile = ocx.FunctionalProfiles.get("a888fdc70221befa")
+    sample = ocx.Samples.get("37e5151e7bcb4f87")
+
+    collection = SampleCollection([sample])
+
+    # use the standalone condensed profile instead of the profile returned by the
+    # existing sample fixture.
+    collection.__dict__["_functional_profiles"] = [profile]
+
+    request_count = len(api_data.calls)
+
+    df = collection.to_functional_df(
+        annotation="pathways",
+        metric="coverage",
+        taxa_stratified=True,
+        fill_missing=False,
+    )
+
+    # Metadata may be fetched, but functional results must not come from
+    # the filtered-results endpoint.
+    new_requests = api_data.calls[request_count:]
+    assert all("/filtered_results" not in call.request.url for call in new_requests)
+
+    response = profile._client.get(
+        f"{profile._api._base_url}{profile.field_uri}/filtered_results",
+        params={
+            "functional_group": "pathways",
+            "metric": "coverage",
+            "taxa_stratified": True,
+        },
+    )
+    response.raise_for_status()
+
+    expected_values = {
+        (row["id"], row["taxon_id"]): row["value"] for row in response.json()["table"]
+    }
+
+    assert df.shape == (1, 556)
+    assert list(df.index) == [profile.id]
+    assert df.columns.names == ["feature_id", "taxon_id"]
+    assert df.loc[profile.id].to_dict() == expected_values
+    assert df.ocx_functional_group == "pathways"
+    assert df.ocx_metric == "coverage"
+
+
+@pytest.mark.parametrize("failure_mode", ["expired_url", "unsupported_version"])
+def test_condensed_results_fall_back_to_api(
+    ocx,
+    api_data,
+    monkeypatch,
+    failure_mode,
+):
+    profile = ocx.FunctionalProfiles.get("a888fdc70221befa")
+
+    if failure_mode == "expired_url":
+
+        def load_results(_):
+            raise requests.HTTPError("expired results URL")
+
+    else:
+
+        def load_results(_):
+            return {"version": 2}
+
+    monkeypatch.setattr("onecodex.models.analysis._load_results_uri", load_results)
+
+    # make sure nothing from a previous test is cached
+    FunctionalProfiles._condensed_results.cache_clear()
+
+    try:
+        assert profile._condensed_results() is None
+
+        request_count = len(api_data.calls)
+
+        result = profile._filtered_results(
+            annotation="go",
+            metric="rpk",
+            taxa_stratified=False,
+        )
+    finally:
+        # just prevent any further caching
+        FunctionalProfiles._condensed_results.cache_clear()
+
+    assert len(api_data.calls) == request_count + 1
+    assert "/filtered_results" in api_data.calls[-1].request.url
+    assert len(result["table"]) == 2952
+    assert result["n_reads"] == 5334942
+    assert result["n_mapped"] == 4128346
