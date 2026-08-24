@@ -498,6 +498,7 @@ def test_condensed_results_fall_back_to_api(
         FunctionalProfiles._condensed_results.cache_clear()
 
     assert len(api_data.calls) == request_count + 1
+    # we should be falling back to the api for results
     assert "/filtered_results" in api_data.calls[-1].request.url
     assert len(result["table"]) == 2952
     assert result["n_reads"] == 5334942
