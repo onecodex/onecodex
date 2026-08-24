@@ -3,8 +3,8 @@ import gzip
 import io
 import os
 import warnings
-from typing import Optional, Tuple
 from functools import partial
+from typing import Optional, Tuple
 
 import click
 
@@ -129,19 +129,19 @@ def too_many_fastx_records():
     )
 
 
-def _tax_id_and_passed_filter_from_tsv_row(
-    tsv_row: bytes,
+def _generate_tax_id_and_passed_filter_pairs(
+    tsv: gzip.GzipFile,
     tax_id_idx: int,
     passed_filter_idx: Optional[int],
-) -> Tuple[bytes, bytes]:
-    values = tsv_row.strip(b"\n").split(b"\t")
-    tax_id = values[tax_id_idx]
-    passed_filter = values[passed_filter_idx] if passed_filter_idx is not None else b"T"
-    return (tax_id, passed_filter)
+):
+    for tsv_row in tsv:
+        values = tsv_row.strip(b"\n").split(b"\t")
+        tax_id = values[tax_id_idx]
+        passed_filter = values[passed_filter_idx] if passed_filter_idx is not None else b"T"
+        yield (tax_id, passed_filter)
 
 
 def _make_output_writer(gzip_output, gzip_output_compresslevel):
-    # TODO: gzip output does not work
     if gzip_output:
         return partial(gzip.open, mode="wb", compresslevel=gzip_output_compresslevel)
     else:
@@ -250,14 +250,12 @@ def cli(
     # if with children, expand tax_ids by referring to the taxonomic tree
     if with_children:
         tax_id_map = make_taxonomy_dict(classification)
-
         new_tax_ids = []
-
         for t_id in tax_ids:
             new_tax_ids.extend(recurse_taxonomy_map(tax_id_map, t_id))
-
         tax_ids = new_tax_ids
 
+    # input is in bytes. Let's make `tax_ids` as bytes as well.
     tax_ids = set(x.encode() for x in tax_ids)
 
     # pull the classification result TSV
@@ -267,9 +265,6 @@ def cli(
         download_file_helper(tsv_url, "./")
     else:
         click.echo("Using cached read-level results: {}".format(readlevel_path), err=True)
-
-    # profile = cProfile.Profile()
-    # profile.enable()
 
     # count the number of rows in the TSV file
     with gzip.open(readlevel_path, "rb") as tsv:
@@ -325,15 +320,14 @@ def cli(
 
     # with click.progressbar(length=tsv_row_count) as bar, gzip.open(readlevel_path, "rt") as tsv:
     with click.progressbar(length=tsv_row_count) as bar, gzip.open(readlevel_path, "rb") as tsv:
-        headers = next(tsv)[:-1].split(b"\t")
+        # This `csv.DictReader(tsv, delimiter="\t")` would be more readable but doing raw parsing is
+        # way faster.
+
+        headers = next(tsv).strip(b"\n").split(b"\t")
         tax_id_idx = headers.index(b"Tax ID")
         passed_filter_idx = headers.index(b"Passed Filter") if b"Passed Filter" in headers else None
 
-        # TODO: comment
-        # reader = csv.DictReader(tsv, delimiter="\t")
-        all_rows = (
-            _tax_id_and_passed_filter_from_tsv_row(x, tax_id_idx, passed_filter_idx) for x in tsv
-        )
+        all_rows = _generate_tax_id_and_passed_filter_pairs(tsv, tax_id_idx, passed_filter_idx)
 
         if reverse:
             if not validate and io_kwargs["format"] == "fastq":
@@ -436,6 +430,3 @@ def cli(
             )
 
         bar.finish()
-
-    # profile.disable()
-    # profile.dump_stats("./tsv_row_count.prof")
