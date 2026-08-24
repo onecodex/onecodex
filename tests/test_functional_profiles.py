@@ -317,3 +317,96 @@ def test_rehydrate_condensed_functional_results(ocx, api_data):
     for row in actual["table"]:
         expected_taxon_name = taxa_map.get(row["taxon_id"]) if row["taxa_stratified"] else None
         assert row["taxon_name"] == expected_taxon_name
+
+
+@pytest.mark.parametrize(
+    ("annotation", "metric"),
+    [
+        ("pathways", "abundance"),
+        ("pathways", "complete_abundance"),
+        ("pathways", "coverage"),
+        ("metacyc", "cpm"),
+        ("metacyc", "rpk"),
+        ("eggnog", "cpm"),
+        ("eggnog", "rpk"),
+        ("go", "cpm"),
+        ("go", "rpk"),
+        ("ko", "cpm"),
+        ("ko", "rpk"),
+        ("ec", "cpm"),
+        ("ec", "rpk"),
+        ("pfam", "cpm"),
+        ("pfam", "rpk"),
+        ("reaction", "cpm"),
+        ("reaction", "rpk"),
+    ],
+)
+@pytest.mark.parametrize(
+    "taxa_stratified",
+    [
+        False,
+        True,
+    ],
+)
+def test_rehydrate_condensed_filtered_functional_results(
+    ocx,
+    api_data,
+    annotation,
+    metric,
+    taxa_stratified,
+):
+    profile = ocx.FunctionalProfiles.get("a888fdc70221befa")
+    condensed = profile._condensed_results()
+
+    assert condensed is not None
+
+    original_groups = tuple(condensed["results"])
+
+    request_count = len(api_data.calls)
+    actual = profile._filtered_results(
+        annotation=annotation,
+        metric=metric,
+        taxa_stratified=taxa_stratified,
+    )
+
+    # Condensed results should be loaded locally without calling the API endpoint.
+    assert len(api_data.calls) == request_count
+
+    # Fetch the same selection from the mocked filtered-results API endpoint.
+    response = profile._client.get(
+        f"{profile._api._base_url}{profile.field_uri}/filtered_results",
+        params={
+            "functional_group": annotation,
+            "metric": metric,
+            "taxa_stratified": taxa_stratified,
+        },
+    )
+    response.raise_for_status()
+    expected = response.json()
+
+    expected_keys = {"id", "name", "value"}
+    comparison_keys = ("id", "name", "value")
+
+    if taxa_stratified:
+        expected_keys |= {"taxon_id", "taxon_name"}
+        comparison_keys += ("taxon_id",)
+
+    assert all(set(row) == expected_keys for row in actual["table"])
+    assert all(set(row) == expected_keys for row in expected["table"])
+
+    def normalize(rows):
+        return [tuple(row[key] for key in comparison_keys) for row in rows]
+
+    assert Counter(normalize(actual["table"])) == Counter(normalize(expected["table"]))
+    assert actual["n_reads"] == expected["n_reads"]
+    assert actual["n_mapped"] == expected["n_mapped"]
+
+    if taxa_stratified:
+        taxa_map = {node["id"]: node.get("name") for node in condensed["taxonomy"]["nodes"]}
+        taxa_map["0"] = "unclassified"
+
+        for row in actual["table"]:
+            assert row["taxon_name"] == taxa_map.get(row["taxon_id"])
+
+    # Filtering must not alter the cached condensed payload.
+    assert tuple(condensed["results"]) == original_groups
