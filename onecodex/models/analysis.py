@@ -176,11 +176,8 @@ def _rehydrate_functional_results(condensed_results: dict) -> dict:
         community_cpm,
         contributions,
     ) in pathways:
-        # see todo below but this preserves compatibility with current names/ids
-        metacyc_id = f"{pathway_id}: {pathway_name}" if pathway_name is not None else pathway_id
-
-        add_row("metacyc", metacyc_id, None, "cpm", community_cpm)
-        add_row("metacyc", metacyc_id, None, "rpk", community_abundance)
+        add_row("metacyc", pathway_id, pathway_name, "cpm", community_cpm)
+        add_row("metacyc", pathway_id, pathway_name, "rpk", community_abundance)
 
         add_row(
             "pathways",
@@ -200,13 +197,11 @@ def _rehydrate_functional_results(condensed_results: dict) -> dict:
         )
 
         for taxon_id, abundance, coverage, cpm in contributions:
-            # todo: to keep strict compatibility with current results we set the
-            # metacyc name to be None (it's merged/included with feature ID). But
-            # I think it would be better to split out the name from the ID.
+            # metacyc ids/names are synonymous with pathway ids/names
             add_species_rows(
                 "metacyc",
-                metacyc_id,
-                None,
+                pathway_id,
+                pathway_name,
                 taxon_id,
                 (("rpk", abundance), ("cpm", cpm)),
             )
