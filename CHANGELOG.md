@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Samples lacking functional results are now dropped from the plot (they were
   never plotted anyway).
 - Plots no longer raise a `ValueError` when a metadata field name contains a colon character (`:`).
+- Passing non-existing `group_by` to `plot_bargraph` should not throw an error.
 
 ## [v1.1.0] - 2026-06-18
 
