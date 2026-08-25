@@ -801,7 +801,6 @@ class FunctionalProfiles(_AnalysesBase, FunctionalRunSchema):
 
     _FUNCTIONAL_RESULTS_VERSION = 1
 
-    @lru_cache
     def _condensed_results(self) -> Optional[dict]:
         if self.results_uri is None:
             return None
@@ -820,7 +819,6 @@ class FunctionalProfiles(_AnalysesBase, FunctionalRunSchema):
 
         return results
 
-    @lru_cache
     def _results(self) -> dict:
         condensed_results = self._condensed_results()
 
