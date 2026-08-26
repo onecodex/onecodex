@@ -44,7 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Plots no longer raise a `ValueError` when a metadata field name contains a colon character (`:`).
 - Passing non-existing `group_by` to `plot_bargraph` should not throw an error.
 - `Sample.{status,visiblity}` query type corrected to `EnumStrFilter`
-- `$icontains` and `c$ontains` removed from `EnumStrFilter` -- substring matching behavior requires
+- `$icontains` and `$contains` removed from `EnumStrFilter` -- substring matching behavior requires
   that the substring be a valid enum member which behaved unintuitively.
 
 ## [v1.1.0] - 2026-06-18
