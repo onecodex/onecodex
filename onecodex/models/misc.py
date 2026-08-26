@@ -11,6 +11,7 @@ from onecodex.lib.upload import upload_asset, upload_document
 from onecodex.models.base import UNSET, ApiRef, OneCodexBase
 from onecodex.models.filters import (
     DatetimeFilter,
+    EnumStrFilter,
     EqStrFilter,
     NumFilter,
     RefFilter,
@@ -117,15 +118,7 @@ class Users(OneCodexBase, UserSchema):
     ) -> list[Self]:
         """Query users.
 
-        Users are account holders in your organization. The only filterable
-        field is ``email``, and the API only supports exact-match (``$eq``)
-        — substring operators are not accepted server-side.
-
-        Example
-        -------
-        Find a user by exact email::
-
-            user = ocx.Users.where(email="alice@example.com")[0]
+        Users are account holders in your organization.
 
         See :doc:`/querying` for the full operator reference.
         """
@@ -402,7 +395,7 @@ class Assets(OneCodexBase, AssetSchema, ResourceDownloadMixin):
         name: str | StrFilter = UNSET,
         filename: str | StrFilter = UNSET,
         size: int | NumFilter | None = UNSET,
-        status: str | StrFilter = UNSET,
+        status: str | EnumStrFilter = UNSET,
         uploader: Users | str | RefFilter = UNSET,
     ) -> list[Self]:
         """Query assets.

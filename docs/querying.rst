@@ -65,39 +65,43 @@ Strings
 Enum-backed strings
 ===================
 
-``EnumStrFilter`` — e.g. ``Metadata.platform``, ``Metadata.library_type``,
-``Metadata.sample_type``.
+``EnumStrFilter`` — ``Metadata.platform``, ``Metadata.library_type`` and
+``Metadata.sample_type``. ``Samples.status``, ``Samples.visibility`` and
+``Assets.status`` behave the same way.
 
-These fields accept a fixed set of values. They support ``$eq``, ``$ne``,
-``$in``, ``$contains`` and ``$icontains``.
-
-.. warning::
-
-   Whatever the operator, the value you filter on must be one of the field's
-   allowed values. A partial value such as ``"novaseq"`` is rejected with an
-   error rather than returning no results. The prefix and suffix matchers
-   (``$startswith``, ``$endswith`` and their case-insensitive variants) are not
-   available on these fields.
-
-Allowed values often nest -- ``"Illumina"`` exists alongside
-``"Illumina NovaSeq 6000"`` -- which makes ``$icontains`` a convenient way to
-match a whole family of them at once. Note that these fields live on
-:class:`Metadata <onecodex.models.sample.Metadata>` rather than on
-:class:`Samples <onecodex.models.sample.Samples>`::
+These fields accept a fixed set of values. Filter them with ``$eq``, ``$ne`` or
+``$in``, passing a complete value::
 
     ocx.Metadata.where(platform="Illumina NovaSeq 6000")
-    ocx.Metadata.where(platform={"$icontains": "Illumina"})
-    ocx.Metadata.where(library_type="RNA-Seq")
+    ocx.Metadata.where(platform={"$in": ["Illumina HiSeq", "Illumina MiSeq"]})
+    ocx.Metadata.where(library_type="Targeted/16S")
+    ocx.Samples.where(status="available")
 
+The shorter sets are:
 
-Equality-only strings
-=====================
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
 
-``EqStrFilter`` — currently ``Users.email``.
+   * - Field
+     - Allowed values
+   * - ``library_type``
+     - ``WGS``, ``Targeted/16S``, ``Other``
+   * - ``sample_type``
+     - ``Isolate``, ``Metagenomic``, ``Other``
+   * - ``status``
+     - ``awaiting_data``, ``importing``, ``validating``, ``failed_validation``,
+       ``available``, ``deleted``
+   * - ``visibility``
+     - ``public``, ``shared``, ``private``, ``importing``, ``awaiting data``
 
-Some fields are restricted server-side to equality tests only, accepting just
-``$eq`` and ``$ne``. Substring and membership matching are unavailable, and the
-route may reject the query entirely depending on your account's permissions.
+``platform`` has many more -- ``Illumina NovaSeq 6000``, ``Oxford Nanopore
+MinION``, ``PacBio Revio`` and so on.
+
+.. note::
+
+   The value must be one of the allowed values. A partial value such as
+   ``"Oxford"`` is rejected with an error rather than returning no results.
 
 
 Numbers
