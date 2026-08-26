@@ -301,7 +301,8 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
 
         Every OneCodex model implements this method. The operators below are shared,
         but the fields you may filter on and the type returned vary by model -- see
-        that model's own ``where()`` for its specifics.
+        that model's own ``where()`` for its specifics, and :doc:`/querying` for the
+        full operator reference.
 
         Parameters
         ----------
