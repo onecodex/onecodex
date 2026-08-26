@@ -58,7 +58,7 @@ Strings
 ::
 
     ocx.Samples.where(filename={"$iendswith": ".fastq.gz"})
-    ocx.Samples.where(status={"$in": ["ready", "processing"]})
+    ocx.Samples.where(filename={"$icontains": "patient"})
     ocx.Samples.where(error_msg=None)
 
 
@@ -68,19 +68,20 @@ Enum-backed strings
 ``EnumStrFilter`` — e.g. ``Metadata.platform``, ``Metadata.library_type``,
 ``Metadata.sample_type``.
 
-These are string fields backed by an enum column on the server. They support
-``$eq``, ``$ne``, ``$in``, ``$contains`` and ``$icontains``.
+These are string fields backed by an enum column on the server. Match them
+against a whole value with ``$eq`` or ``$ne``.
 
 .. warning::
 
-   The prefix and suffix matchers (``$startswith``, ``$endswith``, and their
-   case-insensitive variants) are **not** available on these fields — they fail
-   server-side rather than returning an empty result.
+   The substring and prefix/suffix matchers are **not** reliable on these
+   fields — the server rejects the request outright rather than returning an
+   empty result. Compare against a complete value instead.
 
-::
+Note that these live on :class:`Metadata <onecodex.models.sample.Metadata>`
+rather than on :class:`Samples <onecodex.models.sample.Samples>`::
 
-    ocx.Samples.where(platform="Illumina NovaSeq 6000")
-    ocx.Samples.where(platform={"$icontains": "novaseq"})
+    ocx.Metadata.where(platform="Illumina NovaSeq 6000")
+    ocx.Metadata.where(library_type="RNA-Seq")
 
 
 Equality-only strings
@@ -89,9 +90,8 @@ Equality-only strings
 ``EqStrFilter`` — currently ``Users.email``.
 
 Some fields are restricted server-side to equality tests only, accepting just
-``$eq`` and ``$ne``. Substring and membership matching are unavailable::
-
-    ocx.Users.where(email="you@example.com")
+``$eq`` and ``$ne``. Substring and membership matching are unavailable, and the
+route may reject the query entirely depending on your account's permissions.
 
 
 Numbers
@@ -184,7 +184,10 @@ Accepts ``$containsall`` (every given reference must be present) and
 you, resolving each entry by tag name, id, or :class:`Tags <onecodex.models.misc.Tags>`
 instance::
 
-    ocx.Samples.where(tags=["trimmed", "human-depleted"])
+    ocx.Samples.where(tags=["isolate"])
+    ocx.Samples.where(tags=["16S", "isolate"])
+
+An unrecognized tag name raises rather than returning an empty result.
 
 
 Fetching by ID
