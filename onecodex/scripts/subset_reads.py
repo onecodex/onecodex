@@ -4,7 +4,7 @@ import io
 import os
 import warnings
 from functools import partial
-from typing import Optional, Tuple
+from typing import Optional
 
 import click
 
@@ -320,7 +320,7 @@ def cli(
 
     # with click.progressbar(length=tsv_row_count) as bar, gzip.open(readlevel_path, "rt") as tsv:
     with click.progressbar(length=tsv_row_count) as bar, gzip.open(readlevel_path, "rb") as tsv:
-        # This `csv.DictReader(tsv, delimiter="\t")` would be more readable but doing raw parsing is
+        # Using `csv.DictReader(tsv, delimiter="\t")` would be more readable but doing raw parsing is
         # way faster.
 
         headers = next(tsv).strip(b"\n").split(b"\t")
