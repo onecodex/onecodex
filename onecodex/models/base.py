@@ -303,8 +303,10 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
 
         Parameters
         ----------
-        filters : `object`
-            Advanced filters to use (not implemented)
+        filters : `str` or `dict`
+            One or more record IDs to fetch, or a single `dict` giving a raw query to
+            pass through to the server. Any other combination raises
+            `NotImplementedError`.
         sort : `str` or `list`, optional
             Sort the results by this field (or list of fields). By default in descending order,
             but if any of the fields start with the special character ^, sort in ascending order.
