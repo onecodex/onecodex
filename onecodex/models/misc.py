@@ -84,7 +84,7 @@ class Tags(OneCodexBase, TagSchema):
 
             ocx.Tags.where(name={"$icontains": "qc"})
 
-        See :meth:`OneCodexBase.where` for the full operator reference.
+        See :meth:`OneCodexBase.where <onecodex.models.base.OneCodexBase.where>` for the full operator reference.
         """
         return super().where(
             *filters,
@@ -127,7 +127,7 @@ class Users(OneCodexBase, UserSchema):
 
             user = ocx.Users.where(email="alice@example.com")[0]
 
-        See :meth:`OneCodexBase.where` for the full operator reference.
+        See :meth:`OneCodexBase.where <onecodex.models.base.OneCodexBase.where>` for the full operator reference.
         """
         return super().where(
             *filters,
@@ -182,7 +182,7 @@ class Projects(OneCodexBase, ProjectSchema):
 
             ocx.Projects.where(name={"$icontains": "gut"}, public=True)
 
-        See :meth:`OneCodexBase.where` for the full operator reference.
+        See :meth:`OneCodexBase.where <onecodex.models.base.OneCodexBase.where>` for the full operator reference.
         """
         return super().where(
             *filters,
@@ -234,7 +234,7 @@ class Jobs(OneCodexBase, JobSchema):
 
             ocx.Jobs.where(analysis_type="classification", public=True)
 
-        See :meth:`OneCodexBase.where` for the full operator reference.
+        See :meth:`OneCodexBase.where <onecodex.models.base.OneCodexBase.where>` for the full operator reference.
         """
         return super().where(
             *filters,
@@ -349,7 +349,7 @@ class Documents(OneCodexBase, DocumentSchema, ResourceDownloadMixin):
 
             ocx.Documents.where(uploader=user)
 
-        See :meth:`OneCodexBase.where` for the full operator reference.
+        See :meth:`OneCodexBase.where <onecodex.models.base.OneCodexBase.where>` for the full operator reference.
         """
         return super().where(
             *filters,
@@ -421,7 +421,7 @@ class Assets(OneCodexBase, AssetSchema, ResourceDownloadMixin):
 
             ocx.Assets.where(status="available")
 
-        See :meth:`OneCodexBase.where` for the full operator reference.
+        See :meth:`OneCodexBase.where <onecodex.models.base.OneCodexBase.where>` for the full operator reference.
         """
         return super().where(
             *filters,

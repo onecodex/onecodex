@@ -2,6 +2,17 @@
 Models
 ******
 
+``OneCodexBase``
+================
+.. autoclass:: onecodex.models.base.OneCodexBase
+   :members:
+   :show-inheritance:
+
+
+Note: this is a base class that is not meant to be instantiated directly. See this class's documentation
+for details about common methods such as `.where`, `.all` and `.get` which are used by the models listed below.
+
+
 ``Analyses``
 ============
 

@@ -137,7 +137,7 @@ class Metadata(OneCodexBase, _MetadataSchema):
 
             ocx.Samples.where(...).filter(lambda s: s.metadata.custom.get("lab") == "X")
 
-        See :meth:`OneCodexBase.where` for the full operator reference.
+        See :meth:`OneCodexBase.where <onecodex.models.base.OneCodexBase.where>` for the full operator reference.
         """
         return super().where(
             *filters,
@@ -273,7 +273,7 @@ class Samples(OneCodexBase, _SampleSchema, ResourceDownloadMixin):
         Metadata ``custom`` fields aren't server-filterable — filter
         client-side via :meth:`SampleCollection.filter`.
 
-        See :meth:`OneCodexBase.where` for the full operator reference.
+        See :meth:`OneCodexBase.where <onecodex.models.base.OneCodexBase.where>` for the full operator reference.
         """
         from onecodex.models.collection import SampleCollection
 

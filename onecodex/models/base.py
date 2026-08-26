@@ -175,6 +175,7 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
 
     @property
     def id(self) -> Optional[str]:
+        """The ID of this record."""
         if self.field_uri is None:
             return None
         return self.field_uri.split("/")[-1]
@@ -275,10 +276,19 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
 
     @classmethod
     def all(cls, sort=None, limit=None) -> List[Self]:
+        """Return every record of this model.
+
+        See :meth:`where <onecodex.models.base.OneCodexBase.where>` for details on the
+        ``sort`` and ``limit`` arguments.
+        """
         return cls.where(sort=sort, limit=limit)
 
     @classmethod
     def get(cls, id: str) -> Self | None:
+        """Fetch a single record by its ID.
+
+        Returns ``None`` if the record does not exist or you do not have access to it.
+        """
         resp = cls._client.get(f"{cls._api._base_url}{cls._resource_path}/{id}?expand=all")
         if resp.status_code == 200:
             return cls.model_validate(resp.json())
@@ -439,6 +449,18 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
 
     @classmethod
     def create(cls, **kwargs):
+        """Create a new record of this model and return it.
+
+        Raises
+        ------
+        `MethodNotSupported`
+            If this model does not support creation.
+        `OneCodexException`
+            If the server rejects the request.
+        `pydantic.ValidationError`
+            If the keyword arguments do not match the schema this model declares for
+            creation.
+        """
         if "create" not in cls._allowed_methods:
             raise MethodNotSupported(f"Cannot create {cls.__name__} objects")
         create_model = cls._allowed_methods["create"]
@@ -456,6 +478,22 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
         return cls.model_validate(resp.json())
 
     def update(self, **kwargs):
+        """Update this record on the server.
+
+        Fields to change may be passed as keyword arguments. With no arguments, any
+        attributes modified locally since this record was fetched are sent instead.
+
+        Raises
+        ------
+        `MethodNotSupported`
+            If this model does not support updates, or if one of the given fields is not
+            updatable.
+        `OneCodexException`
+            If the server rejects the request.
+        `pydantic.ValidationError`
+            If the keyword arguments do not match the schema this model declares for
+            updates.
+        """
         if "update" not in self._allowed_methods:
             raise MethodNotSupported(f"Cannot update {self.__class__.__name__} objects")
 
@@ -494,6 +532,14 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
         self._snapshot = self._object_snapshot()
 
     def delete(self) -> bool:
+        """Delete this record, returning ``True`` if it was deleted.
+
+        Raises
+        ------
+        `MethodNotSupported`
+            If this model does not support deletion, or if this record has not been
+            saved yet.
+        """
         if "delete" not in self._allowed_methods:
             raise MethodNotSupported(f"Cannot delete {self.__class__.__name__} objects")
         if self.id is None:
@@ -502,6 +548,15 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
         return resp.status_code == 204
 
     def save(self):
+        """Persist this record, creating it if it has not been saved before.
+
+        Raises
+        ------
+        `MethodNotSupported`
+            If this model does not support the underlying create or update.
+        `OneCodexException`
+            If the server rejects the request.
+        """
         if self.id is not None:
             self.update()
         else:
