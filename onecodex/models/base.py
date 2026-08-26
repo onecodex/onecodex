@@ -1,7 +1,8 @@
 import copy
 import inspect
 import json
-from typing import Any, ClassVar, List, Optional, Type, TypedDict
+from collections.abc import MutableSequence
+from typing import Any, ClassVar, Optional, Type, TypedDict
 
 from typing_extensions import Self, Sentinel
 
@@ -275,7 +276,7 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
         return value
 
     @classmethod
-    def all(cls, sort=None, limit=None) -> List[Self]:
+    def all(cls, sort=None, limit=None) -> MutableSequence[Self]:
         """Return every record of this model.
 
         See :meth:`where <onecodex.models.base.OneCodexBase.where>` for details on the
@@ -295,11 +296,12 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
         return None
 
     @classmethod
-    def where(cls, *filters, **keyword_filters) -> List[Self]:
+    def where(cls, *filters, **keyword_filters) -> MutableSequence[Self]:
         """Filter model records of this type from the One Codex server.
 
-        This method works for all OneCodex model types including Samples,
-        Classifications, Projects, and Panels.
+        Every OneCodex model implements this method. The operators below are shared,
+        but the fields you may filter on and the type returned vary by model -- see
+        that model's own ``where()`` for its specifics.
 
         Parameters
         ----------
@@ -315,8 +317,13 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
         limit : `int`, optional
             Number of records to return. For smaller searches, this can reduce the number of
             network requests made.
+        filter : `callable`, optional
+            Filter the fetched records locally, keeping those for which this returns a
+            truthy value.
         keyword_filters : `str` or `object`
-            Filter the results by specific keywords (or filter objects, in advanced usage)
+            Filter the results server-side by field value, either a literal to match or
+            an operator `dict` such as ``{"$icontains": "qc"}``. Most models declare the
+            fields they accept explicitly and reject anything else.
 
         Examples
         --------
@@ -338,9 +345,10 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
 
         Returns
         -------
-        `list`
-            A list of all objects matching these filters. If no filters are passed, this
-            matches all objects.
+        `MutableSequence`
+            Every record matching these filters, or all records if no filters are
+            passed. Usually a `list`, but some models return a specialized collection
+            instead -- `Samples` and `Classifications` both return a `SampleCollection`.
         """
         # Drop UNSET-valued kwargs (the "not provided" sentinel forwarded by
         # per-model ``where()`` overrides). ``None`` survives — it means
