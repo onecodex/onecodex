@@ -318,7 +318,6 @@ def cli(
     # see mainline/#3513. we must set idx=0 here for cases where the fastx file is empty
     idx = 0
 
-    # with click.progressbar(length=tsv_row_count) as bar, gzip.open(readlevel_path, "rt") as tsv:
     with click.progressbar(length=tsv_row_count) as bar, gzip.open(readlevel_path, "rb") as tsv:
         # Using `csv.DictReader(tsv, delimiter="\t")` would be more readable but doing raw parsing is
         # way faster.
