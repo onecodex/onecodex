@@ -68,19 +68,25 @@ Enum-backed strings
 ``EnumStrFilter`` — e.g. ``Metadata.platform``, ``Metadata.library_type``,
 ``Metadata.sample_type``.
 
-These are string fields backed by an enum column on the server. Match them
-against a whole value with ``$eq`` or ``$ne``.
+These fields accept a fixed set of values. They support ``$eq``, ``$ne``,
+``$in``, ``$contains`` and ``$icontains``.
 
 .. warning::
 
-   The substring and prefix/suffix matchers are **not** reliable on these
-   fields — the server rejects the request outright rather than returning an
-   empty result. Compare against a complete value instead.
+   Whatever the operator, the value you filter on must be one of the field's
+   allowed values. A partial value such as ``"novaseq"`` is rejected with an
+   error rather than returning no results. The prefix and suffix matchers
+   (``$startswith``, ``$endswith`` and their case-insensitive variants) are not
+   available on these fields.
 
-Note that these live on :class:`Metadata <onecodex.models.sample.Metadata>`
-rather than on :class:`Samples <onecodex.models.sample.Samples>`::
+Allowed values often nest -- ``"Illumina"`` exists alongside
+``"Illumina NovaSeq 6000"`` -- which makes ``$icontains`` a convenient way to
+match a whole family of them at once. Note that these fields live on
+:class:`Metadata <onecodex.models.sample.Metadata>` rather than on
+:class:`Samples <onecodex.models.sample.Samples>`::
 
     ocx.Metadata.where(platform="Illumina NovaSeq 6000")
+    ocx.Metadata.where(platform={"$icontains": "Illumina"})
     ocx.Metadata.where(library_type="RNA-Seq")
 
 
