@@ -52,14 +52,17 @@ def validating_parser(file_path, **io_kwargs):
         yield buf.read()
 
 
-def get_filtered_filename(file_path):
+def get_filtered_filename(file_path, gzip_output):
     filename = os.path.basename(file_path)
     filename, ext = os.path.splitext(filename)
 
     if ext in {".gz", ".gzip", ".bz", ".bzip", ".bz2", ".bzip2"}:
         filename, ext = os.path.splitext(filename)
 
-    return "{}.filtered{}".format(filename, ext), ext
+    out_filename = "{}.filtered{}".format(filename, ext)
+    if gzip_output and not out_filename.endswith(".gz"):
+        out_filename += ".gz"
+    return out_filename, ext
 
 
 def make_taxonomy_dict(classification, parent=False):
@@ -294,15 +297,11 @@ def cli(
         tsv_row_count = int(tsv_row_count / 2.0)
 
     # determine the name of the output file(s)
-    filtered_filename, ext = get_filtered_filename(fastx)
+    filtered_filename, ext = get_filtered_filename(fastx, gzip_output)
     filtered_filename = os.path.join(out, filtered_filename)
-    if gzip_output and not filtered_filename.endswith(".gz"):
-        filtered_filename += ".gz"
     if reverse:
-        rev_filtered_filename = get_filtered_filename(reverse)[0]
+        rev_filtered_filename = get_filtered_filename(reverse, gzip_output)[0]
         rev_filtered_filename = os.path.join(out, rev_filtered_filename)
-        if gzip_output and not rev_filtered_filename.endswith(".gz"):
-            rev_filtered_filename += ".gz"
 
     if ext in {".fa", ".fna", ".fasta"}:
         io_kwargs = {"format": "fasta"}
