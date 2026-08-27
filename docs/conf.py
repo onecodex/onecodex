@@ -40,7 +40,7 @@ html_theme = "sphinx_rtd_theme"
 
 sys.path.insert(0, os.path.abspath("../"))
 
-html_theme_options = {"collapse_navigation": True, "navigation_depth": 2}
+html_theme_options = {"collapse_navigation": True, "navigation_depth": 3}
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

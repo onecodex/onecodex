@@ -11,6 +11,7 @@ from onecodex.lib.upload import upload_asset, upload_document
 from onecodex.models.base import UNSET, ApiRef, OneCodexBase
 from onecodex.models.filters import (
     DatetimeFilter,
+    EnumStrFilter,
     EqStrFilter,
     NumFilter,
     RefFilter,
@@ -84,7 +85,7 @@ class Tags(OneCodexBase, TagSchema):
 
             ocx.Tags.where(name={"$icontains": "qc"})
 
-        See :meth:`OneCodexBase.where` for the full operator reference.
+        See :doc:`/querying` for the full operator reference.
         """
         return super().where(
             *filters,
@@ -117,17 +118,9 @@ class Users(OneCodexBase, UserSchema):
     ) -> list[Self]:
         """Query users.
 
-        Users are account holders in your organization. The only filterable
-        field is ``email``, and the API only supports exact-match (``$eq``)
-        — substring operators are not accepted server-side.
+        Users are account holders in your organization.
 
-        Example
-        -------
-        Find a user by exact email::
-
-            user = ocx.Users.where(email="alice@example.com")[0]
-
-        See :meth:`OneCodexBase.where` for the full operator reference.
+        See :doc:`/querying` for the full operator reference.
         """
         return super().where(
             *filters,
@@ -182,7 +175,7 @@ class Projects(OneCodexBase, ProjectSchema):
 
             ocx.Projects.where(name={"$icontains": "gut"}, public=True)
 
-        See :meth:`OneCodexBase.where` for the full operator reference.
+        See :doc:`/querying` for the full operator reference.
         """
         return super().where(
             *filters,
@@ -234,7 +227,7 @@ class Jobs(OneCodexBase, JobSchema):
 
             ocx.Jobs.where(analysis_type="classification", public=True)
 
-        See :meth:`OneCodexBase.where` for the full operator reference.
+        See :doc:`/querying` for the full operator reference.
         """
         return super().where(
             *filters,
@@ -349,7 +342,7 @@ class Documents(OneCodexBase, DocumentSchema, ResourceDownloadMixin):
 
             ocx.Documents.where(uploader=user)
 
-        See :meth:`OneCodexBase.where` for the full operator reference.
+        See :doc:`/querying` for the full operator reference.
         """
         return super().where(
             *filters,
@@ -402,7 +395,7 @@ class Assets(OneCodexBase, AssetSchema, ResourceDownloadMixin):
         name: str | StrFilter = UNSET,
         filename: str | StrFilter = UNSET,
         size: int | NumFilter | None = UNSET,
-        status: str | StrFilter = UNSET,
+        status: str | EnumStrFilter = UNSET,
         uploader: Users | str | RefFilter = UNSET,
     ) -> list[Self]:
         """Query assets.
@@ -421,7 +414,7 @@ class Assets(OneCodexBase, AssetSchema, ResourceDownloadMixin):
 
             ocx.Assets.where(status="available")
 
-        See :meth:`OneCodexBase.where` for the full operator reference.
+        See :doc:`/querying` for the full operator reference.
         """
         return super().where(
             *filters,

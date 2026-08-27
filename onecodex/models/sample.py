@@ -137,7 +137,7 @@ class Metadata(OneCodexBase, _MetadataSchema):
 
             ocx.Samples.where(...).filter(lambda s: s.metadata.custom.get("lab") == "X")
 
-        See :meth:`OneCodexBase.where` for the full operator reference.
+        See :doc:`/querying` for the full operator reference.
         """
         return super().where(
             *filters,
@@ -210,8 +210,8 @@ class Samples(OneCodexBase, _SampleSchema, ResourceDownloadMixin):
         filename: str | StrFilter | None = UNSET,
         error_msg: str | StrFilter | None = UNSET,
         size: int | NumFilter | None = UNSET,
-        status: str | StrFilter = UNSET,
-        visibility: str | StrFilter = UNSET,
+        status: str | EnumStrFilter = UNSET,
+        visibility: str | EnumStrFilter = UNSET,
         metadata: Metadata | str | RefFilter = UNSET,
         owner: Users | str | RefFilter = UNSET,
         project: Projects | str | RefFilter | None = UNSET,
@@ -273,7 +273,7 @@ class Samples(OneCodexBase, _SampleSchema, ResourceDownloadMixin):
         Metadata ``custom`` fields aren't server-filterable — filter
         client-side via :meth:`SampleCollection.filter`.
 
-        See :meth:`OneCodexBase.where` for the full operator reference.
+        See :doc:`/querying` for the full operator reference.
         """
         from onecodex.models.collection import SampleCollection
 

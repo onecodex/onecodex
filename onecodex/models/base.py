@@ -1,7 +1,8 @@
 import copy
 import inspect
 import json
-from typing import Any, ClassVar, List, Optional, Type, TypedDict
+from collections.abc import MutableSequence
+from typing import Any, ClassVar, Optional, Type, TypedDict
 
 from typing_extensions import Self, Sentinel
 
@@ -175,6 +176,7 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
 
     @property
     def id(self) -> Optional[str]:
+        """The ID of this record."""
         if self.field_uri is None:
             return None
         return self.field_uri.split("/")[-1]
@@ -274,27 +276,40 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
         return value
 
     @classmethod
-    def all(cls, sort=None, limit=None) -> List[Self]:
+    def all(cls, sort=None, limit=None) -> MutableSequence[Self]:
+        """Return every record of this model.
+
+        See :meth:`where <onecodex.models.base.OneCodexBase.where>` for details on the
+        ``sort`` and ``limit`` arguments.
+        """
         return cls.where(sort=sort, limit=limit)
 
     @classmethod
     def get(cls, id: str) -> Self | None:
+        """Fetch a single record by its ID.
+
+        Returns ``None`` if the record does not exist or you do not have access to it.
+        """
         resp = cls._client.get(f"{cls._api._base_url}{cls._resource_path}/{id}?expand=all")
         if resp.status_code == 200:
             return cls.model_validate(resp.json())
         return None
 
     @classmethod
-    def where(cls, *filters, **keyword_filters) -> List[Self]:
+    def where(cls, *filters, **keyword_filters) -> MutableSequence[Self]:
         """Filter model records of this type from the One Codex server.
 
-        This method works for all OneCodex model types including Samples,
-        Classifications, Projects, and Panels.
+        Every OneCodex model implements this method. The operators below are shared,
+        but the fields you may filter on and the type returned vary by model -- see
+        that model's own ``where()`` for its specifics, and :doc:`/querying` for the
+        full operator reference.
 
         Parameters
         ----------
-        filters : `object`
-            Advanced filters to use (not implemented)
+        filters : `str` or `dict`
+            One or more record IDs to fetch, or a single `dict` giving a raw query to
+            pass through to the server. Any other combination raises
+            `NotImplementedError`.
         sort : `str` or `list`, optional
             Sort the results by this field (or list of fields). By default in descending order,
             but if any of the fields start with the special character ^, sort in ascending order.
@@ -303,8 +318,13 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
         limit : `int`, optional
             Number of records to return. For smaller searches, this can reduce the number of
             network requests made.
+        filter : `callable`, optional
+            Filter the fetched records locally, keeping those for which this returns a
+            truthy value.
         keyword_filters : `str` or `object`
-            Filter the results by specific keywords (or filter objects, in advanced usage)
+            Filter the results server-side by field value, either a literal to match or
+            an operator `dict` such as ``{"$icontains": "qc"}``. Most models declare the
+            fields they accept explicitly and reject anything else.
 
         Examples
         --------
@@ -326,9 +346,10 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
 
         Returns
         -------
-        `list`
-            A list of all objects matching these filters. If no filters are passed, this
-            matches all objects.
+        `MutableSequence`
+            Every record matching these filters, or all records if no filters are
+            passed. Usually a `list`, but some models return a specialized collection
+            instead -- `Samples` and `Classifications` both return a `SampleCollection`.
         """
         # Drop UNSET-valued kwargs (the "not provided" sentinel forwarded by
         # per-model ``where()`` overrides). ``None`` survives — it means
@@ -439,6 +460,18 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
 
     @classmethod
     def create(cls, **kwargs):
+        """Create a new record of this model and return it.
+
+        Raises
+        ------
+        `MethodNotSupported`
+            If this model does not support creation.
+        `OneCodexException`
+            If the server rejects the request.
+        `pydantic.ValidationError`
+            If the keyword arguments do not match the schema this model declares for
+            creation.
+        """
         if "create" not in cls._allowed_methods:
             raise MethodNotSupported(f"Cannot create {cls.__name__} objects")
         create_model = cls._allowed_methods["create"]
@@ -456,6 +489,22 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
         return cls.model_validate(resp.json())
 
     def update(self, **kwargs):
+        """Update this record on the server.
+
+        Fields to change may be passed as keyword arguments. With no arguments, any
+        attributes modified locally since this record was fetched are sent instead.
+
+        Raises
+        ------
+        `MethodNotSupported`
+            If this model does not support updates, or if one of the given fields is not
+            updatable.
+        `OneCodexException`
+            If the server rejects the request.
+        `pydantic.ValidationError`
+            If the keyword arguments do not match the schema this model declares for
+            updates.
+        """
         if "update" not in self._allowed_methods:
             raise MethodNotSupported(f"Cannot update {self.__class__.__name__} objects")
 
@@ -494,6 +543,14 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
         self._snapshot = self._object_snapshot()
 
     def delete(self) -> bool:
+        """Delete this record, returning ``True`` if it was deleted.
+
+        Raises
+        ------
+        `MethodNotSupported`
+            If this model does not support deletion, or if this record has not been
+            saved yet.
+        """
         if "delete" not in self._allowed_methods:
             raise MethodNotSupported(f"Cannot delete {self.__class__.__name__} objects")
         if self.id is None:
@@ -502,6 +559,15 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
         return resp.status_code == 204
 
     def save(self):
+        """Persist this record, creating it if it has not been saved before.
+
+        Raises
+        ------
+        `MethodNotSupported`
+            If this model does not support the underlying create or update.
+        `OneCodexException`
+            If the server rejects the request.
+        """
         if self.id is not None:
             self.update()
         else:
