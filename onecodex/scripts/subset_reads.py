@@ -212,7 +212,11 @@ def _make_output_writer(gzip_output, gzip_output_compresslevel):
     help="Sets gzip compresslevel if --gzip-output is on.",
 )
 @click.option(
-    "-o", "--out", default=".", type=click.Path(), help="Where to save the filtered outputs"
+    "-o",
+    "--out",
+    default=".",
+    type=click.Path(file_okay=False, dir_okay=True, exists=True),
+    help="Directory where output file(s) will be saved.",
 )
 @click.pass_context
 @pretty_errors
