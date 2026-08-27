@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `onecodex jobs publish` CLI command.
 - Added `description` argument to `Jobs.run()`.
 - Added `--description` option to `onecodex jobs run` CLI command.
+- Added `--gzip-output` and `--gzip-output-compresslevel` to `onecodex scripts subset_reads`.
 
 ### Changed
 
@@ -26,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `Metric.is_abundance_sensitive` to better describe what it flags.
 - In `plot_metadata(width="container", ...)`, boxplot width is now dynamically adjusted based on the
   number of boxes
+- Improved speed of `onecodex scripts subset_reads` by around 20%.
 
 ### Removed
 
