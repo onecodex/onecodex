@@ -83,7 +83,12 @@ def _rehydrate_functional_results(
     metric_filter: Optional[str] = None,
     taxa_stratified_filter: Optional[bool] = None,
 ) -> dict:
-    """Rehydrate condensed functional results into the public API results format."""
+    """Rehydrate condensed functional results into the public API results format.
+
+    the annotation, metric, and taxa stratified filters can be used to control what gets
+    rehydrated. If any of these are set, all other annotations/metrics/stratifications will
+    be removed prior to returning the rehydrated results.
+    """
 
     # maps tax IDs -> names
     taxa_map = {node["id"]: node.get("name") for node in condensed_results["taxonomy"]["nodes"]}
