@@ -125,7 +125,7 @@ def filtered_raw_results(raw_results, annotation, metric, taxa_stratified):
 
 
 def _load_functional_api_results():
-    filepath = "tests/data/api/v1/functional_profiles/a888fdc70221befa/results/index.json.gz"
+    filepath = "tests/data/api/v1/functional_profiles/a888fdc70221befa/results/original_api_results.json.gz"
     with gzip.open(filepath, "rt") as results_file:
         return json.load(results_file)
 
@@ -571,6 +571,14 @@ for api_version in os.listdir(API_DATA_DIR):
                             instance["results_uri"] = os.path.abspath(instance["results_uri"])
                         instance_uri = f"GET::{instance['$uri'].lstrip('/')}"
                         API_DATA[instance_uri] = instance
+
+
+@pytest.fixture
+def original_functional_api_results():
+    """
+    Returns functional results in their original format prior to compaction/minimization.
+    """
+    return _load_functional_api_results()
 
 
 @pytest.fixture(scope="function")

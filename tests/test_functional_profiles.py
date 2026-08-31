@@ -268,7 +268,7 @@ def test_filter_functional_runs_to_newest_job(ocx, raw_api_data, custom_mock_req
         assert df.loc["eec4ac90d9104d1f", key] == 256.524
 
 
-def test_rehydrate_condensed_functional_results(ocx, api_data):
+def test_rehydrate_condensed_functional_results(ocx, api_data, original_functional_api_results):
     profile = ocx.FunctionalProfiles.get("a888fdc70221befa")
 
     assert profile.results_uri is not None
@@ -277,11 +277,7 @@ def test_rehydrate_condensed_functional_results(ocx, api_data):
     assert condensed is not None
 
     actual = profile.results()
-
-    # the results directly from the API endpoint
-    response = profile._client.get(f"{profile._api._base_url}{profile.field_uri}/results")
-    response.raise_for_status()
-    expected = response.json()
+    expected = original_functional_api_results
 
     assert actual["n_reads"] == expected["n_reads"]
     assert actual["n_mapped"] == expected["n_mapped"]
