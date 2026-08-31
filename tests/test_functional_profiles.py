@@ -283,6 +283,7 @@ def test_rehydrate_condensed_functional_results(ocx, api_data, original_function
     assert actual["n_mapped"] == expected["n_mapped"]
 
     def normalize(rows):
+        normalized_rows = []
         recoverable_keys = (
             "group_name",
             "id",
@@ -293,7 +294,18 @@ def test_rehydrate_condensed_functional_results(ocx, api_data, original_function
             "taxon_id",
         )
 
-        return [tuple(row[key] for key in recoverable_keys) for row in rows]
+        for row in rows:
+            normalized_row = row.copy()
+
+            # the original API results combined metacyc IDs and names but the condensed
+            # results separate these out (where possible) into id and name
+            if normalized_row["group_name"] == "metacyc" and normalized_row["name"] is not None:
+                normalized_row["id"] = f"{normalized_row['id']}: {normalized_row['name']}"
+                normalized_row["name"] = None
+
+            normalized_rows.append(tuple(normalized_row[key] for key in recoverable_keys))
+
+        return normalized_rows
 
     actual_rows = normalize(actual["table"])
     expected_rows = normalize(expected["table"])
@@ -392,7 +404,18 @@ def test_rehydrate_condensed_filtered_functional_results(
     assert all(set(row) == expected_keys for row in expected["table"])
 
     def normalize(rows):
-        return [tuple(row[key] for key in comparison_keys) for row in rows]
+        normalized_rows = []
+
+        for row in rows:
+            normalized_row = row.copy()
+
+            if annotation == "metacyc" and normalized_row["name"] is not None:
+                normalized_row["id"] = f"{normalized_row['id']}: {normalized_row['name']}"
+                normalized_row["name"] = None
+
+            normalized_rows.append(tuple(normalized_row[key] for key in comparison_keys))
+
+        return normalized_rows
 
     assert Counter(normalize(actual["table"])) == Counter(normalize(expected["table"]))
     assert actual["n_reads"] == expected["n_reads"]
@@ -476,22 +499,15 @@ def test_condensed_results_fall_back_to_api(
 
     monkeypatch.setattr("onecodex.models.analysis._load_results_uri", load_results)
 
-    # make sure nothing from a previous test is cached
-    FunctionalProfiles._condensed_results.cache_clear()
+    assert profile._condensed_results() is None
 
-    try:
-        assert profile._condensed_results() is None
+    request_count = len(api_data.calls)
 
-        request_count = len(api_data.calls)
-
-        result = profile._filtered_results(
-            annotation="go",
-            metric="rpk",
-            taxa_stratified=False,
-        )
-    finally:
-        # just prevent any further caching
-        FunctionalProfiles._condensed_results.cache_clear()
+    result = profile._filtered_results(
+        annotation="go",
+        metric="rpk",
+        taxa_stratified=False,
+    )
 
     assert len(api_data.calls) == request_count + 1
     # we should be falling back to the api for results
