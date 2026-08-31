@@ -581,6 +581,23 @@ def original_functional_api_results():
     return _load_functional_api_results()
 
 
+@pytest.fixture
+def original_functional_results_filtered(original_functional_api_results):
+    """
+    Generates results formatted as if returned by the /filtered_results endpoint.
+    """
+
+    def filter_results(annotation, metric, taxa_stratified):
+        return filtered_raw_results(
+            original_functional_api_results,
+            annotation=annotation,
+            metric=metric,
+            taxa_stratified=taxa_stratified,
+        )
+
+    return filter_results
+
+
 @pytest.fixture(scope="function")
 def api_data():
     with mock_requests(API_DATA) as rsps:

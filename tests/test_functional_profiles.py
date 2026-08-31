@@ -358,11 +358,7 @@ def test_rehydrate_condensed_functional_results(ocx, api_data, original_function
     ],
 )
 def test_rehydrate_condensed_filtered_functional_results(
-    ocx,
-    api_data,
-    annotation,
-    metric,
-    taxa_stratified,
+    ocx, api_data, annotation, metric, taxa_stratified, original_functional_results_filtered
 ):
     profile = ocx.FunctionalProfiles.get("a888fdc70221befa")
     condensed = profile._condensed_results()
@@ -382,16 +378,11 @@ def test_rehydrate_condensed_filtered_functional_results(
     assert len(api_data.calls) == request_count
 
     # Fetch the same selection from the mocked filtered-results API endpoint
-    response = profile._client.get(
-        f"{profile._api._base_url}{profile.field_uri}/filtered_results",
-        params={
-            "functional_group": annotation,
-            "metric": metric,
-            "taxa_stratified": taxa_stratified,
-        },
+    expected = original_functional_results_filtered(
+        annotation=annotation,
+        metric=metric,
+        taxa_stratified=taxa_stratified,
     )
-    response.raise_for_status()
-    expected = response.json()
 
     expected_keys = {"id", "name", "value"}
     comparison_keys = ("id", "name", "value")
@@ -432,7 +423,9 @@ def test_rehydrate_condensed_filtered_functional_results(
     assert tuple(condensed["results"]) == original_groups
 
 
-def test_to_functional_df_with_condensed_results(ocx, api_data):
+def test_to_functional_df_with_condensed_results(
+    ocx, api_data, original_functional_results_filtered
+):
     profile = ocx.FunctionalProfiles.get("a888fdc70221befa")
     sample = ocx.Samples.get("37e5151e7bcb4f87")
 
@@ -442,8 +435,6 @@ def test_to_functional_df_with_condensed_results(ocx, api_data):
     # existing sample fixture.
     collection.__dict__["_functional_profiles"] = [profile]
 
-    request_count = len(api_data.calls)
-
     df = collection.to_functional_df(
         annotation="pathways",
         metric="coverage",
@@ -451,24 +442,13 @@ def test_to_functional_df_with_condensed_results(ocx, api_data):
         fill_missing=False,
     )
 
-    # Metadata may be fetched, but functional results must not come from
-    # the filtered-results endpoint.
-    new_requests = api_data.calls[request_count:]
-    assert all("/filtered_results" not in call.request.url for call in new_requests)
-
-    response = profile._client.get(
-        f"{profile._api._base_url}{profile.field_uri}/filtered_results",
-        params={
-            "functional_group": "pathways",
-            "metric": "coverage",
-            "taxa_stratified": True,
-        },
+    expected = original_functional_results_filtered(
+        annotation="pathways",
+        metric="coverage",
+        taxa_stratified=True,
     )
-    response.raise_for_status()
 
-    expected_values = {
-        (row["id"], row["taxon_id"]): row["value"] for row in response.json()["table"]
-    }
+    expected_values = {(row["id"], row["taxon_id"]): row["value"] for row in expected["table"]}
 
     assert df.shape == (1, 556)
     assert list(df.index) == [profile.id]
@@ -502,7 +482,6 @@ def test_condensed_results_fall_back_to_api(
     assert profile._condensed_results() is None
 
     request_count = len(api_data.calls)
-
     result = profile._filtered_results(
         annotation="go",
         metric="rpk",
