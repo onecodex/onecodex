@@ -53,7 +53,7 @@ def _decompress(data: bytes) -> bytes:
 
 @lru_cache(maxsize=1)
 def _get_s3_session():
-    """Return a requsets session that can be used for retrieving results from S3 using presigned URLs."""
+    """Return a requests session that can be used for retrieving results from S3 using presigned URLs."""
 
     from onecodex.utils import get_requests_session
 
