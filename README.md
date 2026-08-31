@@ -236,7 +236,7 @@ job = ocx.Jobs.create(
     name="my-custom-job",
     script=open("run.sh").read(),
     image_uri="docker.io/library/python:3.12",
-    job_type="shell_script",  # or "nextflow"
+    job_type="shell_script",
     cpu=1, ram_gb=1, storage_gb=1,
     assets=[asset],
     dependencies=[{"job": parent, "output_dir": "parent_out"}],
@@ -257,6 +257,56 @@ onecodex jobs create \
     -d <parent_job_id>=parent_out
 
 onecodex jobs update <job_id> --name renamed
+```
+
+Nextflow jobs take a `nextflow_version` instead of an `image_uri`, and their CPU, RAM, and
+storage are fixed (Nextflow itself sets the resources for the tasks it spawns). The version
+defaults to the latest supported one; passing an unsupported version returns an error listing
+the ones you can use.
+
+The pipeline itself lives in `repository`, which is cloned to `$REPOSITORY_DIR` at run time.
+`script` is a shell script that prepares the inputs and then invokes the pipeline. The output
+directory must be named `output` or start with `output-` for the results to be captured. The
+web app's Nextflow editor starts you off with a fully commented version of this script:
+
+```bash
+# run_nextflow.sh
+set -eo pipefail
+
+# FASTQs are stored interleaved; split them for pipelines that expect paired end reads
+deinterleave "$OCX_SAMPLE_FILENAME"
+
+SAMPLE_NAME=$(echo -n "$OCX_SAMPLE_FILENAME" | cut -d. -f1)
+cat <<_EOF > input.csv
+sample,fastq_1,fastq_2
+${SAMPLE_NAME},${SAMPLE_NAME}_R1.fastq.gz,${SAMPLE_NAME}_R2.fastq.gz
+_EOF
+
+# input_params.json is generated from the pipeline's schema and the job's arguments
+nextflow run "${REPOSITORY_DIR}/main.nf" \
+    --input input.csv \
+    -params-file input_params.json \
+    --outdir "output-$OCX_ANALYSIS_UUID"
+```
+
+```python
+job = ocx.Jobs.create(
+    name="my-nextflow-job",
+    script=open("run_nextflow.sh").read(),
+    job_type="nextflow",
+    nextflow_version="26.04.6",  # optional
+    repository={"url": "https://github.com/my-org/my-pipeline", "tag": "v0.1.0"},
+)
+```
+
+```bash
+onecodex jobs create \
+    --name my-nextflow-job \
+    --script ./run_nextflow.sh \
+    --job-type nextflow \
+    --nextflow-version 26.04.6 \
+    --repository-url https://github.com/my-org/my-pipeline \
+    --repository-tag v0.1.0
 ```
 
 For long-running analyses, `await_completion()` polls until the analysis reaches a terminal state (`complete=True`). The cadence backs off over time, so failures surface in seconds while longer jobs poll on the order of minutes:

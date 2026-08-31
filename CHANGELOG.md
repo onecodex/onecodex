@@ -20,9 +20,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `description` argument to `Jobs.run()`.
 - Added `--description` option to `onecodex jobs run` CLI command.
 - Added `--gzip-output` and `--gzip-output-compresslevel` to `onecodex scripts subset_reads`.
+- Added a `nextflow_version` argument to `Jobs.create()` and `Jobs.update()`, and a
+  `--nextflow-version` option to the `onecodex jobs create` and `onecodex jobs update` CLI
+  commands. Defaults to the latest supported Nextflow version. `Jobs.details()` reports the
+  version a workflow runs.
 
 ### Changed
 
+- Nextflow Workflows no longer accept an image URI. Use `nextflow_version`
+  (`--nextflow-version`) instead. `image_uri` (`--image-uri`) is still required for shell script
+  Workflows.
 - Renamed the `Metric.is_filtered_readcount_metric` property to
   `Metric.is_abundance_sensitive` to better describe what it flags.
 - In `plot_metadata(width="container", ...)`, boxplot width is now dynamically adjusted based on the
