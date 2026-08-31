@@ -77,7 +77,12 @@ def _load_results_uri(uri: str) -> dict:
     return orjson.loads(_decompress(data))
 
 
-def _rehydrate_functional_results(condensed_results: dict) -> dict:
+def _rehydrate_functional_results(
+    condensed_results: dict,
+    annotation_filter: Optional[str] = None,
+    metric_filter: Optional[str] = None,
+    taxa_stratified_filter: Optional[bool] = None,
+) -> dict:
     """Rehydrate condensed functional results into the public API results format."""
 
     # maps tax IDs -> names
@@ -98,6 +103,14 @@ def _rehydrate_functional_results(condensed_results: dict) -> dict:
         destination: Optional[list] = None,
     ) -> None:
         """Add a row formatted for results['table']."""
+        # no need to rehydrate rows we don't need
+        if (
+            (annotation_filter is not None and group_name != annotation_filter)
+            or (metric_filter is not None and metric != metric_filter)
+            or (taxa_stratified_filter is not None and taxa_stratified != taxa_stratified_filter)
+        ):
+            return
+
         destination = table if destination is None else destination
         destination.append(
             {
@@ -151,17 +164,19 @@ def _rehydrate_functional_results(condensed_results: dict) -> dict:
             # Missing metadata is encoded by repeating the feature ID.
             feature_name = None if encoded_name == feature_id else encoded_name
 
-            add_row(group_name, feature_id, feature_name, "cpm", community_cpm)
-            add_row(group_name, feature_id, feature_name, "rpk", total_rpk)
+            if taxa_stratified_filter is not True:
+                add_row(group_name, feature_id, feature_name, "cpm", community_cpm)
+                add_row(group_name, feature_id, feature_name, "rpk", total_rpk)
 
-            for taxon_id, cpm, rpk in contributions:
-                add_species_rows(
-                    group_name,
-                    feature_id,
-                    feature_name,
-                    taxon_id,
-                    (("rpk", rpk), ("cpm", cpm)),
-                )
+            if taxa_stratified_filter is not False:
+                for taxon_id, cpm, rpk in contributions:
+                    add_species_rows(
+                        group_name,
+                        feature_id,
+                        feature_name,
+                        taxon_id,
+                        (("rpk", rpk), ("cpm", cpm)),
+                    )
 
     pathways = condensed_results["results"].get("pathways", [])
 
@@ -176,44 +191,47 @@ def _rehydrate_functional_results(condensed_results: dict) -> dict:
         community_cpm,
         contributions,
     ) in pathways:
-        add_row("metacyc", pathway_id, pathway_name, "cpm", community_cpm)
-        add_row("metacyc", pathway_id, pathway_name, "rpk", community_abundance)
+        # these are only added when not stratifying by taxa
+        if taxa_stratified_filter is not True:
+            add_row("metacyc", pathway_id, pathway_name, "cpm", community_cpm)
+            add_row("metacyc", pathway_id, pathway_name, "rpk", community_abundance)
 
-        add_row(
-            "pathways",
-            pathway_id,
-            pathway_name,
-            "coverage",
-            community_coverage,
-            destination=pathway_table,
-        )
-        add_row(
-            "pathways",
-            pathway_id,
-            pathway_name,
-            "abundance",
-            community_abundance,
-            destination=pathway_table,
-        )
-
-        for taxon_id, abundance, coverage, cpm in contributions:
-            # metacyc ids/names are synonymous with pathway ids/names
-            add_species_rows(
-                "metacyc",
-                pathway_id,
-                pathway_name,
-                taxon_id,
-                (("rpk", abundance), ("cpm", cpm)),
-            )
-            # add these to pathways separately so they aren't interleaved with metacyc
-            add_species_rows(
+            add_row(
                 "pathways",
                 pathway_id,
                 pathway_name,
-                taxon_id,
-                (("coverage", coverage), ("abundance", abundance)),
+                "coverage",
+                community_coverage,
                 destination=pathway_table,
             )
+            add_row(
+                "pathways",
+                pathway_id,
+                pathway_name,
+                "abundance",
+                community_abundance,
+                destination=pathway_table,
+            )
+
+        if taxa_stratified_filter is not False:
+            for taxon_id, abundance, coverage, cpm in contributions:
+                # metacyc ids/names are synonymous with pathway ids/names
+                add_species_rows(
+                    "metacyc",
+                    pathway_id,
+                    pathway_name,
+                    taxon_id,
+                    (("rpk", abundance), ("cpm", cpm)),
+                )
+                # add these to pathways separately so they aren't interleaved with metacyc
+                add_species_rows(
+                    "pathways",
+                    pathway_id,
+                    pathway_name,
+                    taxon_id,
+                    (("coverage", coverage), ("abundance", abundance)),
+                    destination=pathway_table,
+                )
 
     table.extend(pathway_table)
 
@@ -277,17 +295,16 @@ def _rehydrate_filtered_functional_results(
         "results": selected_results,
     }
 
-    hydrated = _rehydrate_functional_results(filtered_condensed_results)
+    hydrated = _rehydrate_functional_results(
+        filtered_condensed_results,
+        annotation_filter=annotation.value,
+        metric_filter=effective_metric.value,
+        taxa_stratified_filter=taxa_stratified,
+    )
 
     table = []
-    for row in hydrated["table"]:
-        if (
-            row["group_name"] != annotation.value
-            or row["metric"] != effective_metric.value
-            or row["taxa_stratified"] != taxa_stratified
-        ):
-            continue
 
+    for row in hydrated["table"]:
         filtered_row = {
             "id": row["id"],
             "name": row["name"],
