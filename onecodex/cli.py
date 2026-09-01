@@ -954,7 +954,8 @@ def jobs_run(
         click.echo(f"Get its status using `onecodex analyses {run.id}`", err=True)
 
 
-JOB_TYPE_CHOICES = ["shell_script", "nextflow"]
+NEXTFLOW_JOB_TYPE = "nextflow"
+JOB_TYPE_CHOICES = ["shell_script", NEXTFLOW_JOB_TYPE]
 
 
 def _parse_dependency_specs(deps: tuple[str, ...]) -> list[tuple[str, str]]:
@@ -986,6 +987,7 @@ def _job_kwargs_from_options(
     name,
     script_path,
     image_uri,
+    nextflow_version,
     job_type,
     description,
     cpu,
@@ -1014,6 +1016,7 @@ def _job_kwargs_from_options(
         "name": name,
         "script": script,
         "image_uri": image_uri,
+        "nextflow_version": nextflow_version,
         "job_type": job_type,
         "description": description,
         "cpu": cpu,
@@ -1030,7 +1033,16 @@ def _job_kwargs_from_options(
 
 
 _JOB_OPTIONS_COMMON = [
-    click.option("--image-uri", default=None, help="Fully qualified OCI image URI."),
+    click.option(
+        "--image-uri",
+        default=None,
+        help="Fully qualified OCI image URI (shell_script jobs).",
+    ),
+    click.option(
+        "--nextflow-version",
+        default=None,
+        help="Nextflow version, e.g. 26.04.6 (nextflow jobs). Defaults to the latest supported.",
+    ),
     click.option(
         "--job-type",
         type=click.Choice(JOB_TYPE_CHOICES),
@@ -1141,6 +1153,7 @@ def jobs_create(
     name,
     script_path,
     image_uri,
+    nextflow_version,
     job_type,
     description,
     cpu,
@@ -1154,14 +1167,28 @@ def jobs_create(
     arguments_schema_path,
 ):
     """Create a new Job."""
-    if image_uri is None:
-        raise click.BadParameter("--image-uri is required.", param_hint="--image-uri")
+    if job_type == NEXTFLOW_JOB_TYPE:
+        if image_uri is not None:
+            raise click.BadParameter(
+                "--image-uri is not supported for Nextflow jobs, "
+                "use --nextflow-version instead.",
+                param_hint="--image-uri",
+            )
+    else:
+        if image_uri is None:
+            raise click.BadParameter("--image-uri is required.", param_hint="--image-uri")
+        if nextflow_version is not None:
+            raise click.BadParameter(
+                f"--nextflow-version requires --job-type {NEXTFLOW_JOB_TYPE}.",
+                param_hint="--nextflow-version",
+            )
 
     kwargs = _job_kwargs_from_options(
         api=ctx.obj["API"],
         name=name,
         script_path=script_path,
         image_uri=image_uri,
+        nextflow_version=nextflow_version,
         job_type=job_type,
         description=description,
         cpu=cpu,
@@ -1205,6 +1232,7 @@ def jobs_update(
     name,
     script_path,
     image_uri,
+    nextflow_version,
     job_type,
     description,
     cpu,
@@ -1230,6 +1258,7 @@ def jobs_update(
         name=name,
         script_path=script_path,
         image_uri=image_uri,
+        nextflow_version=nextflow_version,
         job_type=None,
         description=description,
         cpu=cpu,

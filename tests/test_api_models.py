@@ -749,6 +749,7 @@ def test_jobs_details(ocx, api_data, custom_mock_requests):
                     "description": "My custom job",
                     "script": "echo 'hi'",
                     "image_uri": "docker.io/library/python:3.12",
+                    "nextflow_version": "",
                     "cpu": 1.5,
                     "ram_gb": 2.0,
                     "storage_gb": 3.0,
@@ -770,6 +771,7 @@ def test_jobs_details(ocx, api_data, custom_mock_requests):
     assert isinstance(details, onecodex.models.schemas.misc.JobDetails)
     assert details.script == "echo 'hi'"
     assert details.image_uri == "docker.io/library/python:3.12"
+    assert details.nextflow_version == ""
     assert details.cpu == 1.5
     assert details.ram_gb == 2.0
     assert details.storage_gb == 3.0
@@ -780,6 +782,106 @@ def test_jobs_details(ocx, api_data, custom_mock_requests):
     assert details.dependencies == []
     assert details.inject_bearer_token is False
     assert details.autorun_on_org_sample_upload is False
+
+
+def test_jobs_details_nextflow(ocx, api_data, custom_mock_requests):
+    job_id = "47c4fe23588640a9"
+
+    def details_callback(request):
+        return (
+            200,
+            {"Content-Type": "application/json"},
+            json.dumps(
+                {
+                    "job_type": "nextflow",
+                    "description": "My Nextflow job",
+                    "script": "workflow {}",
+                    "image_uri": "",
+                    "nextflow_version": "25.10.0",
+                    "cpu": 1.5,
+                    "ram_gb": 6.0,
+                    "storage_gb": 150.0,
+                    "repository": {"url": "https://github.com/org/repo", "tag": "v0.1.0"},
+                    "assets": [],
+                    "dependencies": [],
+                    "arguments_schema": [],
+                    "inject_bearer_token": False,
+                    "autorun_on_org_sample_upload": False,
+                }
+            ),
+        )
+
+    with custom_mock_requests({f"GET::api/v1/jobs/{job_id}/details": details_callback}):
+        details = ocx.Jobs.get(job_id).details()
+
+    assert details.job_type == "nextflow"
+    assert details.nextflow_version == "25.10.0"
+    assert details.image_uri == ""
+
+
+def _jobs_write_mock(captured, job_id="0123456789abcdef"):
+    def callback(request):
+        captured["body"] = json.loads(request.body)
+        return (
+            200,
+            {"Content-Type": "application/json"},
+            json.dumps(
+                {
+                    "$uri": f"/api/v1/jobs/{job_id}",
+                    "created_at": "2026-01-01T00:00:00+00:00",
+                    "name": "my-nextflow-job",
+                    "analysis_type": "workflow",
+                    "public": False,
+                    "draft": True,
+                    "job_args_schema": {},
+                }
+            ),
+        )
+
+    return callback
+
+
+@pytest.mark.parametrize(
+    "version_kwargs,expected_version_body",
+    [
+        ({"nextflow_version": "25.10.0"}, {"nextflow_version": "25.10.0"}),
+        # Omitted rather than sent as null, so the server picks the latest supported version
+        ({}, {}),
+    ],
+)
+def test_jobs_create_nextflow(
+    ocx, api_data, custom_mock_requests, version_kwargs, expected_version_body
+):
+    new_job_id = "0123456789abcdef"
+    captured = {}
+
+    with custom_mock_requests({"POST::api/v1/jobs": _jobs_write_mock(captured, new_job_id)}):
+        job = ocx.Jobs.create(
+            name="my-nextflow-job",
+            script="workflow {}",
+            job_type="nextflow",
+            repository={"url": "https://github.com/org/repo", "tag": "v0.1.0"},
+            **version_kwargs,
+        )
+
+    assert job.id == new_job_id
+    assert captured["body"] == {
+        "name": "my-nextflow-job",
+        "script": "workflow {}",
+        "job_type": "nextflow",
+        "repository": {"url": "https://github.com/org/repo", "tag": "v0.1.0"},
+        **expected_version_body,
+    }
+
+
+def test_jobs_update_nextflow_version(ocx, api_data, custom_mock_requests):
+    job_id = "47c4fe23588640a9"
+    captured = {}
+
+    with custom_mock_requests({f"PATCH::api/v1/jobs/{job_id}": _jobs_write_mock(captured, job_id)}):
+        ocx.Jobs.get(job_id).update(nextflow_version="24.10.5")
+
+    assert captured["body"] == {"nextflow_version": "24.10.5"}
 
 
 def test_jobs_details_http_error(ocx, api_data, custom_mock_requests):

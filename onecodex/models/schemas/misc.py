@@ -61,6 +61,7 @@ class _JobMutableFields(BaseModel):
     name: Optional[str] = None
     script: Optional[str] = None
     image_uri: Optional[str] = None
+    nextflow_version: Optional[str] = None
     description: Optional[str] = None
     cpu: Optional[float] = None
     ram_gb: Optional[float] = None
@@ -106,6 +107,7 @@ class JobDetails(BaseModel):
     job_type: str
     script: str
     image_uri: str
+    nextflow_version: str
     cpu: float
     ram_gb: float
     storage_gb: float
@@ -153,7 +155,6 @@ class JobCreateSchema(_JobMutableFields):
 
     name: str
     script: str
-    image_uri: str
     job_type: Optional[str] = None
 
 

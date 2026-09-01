@@ -300,15 +300,99 @@ def test_jobs_create_cli(runner, api_data, custom_mock_requests, mocked_creds_fi
     }
 
 
-def test_jobs_create_missing_image_uri(runner, mocked_creds_file, tmp_path):
+def _jobs_write_mock(captured, job_id="0123456789abcdef"):
+    def callback(request):
+        captured["body"] = json.loads(request.body)
+        return (
+            200,
+            {"Content-Type": "application/json"},
+            json.dumps(
+                {
+                    "$uri": f"/api/v1/jobs/{job_id}",
+                    "created_at": "2026-01-01T00:00:00+00:00",
+                    "name": "my-nf-job",
+                    "analysis_type": "workflow",
+                    "public": False,
+                    "draft": True,
+                    "job_args_schema": {},
+                }
+            ),
+        )
+
+    return callback
+
+
+def test_jobs_create_nextflow_cli(
+    runner, api_data, custom_mock_requests, mocked_creds_file, tmp_path
+):
+    new_job_id = "0123456789abcdef"
+    captured = {}
+
+    script = tmp_path / "run_nextflow.sh"
+    script.write_text("nextflow run main.nf\n")
+
+    with custom_mock_requests({"POST::api/v1/jobs": _jobs_write_mock(captured, new_job_id)}):
+        result = runner.invoke(
+            Cli,
+            [
+                "jobs",
+                "create",
+                *("--name", "my-nf-job"),
+                *("--script", str(script)),
+                *("--job-type", "nextflow"),
+                *("--nextflow-version", "25.10.0"),
+                *("--repository-url", "https://github.com/org/repo"),
+                *("--repository-tag", "v0.1.0"),
+            ],
+        )
+
+    assert result.exit_code == 0, result.output
+    assert captured["body"] == {
+        "name": "my-nf-job",
+        "script": "nextflow run main.nf\n",
+        "nextflow_version": "25.10.0",
+        "job_type": "nextflow",
+        "repository": {"url": "https://github.com/org/repo", "tag": "v0.1.0"},
+    }
+
+
+def test_jobs_update_nextflow_version_cli(
+    runner, api_data, custom_mock_requests, mocked_creds_file
+):
+    job_id = "cc1d331e1ee54bac"
+    captured = {}
+
+    with custom_mock_requests({f"PATCH::api/v1/jobs/{job_id}": _jobs_write_mock(captured, job_id)}):
+        result = runner.invoke(Cli, ["jobs", "update", job_id, *("--nextflow-version", "24.10.5")])
+
+    assert result.exit_code == 0, result.output
+    assert captured["body"] == {"nextflow_version": "24.10.5"}
+
+
+@pytest.mark.parametrize(
+    "image_args,expected_error",
+    [
+        ([], "image-uri"),
+        (
+            ["--job-type", "nextflow", "--image-uri", "docker.io/library/python:3.12"],
+            "--image-uri is not supported for Nextflow jobs",
+        ),
+        (
+            ["--image-uri", "docker.io/library/python:3.12", "--nextflow-version", "25.10.0"],
+            "--nextflow-version requires --job-type nextflow",
+        ),
+    ],
+)
+def test_jobs_create_invalid_image_options(
+    runner, mocked_creds_file, tmp_path, image_args, expected_error
+):
     script = tmp_path / "run.sh"
     script.write_text("echo hi\n")
     result = runner.invoke(
-        Cli,
-        ["jobs", "create", *("--name", "x"), *("--script", str(script))],
+        Cli, ["jobs", "create", *("--name", "x"), *("--script", str(script)), *image_args]
     )
     assert result.exit_code != 0
-    assert "image-uri" in result.output
+    assert expected_error in result.output
 
 
 def test_jobs_update_cli(runner, api_data, custom_mock_requests, mocked_creds_file):
