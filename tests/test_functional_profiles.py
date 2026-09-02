@@ -8,6 +8,24 @@ import requests
 from onecodex.models import FunctionalProfiles, SampleCollection
 
 
+def _normalize_functional_rows(rows, comparison_keys, annotation=None):
+    normalized_rows = []
+
+    for row in rows:
+        normalized_row = row.copy()
+        row_annotation = normalized_row.get("group_name", annotation)
+
+        # Original API results combined MetaCyc IDs and names, whereas condensed
+        # results separate them where possible.
+        if row_annotation == "metacyc" and normalized_row["name"] is not None:
+            normalized_row["id"] = f"{normalized_row['id']}: {normalized_row['name']}"
+            normalized_row["name"] = None
+
+        normalized_rows.append(tuple(normalized_row[key] for key in comparison_keys))
+
+    return normalized_rows
+
+
 def test_query_for_functional_analysis(ocx, api_data):
     sample_id = "73b8349a30b04957"
     profile = ocx.FunctionalProfiles.where(sample=sample_id)
@@ -282,33 +300,18 @@ def test_rehydrate_condensed_functional_results(ocx, api_data, original_function
     assert actual["n_reads"] == expected["n_reads"]
     assert actual["n_mapped"] == expected["n_mapped"]
 
-    def normalize(rows):
-        normalized_rows = []
-        recoverable_keys = (
-            "group_name",
-            "id",
-            "name",
-            "metric",
-            "value",
-            "taxa_stratified",
-            "taxon_id",
-        )
+    recoverable_keys = (
+        "group_name",
+        "id",
+        "name",
+        "metric",
+        "value",
+        "taxa_stratified",
+        "taxon_id",
+    )
 
-        for row in rows:
-            normalized_row = row.copy()
-
-            # the original API results combined metacyc IDs and names but the condensed
-            # results separate these out (where possible) into id and name
-            if normalized_row["group_name"] == "metacyc" and normalized_row["name"] is not None:
-                normalized_row["id"] = f"{normalized_row['id']}: {normalized_row['name']}"
-                normalized_row["name"] = None
-
-            normalized_rows.append(tuple(normalized_row[key] for key in recoverable_keys))
-
-        return normalized_rows
-
-    actual_rows = normalize(actual["table"])
-    expected_rows = normalize(expected["table"])
+    actual_rows = _normalize_functional_rows(actual["table"], recoverable_keys)
+    expected_rows = _normalize_functional_rows(expected["table"], recoverable_keys)
 
     # all rows in results['table'] must match exactly
     assert Counter(actual_rows) == Counter(expected_rows)
@@ -394,21 +397,14 @@ def test_rehydrate_condensed_filtered_functional_results(
     assert all(set(row) == expected_keys for row in actual["table"])
     assert all(set(row) == expected_keys for row in expected["table"])
 
-    def normalize(rows):
-        normalized_rows = []
+    actual_rows = _normalize_functional_rows(
+        actual["table"], comparison_keys, annotation=annotation
+    )
+    expected_rows = _normalize_functional_rows(
+        expected["table"], comparison_keys, annotation=annotation
+    )
 
-        for row in rows:
-            normalized_row = row.copy()
-
-            if annotation == "metacyc" and normalized_row["name"] is not None:
-                normalized_row["id"] = f"{normalized_row['id']}: {normalized_row['name']}"
-                normalized_row["name"] = None
-
-            normalized_rows.append(tuple(normalized_row[key] for key in comparison_keys))
-
-        return normalized_rows
-
-    assert Counter(normalize(actual["table"])) == Counter(normalize(expected["table"]))
+    assert Counter(actual_rows) == Counter(expected_rows)
     assert actual["n_reads"] == expected["n_reads"]
     assert actual["n_mapped"] == expected["n_mapped"]
 
