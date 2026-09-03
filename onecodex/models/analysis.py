@@ -611,18 +611,32 @@ class FunctionalProfiles(_AnalysesBase, FunctionalRunSchema):
                 metric=metric,
                 taxa_stratified=taxa_stratified,
             )
+        else:
+            # we shouldn't get here but just in case
+            raise OneCodexException(
+                f"Filtered results are not available for functional profile {self.id}"
+            )
 
-        resp = self._client.get(
-            f"{self._api._base_url}{self.field_uri}/filtered_results",
-            params={
-                "functional_group": annotation,
-                "metric": metric,
-                "taxa_stratified": taxa_stratified,
-            },
+    def _functional_values(
+        self,
+        annotation: FunctionalAnnotations | str,
+        metric: FunctionalAnnotationsMetric | str,
+        taxa_stratified: bool,
+    ):
+        from onecodex.models.functional import _select_condensed_functional_results
+
+        condensed_results = self._condensed_results()
+
+        if condensed_results is None:
+            # shouldn't get here
+            raise OneCodexException(f"Results are not available for functional profile {self.id}")
+
+        return _select_condensed_functional_results(
+            condensed_results,
+            annotation=annotation,
+            metric=metric,
+            taxa_stratified=taxa_stratified,
         )
-        if resp.status_code != 200:
-            raise OneCodexException(resp.json()["message"])
-        return resp.json()
 
     def results(self, json: bool = True):
         """Return the complete results table for a functional analysis.
