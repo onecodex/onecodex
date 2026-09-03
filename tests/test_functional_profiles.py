@@ -1,9 +1,29 @@
 import json
+from collections import Counter
 
 import pandas as pd
 import pytest
+import requests
 
 from onecodex.models import FunctionalProfiles, SampleCollection
+
+
+def _normalize_functional_rows(rows, comparison_keys, annotation=None):
+    normalized_rows = []
+
+    for row in rows:
+        normalized_row = row.copy()
+        row_annotation = normalized_row.get("group_name", annotation)
+
+        # Original API results combined MetaCyc IDs and names, whereas condensed
+        # results separate them where possible.
+        if row_annotation == "metacyc" and normalized_row["name"] is not None:
+            normalized_row["id"] = f"{normalized_row['id']}: {normalized_row['name']}"
+            normalized_row["name"] = None
+
+        normalized_rows.append(tuple(normalized_row[key] for key in comparison_keys))
+
+    return normalized_rows
 
 
 def test_query_for_functional_analysis(ocx, api_data):
@@ -264,3 +284,209 @@ def test_filter_functional_runs_to_newest_job(ocx, raw_api_data, custom_mock_req
         # The newer version has correct PF00005 value for Campylobacter hominis (76517)
         key = ("PF00005", "76517")
         assert df.loc["eec4ac90d9104d1f", key] == 256.524
+
+
+def test_rehydrate_condensed_functional_results(ocx, api_data, original_functional_api_results):
+    profile = ocx.FunctionalProfiles.get("a888fdc70221befa")
+
+    assert profile.results_uri is not None
+
+    condensed = profile._condensed_results()
+    assert condensed is not None
+
+    actual = profile.results()
+    expected = original_functional_api_results
+
+    assert actual["n_reads"] == expected["n_reads"]
+    assert actual["n_mapped"] == expected["n_mapped"]
+
+    recoverable_keys = (
+        "group_name",
+        "id",
+        "name",
+        "metric",
+        "value",
+        "taxa_stratified",
+        "taxon_id",
+    )
+
+    actual_rows = _normalize_functional_rows(actual["table"], recoverable_keys)
+    expected_rows = _normalize_functional_rows(expected["table"], recoverable_keys)
+
+    # all rows in results['table'] must match exactly
+    assert Counter(actual_rows) == Counter(expected_rows)
+
+    # the order of all functional groups annotations should be the same except for metacyc
+    assert [row for row in actual_rows if row[0] != "metacyc"] == [
+        row for row in expected_rows if row[0] != "metacyc"
+    ]
+
+    taxa_map = {node["id"]: node.get("name") for node in condensed["taxonomy"]["nodes"]}
+    taxa_map["0"] = "unclassified"
+
+    # condensed results reconstructs taxa names from its own taxonomy rather than using
+    # the clade strings which are no longer supported
+    for row in actual["table"]:
+        expected_taxon_name = taxa_map.get(row["taxon_id"]) if row["taxa_stratified"] else None
+        assert row["taxon_name"] == expected_taxon_name
+
+
+@pytest.mark.parametrize(
+    ("annotation", "metric"),
+    [
+        ("pathways", "abundance"),
+        ("pathways", "complete_abundance"),
+        ("pathways", "coverage"),
+        ("metacyc", "cpm"),
+        ("metacyc", "rpk"),
+        ("eggnog", "cpm"),
+        ("eggnog", "rpk"),
+        ("go", "cpm"),
+        ("go", "rpk"),
+        ("ko", "cpm"),
+        ("ko", "rpk"),
+        ("ec", "cpm"),
+        ("ec", "rpk"),
+        ("pfam", "cpm"),
+        ("pfam", "rpk"),
+        ("reaction", "cpm"),
+        ("reaction", "rpk"),
+    ],
+)
+@pytest.mark.parametrize(
+    "taxa_stratified",
+    [
+        False,
+        True,
+    ],
+)
+def test_rehydrate_condensed_filtered_functional_results(
+    ocx, api_data, annotation, metric, taxa_stratified, original_functional_results_filtered
+):
+    profile = ocx.FunctionalProfiles.get("a888fdc70221befa")
+    condensed = profile._condensed_results()
+
+    assert condensed is not None
+
+    original_groups = tuple(condensed["results"])
+
+    request_count = len(api_data.calls)
+    actual = profile._filtered_results(
+        annotation=annotation,
+        metric=metric,
+        taxa_stratified=taxa_stratified,
+    )
+
+    # condensed results should be loaded locally without calling the API endpoint
+    assert len(api_data.calls) == request_count
+
+    # Fetch the same selection from the mocked filtered-results API endpoint
+    expected = original_functional_results_filtered(
+        annotation=annotation,
+        metric=metric,
+        taxa_stratified=taxa_stratified,
+    )
+
+    expected_keys = {"id", "name", "value"}
+    comparison_keys = ("id", "name", "value")
+
+    if taxa_stratified:
+        expected_keys |= {"taxon_id", "taxon_name"}
+        comparison_keys += ("taxon_id",)
+
+    assert all(set(row) == expected_keys for row in actual["table"])
+    assert all(set(row) == expected_keys for row in expected["table"])
+
+    actual_rows = _normalize_functional_rows(
+        actual["table"], comparison_keys, annotation=annotation
+    )
+    expected_rows = _normalize_functional_rows(
+        expected["table"], comparison_keys, annotation=annotation
+    )
+
+    assert Counter(actual_rows) == Counter(expected_rows)
+    assert actual["n_reads"] == expected["n_reads"]
+    assert actual["n_mapped"] == expected["n_mapped"]
+
+    if taxa_stratified:
+        taxa_map = {node["id"]: node.get("name") for node in condensed["taxonomy"]["nodes"]}
+        taxa_map["0"] = "unclassified"
+
+        for row in actual["table"]:
+            assert row["taxon_name"] == taxa_map.get(row["taxon_id"])
+
+    # Filtering must not alter the cached condensed payload.
+    assert tuple(condensed["results"]) == original_groups
+
+
+def test_to_functional_df_with_condensed_results(
+    ocx, api_data, original_functional_results_filtered
+):
+    profile = ocx.FunctionalProfiles.get("a888fdc70221befa")
+    sample = ocx.Samples.get("37e5151e7bcb4f87")
+
+    collection = SampleCollection([sample])
+
+    # use the standalone condensed profile instead of the profile returned by the
+    # existing sample fixture.
+    collection.__dict__["_functional_profiles"] = [profile]
+
+    df = collection.to_functional_df(
+        annotation="pathways",
+        metric="coverage",
+        taxa_stratified=True,
+        fill_missing=False,
+    )
+
+    expected = original_functional_results_filtered(
+        annotation="pathways",
+        metric="coverage",
+        taxa_stratified=True,
+    )
+
+    expected_values = {(row["id"], row["taxon_id"]): row["value"] for row in expected["table"]}
+
+    assert df.shape == (1, 556)
+    assert list(df.index) == [profile.id]
+    assert df.columns.names == ["feature_id", "taxon_id"]
+    assert df.loc[profile.id].to_dict() == expected_values
+    assert df.ocx_functional_group == "pathways"
+    assert df.ocx_metric == "coverage"
+
+
+@pytest.mark.parametrize("failure_mode", ["expired_url", "unsupported_version"])
+def test_condensed_results_fall_back_to_api(
+    ocx,
+    api_data,
+    monkeypatch,
+    failure_mode,
+):
+    profile = ocx.FunctionalProfiles.get("a888fdc70221befa")
+
+    if failure_mode == "expired_url":
+
+        def load_results(_):
+            raise requests.HTTPError("expired results URL")
+
+    else:
+
+        def load_results(_):
+            return {"version": 2}
+
+    monkeypatch.setattr("onecodex.models.analysis._load_results_uri", load_results)
+
+    assert profile._condensed_results() is None
+
+    request_count = len(api_data.calls)
+    result = profile._filtered_results(
+        annotation="go",
+        metric="rpk",
+        taxa_stratified=False,
+    )
+
+    assert len(api_data.calls) == request_count + 1
+    # we should be falling back to the api for results
+    assert "/filtered_results" in api_data.calls[-1].request.url
+    assert len(result["table"]) == 2952
+    assert result["n_reads"] == 5334942
+    assert result["n_mapped"] == 4128346

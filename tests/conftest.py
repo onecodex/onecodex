@@ -1,15 +1,18 @@
 from __future__ import print_function
-from click.testing import CliRunner
-from contextlib import contextmanager
+
 import copy
 import datetime
 import gzip
 import json
 import os
-import pytest
 import re
+from contextlib import contextmanager
+from urllib.parse import parse_qs, urlparse
+
+import pytest
 import responses
 import zstandard
+from click.testing import CliRunner
 
 from onecodex import Api
 from onecodex.lib.enums import FunctionalAnnotations, FunctionalAnnotationsMetric
@@ -64,25 +67,80 @@ def update_metadata_callback(req):
 
 
 def filtered_raw_results(raw_results, annotation, metric, taxa_stratified):
-    metric = "total_" + metric if not taxa_stratified and annotation != "pathways" else metric
+    annotation = str(annotation)
+    metric = str(metric)
+
+    skipped_ids = {"UNMAPPED", "UNGROUPED", "UNINTEGRATED"}
+    source_metric = metric
+    complete_pathway_ids = None
+
+    if metric == "complete_abundance":
+        source_metric = "abundance"
+        complete_pathway_ids = {
+            row["id"]
+            for row in raw_results["table"]
+            if row["group_name"] == "pathways"
+            and row["metric"] == "coverage"
+            and not row["taxa_stratified"]
+            and row["value"] == 1.0
+        }
+    elif not taxa_stratified and annotation != "pathways":
+        # older API fixtures use total_cpm/total_rpk, while current
+        # API results use cpm/rpk for unstratified rows.
+        available_metrics = {
+            row["metric"]
+            for row in raw_results["table"]
+            if row["group_name"] == annotation and not row["taxa_stratified"]
+        }
+        if source_metric not in available_metrics:
+            source_metric = f"total_{metric}"
+
     table = [
         {
-            "id": elem["id"],
-            "name": elem["name"],
-            "value": elem["value"],
-            # Stratified results have additional "taxon_id" and "taxon_name" fields
+            "id": row["id"],
+            "name": row["name"],
+            "value": row["value"],
             **(
-                {"taxon_id": elem["taxon_id"], "taxon_name": elem["taxon_name"]}
+                {
+                    "taxon_id": row["taxon_id"],
+                    "taxon_name": row["taxon_name"],
+                }
                 if taxa_stratified
                 else {}
             ),
         }
-        for elem in raw_results["table"]
-        if elem["group_name"] == annotation
-        and elem["metric"] == metric
-        and elem["taxa_stratified"] == taxa_stratified
+        for row in raw_results["table"]
+        if row["group_name"] == annotation
+        and row["metric"] == source_metric
+        and row["taxa_stratified"] == taxa_stratified
+        and row["id"] not in skipped_ids
+        and (complete_pathway_ids is None or row["id"] in complete_pathway_ids)
     ]
-    return {"table": table, "n_reads": raw_results["n_reads"], "n_mapped": raw_results["n_mapped"]}
+
+    return {
+        "table": table,
+        "n_reads": raw_results["n_reads"],
+        "n_mapped": raw_results["n_mapped"],
+    }
+
+
+def _load_functional_api_results():
+    filepath = "tests/data/api/v1/functional_profiles/a888fdc70221befa/results/original_api_results.json.gz"
+    with gzip.open(filepath, "rt") as results_file:
+        return json.load(results_file)
+
+
+def functional_filtered_results_callback(request):
+    query = parse_qs(urlparse(request.url).query)
+
+    result = filtered_raw_results(
+        _load_functional_api_results(),
+        annotation=query["functional_group"][0],
+        metric=query["metric"][0],
+        taxa_stratified=query["taxa_stratified"][0].lower() == "true",
+    )
+
+    return _make_callback_resp(result)
 
 
 # All of the mocked API data. Scheme is METHOD:CONTENT_TYPE:URL (content-type is optional) and then
@@ -455,6 +513,9 @@ API_DATA = {
         },
     ],
 }
+API_DATA["GET::api/v1/functional_profiles/a888fdc70221befa/filtered_results\\?.*"] = (
+    functional_filtered_results_callback
+)
 
 for functional_uuid in {"31ddae978aff475f", "bde18eb9407d4c2f", "eec4ac90d9104d1e"}:
     raw_results = json.load(
@@ -510,6 +571,31 @@ for api_version in os.listdir(API_DATA_DIR):
                             instance["results_uri"] = os.path.abspath(instance["results_uri"])
                         instance_uri = f"GET::{instance['$uri'].lstrip('/')}"
                         API_DATA[instance_uri] = instance
+
+
+@pytest.fixture
+def original_functional_api_results():
+    """
+    Returns functional results in their original format prior to compaction/minimization.
+    """
+    return _load_functional_api_results()
+
+
+@pytest.fixture
+def original_functional_results_filtered(original_functional_api_results):
+    """
+    Generates results formatted as if returned by the /filtered_results endpoint.
+    """
+
+    def filter_results(annotation, metric, taxa_stratified):
+        return filtered_raw_results(
+            original_functional_api_results,
+            annotation=annotation,
+            metric=metric,
+            taxa_stratified=taxa_stratified,
+        )
+
+    return filter_results
 
 
 @pytest.fixture(scope="function")

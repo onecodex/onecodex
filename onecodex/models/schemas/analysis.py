@@ -52,7 +52,7 @@ class ClassificationSchema(BaseAnalysisSchema):
 
 
 class FunctionalRunSchema(BaseAnalysisSchema):
-    pass
+    results_uri: Optional[str] = None
 
 
 class PanelSchema(BaseAnalysisSchema):
