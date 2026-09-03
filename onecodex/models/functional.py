@@ -222,8 +222,6 @@ def _rehydrate_filtered_functional_results(
             ]
         }
 
-    # shouldn't mutate the original otherwise we change what @lru_cache._condensed_results()
-    # stores
     filtered_condensed_results = {
         **condensed_results,
         "results": selected_results,
