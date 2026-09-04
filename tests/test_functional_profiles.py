@@ -468,13 +468,7 @@ def test_rehydrate_condensed_filtered_functional_results(
         metric=metric,
         taxa_stratified=taxa_stratified,
     )
-    # actual_table = actual.to_dict(orient="records")
-    # the previous /filtered_results endpoint removed unmapped/ungrouped/unintegrated
-    actual_table = [
-        row
-        for row in actual.astype(object).where(pd.notna(actual), None).to_dict(orient="records")
-        if row["id"] not in {"UNMAPPED", "UNGROUPED", "UNINTEGRATED"}
-    ]
+    actual_table = actual.astype(object).where(pd.notna(actual), None).to_dict(orient="records")
 
     # condensed results should be loaded locally without calling the API endpoint
     assert len(api_data.calls) == request_count
@@ -535,8 +529,6 @@ def test_to_functional_df_with_condensed_results(
         metric=metric,
         taxa_stratified=taxa_stratified,
     )
-    # these are now included in the table results
-    expected = expected[~expected["id"].isin({"UNMAPPED", "UNGROUPED", "UNINTEGRATED"})]
 
     # use the standalone condensed profile instead of the profile returned by the
     # existing sample fixture.
@@ -556,7 +548,6 @@ def test_to_functional_df_with_condensed_results(
         fill_missing=False,
     )
 
-    # expected_values = {(row["id"], row["taxon_id"]): row["value"] for row in expected["table"]}
     if taxa_stratified:
         keys = zip(expected["id"], expected["taxon_id"])
         assert df.columns.names == ["feature_id", "taxon_id"]

@@ -45,10 +45,12 @@ def _rehydrate_functional_results(
         destination: Optional[list] = None,
     ) -> None:
         """Add a row formatted for results['table']."""
-        # no need to rehydrate rows we don't need
+        # no need to rehydrate rows we don't need, se skip certain functional ids to maintain
+        # backwards compat. with data returned from /filtered_results.
         if (
             (annotation_filter is not None and group_name != annotation_filter)
             or (metric_filter is not None and metric != metric_filter)
+            or (metric_filter is not None and feature_id in _SKIP_FUNCTIONAL_IDS)
             or (taxa_stratified_filter is not None and taxa_stratified != taxa_stratified_filter)
         ):
             return
