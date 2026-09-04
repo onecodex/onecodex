@@ -750,23 +750,18 @@ class FunctionalProfiles(_AnalysesBase, FunctionalRunSchema):
         results_df : pd.DataFrame
             A Pandas DataFrame of the functional results.
         """
-        import pandas as pd
-
-        result_json = self._filtered_results(
-            annotation=annotation, metric=metric, taxa_stratified=taxa_stratified
+        results_df = self.table(
+            annotation=annotation,
+            metric=metric,
+            taxa_stratified=taxa_stratified,
         )
-        if not result_json["table"]:
-            columns = {
-                "id": pd.Series(dtype="str"),
-                "name": pd.Series(dtype="str"),
-                "value": pd.Series(dtype="float"),
-            }
-            if taxa_stratified:
-                # ensure taxon_id and taxon_name are present for downstream processing
-                columns["taxon_id"] = pd.Series(dtype="str")
-                columns["taxon_name"] = pd.Series(dtype="str")
-            return pd.DataFrame(columns)
-        return pd.DataFrame(result_json["table"])
+
+        columns = ["id", "name", "value"]
+
+        if taxa_stratified:
+            columns.extend(["taxon_id", "taxon_name"])
+
+        return results_df[columns]
 
 
 class Panels(_AnalysesBase, PanelSchema):
