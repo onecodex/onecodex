@@ -764,20 +764,16 @@ class BaseSampleCollection(
                 taxa_stratified=taxa_stratified,
             )
 
-            # feature_id_to_name.update(dict(zip(table["id"], table["name"])))
             feature_id_to_name.update(selected.feature_name_map)
 
             if taxa_stratified:
-                # taxon_ids = [_normalize_taxon_field(v) for v in table["taxon_id"]]
                 keys = list(zip(selected.feature_ids, selected.taxon_ids))
             else:
-                # keys = list(table["id"])
                 keys = selected.feature_ids
 
             # Map of feature key to its value, e.g. stratified:
             # {("GO:0000015", "562"): 45.8, ...}
             # non-stratified: {"GO:0000015": 45.8, ...}
-            # profile_values = dict(zip(keys, table["value"]))
             profile_values = dict(zip(keys, selected.values))
             functional_profile_ids.append(profile.id)
 

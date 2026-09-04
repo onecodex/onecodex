@@ -412,17 +412,3 @@ def _select_condensed_functional_results(
         n_reads=condensed_results["n_reads"],
         n_mapped=condensed_results["n_mapped"],
     )
-
-
-# def _functional_values(
-#    self,
-#    annotation: FunctionalAnnotations | str,
-#    metric: FunctionalAnnotationsMetric | str,
-#    taxa_stratified: bool,
-# ) -> FunctionalResultValues:
-#    return _select_condensed_functional_results(
-#        self._condensed_results(),
-#        annotation=annotation,
-#        metric=metric,
-#        taxa_stratified=taxa_stratified,
-#    )
