@@ -58,6 +58,13 @@ def test_functional_profiles_table(ocx, api_data):
     assert len(df["taxon_name"].unique()) == 47
 
     eggnog_df = func_profile.table(annotation="eggnog", taxa_stratified=False)
+
+    # ensures our adding a new metric arg doesn't modifiy positionals
+    pd.testing.assert_frame_equal(
+        func_profile.table("eggnog", False),
+        eggnog_df,
+    )
+
     # no metric is passed to table then it should be all available metrics for that annotation
     assert set(eggnog_df["metric"]) == {"cpm", "rpk"}
     assert set(eggnog_df["group_name"]) == {"eggnog"}
@@ -534,6 +541,13 @@ def test_to_functional_df_with_condensed_results(
     # use the standalone condensed profile instead of the profile returned by the
     # existing sample fixture.
     collection.__dict__["_functional_profiles"] = [profile]
+
+    monkeypatch.setattr(
+        "onecodex.models.functional._rehydrate_functional_results",
+        lambda *args, **kwargs: pytest.fail(
+            "to_functional_df() must not rehydrate condensed results"
+        ),
+    )
 
     df = collection.to_functional_df(
         annotation=annotation,

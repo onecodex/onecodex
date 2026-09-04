@@ -636,8 +636,8 @@ class FunctionalProfiles(_AnalysesBase, FunctionalRunSchema):
     def table(
         self,
         annotation: Optional[FunctionalAnnotations] = None,
-        metric: FunctionalAnnotationsMetric | Literal["all"] = "all",
         taxa_stratified: bool = True,
+        metric: FunctionalAnnotationsMetric | Literal["all"] = "all",
     ):
         """Return a results table for the functional analysis.
 

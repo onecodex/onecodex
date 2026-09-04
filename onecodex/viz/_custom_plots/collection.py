@@ -134,10 +134,27 @@ class FunctionalProfiles:
             n_mapped=self._results["n_mapped"],
         )
 
-    def filtered_table(self, *args, **kwargs) -> pd.DataFrame:
-        from onecodex.models import FunctionalProfiles
+    def filtered_table(
+        self,
+        annotation: FunctionalAnnotations,
+        metric: FunctionalAnnotationsMetric,
+        taxa_stratified: bool = True,
+    ) -> pd.DataFrame:
+        results = self._filtered_results(
+            annotation=annotation,
+            metric=metric,
+            taxa_stratified=taxa_stratified,
+        )
 
-        return FunctionalProfiles.filtered_table(self, *args, **kwargs)
+        return pd.DataFrame(
+            {
+                "id": results.feature_ids,
+                "name": [
+                    results.feature_name_map[feature_id] for feature_id in results.feature_ids
+                ],
+                "value": results.values,
+            }
+        )
 
 
 class SampleCollection(BaseSampleCollection):
