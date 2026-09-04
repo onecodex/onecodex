@@ -185,9 +185,11 @@ def test_filtered_table_includes_taxon_columns_when_stratified(ocx, api_data):
 def test_filtered_table_empty_result_includes_taxon_columns(ocx, api_data, monkeypatch):
     func_profile = ocx.FunctionalProfiles.get("31ddae978aff475f")
     monkeypatch.setattr(
-        func_profile,
-        "_filtered_results",
-        lambda **kwargs: {"table": [], "n_reads": 0, "n_mapped": 0},
+        FunctionalProfiles,
+        "table",
+        lambda self, **kwargs: pd.DataFrame(
+            columns=["id", "name", "value", "taxon_id", "taxon_name"]
+        ),
     )
 
     stratified = func_profile.filtered_table(annotation="go", metric="rpk", taxa_stratified=True)
@@ -454,11 +456,18 @@ def test_rehydrate_condensed_filtered_functional_results(
     original_groups = tuple(condensed["results"])
 
     request_count = len(api_data.calls)
-    actual = profile._filtered_results(
+    actual = profile.filtered_table(
         annotation=annotation,
         metric=metric,
         taxa_stratified=taxa_stratified,
     )
+    # actual_table = actual.to_dict(orient="records")
+    # the previous /filtered_results endpoint removed unmapped/ungrouped/unintegrated
+    actual_table = [
+        row
+        for row in actual.astype(object).where(pd.notna(actual), None).to_dict(orient="records")
+        if row["id"] not in {"UNMAPPED", "UNGROUPED", "UNINTEGRATED"}
+    ]
 
     # condensed results should be loaded locally without calling the API endpoint
     assert len(api_data.calls) == request_count
@@ -477,25 +486,21 @@ def test_rehydrate_condensed_filtered_functional_results(
         expected_keys |= {"taxon_id", "taxon_name"}
         comparison_keys += ("taxon_id",)
 
-    assert all(set(row) == expected_keys for row in actual["table"])
+    assert all(set(row) == expected_keys for row in actual_table)
     assert all(set(row) == expected_keys for row in expected["table"])
 
-    actual_rows = _normalize_functional_rows(
-        actual["table"], comparison_keys, annotation=annotation
-    )
+    actual_rows = _normalize_functional_rows(actual_table, comparison_keys, annotation=annotation)
     expected_rows = _normalize_functional_rows(
         expected["table"], comparison_keys, annotation=annotation
     )
 
     assert Counter(actual_rows) == Counter(expected_rows)
-    assert actual["n_reads"] == expected["n_reads"]
-    assert actual["n_mapped"] == expected["n_mapped"]
 
     if taxa_stratified:
         taxa_map = {node["id"]: node.get("name") for node in condensed["taxonomy"]["nodes"]}
         taxa_map["0"] = "unclassified"
 
-        for row in actual["table"]:
+        for row in actual_table:
             assert row["taxon_name"] == taxa_map.get(row["taxon_id"])
 
     # Filtering must not alter the cached condensed payload.
@@ -523,12 +528,8 @@ def test_to_functional_df_with_condensed_results(
         metric=metric,
         taxa_stratified=taxa_stratified,
     )
-
-    monkeypatch.setattr(
-        profile,
-        "_filtered_results",
-        lambda **kwargs: pytest.fail("_filtered_results should not be called"),
-    )
+    # these are now included in the table results
+    expected = expected[~expected["id"].isin({"UNMAPPED", "UNGROUPED", "UNINTEGRATED"})]
 
     # use the standalone condensed profile instead of the profile returned by the
     # existing sample fixture.
@@ -583,11 +584,12 @@ def test_condensed_results_dont_fall_back_to_api(
 
     request_count = len(api_data.calls)
 
-    with pytest.raises(OneCodexException, match="Filtered results are not available"):
-        profile._filtered_results(
-            annotation="go",
-            metric="rpk",
-            taxa_stratified=False,
-        )
+    result = profile.table(
+        annotation="go",
+        metric="rpk",
+        taxa_stratified=False,
+    )
+
+    assert result.empty
 
     assert len(api_data.calls) == request_count

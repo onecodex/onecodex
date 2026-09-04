@@ -596,29 +596,6 @@ class FunctionalProfiles(_AnalysesBase, FunctionalRunSchema):
 
     def _filtered_results(
         self,
-        annotation: FunctionalAnnotations,
-        metric: FunctionalAnnotationsMetric,
-        taxa_stratified: bool,
-    ):
-        condensed_results = self._condensed_results()
-
-        if condensed_results is not None:
-            from onecodex.models.functional import _rehydrate_filtered_functional_results
-
-            return _rehydrate_filtered_functional_results(
-                condensed_results,
-                annotation=annotation,
-                metric=metric,
-                taxa_stratified=taxa_stratified,
-            )
-        else:
-            # we shouldn't get here but just in case
-            raise OneCodexException(
-                f"Filtered results are not available for functional profile {self.id}"
-            )
-
-    def _functional_values(
-        self,
         annotation: FunctionalAnnotations | str,
         metric: FunctionalAnnotationsMetric | str,
         taxa_stratified: bool,
