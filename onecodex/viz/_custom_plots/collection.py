@@ -7,12 +7,12 @@ from typing import Any, Callable, Literal
 import pandas as pd
 
 from onecodex.exceptions import (
+    NoTaxaException,
     OneCodexException,
     OneCodexUserWarning,
     PlottingException,
     StatsException,
     ValidationError,
-    NoTaxaException,
 )
 from onecodex.lib.enums import (
     FunctionalAnnotations,
@@ -116,15 +116,23 @@ class FunctionalProfiles:
         annotation: FunctionalAnnotations,
         metric: FunctionalAnnotationsMetric,
         taxa_stratified: bool,
-    ) -> dict:
+    ):
+        from onecodex.models.functional import FunctionalResultValues
+
         if taxa_stratified:
             raise OneCodexException("Taxa stratified results are not currently supported")
 
-        return {
-            "table": self._results.get(f"{annotation}-{metric}", []),
-            "n_reads": self._results["n_reads"],
-            "n_mapped": self._results["n_mapped"],
-        }
+        table = self._results.get(f"{annotation}-{metric}", [])
+
+        return FunctionalResultValues(
+            feature_ids=[row["id"] for row in table],
+            values=[row["value"] for row in table],
+            feature_name_map={row["id"]: row["name"] for row in table},
+            taxon_ids=None,
+            taxon_name_map={},
+            n_reads=self._results["n_reads"],
+            n_mapped=self._results["n_mapped"],
+        )
 
     def filtered_table(self, *args, **kwargs) -> pd.DataFrame:
         from onecodex.models import FunctionalProfiles

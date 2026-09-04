@@ -758,22 +758,27 @@ class BaseSampleCollection(
             sample_ids_seen.add(sample_id)
 
             # get table using One Codex API
-            table = profile.filtered_table(
-                annotation=annotation, metric=metric, taxa_stratified=taxa_stratified
+            selected = profile._filtered_results(
+                annotation=annotation,
+                metric=metric,
+                taxa_stratified=taxa_stratified,
             )
 
-            feature_id_to_name.update(dict(zip(table["id"], table["name"])))
+            # feature_id_to_name.update(dict(zip(table["id"], table["name"])))
+            feature_id_to_name.update(selected.feature_name_map)
 
             if taxa_stratified:
-                taxon_ids = [_normalize_taxon_field(v) for v in table["taxon_id"]]
-                keys = list(zip(table["id"], taxon_ids))
+                # taxon_ids = [_normalize_taxon_field(v) for v in table["taxon_id"]]
+                keys = list(zip(selected.feature_ids, selected.taxon_ids))
             else:
-                keys = list(table["id"])
+                # keys = list(table["id"])
+                keys = selected.feature_ids
 
             # Map of feature key to its value, e.g. stratified:
             # {("GO:0000015", "562"): 45.8, ...}
             # non-stratified: {"GO:0000015": 45.8, ...}
-            profile_values = dict(zip(keys, table["value"]))
+            # profile_values = dict(zip(keys, table["value"]))
+            profile_values = dict(zip(keys, selected.values))
             functional_profile_ids.append(profile.id)
 
             col_ix = np.empty(len(profile_values), dtype=np.int32)
@@ -784,6 +789,7 @@ class BaseSampleCollection(
                     col_to_ix[key] = ix
                     feature_keys.append(key)
                 col_ix[i] = ix
+
             profile_cols.append(col_ix)
             # Iteration order matches between keys and values, so profile_cols
             # and profile_values_arrays are aligned
@@ -792,8 +798,8 @@ class BaseSampleCollection(
             )
 
         shape = (len(functional_profile_ids), len(feature_keys))
-
         index = pd.Index(functional_profile_ids, name="functional_profile_id")
+
         if taxa_stratified:
             column_names = ["feature_id", "taxon_id"]
             columns = (
@@ -806,6 +812,7 @@ class BaseSampleCollection(
 
         # Dense numpy array
         array = np.full(shape=shape, dtype=float, fill_value=np.nan)
+
         for row_index, (col_ix, profile_values_array) in enumerate(
             zip(profile_cols, profile_values_arrays)
         ):

@@ -4,7 +4,7 @@ import os.path
 import time
 from datetime import datetime
 from functools import lru_cache
-from typing import IO, TYPE_CHECKING, Any, ClassVar, List, Optional, Union
+from typing import IO, TYPE_CHECKING, Any, ClassVar, List, Literal, Optional, Union
 
 import click
 import requests
@@ -596,33 +596,24 @@ class FunctionalProfiles(_AnalysesBase, FunctionalRunSchema):
 
     def _filtered_results(
         self,
-        annotation: FunctionalAnnotations,
-        metric: FunctionalAnnotationsMetric,
+        annotation: FunctionalAnnotations | str,
+        metric: FunctionalAnnotationsMetric | str,
         taxa_stratified: bool,
     ):
+        from onecodex.models.functional import _select_condensed_functional_results
+
         condensed_results = self._condensed_results()
 
-        if condensed_results is not None:
-            from onecodex.models.functional import _rehydrate_filtered_functional_results
+        if condensed_results is None:
+            # shouldn't get here
+            raise OneCodexException(f"Results are not available for functional profile {self.id}")
 
-            return _rehydrate_filtered_functional_results(
-                condensed_results,
-                annotation=annotation,
-                metric=metric,
-                taxa_stratified=taxa_stratified,
-            )
-
-        resp = self._client.get(
-            f"{self._api._base_url}{self.field_uri}/filtered_results",
-            params={
-                "functional_group": annotation,
-                "metric": metric,
-                "taxa_stratified": taxa_stratified,
-            },
+        return _select_condensed_functional_results(
+            condensed_results,
+            annotation=annotation,
+            metric=metric,
+            taxa_stratified=taxa_stratified,
         )
-        if resp.status_code != 200:
-            raise OneCodexException(resp.json()["message"])
-        return resp.json()
 
     def results(self, json: bool = True):
         """Return the complete results table for a functional analysis.
@@ -645,6 +636,7 @@ class FunctionalProfiles(_AnalysesBase, FunctionalRunSchema):
     def table(
         self,
         annotation: Optional[FunctionalAnnotations] = None,
+        metric: FunctionalAnnotationsMetric | Literal["all"] = "all",
         taxa_stratified: bool = True,
     ):
         """Return a results table for the functional analysis.
@@ -654,6 +646,9 @@ class FunctionalProfiles(_AnalysesBase, FunctionalRunSchema):
         annotation : {None, onecodex.lib.enum.FunctionalAnnotation}, optional
             If None, return a table with all annotations, otherwise filter to
             one of `onecodex.lib.enum.FunctionalAnnotation`
+        metric : FunctionalAnnotationsMetric | 'all'
+            'all' preserves backwards compatibility, returning all metrics types (e.g., cpm + rpk)
+            for a given functional profile, otherwise table() will filter to the provided metric.
         taxa_stratified : bool, optional
             If False, return data only by annotation ID, ignoring taxonomic stratification
 
@@ -664,41 +659,51 @@ class FunctionalProfiles(_AnalysesBase, FunctionalRunSchema):
         """
         import pandas as pd
 
-        result_json = self._results()
-        if not result_json["table"]:
-            return pd.DataFrame(
-                {
-                    "group_name": pd.Series(dtype="str"),
-                    "id": pd.Series(dtype="str"),
-                    "name": pd.Series(dtype="str"),
-                    "metric": pd.Series(dtype="str"),
-                    "value": pd.Series(dtype="float"),
-                    "taxa_stratified": pd.Series(dtype="bool"),
-                    "taxon_id": pd.Series(dtype="str"),
-                    "taxon_name": pd.Series(dtype="str"),
-                }
-            )
-        results_df = pd.DataFrame(result_json["table"])
+        from onecodex.models.functional import _rehydrate_functional_results
 
-        if annotation is None:
-            return (
-                results_df[results_df["taxa_stratified"]]
-                if taxa_stratified
-                else results_df[~results_df["taxa_stratified"]]
-            )
-        else:
-            # Validate functional annotation
+        empty_df = pd.DataFrame(
+            {
+                "group_name": pd.Series(dtype="str"),
+                "id": pd.Series(dtype="str"),
+                "name": pd.Series(dtype="str"),
+                "metric": pd.Series(dtype="str"),
+                "value": pd.Series(dtype="float"),
+                "taxa_stratified": pd.Series(dtype="bool"),
+                "taxon_id": pd.Series(dtype="str"),
+                "taxon_name": pd.Series(dtype="str"),
+            }
+        )
+
+        # validate functional annotation and metric
+        if annotation is not None:
             FunctionalAnnotations(annotation)
+        if metric != "all":
+            FunctionalAnnotationsMetric(metric)
 
-            return (
-                results_df[
-                    (results_df["group_name"] == annotation) & (results_df["taxa_stratified"])
-                ]
-                if taxa_stratified
-                else results_df[
-                    (results_df["group_name"] == annotation) & ~results_df["taxa_stratified"]
-                ]
-            )
+            if (
+                annotation is not None
+                and metric not in FunctionalAnnotationsMetric.metrics_for_annotation(annotation)
+            ):
+                raise OneCodexException(
+                    f"metric {metric} cannot be retrieved for functional group {annotation}"
+                )
+
+        result_json = self._condensed_results()
+
+        if result_json is None:
+            return empty_df
+
+        result_json = _rehydrate_functional_results(
+            result_json,
+            annotation_filter=annotation if annotation is not None else None,
+            metric_filter=metric if metric != "all" else None,
+            taxa_stratified_filter=taxa_stratified,
+        )
+
+        if not result_json["table"]:
+            return empty_df
+
+        return pd.DataFrame(result_json["table"])
 
     def filtered_table(
         self,
@@ -722,23 +727,18 @@ class FunctionalProfiles(_AnalysesBase, FunctionalRunSchema):
         results_df : pd.DataFrame
             A Pandas DataFrame of the functional results.
         """
-        import pandas as pd
-
-        result_json = self._filtered_results(
-            annotation=annotation, metric=metric, taxa_stratified=taxa_stratified
+        results_df = self.table(
+            annotation=annotation,
+            metric=metric,
+            taxa_stratified=taxa_stratified,
         )
-        if not result_json["table"]:
-            columns = {
-                "id": pd.Series(dtype="str"),
-                "name": pd.Series(dtype="str"),
-                "value": pd.Series(dtype="float"),
-            }
-            if taxa_stratified:
-                # ensure taxon_id and taxon_name are present for downstream processing
-                columns["taxon_id"] = pd.Series(dtype="str")
-                columns["taxon_name"] = pd.Series(dtype="str")
-            return pd.DataFrame(columns)
-        return pd.DataFrame(result_json["table"])
+
+        columns = ["id", "name", "value"]
+
+        if taxa_stratified:
+            columns.extend(["taxon_id", "taxon_name"])
+
+        return results_df[columns]
 
 
 class Panels(_AnalysesBase, PanelSchema):

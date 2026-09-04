@@ -482,6 +482,9 @@ API_DATA = {
             "dependencies": [],
             "draft": False,
             "success": True,
+            "results_uri": os.path.abspath(
+                "tests/data/api/v1/functional_profiles/eec4ac90d9104d1e/results/results_api_data.v1.json.gz"
+            ),
         },
     ],
     "GET::api/v1/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%7B%22%24in%22%3A\\+%5B%2266c1531cb0b244f6%22%5D%7D.*": [
@@ -496,6 +499,9 @@ API_DATA = {
             "dependencies": [],
             "draft": False,
             "success": True,
+            "results_uri": os.path.abspath(
+                "tests/data/api/v1/functional_profiles/bde18eb9407d4c2f/results/results_api_data.v1.json.gz"
+            ),
         },
     ],
     "GET::api/v1/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%7B%22%24in%22%3A\\+%5B%22543c9c046e3e4e09%22%5D%7D.*": [
@@ -510,6 +516,9 @@ API_DATA = {
             "dependencies": [],
             "draft": False,
             "success": True,
+            "results_uri": os.path.abspath(
+                "tests/data/api/v1/functional_profiles/31ddae978aff475f/results/results_api_data.v1.json.gz"
+            ),
         },
     ],
 }
@@ -571,6 +580,19 @@ for api_version in os.listdir(API_DATA_DIR):
                             instance["results_uri"] = os.path.abspath(instance["results_uri"])
                         instance_uri = f"GET::{instance['$uri'].lstrip('/')}"
                         API_DATA[instance_uri] = instance
+
+API_DATA["GET::api/v1/functional_profiles"] = [
+    {
+        **profile,
+        "results_uri": os.path.abspath(
+            f"tests/data/api/v1/functional_profiles/{profile['$uri'].split('/')[-1]}/results/results_api_data.v1.json.gz"
+        ),
+    }
+    for profile in API_DATA["GET::api/v1/functional_profiles"]
+]
+for profile in API_DATA["GET::api/v1/functional_profiles"]:
+    instance_uri = f"GET::{profile['$uri'].lstrip('/')}"
+    API_DATA[instance_uri] = profile
 
 
 @pytest.fixture
