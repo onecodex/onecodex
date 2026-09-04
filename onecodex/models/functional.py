@@ -28,6 +28,12 @@ def _rehydrate_functional_results(
     table = []
     pathway_table = []
 
+    # do we only want things with complete (1.0) abundance?
+    complete_abundance_filter = metric_filter == FunctionalAnnotationsMetric.CompleteAbundance
+
+    if complete_abundance_filter:
+        metric_filter = FunctionalAnnotationsMetric.Abundance.value
+
     def add_row(
         group_name: str,
         feature_id: str,
@@ -127,6 +133,9 @@ def _rehydrate_functional_results(
         community_cpm,
         contributions,
     ) in pathways:
+        if complete_abundance_filter and (community_coverage != 1.0):
+            continue
+
         # these are only added when not stratifying by taxa
         if taxa_stratified_filter is not True:
             add_row("metacyc", pathway_id, pathway_name, "cpm", community_cpm)

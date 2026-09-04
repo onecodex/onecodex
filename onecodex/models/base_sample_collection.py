@@ -758,9 +758,6 @@ class BaseSampleCollection(
             sample_ids_seen.add(sample_id)
 
             # get table using One Codex API
-            # table = profile.filtered_table(
-            #    annotation=annotation, metric=metric, taxa_stratified=taxa_stratified
-            # )
             selected = profile._functional_values(
                 annotation=annotation,
                 metric=metric,
