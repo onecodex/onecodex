@@ -41,6 +41,8 @@ def test_query_for_functional_analysis(ocx, api_data):
 def test_functional_profiles_table(ocx, api_data):
     func_profile = ocx.FunctionalProfiles.get("31ddae978aff475f")
     df = func_profile.table()
+    # no metric is passed to table then it should be all metrics
+    assert set(df["metric"]) == {"cpm", "rpk", "coverage", "abundance"}
     assert isinstance(df, pd.DataFrame)
     assert len(df) == 536
     assert set(df.columns) == {
@@ -56,6 +58,8 @@ def test_functional_profiles_table(ocx, api_data):
     assert len(df["taxon_name"].unique()) == 47
 
     eggnog_df = func_profile.table(annotation="eggnog", taxa_stratified=False)
+    # no metric is passed to table then it should be all available metrics for that annotation
+    assert set(eggnog_df["metric"]) == {"cpm", "rpk"}
     assert set(eggnog_df["group_name"]) == {"eggnog"}
     assert eggnog_df["taxon_name"].isna().all()
 
@@ -72,6 +76,80 @@ def test_functional_profiles_table(ocx, api_data):
         "metacyc",
         "pathways",
     ]
+
+
+@pytest.mark.parametrize(
+    ("annotation", "metric"),
+    [
+        ("eggnog", "rpk"),
+        ("metacyc", "cpm"),
+        ("pathways", "coverage"),
+    ],
+)
+@pytest.mark.parametrize("taxa_stratified", [False, True])
+def test_functional_profiles_table_filters(ocx, api_data, annotation, metric, taxa_stratified):
+    func_profile = ocx.FunctionalProfiles.get("31ddae978aff475f")
+
+    df = func_profile.table(
+        annotation=annotation,
+        metric=metric,
+        taxa_stratified=taxa_stratified,
+    )
+
+    assert not df.empty
+    assert set(df["group_name"]) == {annotation}
+    assert set(df["metric"]) == {metric}
+    assert set(df["taxa_stratified"]) == {taxa_stratified}
+
+
+def test_functional_profiles_table_filters_metric_without_annotation(ocx, api_data):
+    func_profile = ocx.FunctionalProfiles.get("31ddae978aff475f")
+
+    df = func_profile.table(metric="cpm", taxa_stratified=False)
+
+    assert not df.empty
+    assert set(df["metric"]) == {"cpm"}
+    assert set(df["group_name"]) == {
+        "eggnog",
+        "go",
+        "ko",
+        "ec",
+        "pfam",
+        "reaction",
+        "metacyc",
+    }
+
+
+@pytest.mark.parametrize("taxa_stratified", [False, True])
+def test_functional_profiles_table_complete_abundance(ocx, api_data, taxa_stratified):
+    func_profile = ocx.FunctionalProfiles.get("a888fdc70221befa")
+    condensed = func_profile._condensed_results()
+
+    complete_pathway_ids = {
+        pathway[0] for pathway in condensed["results"]["pathways"] if pathway[3] == 1.0
+    }
+
+    df = func_profile.table(
+        annotation="pathways",
+        metric="complete_abundance",
+        taxa_stratified=taxa_stratified,
+    )
+
+    assert not df.empty
+    assert set(df["group_name"]) == {"pathways"}
+    assert set(df["metric"]) == {"abundance"}
+    assert set(df["id"]) <= complete_pathway_ids
+    assert set(df["taxa_stratified"]) == {taxa_stratified}
+
+
+def test_functional_profiles_table_rejects_invalid_metric(ocx, api_data):
+    func_profile = ocx.FunctionalProfiles.get("31ddae978aff475f")
+
+    with pytest.raises(
+        OneCodexException,
+        match="metric cpm cannot be retrieved for functional group pathways",
+    ):
+        func_profile.table(annotation="pathways", metric="cpm")
 
 
 def test_functional_profiles_results(ocx, api_data):
