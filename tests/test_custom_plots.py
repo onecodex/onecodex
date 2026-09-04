@@ -1090,3 +1090,50 @@ def test_stats_to_dict_ancombc():
     taxon_a = next(r for r in global_records if r["Taxon"] == "Taxon A")
     assert taxon_a["W"] == 5.0
     assert taxon_a["Signif"] is True
+
+
+def test_to_functional_df_with_functional_results():
+    sample_id = generate_id()
+    profile_id = generate_id()
+
+    sample = Samples(
+        {
+            "uuid": sample_id,
+            "metadata": {
+                "sample_id": sample_id,
+                "metadata_id": generate_id(),
+                "classification_id": generate_id(),
+                "created_at": "2026-01-01",
+                "filename": "sample.fastq",
+            },
+            "primary_classification": None,
+            "functional_profile": {
+                "uuid": profile_id,
+                "sample_uuid": sample_id,
+                "results": {
+                    "go-cpm": [
+                        {"id": "GO:1", "name": "one", "value": 1.5},
+                        {"id": "GO:2", "name": "two", "value": 2.5},
+                    ],
+                    "n_reads": 100,
+                    "n_mapped": 80,
+                },
+            },
+        }
+    )
+
+    collection = SampleCollection([sample])
+    result = collection.to_functional_df(
+        annotation=FunctionalAnnotations.Go,
+        metric=FunctionalAnnotationsMetric.Cpm,
+        taxa_stratified=False,
+    )
+
+    assert result.loc[profile_id].to_dict() == {
+        "GO:1": 1.5,
+        "GO:2": 2.5,
+    }
+    assert result.ocx_feature_name_map == {
+        "GO:1": "one",
+        "GO:2": "two",
+    }
