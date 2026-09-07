@@ -166,6 +166,9 @@ class OneCodexBase(PydanticBaseModel, metaclass=_DirMeta):
     _client: ClassVar[Optional["HTTPClient"]] = None  # noqa: F821
     _resource_path: ClassVar[str]  # Default resource path, subclasses override
     _allowed_methods: ClassVar[AllowedMethods] = {}
+    _filter_only_fields: ClassVar[frozenset[str]] = (
+        frozenset()
+    )  # Extra filter-only fields not on the model
 
     model_config = ConfigDict(
         populate_by_alias=True,

@@ -544,6 +544,103 @@ def test_where_clauses_with_tags(ocx, api_data):
     assert any(query_in_urls)
 
 
+def _extract_sample_where_clauses(path="/api/v1/samples") -> list[dict]:
+    """Extract the `where` clauses from every recorded request to `path`."""
+    clauses = []
+    for c in responses.calls:
+        parsed = urlparse(c.request.url)
+        if parsed.path != path:
+            continue
+        where = parse_qs(parsed.query).get("where")
+        if where:
+            clauses.append(json.loads(where[0]))
+    return clauses
+
+
+def test_where_clauses_with_tax_ids(ocx, api_data):
+    sample = ocx.Samples.get("7428cca4a3a04a8e")
+    samples = ocx.Samples.where(tax_ids=["543", "590"])
+
+    assert sample in samples
+    assert _extract_sample_where_clauses() == [{"tax_ids": {"$containsall": ["543", "590"]}}]
+
+
+@pytest.mark.parametrize("tax_ids", [None, []])
+def test_where_clauses_with_empty_tax_ids(ocx, api_data, tax_ids):
+    ocx.Samples.where(tax_ids=tax_ids)
+
+    assert _extract_sample_where_clauses() == [{}]
+
+
+def test_where_clauses_with_tax_ids_and_tags(ocx, api_data):
+    tag = ocx.Tags.get("5c1e9e41043e4435")
+    ocx.Samples.where(tags=[tag], tax_ids=["543"])
+
+    assert _extract_sample_where_clauses() == [
+        {
+            "tags": {"$containsall": [{"$ref": "/api/v1/tags/5c1e9e41043e4435"}]},
+            "tax_ids": {"$containsall": ["543"]},
+        }
+    ]
+
+
+def test_where_clauses_with_tax_ids_and_sample_field(ocx, api_data):
+    ocx.Samples.where(tax_ids=["543"], visibility="private")
+
+    assert _extract_sample_where_clauses() == [
+        {"visibility": "private", "tax_ids": {"$containsall": ["543"]}}
+    ]
+
+
+def test_where_clauses_with_tax_ids_public_endpoint(ocx, api_data):
+    ocx.Samples.where(tax_ids=["543"], public=True)
+
+    assert _extract_sample_where_clauses("/api/v1/samples") == []
+    assert _extract_sample_where_clauses("/api/v1/samples/public") == [
+        {"tax_ids": {"$containsall": ["543"]}}
+    ]
+
+
+def test_where_clauses_with_tax_ids_org_endpoint(ocx, api_data):
+    ocx.Samples.where(tax_ids=["543"], organization=True)
+
+    assert _extract_sample_where_clauses("/api/v1/samples") == []
+    assert _extract_sample_where_clauses("/api/v1/samples/organization") == [
+        {"tax_ids": {"$containsall": ["543"]}}
+    ]
+
+
+@pytest.mark.xfail(
+    reason=(
+        "Pre-existing bug, not specific to tax_ids: metadata-only fields aren't "
+        "stripped from merged_filters before the intersecting Samples query, so "
+        "combining any metadata field with any sample-side filter raises "
+        "AttributeError. Reproduces on master with "
+        "`Samples.where(starred=True, visibility='private')`."
+    ),
+    raises=AttributeError,
+)
+def test_where_clauses_with_tax_ids_and_metadata_field(ocx, raw_api_data, custom_mock_requests):
+    raw_api_data["GET::api/v1/metadata"] = [
+        {
+            "$uri": "/api/v1/metadata/4fe05e748b5a4f0e",
+            "sample": {"$ref": "/api/v1/samples/761bc54b97f64980"},
+            "custom": {},
+            "starred": True,
+        }
+    ]
+
+    with custom_mock_requests(raw_api_data):
+        samples = ocx.Samples.where(tax_ids=["543"], starred=True)
+
+    # the sample query keeps `tax_ids` and drops the metadata-only field
+    assert _extract_sample_where_clauses() == [{"tax_ids": {"$containsall": ["543"]}}]
+    assert _extract_sample_where_clauses("/api/v1/metadata") == [{"starred": True}]
+
+    # results are the intersection of the two queries
+    assert [s.id for s in samples] == ["761bc54b97f64980"]
+
+
 def test_where_filter(ocx, api_data):
     samples = ocx.Samples.where(filter=lambda s: s.filename.endswith("9.fastq.gz"))
     assert all([s.filename.endswith("9.fastq.gz") for s in samples])

@@ -189,6 +189,7 @@ class Samples(OneCodexBase, _SampleSchema, ResourceDownloadMixin):
         "update": SampleUpdateSchema,
         "instances_public": None,
     }
+    _filter_only_fields = frozenset({"tax_ids"})
 
     def __repr__(self):
         return '<{} {}: "{}">'.format(
@@ -204,7 +205,8 @@ class Samples(OneCodexBase, _SampleSchema, ResourceDownloadMixin):
         public: bool = False,
         organization: bool = False,
         filter: Any = None,
-        tags: list | None = None,
+        tags: list[str] | None = None,
+        tax_ids: list[str] | None = None,
         created_at: datetime | DatetimeFilter = UNSET,
         updated_at: datetime | DatetimeFilter = UNSET,
         filename: str | StrFilter | None = UNSET,
@@ -238,6 +240,10 @@ class Samples(OneCodexBase, _SampleSchema, ResourceDownloadMixin):
 
             ocx.Samples.where(tags=["trimmed", "human-depleted"])
 
+        Filter by tax ids (returns samples containing *all* the listed taxa)::
+
+            ocx.Samples.where(tax_ids=["543", "590"])
+
         Filter by a metadata field — transparently joined::
 
             ocx.Samples.where(platform="Illumina NovaSeq 6000")
@@ -263,6 +269,9 @@ class Samples(OneCodexBase, _SampleSchema, ResourceDownloadMixin):
             Tags to filter by. Accepts :class:`Tags` instances, tag ids, or
             tag names — all resolved to refs and combined with
             ``$containsall``.
+        tax_ids
+            Taxonomy ids (as str) to filter by. Only samples containing *every*
+            listed taxon are returned.
 
         Returns
         -------
@@ -325,6 +334,8 @@ class Samples(OneCodexBase, _SampleSchema, ResourceDownloadMixin):
         merged_filters.update(keyword_filters)
         if new_tags:
             merged_filters["tags"] = {"$containsall": new_tags}
+        if tax_ids:
+            merged_filters["tax_ids"] = {"$containsall": tax_ids}
 
         # we can only search metadata on our own samples currently
         # FIXME: we need to add `instances_public` and `instances_project` metadata routes to
