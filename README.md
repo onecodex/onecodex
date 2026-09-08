@@ -384,6 +384,19 @@ for file in output_files:
     analysis.download_file(file, progressbar=True)
 ```
 
+The CLI exposes the same functionality:
+
+```bash
+# List the analysis's output files:
+onecodex analyses files 0123456789abcdef
+
+# Download them all into ./results/, preserving the analysis's directory structure:
+onecodex analyses download 0123456789abcdef --out results
+
+# Or download specific files by filepath:
+onecodex analyses download 0123456789abcdef -f report.tsv -f logs/nextflow.log
+```
+
 ## Upgrading from 0.19.x to 1.0
 
 In 1.0, `SampleCollection` no longer takes `metric`, `normalize`, or `rank` at construction time. These are now passed directly to `.to_df()` and the `.plot_*()` functions instead, so you can switch metrics or ranks without rebuilding the collection. `normalize=True` has been removed; use the explicit `normalized_*` metric value instead (e.g. `normalized_readcount_w_children`). In alpha- and beta-diversity functions, the old `metric` argument was also renamed to `diversity_metric` / `distance_metric`, with `metric` now referring to the underlying abundance metric.
