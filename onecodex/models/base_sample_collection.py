@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import math
 import warnings
 from collections import Counter, OrderedDict, defaultdict
 from collections.abc import MutableSequence
@@ -51,18 +50,6 @@ CANONICAL_RANKS = (
     "genus",
     "species",
 )
-
-
-def _normalize_taxon_field(value: Any) -> str:
-    """Coerce a taxon id to a string for use in a DataFrame index.
-
-    Required to consistently handle missing values, ints and floats (like 386414.0).
-    """
-    if value is None or (isinstance(value, float) and math.isnan(value)):
-        return ""
-    if isinstance(value, float) and value.is_integer():
-        return str(int(value))
-    return str(value)
 
 
 class BaseSampleCollection(
@@ -764,17 +751,17 @@ class BaseSampleCollection(
                 taxa_stratified=taxa_stratified,
             )
 
-            feature_id_to_name.update(selected.feature_name_map)
+            feature_id_to_name.update(selected["feature_name_map"])
 
             if taxa_stratified:
-                keys = list(zip(selected.feature_ids, selected.taxon_ids))
+                keys = list(zip(selected["feature_ids"], selected["taxon_ids"]))
             else:
-                keys = selected.feature_ids
+                keys = selected["feature_ids"]
 
             # Map of feature key to its value, e.g. stratified:
             # {("GO:0000015", "562"): 45.8, ...}
             # non-stratified: {"GO:0000015": 45.8, ...}
-            profile_values = dict(zip(keys, selected.values))
+            profile_values = dict(zip(keys, selected["values"]))
             functional_profile_ids.append(profile.id)
 
             col_ix = np.empty(len(profile_values), dtype=np.int32)

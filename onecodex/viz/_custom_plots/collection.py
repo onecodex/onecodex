@@ -117,22 +117,20 @@ class FunctionalProfiles:
         metric: FunctionalAnnotationsMetric,
         taxa_stratified: bool,
     ):
-        from onecodex.models.functional import FunctionalResultValues
-
         if taxa_stratified:
             raise OneCodexException("Taxa stratified results are not currently supported")
 
         table = self._results.get(f"{annotation}-{metric}", [])
 
-        return FunctionalResultValues(
-            feature_ids=[row["id"] for row in table],
-            values=[row["value"] for row in table],
-            feature_name_map={row["id"]: row["name"] for row in table},
-            taxon_ids=None,
-            taxon_name_map={},
-            n_reads=self._results["n_reads"],
-            n_mapped=self._results["n_mapped"],
-        )
+        return {
+            "feature_ids": [row["id"] for row in table],
+            "values": [row["value"] for row in table],
+            "feature_name_map": {row["id"]: row["name"] for row in table},
+            "taxon_ids": None,
+            "taxon_name_map": {},
+            "n_reads": self._results["n_reads"],
+            "n_mapped": self._results["n_mapped"],
+        }
 
     def filtered_table(
         self,
@@ -148,11 +146,11 @@ class FunctionalProfiles:
 
         return pd.DataFrame(
             {
-                "id": results.feature_ids,
+                "id": results["feature_ids"],
                 "name": [
-                    results.feature_name_map[feature_id] for feature_id in results.feature_ids
+                    results["feature_name_map"][feature_id] for feature_id in results["feature_ids"]
                 ],
-                "value": results.values,
+                "value": results["values"],
             }
         )
 
