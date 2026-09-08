@@ -695,7 +695,7 @@ class FunctionalProfiles(_AnalysesBase, FunctionalRunSchema):
 
         result_json = _rehydrate_functional_results(
             result_json,
-            annotation_filter=annotation if annotation is not None else None,
+            annotation_filter=annotation,
             metric_filter=metric if metric != "all" else None,
             taxa_stratified_filter=taxa_stratified,
         )

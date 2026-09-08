@@ -283,12 +283,6 @@ def _select_condensed_functional_results(
     else:
         community_value_index, contribution_value_index = _STANDARD_METRIC_INDEXES[metric]
 
-    taxonomy_names = {
-        _normalize_taxon_id(node["id"]): node.get("name")
-        for node in condensed_results["taxonomy"]["nodes"]
-    }
-    taxonomy_names["0"] = "unclassified"
-
     feature_ids: list[str] = []
     values: list[float] = []
     feature_name_map: dict[str, str | None] = {}

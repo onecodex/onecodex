@@ -754,7 +754,7 @@ class BaseSampleCollection(
             feature_id_to_name.update(selected["feature_name_map"])
 
             if taxa_stratified:
-                keys = list(zip(selected["feature_ids"], selected["taxon_ids"]))
+                keys = zip(selected["feature_ids"], selected["taxon_ids"])
             else:
                 keys = selected["feature_ids"]
 
