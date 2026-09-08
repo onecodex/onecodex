@@ -325,7 +325,17 @@ print(analysis.logs())                     # full log
 print(analysis.logs(tail=200))             # last 200 lines
 ```
 
-The method refreshes `analysis` in place and returns it; check `analysis.success` to see whether it finished cleanly. `analysis.refresh()` is also available if you just need to re-fetch the current state without blocking.
+An in-progress run can be canceled with `.cancel()`. Cancellation is asynchronous, so the completion must still be awaited:
+
+```python
+analysis = ocx.Analyses.get("0123456789abcdef")
+analysis.cancel()
+analysis.await_completion()
+```
+
+Only in-progress Custom Workflow runs can be canceled, and only by the user who started the run or an admin in their org.
+
+The `analysis.refresh()` method refreshes `analysis` in place and returns it; check `analysis.success` to see whether it finished cleanly. This method is also available if you just need to re-fetch the current state without blocking.
 
 In addition to methods on individual instances of a given resource (e.g., a `Sample` or an `Analysis`), the library also provides methods for aggregating sets of samples or analyses:
 
@@ -372,6 +382,16 @@ onecodex analyses logs 0123456789abcdef --tail 200
 
 `--tail` defaults to the last 1000 lines. Logs are only available for custom
 workflow runs.
+
+### Canceling an analysis
+
+To cancel an in-progress Custom Workflow run, use `analyses cancel`:
+
+```bash
+onecodex analyses cancel 0123456789abcdef
+```
+
+Cancellation is asynchronous. Only in-progress Custom Workflow runs can be canceled, and only by the user who started the run or an admin in their org.
 
 ### Fetching results (files) from an analysis
 

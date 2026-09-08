@@ -1235,6 +1235,75 @@ def test_analyses_await_completion_timeout(ocx, custom_mock_requests):
                     analysis.await_completion(timeout=10.0, initial_interval=5, backoff=1.0)
 
 
+def test_analyses_cancel(ocx, api_data, custom_mock_requests):
+    analysis_id = "593601a797914cbf"
+    captured = {}
+
+    def cancel_callback(request):
+        captured["url"] = request.url
+        return (
+            200,
+            {"Content-Type": "application/json"},
+            json.dumps(
+                {
+                    "$uri": f"/api/v1/analyses/{analysis_id}",
+                    "analysis_type": "classification",
+                    "complete": True,
+                    "created_at": "2015-09-25T17:27:30.622286-07:00",
+                    "error_msg": "Canceled by user",
+                    "job": {"$ref": "/api/v1/jobs/e4b1ab37ff554c53"},
+                    "sample": {"$ref": "/api/v1/samples/7428cca4a3a04a8e"},
+                    "success": False,
+                    "cost": None,
+                    "dependencies": [],
+                    "draft": False,
+                    "updated_at": "2015-09-25T17:27:30.622286-07:00",
+                }
+            ),
+        )
+
+    with custom_mock_requests({f"POST::api/v1/analyses/{analysis_id}/cancel": cancel_callback}):
+        analysis = ocx.Analyses.get(analysis_id)
+        out = analysis.cancel()
+
+    assert captured["url"].endswith(f"/api/v1/analyses/{analysis_id}/cancel")
+    assert out is analysis
+    assert analysis.success is False
+    assert analysis.error_msg == "Canceled by user"
+
+
+@pytest.mark.parametrize(
+    "status_code,body,expected_message",
+    [
+        (400, {"message": "Only Custom Workflow runs may be canceled."}, "Only Custom Workflow"),
+        (
+            400,
+            {"message": "Only runs that are currently processing may be canceled."},
+            "currently processing",
+        ),
+        (
+            403,
+            {"message": "You don't have the permission to access the requested resource."},
+            "not allowed to cancel",
+        ),
+        (404, {"message": "The requested URL was not found on the server."}, "not found"),
+        (500, {}, r"Analysis cancellation failed \(500\)"),
+    ],
+)
+def test_analyses_cancel_errors(
+    ocx, api_data, custom_mock_requests, status_code, body, expected_message
+):
+    analysis_id = "593601a797914cbf"
+
+    def cancel_callback(request):
+        return (status_code, {"Content-Type": "application/json"}, json.dumps(body))
+
+    with custom_mock_requests({f"POST::api/v1/analyses/{analysis_id}/cancel": cancel_callback}):
+        analysis = ocx.Analyses.get(analysis_id)
+        with pytest.raises(OneCodexException, match=expected_message):
+            analysis.cancel()
+
+
 def test_analyses_logs(ocx, api_data, custom_mock_requests):
     analysis_id = "593601a797914cbf"
     captured = {}

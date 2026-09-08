@@ -19,6 +19,7 @@ from onecodex.models.filters import (
     RefFilter,
     StrFilter,
 )
+from onecodex.models.helpers import error_message_from_response
 from onecodex.models.schemas.analysis import (
     AlignmentSchema,
     AnalysisSchema,
@@ -230,6 +231,32 @@ class _AnalysesBase(OneCodexBase):
             interval = min(interval * backoff, max_interval)
             self.refresh()
 
+        return self
+
+    def cancel(self) -> Self:
+        """Cancel an in-progress analysis.
+
+        Only in-progress Custom Workflows may be canceled. The cancellation process is
+        asynchronous.
+
+        Raises
+        ------
+        OneCodexException
+            When an analysis cannot be canceled, contains the underlying issue in the message.
+        """
+        resp = self._client.post(f"{self._api._base_url}{self.field_uri}/cancel")
+        if not resp.ok:
+            # The API endpoint aborts without a description here.
+            if resp.status_code == 403:
+                raise OneCodexException(
+                    f"You are not allowed to cancel analysis {self.id}. Only the user who "
+                    "initiated the run, or an admin in their org, may cancel it."
+                )
+            if resp.status_code == 404:
+                raise OneCodexException(f"Analysis {self.id} not found.")
+            raise OneCodexException(error_message_from_response(resp, "Analysis cancellation"))
+
+        self._update_self_in_place(resp.json())
         return self
 
     def logs(self, tail: Optional[int] = None) -> str:
