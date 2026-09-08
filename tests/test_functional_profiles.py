@@ -1,4 +1,3 @@
-import json
 import os
 from collections import Counter
 
@@ -356,12 +355,6 @@ def test_filter_functional_runs_to_newest_job(ocx, raw_api_data, custom_mock_req
         "public": True,
         "draft": False,
     }
-
-    with open("tests/data/api/v1/functional_profiles/bde18eb9407d4c2f/results/index.json") as fin:
-        results = json.load(fin)
-    raw_api_data[
-        "GET::api/v1/functional_profiles/eec4ac90d9104d1f/filtered_results\\?functional_group=pathways&metric=coverage&taxa_stratified=True"
-    ] = results
 
     with custom_mock_requests(raw_api_data):
         sample_ids = ["543c9c046e3e4e09", "66c1531cb0b244f6", "37e5151e7bcb4f87"]

@@ -7,7 +7,6 @@ import json
 import os
 import re
 from contextlib import contextmanager
-from urllib.parse import parse_qs, urlparse
 
 import pytest
 import responses
@@ -128,19 +127,6 @@ def _load_functional_api_results():
     filepath = "tests/data/api/v1/functional_profiles/a888fdc70221befa/results/original_api_results.json.gz"
     with gzip.open(filepath, "rt") as results_file:
         return json.load(results_file)
-
-
-def functional_filtered_results_callback(request):
-    query = parse_qs(urlparse(request.url).query)
-
-    result = filtered_raw_results(
-        _load_functional_api_results(),
-        annotation=query["functional_group"][0],
-        metric=query["metric"][0],
-        taxa_stratified=query["taxa_stratified"][0].lower() == "true",
-    )
-
-    return _make_callback_resp(result)
 
 
 # All of the mocked API data. Scheme is METHOD:CONTENT_TYPE:URL (content-type is optional) and then
@@ -522,9 +508,6 @@ API_DATA = {
         },
     ],
 }
-API_DATA["GET::api/v1/functional_profiles/a888fdc70221befa/filtered_results\\?.*"] = (
-    functional_filtered_results_callback
-)
 
 for functional_uuid in {"31ddae978aff475f", "bde18eb9407d4c2f", "eec4ac90d9104d1e"}:
     raw_results = json.load(
