@@ -117,19 +117,17 @@ class FunctionalProfiles:
         metric: FunctionalAnnotationsMetric,
         taxa_stratified: bool,
     ):
+        from onecodex.models.functional import _select_condensed_functional_results
+
         if taxa_stratified:
             raise OneCodexException("Taxa stratified results are not currently supported")
 
-        table = self._results.get(f"{annotation}-{metric}", [])
-
-        return {
-            "feature_ids": [row["id"] for row in table],
-            "values": [row["value"] for row in table],
-            "feature_name_map": {row["id"]: row["name"] for row in table},
-            "taxon_ids": None,
-            "n_reads": self._results["n_reads"],
-            "n_mapped": self._results["n_mapped"],
-        }
+        return _select_condensed_functional_results(
+            self._results,
+            annotation=annotation,
+            metric=metric,
+            taxa_stratified=taxa_stratified,
+        )
 
     def filtered_table(
         self,
