@@ -127,7 +127,6 @@ class FunctionalProfiles:
             "values": [row["value"] for row in table],
             "feature_name_map": {row["id"]: row["name"] for row in table},
             "taxon_ids": None,
-            "taxon_name_map": {},
             "n_reads": self._results["n_reads"],
             "n_mapped": self._results["n_mapped"],
         }

@@ -294,7 +294,6 @@ def _select_condensed_functional_results(
     feature_name_map: dict[str, str | None] = {}
 
     taxon_ids: list[str] | None = [] if taxa_stratified else None
-    taxon_name_map: dict[str, str | None] = {}
 
     features = condensed_results["results"].get(results_group, [])
 
@@ -340,14 +339,12 @@ def _select_condensed_functional_results(
             # keeps the feature-name map aligned with dataframe columns when a
             # feature has no taxonomic contributions.
             feature_name_map[feature_id] = feature_name
-            taxon_name_map[taxon_id] = taxonomy_names.get(taxon_id)
 
     return {
         "feature_ids": feature_ids,
         "values": values,
         "feature_name_map": feature_name_map,
         "taxon_ids": taxon_ids,
-        "taxon_name_map": taxon_name_map,
         "n_reads": condensed_results["n_reads"],
         "n_mapped": condensed_results["n_mapped"],
     }
