@@ -873,8 +873,8 @@ def upload(
 
             # Detecting ONT groups comes first as otherwise part of ONT group could
             # be mistaken for a paired file
-            files = concatenate_ont_groups(files, prompt, tempdir)
-            files = auto_detect_pairs(files, prompt)
+            ont_files, files = concatenate_ont_groups(files, prompt, tempdir)
+            files = auto_detect_pairs(files, prompt) + ont_files
 
         files = concatenate_multilane_files(files, prompt, tempdir)
 

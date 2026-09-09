@@ -73,8 +73,15 @@ def prompt_user_for_concatenation(ont_groups: dict) -> bool:
 
 
 def concatenate_ont_groups(files, prompt, tempdir):
-    """Concatenate ONT split files and return the group as a single entry on the files list."""
+    """Concatenate ONT split files.
+
+    Returns `(concatenated, remaining)`. The concatenated files are complete samples and
+    must not be considered for paired-end detection: their names no longer carry the
+    ordinal, so two ONT samples named e.g. `sample_1` and `sample_2` would otherwise look
+    like a read pair.
+    """
     single_files = set(files)
+    concatenated = []
     ont_groups = defaultdict(set)
     auto_group = True
 
@@ -93,7 +100,7 @@ def concatenate_ont_groups(files, prompt, tempdir):
             ont_groups[base_filename].add(filename)
 
     if not ont_groups:
-        return files
+        return concatenated, list(files)
 
     # if there is only one group; do not prompt for concatenation
     if len(files) == 1 and len(ont_groups) == 1:
@@ -104,17 +111,18 @@ def concatenate_ont_groups(files, prompt, tempdir):
         auto_group = True
 
     if not auto_group:
-        return files
+        return concatenated, list(files)
 
     # Ensure there is no gap in the file sequences
-    for base_ont_filename, files in ont_groups.items():
-        ont_file = next(iter(files))
+    for base_ont_filename, group_files in ont_groups.items():
+        ont_file = next(iter(group_files))
         expected_sequence = [
-            _replace_filename_ordinal(ont_file, idx, multi_digit=True) for idx in range(len(files))
+            _replace_filename_ordinal(ont_file, idx, multi_digit=True)
+            for idx in range(len(group_files))
         ]
         full_sequence = True
         for expected_file in expected_sequence:
-            if expected_file not in files:
+            if expected_file not in group_files:
                 log.warning(
                     "Detected a gap in the ONT file sequence for "
                     f"{os.path.basename(base_ont_filename)}, missing file:"
@@ -132,8 +140,8 @@ def concatenate_ont_groups(files, prompt, tempdir):
                 with open(ont_filename, "rb") as inf:
                     shutil.copyfileobj(inf, outf)
                 single_files.remove(ont_filename)
-        single_files.add(base_ont_filename)
-    return list(single_files)
+        concatenated.append(base_ont_filename)
+    return concatenated, list(single_files)
 
 
 def auto_detect_pairs(files, prompt):
@@ -197,7 +205,7 @@ def auto_detect_pairs(files, prompt):
     if auto_pair:
         return pairs + list(single_files)
     else:
-        return files
+        return list(files)
 
 
 def _find_multilane_groups(files):

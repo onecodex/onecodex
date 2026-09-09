@@ -1103,6 +1103,21 @@ def test_paired_files_with_forward_and_reverse_args(
         (["test_0.fq", "other.fq", "test_1.fq"], 2, 2, 0, 2),
         # 2 paired files, no ONT parts
         (["test_R1.fq", "test_R2.fq"], 1, 2, 2, 0),
+        # 6 files, 2 ONT samples whose merged names look like a read pair
+        (
+            [
+                "test_1_0.fq",
+                "test_1_1.fq",
+                "test_1_2.fq",
+                "test_2_0.fq",
+                "test_2_1.fq",
+                "test_2_2.fq",
+            ],
+            2,
+            2,
+            0,
+            6,
+        ),
     ],
 )
 def test_paired_and_ont_files(
