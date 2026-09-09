@@ -5,6 +5,7 @@ import os
 import shutil
 import logging
 from collections import defaultdict
+from collections.abc import Sequence
 
 # Captures parts before and after ordinal
 # (. or _ followed by num followed by . or _ and non-digits)
@@ -72,13 +73,12 @@ def prompt_user_for_concatenation(ont_groups: dict) -> bool:
     return False
 
 
-def concatenate_ont_groups(files, prompt, tempdir):
+def concatenate_ont_groups(
+    files: Sequence[str], prompt: bool, tempdir: str
+) -> tuple[list[str], list[str]]:
     """Concatenate ONT split files.
 
-    Returns `(concatenated, remaining)`. The concatenated files are complete samples and
-    must not be considered for paired-end detection: their names no longer carry the
-    ordinal, so two ONT samples named e.g. `sample_1` and `sample_2` would otherwise look
-    like a read pair.
+    Returns `(concatenated, remaining)`.
     """
     single_files = set(files)
     concatenated = []
@@ -144,7 +144,7 @@ def concatenate_ont_groups(files, prompt, tempdir):
     return concatenated, list(single_files)
 
 
-def auto_detect_illumina_pairs(files, prompt):
+def auto_detect_illumina_pairs(files: Sequence[str], prompt: bool) -> list[str | tuple[str, str]]:
     """Group paired-end files in the files list.
 
     Returns the files list with paired-end files represented as tuples on that list.
