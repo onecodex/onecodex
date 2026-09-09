@@ -1101,6 +1101,8 @@ def test_paired_files_with_forward_and_reverse_args(
         (["dir_r1_test/test_0.fq", "dir_r1_test/test_1.fq"], 1, 1, 0, 2),
         # 3 files, 2 samples
         (["test_0.fq", "other.fq", "test_1.fq"], 2, 2, 0, 2),
+        # 2 paired files, no ONT parts
+        (["test_R1.fq", "test_R2.fq"], 1, 2, 2, 0),
     ],
 )
 def test_paired_and_ont_files(
@@ -1132,7 +1134,7 @@ def test_paired_and_ont_files(
     else:
         assert paired_files_prompt not in result.output
 
-    ont_prompt = f"It appears there are {n_samples_uploaded} sample(s)"
+    ont_prompt = "Would you like to merge files by sample?"
     if n_ont_files > 0:
         assert ont_prompt in result.output
     else:

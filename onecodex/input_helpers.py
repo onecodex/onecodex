@@ -79,6 +79,11 @@ def concatenate_ont_groups(files, prompt, tempdir):
     auto_group = True
 
     for filename in files:
+        # without an ordinal, the substitution below is a no-op and the file
+        # would be matched against itself
+        if not re.search(ORDINAL_MULTI_REV_PATTERN, filename):
+            continue
+
         ont_zero_filename = _replace_filename_ordinal(filename, "0", multi_digit=True)
         if os.path.exists(ont_zero_filename):
             # strip the ordinal and preceding . or _
@@ -87,8 +92,8 @@ def concatenate_ont_groups(files, prompt, tempdir):
 
             ont_groups[base_filename].add(filename)
 
-    # filter to groups of at least 1 files
-    ont_groups = {k: v for k, v in ont_groups.items()}
+    if not ont_groups:
+        return files
 
     # if there is only one group; do not prompt for concatenation
     if len(files) == 1 and len(ont_groups) == 1:

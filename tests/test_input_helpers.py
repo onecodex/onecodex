@@ -163,6 +163,16 @@ def test_concatenate_ont_groups(generate_fastq, files, expected_grouping):
         assert sorted(basenames) == sorted(expected_grouping)
 
 
+def test_concatenate_ont_groups_leaves_paired_files_alone(generate_fastq):
+    """Files without an ONT ordinal must not be grouped."""
+    files = [generate_fastq(x) for x in ["test_R1.fq", "test_R2.fq"]]
+    with use_tempdir() as tempdir:
+        groups = concatenate_ont_groups(files, prompt=False, tempdir=tempdir)
+        assert sorted(os.path.realpath(x) for x in groups) == sorted(
+            os.path.realpath(x) for x in files
+        )
+
+
 def test_concatenate_ont_group_inform_about_missing_file(generate_fastq, caplog):
     filenames = ["test_0.fq", "test_1.fq", "test_3.fq"]
     files = [generate_fastq(x) for x in filenames]
