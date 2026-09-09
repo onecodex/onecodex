@@ -153,7 +153,6 @@ def auto_detect_illumina_pairs(files: Sequence[str], prompt: bool) -> list[str |
     Such files are marked as not specified in the prompt.
     """
 
-    # files the user actually asked us to upload
     passed_files = set(files)
 
     # files left ungrouped
