@@ -122,6 +122,34 @@ filter_reads.hidden = True
 scripts.add_command(filter_reads, "filter_reads")
 
 
+def _size_formatter(size: int) -> str:
+    suffix = "B"
+    if size > 1e9:
+        suffix = "GB"
+        size /= 1e9
+    elif size >= 1e6:
+        suffix = "MB"
+        size /= 1e6
+    elif size >= 1e3:
+        suffix = "KB"
+        size /= 1e3
+
+    return "%g %s" % (round(size, 2), suffix)
+
+
+def _print_table(columns: list[tuple[str, int]], rows: list[list[str]]) -> None:
+    header = [name for name, _ in columns]
+    dashes = ["-" * width for _, width in columns]
+
+    for row in [header, dashes, *rows]:
+        cells = []
+        for (_, width), content in zip(columns, row):
+            if len(content) > width:
+                content = content[: width - 3] + "..."
+            cells.append(f"{content:<{width + 2}}")
+        click.echo("".join(cells))
+
+
 @onecodex.group("documents", help="Access files in the Document Portal")
 def documents():
     pass
@@ -140,52 +168,27 @@ def documents_list(ctx, json):
     if not docs_list:
         click.echo("You haven't uploaded any files yet, and no files have been shared with you.")
     else:
-
-        def _size_formatter(size):
-            suffix = "B"
-            if size > 1e9:
-                suffix = "GB"
-                size /= 1e9
-            elif size >= 1e6:
-                suffix = "MB"
-                size /= 1e6
-            elif size >= 1e3:
-                suffix = "KB"
-                size /= 1e3
-
-            return "%g %s" % (round(size, 2), suffix)
-
-        formatters = ["%-18s", "%-34s", "%-25s", "%-11s", "%-12s"]
-        table = [
-            ["ID", "Name", "Owner", "Size", "Created On"],
-            ["-" * 16, "-" * 32, "-" * 23, "-" * 9, "-" * 10],
-        ]
+        columns = [("ID", 16), ("Name", 32), ("Owner", 23), ("Size", 9), ("Created On", 10)]
+        rows = []
 
         docs_list = sorted(
             docs_list,
             reverse=True,
             key=lambda x: time.mktime(x.created_at.timetuple()),
         )
-        # breakpoint()
 
         for doc in docs_list:
-            fname = doc.filename
-            owner = doc.uploader.email
-            table.append(
+            rows.append(
                 [
                     doc.field_uri.split("/")[-1],
-                    fname if len(fname) <= 32 else fname[:29] + "...",
-                    owner if len(owner) <= 23 else owner[:20] + "...",
+                    doc.filename,
+                    doc.uploader.email,
                     _size_formatter(doc.size) if doc.size else "N/A",
                     doc.created_at.strftime("%Y-%m-%d"),
                 ]
             )
 
-        for row in table:
-            formatted_row = []
-            for formatter, content in zip(formatters, row):
-                formatted_row.append(formatter % content)
-            click.echo("".join(formatted_row))
+        _print_table(columns, rows)
 
 
 @click.command("upload", help="Upload a file to the Document Portal")
@@ -320,11 +323,8 @@ def assets_list(ctx, json):
         click.echo("You haven't uploaded any assets yet.")
         return
 
-    formatters = ["%-18s", "%-34s", "%-12s", "%-12s"]
-    table = [
-        ["ID", "Filename", "Status", "Created On"],
-        ["-" * 16, "-" * 32, "-" * 10, "-" * 10],
-    ]
+    columns = [("ID", 16), ("Filename", 32), ("Status", 10), ("Created On", 10)]
+    rows = []
 
     assets_data = sorted(
         assets_data,
@@ -333,21 +333,16 @@ def assets_list(ctx, json):
     )
 
     for asset in assets_data:
-        fname = asset.filename
-        table.append(
+        rows.append(
             [
                 asset.id,
-                fname if len(fname) <= 32 else fname[:29] + "...",
+                asset.filename,
                 asset.status,
                 asset.created_at.strftime("%Y-%m-%d"),
             ]
         )
 
-    for row in table:
-        formatted_row = []
-        for formatter, content in zip(formatters, row):
-            formatted_row.append(formatter % content)
-        click.echo("".join(formatted_row))
+    _print_table(columns, rows)
 
 
 assets.add_command(assets_upload, "upload")
@@ -509,10 +504,18 @@ def analyses_files(ctx: click.Context, analysis_id: str, as_json: bool) -> None:
         click.echo(f"Analysis {analysis_id} has no output files.")
         return
 
-    rows = [("Filepath", "Size (bytes)")] + [(x.filepath, str(x.size)) for x in files]
-    width = max(len(filepath) for filepath, _ in rows)
-    for filepath, size in rows:
-        click.echo(f"{filepath:<{width}}  {size}")
+    columns = [("Filepath", 66), ("Size", 9)]
+    rows = []
+
+    for file_detail in sorted(files, key=lambda x: x.filepath):
+        rows.append(
+            [
+                file_detail.filepath,
+                _size_formatter(file_detail.size),
+            ]
+        )
+
+    _print_table(columns, rows)
 
 
 analyses.add_command(analyses_files, "files")

@@ -215,9 +215,34 @@ def test_analyses_files(runner, mock_analysis_files, mocked_creds_file):
         result = runner.invoke(Cli, ["analyses", "files", analysis_id])
 
     assert result.exit_code == 0, result.output
-    assert "Filepath" in result.output
-    assert "results/report.tsv  11" in result.output
-    assert "summary.txt         7" in result.output
+    assert [line.split() for line in result.output.splitlines()] == [
+        ["Filepath", "Size"],
+        ["-" * 66, "-" * 9],
+        ["results/report.tsv", "11", "B"],
+        ["summary.txt", "7", "B"],
+    ]
+
+
+def test_analyses_files_long_filepath_and_size(runner, mock_analysis_files, mocked_creds_file):
+    analysis_id, make_mocks = mock_analysis_files
+    file_details = {
+        "files": [
+            {
+                "filename": "report.tsv",
+                "filepath": "results/" + "nested/" * 10 + "report.tsv",
+                "size": 12300000,
+                "url": "http://localhost:3000/files/report.tsv",
+            }
+        ]
+    }
+    with make_mocks(file_details=file_details):
+        result = runner.invoke(Cli, ["analyses", "files", analysis_id])
+
+    assert result.exit_code == 0, result.output
+    filepath, size, unit = result.output.splitlines()[2].split()
+    assert filepath == "results/" + "nested/" * 7 + "nested..."
+    assert len(filepath) == 66
+    assert (size, unit) == ("12.3", "MB")
 
 
 def test_analyses_files_json(runner, mock_analysis_files, mocked_creds_file):

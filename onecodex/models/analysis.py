@@ -137,7 +137,7 @@ class _AnalysesBase(OneCodexBase):
 
             ocx.Analyses.where(sample=sample)
 
-        See :meth:`OneCodexBase.where` for the full operator reference.
+        See :doc:`/querying` for the full operator reference.
         """
         return super().where(
             *filters,
@@ -539,7 +539,7 @@ class Classifications(_AnalysesBase, ClassificationSchema):
 
             cls_run = ocx.Classifications.where(sample=sample)[0]
 
-        See :meth:`OneCodexBase.where` for the full operator reference.
+        See :doc:`/querying` for the full operator reference.
         """
         from onecodex.models.collection import SampleCollection
 

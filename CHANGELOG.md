@@ -54,6 +54,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   never plotted anyway).
 - Plots no longer raise a `ValueError` when a metadata field name contains a colon character (`:`).
 - Passing non-existing `group_by` to `plot_bargraph` should not throw an error.
+- `Sample.{status,visiblity}` query type corrected to `EnumStrFilter`
+- `$icontains` and `$contains` removed from `EnumStrFilter` -- substring matching behavior requires
+  that the substring be a valid enum member which behaved unintuitively.
 - `onecodex analyses <subcommand> --help` (e.g. `onecodex analyses logs --help`) no longer
   requires being logged in.
 
