@@ -19,7 +19,7 @@ from onecodex.auth import (
     login_required,
 )
 from onecodex.input_helpers import (
-    auto_detect_pairs,
+    auto_detect_illumina_pairs,
     concatenate_multilane_files,
     concatenate_ont_groups,
 )
@@ -874,7 +874,7 @@ def upload(
             # Detecting ONT groups comes first as otherwise part of ONT group could
             # be mistaken for a paired file
             ont_files, files = concatenate_ont_groups(files, prompt, tempdir)
-            files = auto_detect_pairs(files, prompt) + ont_files
+            files = auto_detect_illumina_pairs(files, prompt) + ont_files
 
         files = concatenate_multilane_files(files, prompt, tempdir)
 

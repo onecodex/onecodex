@@ -4,7 +4,7 @@ import pytest
 from onecodex.input_helpers import (
     _find_multilane_groups,
     concatenate_multilane_files,
-    auto_detect_pairs,
+    auto_detect_illumina_pairs,
     concatenate_ont_groups,
 )
 from onecodex.utils import use_tempdir
@@ -35,9 +35,9 @@ def _get_basenames(elems):
         (["test_R1.fq", "test_R2.fq", "other.fq"], [("test_R1.fq", "test_R2.fq"), "other.fq"]),
     ],
 )
-def test_auto_detect_pairs(generate_fastq, files, expected_pairing):
+def test_auto_detect_illumina_pairs(generate_fastq, files, expected_pairing):
     files = [generate_fastq(x) for x in files]
-    pairs = auto_detect_pairs(files, prompt=False)
+    pairs = auto_detect_illumina_pairs(files, prompt=False)
     basenames = _get_basenames(pairs)
     assert basenames == expected_pairing
 

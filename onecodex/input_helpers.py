@@ -144,7 +144,7 @@ def concatenate_ont_groups(files, prompt, tempdir):
     return concatenated, list(single_files)
 
 
-def auto_detect_pairs(files, prompt):
+def auto_detect_illumina_pairs(files, prompt):
     """Group paired-end files in the files list.
 
     Returns the files list with paired-end files represented as tuples on that list.
