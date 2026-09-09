@@ -148,8 +148,13 @@ def auto_detect_illumina_pairs(files, prompt):
     """Group paired-end files in the files list.
 
     Returns the files list with paired-end files represented as tuples on that list.
-    If `prompt` is set to True, the user is asked whether this should happen first.
+    If `prompt` is set to True, the user is asked whether this should happen first, and
+    the mate of a paired file may be picked up from disk even if it was not passed in.
+    Such files are marked as not specified in the prompt.
     """
+
+    # files the user actually asked us to upload
+    passed_files = set(files)
 
     # files left ungrouped
     single_files = set(files)
@@ -187,9 +192,18 @@ def auto_detect_illumina_pairs(files, prompt):
 
     auto_pair = True
     if prompt and pairs:
+
+        def _label(filename):
+            # mark files we found on disk but that were not passed on the command line
+            marker = "" if filename in passed_files else " *"
+            return f"{os.path.basename(filename)}{marker}"
+
         pair_list = ""
         for pair in pairs:
-            pair_list += f"\n  {os.path.basename(pair[0])}  &  {os.path.basename(pair[1])}"
+            pair_list += f"\n  {_label(pair[0])}  &  {_label(pair[1])}"
+        if any(f not in passed_files for pair in pairs for f in pair):
+            pair_list += "\n* not specified on the command line; found alongside its mate"
+
         answer = click.confirm(
             "It appears there are {n_paired_files} paired files (of {n_files} total):{pair_list}\nInterleave them after upload?".format(
                 n_paired_files=len(pairs) * 2,
