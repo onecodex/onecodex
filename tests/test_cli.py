@@ -66,12 +66,14 @@ def test_analyses(runner, api_data, mocked_creds_file):
     assert API_DATA["GET::api/v1/analyses/593601a797914cbf"]["$uri"] in r1.output
 
 
-def test_analyses_await(runner, custom_mock_requests, mocked_creds_file, monkeypatch):
-    analysis_id = "593601a797914cbf"
-    base_payload = {
+def _analysis_payload(analysis_id, **overrides):
+    payload = {
         "$uri": f"/api/v1/analyses/{analysis_id}",
         "analysis_type": "classification",
         "created_at": "2015-09-25T17:27:30.622286-07:00",
+        "complete": True,
+        "success": True,
+        "error_msg": None,
         "job": {"$ref": "/api/v1/jobs/e4b1ab37ff554c53"},
         "sample": {"$ref": "/api/v1/samples/7428cca4a3a04a8e"},
         "cost": None,
@@ -79,10 +81,16 @@ def test_analyses_await(runner, custom_mock_requests, mocked_creds_file, monkeyp
         "draft": False,
         "job_args": {},
     }
+    payload.update(overrides)
+    return payload
+
+
+def test_analyses_await(runner, custom_mock_requests, mocked_creds_file, monkeypatch):
+    analysis_id = "593601a797914cbf"
     bodies = [
-        {**base_payload, "complete": False, "success": False, "error_msg": None},
-        {**base_payload, "complete": False, "success": False, "error_msg": None},
-        {**base_payload, "complete": True, "success": True, "error_msg": None},
+        _analysis_payload(analysis_id, complete=False, success=False),
+        _analysis_payload(analysis_id, complete=False, success=False),
+        _analysis_payload(analysis_id),
     ]
 
     def get_callback(request):
@@ -100,25 +108,15 @@ def test_analyses_await(runner, custom_mock_requests, mocked_creds_file, monkeyp
 
 def test_analyses_logs(runner, custom_mock_requests, mocked_creds_file):
     analysis_id = "593601a797914cbf"
-    base_payload = {
-        "$uri": f"/api/v1/analyses/{analysis_id}",
-        "analysis_type": "classification",
-        "created_at": "2015-09-25T17:27:30.622286-07:00",
-        "complete": True,
-        "success": True,
-        "error_msg": None,
-        "job": {"$ref": "/api/v1/jobs/e4b1ab37ff554c53"},
-        "sample": {"$ref": "/api/v1/samples/7428cca4a3a04a8e"},
-        "cost": None,
-        "dependencies": [],
-        "draft": False,
-        "job_args": {},
-    }
 
     captured = {}
 
     def get_callback(request):
-        return (200, {"Content-Type": "application/json"}, json.dumps(base_payload))
+        return (
+            200,
+            {"Content-Type": "application/json"},
+            json.dumps(_analysis_payload(analysis_id)),
+        )
 
     def logs_callback(request):
         captured["url"] = request.url
@@ -140,23 +138,13 @@ def test_analyses_logs(runner, custom_mock_requests, mocked_creds_file):
 
 def test_analyses_logs_404(runner, custom_mock_requests, mocked_creds_file):
     analysis_id = "593601a797914cbf"
-    base_payload = {
-        "$uri": f"/api/v1/analyses/{analysis_id}",
-        "analysis_type": "classification",
-        "created_at": "2015-09-25T17:27:30.622286-07:00",
-        "complete": True,
-        "success": True,
-        "error_msg": None,
-        "job": {"$ref": "/api/v1/jobs/e4b1ab37ff554c53"},
-        "sample": {"$ref": "/api/v1/samples/7428cca4a3a04a8e"},
-        "cost": None,
-        "dependencies": [],
-        "draft": False,
-        "job_args": {},
-    }
 
     def get_callback(request):
-        return (200, {"Content-Type": "application/json"}, json.dumps(base_payload))
+        return (
+            200,
+            {"Content-Type": "application/json"},
+            json.dumps(_analysis_payload(analysis_id)),
+        )
 
     def logs_callback(request):
         return (404, {"Content-Type": "text/plain"}, "Not Found")
@@ -172,6 +160,293 @@ def test_analyses_logs_404(runner, custom_mock_requests, mocked_creds_file):
     assert result.exit_code != 0
     assert "Logs not found" in result.output
     assert "Traceback" not in result.output
+
+
+FILE_DETAILS = {
+    "files": [
+        {
+            "filename": "report.tsv",
+            "filepath": "results/report.tsv",
+            "size": 11,
+            "url": "http://localhost:3000/files/report.tsv",
+        },
+        {
+            "filename": "summary.txt",
+            "filepath": "summary.txt",
+            "size": 7,
+            "url": "http://localhost:3000/files/summary.txt",
+        },
+    ]
+}
+
+
+@pytest.fixture
+def mock_analysis_files(custom_mock_requests):
+    from onecodex.models.analysis import _AnalysesBase
+
+    _AnalysesBase.get_files.cache_clear()
+
+    analysis_id = "593601a797914cbf"
+
+    def make_mocks(file_details=FILE_DETAILS):
+        return custom_mock_requests(
+            {
+                f"GET::api/v1/analyses/{analysis_id}": _analysis_payload(analysis_id),
+                f"GET::api/v1/analyses/{analysis_id}/file_details": file_details,
+                "GET:text/plain:files/report.tsv": lambda request: (
+                    200,
+                    {"Content-Type": "text/plain"},
+                    "report data",
+                ),
+                "GET:text/plain:files/summary.txt": lambda request: (
+                    200,
+                    {"Content-Type": "text/plain"},
+                    "summary",
+                ),
+            }
+        )
+
+    return analysis_id, make_mocks
+
+
+def test_analyses_files(runner, mock_analysis_files, mocked_creds_file):
+    analysis_id, make_mocks = mock_analysis_files
+    with make_mocks():
+        result = runner.invoke(Cli, ["analyses", "files", analysis_id])
+
+    assert result.exit_code == 0, result.output
+    assert [line.split() for line in result.output.splitlines()] == [
+        ["Filepath", "Size"],
+        ["-" * 66, "-" * 9],
+        ["results/report.tsv", "11", "B"],
+        ["summary.txt", "7", "B"],
+    ]
+
+
+def test_analyses_files_long_filepath_and_size(runner, mock_analysis_files, mocked_creds_file):
+    analysis_id, make_mocks = mock_analysis_files
+    file_details = {
+        "files": [
+            {
+                "filename": "report.tsv",
+                "filepath": "results/" + "nested/" * 10 + "report.tsv",
+                "size": 12300000,
+                "url": "http://localhost:3000/files/report.tsv",
+            }
+        ]
+    }
+    with make_mocks(file_details=file_details):
+        result = runner.invoke(Cli, ["analyses", "files", analysis_id])
+
+    assert result.exit_code == 0, result.output
+    filepath, size, unit = result.output.splitlines()[2].split()
+    assert filepath == "results/" + "nested/" * 7 + "nested..."
+    assert len(filepath) == 66
+    assert (size, unit) == ("12.3", "MB")
+
+
+def test_analyses_files_json(runner, mock_analysis_files, mocked_creds_file):
+    analysis_id, make_mocks = mock_analysis_files
+    with make_mocks():
+        result = runner.invoke(Cli, ["analyses", "files", analysis_id, "--json"])
+
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.output) == FILE_DETAILS["files"]
+
+
+def test_analyses_files_empty(runner, mock_analysis_files, mocked_creds_file):
+    analysis_id, make_mocks = mock_analysis_files
+    with make_mocks(file_details={"files": []}):
+        result = runner.invoke(Cli, ["analyses", "files", analysis_id])
+
+    assert result.exit_code == 0, result.output
+    assert "no output files" in result.output
+
+
+def test_analyses_download(runner, mock_analysis_files, mocked_creds_file):
+    analysis_id, make_mocks = mock_analysis_files
+    with runner.isolated_filesystem():
+        with make_mocks():
+            result = runner.invoke(Cli, ["analyses", "download", analysis_id, "-o", "out"])
+
+        assert result.exit_code == 0, result.output
+        with open(os.path.join("out", "results", "report.tsv")) as f:
+            assert f.read() == "report data"
+        with open(os.path.join("out", "summary.txt")) as f:
+            assert f.read() == "summary"
+
+
+def test_analyses_download_single_file(runner, mock_analysis_files, mocked_creds_file):
+    analysis_id, make_mocks = mock_analysis_files
+    with runner.isolated_filesystem():
+        with make_mocks():
+            result = runner.invoke(
+                Cli, ["analyses", "download", analysis_id, "-f", "results/report.tsv"]
+            )
+
+        assert result.exit_code == 0, result.output
+        assert os.path.exists(os.path.join("results", "report.tsv"))
+        assert not os.path.exists("summary.txt")
+
+
+def test_analyses_download_nonexistent_file(runner, mock_analysis_files, mocked_creds_file):
+    analysis_id, make_mocks = mock_analysis_files
+    with runner.isolated_filesystem():
+        with make_mocks():
+            result = runner.invoke(Cli, ["analyses", "download", analysis_id, "-f", "nope.tsv"])
+
+        assert result.exit_code != 0
+        assert "has no output file(s): nope.tsv" in result.output
+
+
+def test_analyses_download_refuses_path_traversal(runner, mock_analysis_files, mocked_creds_file):
+    analysis_id, make_mocks = mock_analysis_files
+    file_details = {
+        "files": [
+            {
+                "filename": "report.tsv",
+                "filepath": "../report.tsv",
+                "size": 11,
+                "url": "http://localhost:3000/files/report.tsv",
+            }
+        ]
+    }
+    with runner.isolated_filesystem():
+        with make_mocks(file_details=file_details):
+            result = runner.invoke(Cli, ["analyses", "download", analysis_id, "-o", "out"])
+
+        assert result.exit_code != 0
+        assert "Refusing to write '../report.tsv'" in result.output
+        assert not os.path.exists(os.path.join("..", "report.tsv"))
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["analyses", "--help"],
+        ["analyses", "files", "--help"],
+        ["analyses", "download", "--help"],
+        ["analyses", "logs", "--help"],
+        ["analyses", "await", "--help"],
+    ],
+)
+def test_analyses_help_does_not_require_login(runner, mocked_creds_path, args):
+    result = runner.invoke(Cli, args)
+
+    assert result.exit_code == 0, result.output
+    assert "requires authentication" not in result.output
+
+
+def test_analyses_download_existing_file_aborts(runner, mock_analysis_files, mocked_creds_file):
+    analysis_id, make_mocks = mock_analysis_files
+    with runner.isolated_filesystem():
+        os.makedirs(os.path.join("out", "results"))
+        with open(os.path.join("out", "results", "report.tsv"), "w") as f:
+            f.write("mine")
+
+        with make_mocks():
+            result = runner.invoke(Cli, ["analyses", "download", analysis_id, "-o", "out"])
+
+        assert result.exit_code != 0
+        assert "already exists. Will not overwrite." in result.output
+        with open(os.path.join("out", "results", "report.tsv")) as f:
+            assert f.read() == "mine"
+        assert not os.path.exists(os.path.join("out", "summary.txt"))
+
+
+def test_analyses_download_existing_outdir(runner, mock_analysis_files, mocked_creds_file):
+    analysis_id, make_mocks = mock_analysis_files
+    with runner.isolated_filesystem():
+        os.makedirs("out")
+        with make_mocks():
+            result = runner.invoke(Cli, ["analyses", "download", analysis_id, "-o", "out"])
+
+        assert result.exit_code == 0, result.output
+        assert os.path.exists(os.path.join("out", "results", "report.tsv"))
+
+
+def test_analyses_download_outdir_is_a_file(runner, mock_analysis_files, mocked_creds_file):
+    analysis_id, make_mocks = mock_analysis_files
+    with runner.isolated_filesystem():
+        with open("out", "w") as f:
+            f.write("not a directory")
+
+        with make_mocks():
+            result = runner.invoke(Cli, ["analyses", "download", analysis_id, "-o", "out"])
+
+        assert result.exit_code != 0
+        assert "is a file" in result.output
+
+
+def _file_details(*filepaths):
+    return {
+        "files": [
+            {
+                "filename": os.path.basename(filepath),
+                "filepath": filepath,
+                "size": 11,
+                "url": "http://localhost:3000/files/report.tsv",
+            }
+            for filepath in filepaths
+        ]
+    }
+
+
+def test_analyses_download_file_and_directory_collide(
+    runner, mock_analysis_files, mocked_creds_file
+):
+    analysis_id, make_mocks = mock_analysis_files
+    with runner.isolated_filesystem():
+        with make_mocks(file_details=_file_details("a", "a/b")):
+            result = runner.invoke(Cli, ["analyses", "download", analysis_id, "-o", "out"])
+
+        assert result.exit_code != 0
+        assert "lists 'a' as an output file and as a directory containing 'a/b'" in result.output
+        assert "Traceback" not in result.output
+        assert not os.path.exists("out")
+
+
+def test_analyses_download_directory_blocked_by_existing_file(
+    runner, mock_analysis_files, mocked_creds_file
+):
+    analysis_id, make_mocks = mock_analysis_files
+    with runner.isolated_filesystem():
+        os.makedirs("out")
+        with open(os.path.join("out", "a"), "w") as f:
+            f.write("mine")
+
+        with make_mocks(file_details=_file_details("a/b/c")):
+            result = runner.invoke(Cli, ["analyses", "download", analysis_id, "-o", "out"])
+
+        assert result.exit_code != 0
+        assert "already exists and is not a directory" in result.output
+        assert "Traceback" not in result.output
+        with open(os.path.join("out", "a")) as f:
+            assert f.read() == "mine"
+
+
+def test_analyses_download_duplicate_filepaths(runner, mock_analysis_files, mocked_creds_file):
+    analysis_id, make_mocks = mock_analysis_files
+    with runner.isolated_filesystem():
+        with make_mocks(file_details=_file_details("a/b", "/a/b")):
+            result = runner.invoke(Cli, ["analyses", "download", analysis_id, "-o", "out"])
+
+        assert result.exit_code != 0
+        assert "which both resolve to" in result.output
+        assert not os.path.exists("out")
+
+
+@pytest.mark.parametrize("filepath", ["", "/", "."])
+def test_analyses_download_degenerate_filepath(
+    runner, mock_analysis_files, mocked_creds_file, filepath
+):
+    analysis_id, make_mocks = mock_analysis_files
+    with runner.isolated_filesystem():
+        with make_mocks(file_details=_file_details(filepath)):
+            result = runner.invoke(Cli, ["analyses", "download", analysis_id, "-o", "out"])
+
+        assert result.exit_code != 0
+        assert "Refusing to write" in result.output
 
 
 # Classifications

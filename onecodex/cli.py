@@ -25,6 +25,8 @@ from onecodex.input_helpers import (
 )
 from onecodex.lib.upload import DEFAULT_THREADS
 from onecodex.metadata_upload import validate_appendables
+from onecodex.models import Analyses
+from onecodex.models.schemas.misc import FileDetailSchema
 from onecodex.scripts import export_functional_metric, interleave, subset_reads
 from onecodex.utils import (
     OPTION_HELP,
@@ -120,6 +122,34 @@ filter_reads.hidden = True
 scripts.add_command(filter_reads, "filter_reads")
 
 
+def _size_formatter(size: int) -> str:
+    suffix = "B"
+    if size > 1e9:
+        suffix = "GB"
+        size /= 1e9
+    elif size >= 1e6:
+        suffix = "MB"
+        size /= 1e6
+    elif size >= 1e3:
+        suffix = "KB"
+        size /= 1e3
+
+    return "%g %s" % (round(size, 2), suffix)
+
+
+def _print_table(columns: list[tuple[str, int]], rows: list[list[str]]) -> None:
+    header = [name for name, _ in columns]
+    dashes = ["-" * width for _, width in columns]
+
+    for row in [header, dashes, *rows]:
+        cells = []
+        for (_, width), content in zip(columns, row):
+            if len(content) > width:
+                content = content[: width - 3] + "..."
+            cells.append(f"{content:<{width + 2}}")
+        click.echo("".join(cells))
+
+
 @onecodex.group("documents", help="Access files in the Document Portal")
 def documents():
     pass
@@ -138,52 +168,27 @@ def documents_list(ctx, json):
     if not docs_list:
         click.echo("You haven't uploaded any files yet, and no files have been shared with you.")
     else:
-
-        def _size_formatter(size):
-            suffix = "B"
-            if size > 1e9:
-                suffix = "GB"
-                size /= 1e9
-            elif size >= 1e6:
-                suffix = "MB"
-                size /= 1e6
-            elif size >= 1e3:
-                suffix = "KB"
-                size /= 1e3
-
-            return "%g %s" % (round(size, 2), suffix)
-
-        formatters = ["%-18s", "%-34s", "%-25s", "%-11s", "%-12s"]
-        table = [
-            ["ID", "Name", "Owner", "Size", "Created On"],
-            ["-" * 16, "-" * 32, "-" * 23, "-" * 9, "-" * 10],
-        ]
+        columns = [("ID", 16), ("Name", 32), ("Owner", 23), ("Size", 9), ("Created On", 10)]
+        rows = []
 
         docs_list = sorted(
             docs_list,
             reverse=True,
             key=lambda x: time.mktime(x.created_at.timetuple()),
         )
-        # breakpoint()
 
         for doc in docs_list:
-            fname = doc.filename
-            owner = doc.uploader.email
-            table.append(
+            rows.append(
                 [
                     doc.field_uri.split("/")[-1],
-                    fname if len(fname) <= 32 else fname[:29] + "...",
-                    owner if len(owner) <= 23 else owner[:20] + "...",
+                    doc.filename,
+                    doc.uploader.email,
                     _size_formatter(doc.size) if doc.size else "N/A",
                     doc.created_at.strftime("%Y-%m-%d"),
                 ]
             )
 
-        for row in table:
-            formatted_row = []
-            for formatter, content in zip(formatters, row):
-                formatted_row.append(formatter % content)
-            click.echo("".join(formatted_row))
+        _print_table(columns, rows)
 
 
 @click.command("upload", help="Upload a file to the Document Portal")
@@ -318,11 +323,8 @@ def assets_list(ctx, json):
         click.echo("You haven't uploaded any assets yet.")
         return
 
-    formatters = ["%-18s", "%-34s", "%-12s", "%-12s"]
-    table = [
-        ["ID", "Filename", "Status", "Created On"],
-        ["-" * 16, "-" * 32, "-" * 10, "-" * 10],
-    ]
+    columns = [("ID", 16), ("Filename", 32), ("Status", 10), ("Created On", 10)]
+    rows = []
 
     assets_data = sorted(
         assets_data,
@@ -331,21 +333,16 @@ def assets_list(ctx, json):
     )
 
     for asset in assets_data:
-        fname = asset.filename
-        table.append(
+        rows.append(
             [
                 asset.id,
-                fname if len(fname) <= 32 else fname[:29] + "...",
+                asset.filename,
                 asset.status,
                 asset.created_at.strftime("%Y-%m-%d"),
             ]
         )
 
-    for row in table:
-        formatted_row = []
-        for formatter, content in zip(formatters, row):
-            formatted_row.append(formatter % content)
-        click.echo("".join(formatted_row))
+    _print_table(columns, rows)
 
 
 assets.add_command(assets_upload, "upload")
@@ -382,15 +379,26 @@ class _AnalysesGroup(click.Group):
 @click.argument("analyses", nargs=-1, required=False, type=OCX_ID)
 @click.pass_context
 @telemetry
-@login_required
-def analyses(ctx, analyses):
+def analyses(ctx: click.Context, analyses: tuple[str, ...]) -> None:
     """Retrieve performed analyses.
 
     With no arguments, lists all analyses in your account. Pass one or more
     analysis IDs to fetch those analyses specifically.
     """
     if ctx.invoked_subcommand is None:
-        cli_resource_fetcher(ctx, "analyses", analyses)
+        _fetch_analyses(ctx, analyses)
+
+
+@login_required
+def _fetch_analyses(ctx: click.Context, analysis_ids: tuple[str, ...]) -> None:
+    cli_resource_fetcher(ctx, "analyses", analysis_ids)
+
+
+def _get_analysis(ctx: click.Context, analysis_id: str) -> Analyses:
+    analysis = ctx.obj["API"].Analyses.get(analysis_id)
+    if not analysis:
+        raise click.ClickException(f"Could not find analysis {analysis_id} (404 status code)")
+    return analysis
 
 
 @click.command("await")
@@ -423,12 +431,14 @@ def analyses(ctx, analyses):
 @telemetry
 @login_required
 def analyses_await(
-    ctx, analysis_id, timeout_seconds, initial_interval_seconds, max_interval_seconds
-):
+    ctx: click.Context,
+    analysis_id: str,
+    timeout_seconds: float | None,
+    initial_interval_seconds: int,
+    max_interval_seconds: int,
+) -> None:
     """Poll an analysis until it reaches a terminal state."""
-    analysis = ctx.obj["API"].Analyses.get(analysis_id)
-    if not analysis:
-        raise click.ClickException(f"Could not find analysis {analysis_id} (404 status code)")
+    analysis = _get_analysis(ctx, analysis_id)
 
     try:
         analysis.await_completion(
@@ -464,15 +474,139 @@ analyses.add_command(analyses_await, "await")
 @pretty_errors
 @telemetry
 @login_required
-def analyses_logs(ctx, analysis_id, tail):
+def analyses_logs(ctx: click.Context, analysis_id: str, tail: int) -> None:
     """Fetch the job run logs for an analysis."""
-    analysis = ctx.obj["API"].Analyses.get(analysis_id)
-    if not analysis:
-        raise click.ClickException(f"Could not find analysis {analysis_id} (404 status code)")
+    analysis = _get_analysis(ctx, analysis_id)
     click.echo(analysis.logs(tail=tail), nl=False)
 
 
 analyses.add_command(analyses_logs, "logs")
+
+
+@click.command("files")
+@click.argument("analysis_id", nargs=1, required=True, type=OCX_ID)
+@click.option(
+    "--json", "as_json", is_flag=True, default=False, help="Output JSON instead of prettified table"
+)
+@click.pass_context
+@pretty_errors
+@telemetry
+@login_required
+def analyses_files(ctx: click.Context, analysis_id: str, as_json: bool) -> None:
+    """List the output files of an analysis."""
+    files = _get_analysis(ctx, analysis_id).get_files()
+
+    if as_json:
+        pprint([x.model_dump() for x in files], ctx.obj["NOPPRINT"])
+        return
+
+    if not files:
+        click.echo(f"Analysis {analysis_id} has no output files.")
+        return
+
+    columns = [("Filepath", 66), ("Size", 9)]
+    rows = []
+
+    for file_detail in sorted(files, key=lambda x: x.filepath):
+        rows.append(
+            [
+                file_detail.filepath,
+                _size_formatter(file_detail.size),
+            ]
+        )
+
+    _print_table(columns, rows)
+
+
+analyses.add_command(analyses_files, "files")
+
+
+def _plan_downloads(
+    analysis_id: str, files: dict[str, FileDetailSchema], outdir: str
+) -> dict[str, tuple[str, FileDetailSchema]]:
+    downloads: dict[str, tuple[str, FileDetailSchema]] = {}
+
+    for filepath, file_detail in files.items():
+        out_path = os.path.abspath(os.path.join(outdir, filepath.lstrip("/")))
+        if out_path == outdir or os.path.commonpath([outdir, out_path]) != outdir:
+            raise click.ClickException(f"Refusing to write {filepath!r} outside of {outdir}.")
+        if os.path.lexists(out_path):
+            raise click.ClickException(f"{out_path} already exists. Will not overwrite.")
+        if out_path in downloads:
+            raise click.ClickException(
+                f"Analysis {analysis_id} lists both {downloads[out_path][0]!r} and {filepath!r} as "
+                f"output files, which both resolve to {out_path}."
+            )
+        downloads[out_path] = (filepath, file_detail)
+
+    for out_path, (filepath, _) in downloads.items():
+        parent = os.path.dirname(out_path)
+        while parent != outdir:
+            if parent in downloads:
+                raise click.ClickException(
+                    f"Analysis {analysis_id} lists {downloads[parent][0]!r} as an output file and "
+                    f"as a directory containing {filepath!r}."
+                )
+            if os.path.lexists(parent) and not os.path.isdir(parent):
+                raise click.ClickException(
+                    f"Cannot save {filepath!r}: {parent} already exists and is not a directory."
+                )
+            parent = os.path.dirname(parent)
+
+    return downloads
+
+
+@click.command("download")
+@click.argument("analysis_id", nargs=1, required=True, type=OCX_ID)
+@click.option(
+    "-o",
+    "--out",
+    default=".",
+    show_default=True,
+    type=click.Path(file_okay=False, dir_okay=True, writable=True),
+    help="Directory where output file(s) will be saved. Created if it doesn't exist.",
+    shell_complete=partial(click_path_autocomplete_helper, filename=False),
+)
+@click.option(
+    "-f",
+    "--file",
+    "filepaths",
+    multiple=True,
+    help="Download a specific output file by its filepath (see `onecodex analyses files`). Can be "
+    "passed multiple times. By default, all output files are downloaded.",
+)
+@click.pass_context
+@pretty_errors
+@telemetry
+@login_required
+def analyses_download(
+    ctx: click.Context, analysis_id: str, out: str, filepaths: tuple[str, ...]
+) -> None:
+    """Download the output files of an analysis."""
+    analysis = _get_analysis(ctx, analysis_id)
+    files = {x.filepath: x for x in analysis.get_files()}
+
+    if filepaths:
+        missing = [x for x in filepaths if x not in files]
+        if missing:
+            raise click.ClickException(
+                f"Analysis {analysis_id} has no output file(s): {', '.join(missing)}"
+            )
+        files = {x: files[x] for x in filepaths}
+
+    if not files:
+        click.echo(f"Analysis {analysis_id} has no output files.", err=True)
+        return
+
+    for out_path, (filepath, file_detail) in _plan_downloads(
+        analysis_id, files, os.path.abspath(out)
+    ).items():
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        analysis.download_file(file_detail, out_path=out_path, progressbar=True)
+        click.echo(f"{filepath} saved to {out_path}", err=True)
+
+
+analyses.add_command(analyses_download, "download")
 
 
 @onecodex.command("classifications")
@@ -1170,8 +1304,7 @@ def jobs_create(
     if job_type == NEXTFLOW_JOB_TYPE:
         if image_uri is not None:
             raise click.BadParameter(
-                "--image-uri is not supported for Nextflow jobs, "
-                "use --nextflow-version instead.",
+                "--image-uri is not supported for Nextflow jobs, use --nextflow-version instead.",
                 param_hint="--image-uri",
             )
     else:
