@@ -174,6 +174,81 @@ def test_analyses_logs_404(runner, custom_mock_requests, mocked_creds_file):
     assert "Traceback" not in result.output
 
 
+def test_analyses_cancel(runner, custom_mock_requests, mocked_creds_file):
+    analysis_id = "593601a797914cbf"
+    base_payload = {
+        "$uri": f"/api/v1/analyses/{analysis_id}",
+        "analysis_type": "custom",
+        "created_at": "2015-09-25T17:27:30.622286-07:00",
+        "complete": False,
+        "success": False,
+        "error_msg": None,
+        "job": {"$ref": "/api/v1/jobs/e4b1ab37ff554c53"},
+        "sample": {"$ref": "/api/v1/samples/7428cca4a3a04a8e"},
+        "cost": None,
+        "dependencies": [],
+        "draft": False,
+        "job_args": {},
+    }
+
+    captured = {}
+
+    def get_callback(request):
+        return (200, {"Content-Type": "application/json"}, json.dumps(base_payload))
+
+    def cancel_callback(request):
+        captured["url"] = request.url
+        return (200, {"Content-Type": "application/json"}, json.dumps(base_payload))
+
+    with custom_mock_requests(
+        {
+            f"GET::api/v1/analyses/{analysis_id}": get_callback,
+            f"POST::api/v1/analyses/{analysis_id}/cancel": cancel_callback,
+        }
+    ):
+        result = runner.invoke(Cli, ["analyses", "cancel", analysis_id])
+
+    assert result.exit_code == 0, result.output
+    assert captured["url"].endswith(f"/api/v1/analyses/{analysis_id}/cancel")
+    assert f"Cancellation requested for analysis {analysis_id}" in result.output
+    assert f"onecodex analyses await {analysis_id}" in result.output
+
+
+def test_analyses_cancel_error(runner, custom_mock_requests, mocked_creds_file):
+    analysis_id = "593601a797914cbf"
+    base_payload = {
+        "$uri": f"/api/v1/analyses/{analysis_id}",
+        "analysis_type": "custom",
+        "created_at": "2015-09-25T17:27:30.622286-07:00",
+        "complete": False,
+        "success": False,
+        "error_msg": None,
+        "job": {"$ref": "/api/v1/jobs/e4b1ab37ff554c53"},
+        "sample": {"$ref": "/api/v1/samples/7428cca4a3a04a8e"},
+        "cost": None,
+        "dependencies": [],
+        "draft": False,
+        "job_args": {},
+    }
+
+    def get_callback(request):
+        return (200, {"Content-Type": "application/json"}, json.dumps(base_payload))
+
+    def cancel_callback(request):
+        return (403, {"Content-Type": "application/json"}, json.dumps({}))
+
+    with custom_mock_requests(
+        {
+            f"GET::api/v1/analyses/{analysis_id}": get_callback,
+            f"POST::api/v1/analyses/{analysis_id}/cancel": cancel_callback,
+        }
+    ):
+        result = runner.invoke(Cli, ["analyses", "cancel", analysis_id])
+
+    assert result.exit_code != 0
+    assert "not allowed to cancel" in result.output
+
+
 # Classifications
 def test_classification_instance(runner, api_data, mocked_creds_file):
     result = runner.invoke(Cli, ["classifications", "593601a797914cbf"])

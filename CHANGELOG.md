@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `--nextflow-version` option to the `onecodex jobs create` and `onecodex jobs update` CLI
   commands. Defaults to the latest supported Nextflow version. `Jobs.details()` reports the
   version a workflow runs.
+- Added `Analyses.cancel()` and `onecodex analyses cancel` CLI command for canceling an
+  in-progress Custom Workflow run.
 
 ### Changed
 
