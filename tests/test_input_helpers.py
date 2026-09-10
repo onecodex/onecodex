@@ -4,7 +4,7 @@ import pytest
 from onecodex.input_helpers import (
     _find_multilane_groups,
     concatenate_multilane_files,
-    auto_detect_pairs,
+    auto_detect_illumina_pairs,
     concatenate_ont_groups,
 )
 from onecodex.utils import use_tempdir
@@ -35,9 +35,9 @@ def _get_basenames(elems):
         (["test_R1.fq", "test_R2.fq", "other.fq"], [("test_R1.fq", "test_R2.fq"), "other.fq"]),
     ],
 )
-def test_auto_detect_pairs(generate_fastq, files, expected_pairing):
+def test_auto_detect_illumina_pairs(generate_fastq, files, expected_pairing):
     files = [generate_fastq(x) for x in files]
-    pairs = auto_detect_pairs(files, prompt=False)
+    pairs = auto_detect_illumina_pairs(files, prompt=False)
     basenames = _get_basenames(pairs)
     assert basenames == expected_pairing
 
@@ -158,17 +158,29 @@ def test_concatenate_gzipped_multilane_files(generate_fastq_gz):
 def test_concatenate_ont_groups(generate_fastq, files, expected_grouping):
     files = [generate_fastq(x) for x in files]
     with use_tempdir() as tempdir:
-        pairs = concatenate_ont_groups(files, prompt=False, tempdir=tempdir)
-        basenames = _get_basenames(pairs)
+        concatenated, remaining = concatenate_ont_groups(files, prompt=False, tempdir=tempdir)
+        basenames = _get_basenames(concatenated + remaining)
         assert sorted(basenames) == sorted(expected_grouping)
+
+
+def test_concatenate_ont_groups_leaves_paired_files_alone(generate_fastq):
+    """Files without an ONT ordinal must not be grouped."""
+    files = [generate_fastq(x) for x in ["test_R1.fq", "test_R2.fq"]]
+    with use_tempdir() as tempdir:
+        concatenated, remaining = concatenate_ont_groups(files, prompt=False, tempdir=tempdir)
+        assert concatenated == []
+        assert sorted(os.path.realpath(x) for x in remaining) == sorted(
+            os.path.realpath(x) for x in files
+        )
 
 
 def test_concatenate_ont_group_inform_about_missing_file(generate_fastq, caplog):
     filenames = ["test_0.fq", "test_1.fq", "test_3.fq"]
     files = [generate_fastq(x) for x in filenames]
     with use_tempdir() as tempdir:
-        pairs = concatenate_ont_groups(files, prompt=False, tempdir=tempdir)
-        assert len(pairs) == len(filenames)
+        concatenated, remaining = concatenate_ont_groups(files, prompt=False, tempdir=tempdir)
+        assert concatenated == []
+        assert len(remaining) == len(filenames)
         assert (
             "Detected a gap in the ONT file sequence for test.fq, missing file: test_2.fq"
             in caplog.text

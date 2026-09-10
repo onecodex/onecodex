@@ -19,7 +19,7 @@ from onecodex.auth import (
     login_required,
 )
 from onecodex.input_helpers import (
-    auto_detect_pairs,
+    auto_detect_illumina_pairs,
     concatenate_multilane_files,
     concatenate_ont_groups,
 )
@@ -828,7 +828,18 @@ def upload(
     sample_id,
     external_sample_id,
 ):
-    """Upload a FASTA or FASTQ (optionally gzip'd) to One Codex."""
+    """Upload a FASTA or FASTQ (optionally gzip'd) to One Codex.
+
+    Files are grouped into samples based on their filenames: paired end reads (e.g.
+    `sample_R1.fq` and `sample_R2.fq`) are interleaved, ONT files split into numbered
+    chunks (e.g. `sample_0.fq`, `sample_1.fq`) are merged, and files split across
+    sequencing lanes (e.g. `sample_L001.fq`, `sample_L002.fq`) are concatenated.
+
+    If one half of a paired end sample is passed, its mate is picked up from the same
+    directory; it is marked with a * when you are asked to confirm. Pass --no-prompt to
+    upload only the files given on the command line, or --forward/--reverse to pair two
+    files explicitly.
+    """
     appendables = {}
     if tags:
         appendables["tags"] = []
@@ -873,8 +884,8 @@ def upload(
 
             # Detecting ONT groups comes first as otherwise part of ONT group could
             # be mistaken for a paired file
-            files = concatenate_ont_groups(files, prompt, tempdir)
-            files = auto_detect_pairs(files, prompt)
+            ont_files, files = concatenate_ont_groups(files, prompt, tempdir)
+            files = auto_detect_illumina_pairs(files, prompt) + ont_files
 
         files = concatenate_multilane_files(files, prompt, tempdir)
 
