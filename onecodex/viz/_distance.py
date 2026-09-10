@@ -465,7 +465,10 @@ class VizDistanceMixin(DistanceMixin):
             tooltip.insert(2, size)
 
         metadata_results = self._metadata_fetch(
-            tooltip, results_df=self.to_df(), label=label, match_taxonomy=match_taxonomy
+            tooltip,
+            results_df=self.to_df(rank=rank, metric=metric),
+            label=label,
+            match_taxonomy=match_taxonomy,
         )
         magic_metadata = metadata_results.df
         magic_fields = metadata_results.renamed_fields

@@ -59,6 +59,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   that the substring be a valid enum member which behaved unintuitively.
 - `onecodex analyses <subcommand> --help` (e.g. `onecodex analyses logs --help`) no longer
   requires being logged in.
+- `SampleCollection.plot_distance` no longer incorrectly warns about
+  non-comparable metrics when plotting with comparable metrics.
 
 ## [v1.1.0] - 2026-06-18
 

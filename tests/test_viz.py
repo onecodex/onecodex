@@ -1,4 +1,5 @@
 import math
+import warnings
 from datetime import datetime
 
 import mock
@@ -747,6 +748,22 @@ def test_plot_mds_missing_abundances(ocx, api_data, samples, samples_without_abu
         (PlottingWarning, OneCodexUserWarning), match=r"2 sample\(s\) have no abundances calculated"
     ):
         samples.plot_mds(metric="abundance", return_chart=True)
+
+
+@pytest.mark.parametrize("metric", [Metric.Abundance, Metric.FilteredReadcount])
+def test_plot_mds_no_spurious_mixed_abundance_warning(
+    ocx, api_data, samples, samples_without_abundances, metric
+):
+    """The metadata fetch must use the requested metric, not the collection default."""
+    samples = samples + samples_without_abundances[:2]
+    assert len(samples._classification_ids_without_abundances) == 2
+    assert samples.automatic_metric.is_abundance_sensitive
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        samples.plot_mds(metric=metric, return_chart=True)
+
+    assert not [w for w in caught if "may not be comparable" in str(w.message)]
 
 
 def test_plot_pcoa(samples):
