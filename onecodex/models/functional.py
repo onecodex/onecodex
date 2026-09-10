@@ -234,18 +234,15 @@ def _select_condensed_functional_results(
 ) -> dict:
     """Select one metric directly from condensed functional results.
 
-    This does not construct legacy result-row dictionaries or an intermediate
-    pandas DataFrame.
-
-    Standard functional-group rows have the form::
+    Standard functional-group rows have the form:
 
         [id, name, community_cpm, total_rpk, contributions]
 
-    where each contribution is::
+    where each contribution is:
 
         [taxon_id, cpm, rpk]
 
-    Pathway rows have the form::
+    Pathway rows have the form:
 
         [
             id,
@@ -256,7 +253,7 @@ def _select_condensed_functional_results(
             contributions,
         ]
 
-    where each contribution is::
+    where each contribution is:
 
         [taxon_id, abundance, coverage, metacyc_cpm]
     """
