@@ -44,7 +44,7 @@ def _rehydrate_functional_results(
         destination: Optional[list] = None,
     ) -> None:
         """Add a row formatted for results['table']."""
-        # no need to rehydrate rows we don't need, se skip certain functional ids to maintain
+        # no need to rehydrate rows we don't need, skip certain functional ids to maintain
         # backwards compat. with data returned from /filtered_results.
         if (
             (annotation_filter is not None and group_name != annotation_filter)
