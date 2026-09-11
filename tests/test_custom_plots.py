@@ -1118,14 +1118,14 @@ def test_to_functional_df_with_functional_results(metric, values):
                 "uuid": profile_id,
                 "sample_uuid": sample_id,
                 "results": {
-                    "results": {
-                        "go": [
-                            ["GO:1", "one", 1.5, 15.0, [[562, 1.0, 10.0]]],
-                            ["GO:2", "two", 2.5, 25.0, [[562, 2.0, 20.0]]],
-                            ["UNMAPPED", "UNMAPPED", 3.0, 30.0, []],
-                        ],
-                    },
-                    "taxonomy": {"nodes": [{"id": 562, "name": "Escherichia coli"}]},
+                    "go-cpm": [
+                        {"id": "GO:1", "name": "one", "value": 1.5},
+                        {"id": "GO:2", "name": "two", "value": 2.5},
+                    ],
+                    "go-rpk": [
+                        {"id": "GO:1", "name": "one", "value": 15.0},
+                        {"id": "GO:2", "name": "two", "value": 25.0},
+                    ],
                     "n_reads": 100,
                     "n_mapped": 80,
                 },
