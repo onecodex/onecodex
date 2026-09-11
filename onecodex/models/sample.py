@@ -189,6 +189,7 @@ class Samples(OneCodexBase, _SampleSchema, ResourceDownloadMixin):
         "update": SampleUpdateSchema,
         "instances_public": None,
     }
+    _filter_only_fields = frozenset({"tax_ids"})
 
     def __repr__(self):
         return '<{} {}: "{}">'.format(
@@ -204,7 +205,8 @@ class Samples(OneCodexBase, _SampleSchema, ResourceDownloadMixin):
         public: bool = False,
         organization: bool = False,
         filter: Any = None,
-        tags: list | None = None,
+        tags: list[str] | None = None,
+        tax_ids: list[str] | None = None,
         created_at: datetime | DatetimeFilter = UNSET,
         updated_at: datetime | DatetimeFilter = UNSET,
         filename: str | StrFilter | None = UNSET,
@@ -238,6 +240,10 @@ class Samples(OneCodexBase, _SampleSchema, ResourceDownloadMixin):
 
             ocx.Samples.where(tags=["trimmed", "human-depleted"])
 
+        Filter by tax ids (returns samples containing *all* the listed taxa)::
+
+            ocx.Samples.where(tax_ids=["543", "590"])
+
         Filter by a metadata field — transparently joined::
 
             ocx.Samples.where(platform="Illumina NovaSeq 6000")
@@ -263,6 +269,9 @@ class Samples(OneCodexBase, _SampleSchema, ResourceDownloadMixin):
             Tags to filter by. Accepts :class:`Tags` instances, tag ids, or
             tag names — all resolved to refs and combined with
             ``$containsall``.
+        tax_ids
+            Taxonomy ids (as str) to filter by. Only samples containing *every*
+            listed taxon are returned.
 
         Returns
         -------
@@ -309,7 +318,7 @@ class Samples(OneCodexBase, _SampleSchema, ResourceDownloadMixin):
                     raise OneCodexException("Unknown tag specified: {}".format(t))
             new_tags.append(new_tag)
 
-        # Merge inline field kwargs with leftover **keyword_filters.
+        # merge inline field kwargs with leftover **keyword_filters
         merged_filters = _drop_unset(
             created_at=created_at,
             updated_at=updated_at,
@@ -325,6 +334,8 @@ class Samples(OneCodexBase, _SampleSchema, ResourceDownloadMixin):
         merged_filters.update(keyword_filters)
         if new_tags:
             merged_filters["tags"] = {"$containsall": new_tags}
+        if tax_ids:
+            merged_filters["tax_ids"] = {"$containsall": tax_ids}
 
         # we can only search metadata on our own samples currently
         # FIXME: we need to add `instances_public` and `instances_project` metadata routes to
@@ -334,16 +345,24 @@ class Samples(OneCodexBase, _SampleSchema, ResourceDownloadMixin):
             for k, v in merged_filters.items()
             if k in Metadata.model_fields and k not in Samples.model_fields
         }
-        if not public and not organization:
-            if md_search_keywords:
-                metadata_samples = [md.sample for md in Metadata.where(**md_search_keywords)]
+        # drop Metadata filters from Samples filters
+        sample_filters = {k: v for k, v in merged_filters.items() if k not in md_search_keywords}
+
+        if md_search_keywords and (public or organization):
+            endpoint = "public" if public else "organization"
+            invalid_fields = ", ".join(sorted(md_search_keywords))
+            raise OneCodexException(
+                f"Cannot filter {endpoint} samples by metadata field(s): {invalid_fields}"
+            )
 
         if md_search_keywords:
-            # we tried searching by metadata fields
+            # we'll try searching by metadata fields
+            metadata_samples = [md.sample for md in Metadata.where(**md_search_keywords)]
+
             if not metadata_samples:
                 # there were no results, so don't bother with a slower query on Samples
                 samples = []
-            elif not (filters or merged_filters):
+            elif not (filters or sample_filters or filter or sort):
                 # there were results, and there are no other filters to apply, so return them
                 samples = metadata_samples
             else:
@@ -356,7 +375,7 @@ class Samples(OneCodexBase, _SampleSchema, ResourceDownloadMixin):
                     limit=effective_limit,
                     filter=filter,
                     _instances=instances_route,
-                    **merged_filters,
+                    **sample_filters,
                 )
                 samples = [s for s in samples if s.id in metadata_sample_ids]
         else:
@@ -368,7 +387,7 @@ class Samples(OneCodexBase, _SampleSchema, ResourceDownloadMixin):
                 limit=effective_limit,
                 filter=filter,
                 _instances=instances_route,
-                **merged_filters,
+                **sample_filters,
             )
 
         return SampleCollection([s for s in samples[:effective_limit]], Samples)

@@ -544,6 +544,164 @@ def test_where_clauses_with_tags(ocx, api_data):
     assert any(query_in_urls)
 
 
+def _extract_query_clauses(clause: str, path: str = "/api/v1/samples") -> list[dict]:
+    """Extract `clause` (e.g. "where" or "sort") query arg from each recorded request to `path`."""
+    clauses = []
+    for c in responses.calls:
+        parsed = urlparse(c.request.url)
+        if parsed.path != path:
+            continue
+        value = parse_qs(parsed.query).get(clause)
+        if value:
+            clauses.append(json.loads(value[0]))
+    return clauses
+
+
+def test_where_clauses_with_tax_ids(ocx, api_data):
+    sample = ocx.Samples.get("7428cca4a3a04a8e")
+    samples = ocx.Samples.where(tax_ids=["543", "590"])
+
+    assert sample in samples
+    assert _extract_query_clauses("where") == [{"tax_ids": {"$containsall": ["543", "590"]}}]
+
+
+@pytest.mark.parametrize("tax_ids", [None, []])
+def test_where_clauses_with_empty_tax_ids(ocx, api_data, tax_ids):
+    ocx.Samples.where(tax_ids=tax_ids)
+
+    assert _extract_query_clauses("where") == [{}]
+
+
+def test_where_clauses_with_tax_ids_and_tags(ocx, api_data):
+    tag = ocx.Tags.get("5c1e9e41043e4435")
+    ocx.Samples.where(tags=[tag], tax_ids=["543"])
+
+    assert _extract_query_clauses("where") == [
+        {
+            "tags": {"$containsall": [{"$ref": "/api/v1/tags/5c1e9e41043e4435"}]},
+            "tax_ids": {"$containsall": ["543"]},
+        }
+    ]
+
+
+def test_where_clauses_with_tax_ids_and_sample_field(ocx, api_data):
+    ocx.Samples.where(tax_ids=["543"], visibility="private")
+
+    assert _extract_query_clauses("where") == [
+        {"visibility": "private", "tax_ids": {"$containsall": ["543"]}}
+    ]
+
+
+def test_where_clauses_with_tax_ids_public_endpoint(ocx, api_data):
+    ocx.Samples.where(tax_ids=["543"], public=True)
+
+    assert _extract_query_clauses("where", "/api/v1/samples") == []
+    assert _extract_query_clauses("where", "/api/v1/samples/public") == [
+        {"tax_ids": {"$containsall": ["543"]}}
+    ]
+
+
+def test_where_clauses_with_tax_ids_org_endpoint(ocx, api_data):
+    ocx.Samples.where(tax_ids=["543"], organization=True)
+
+    assert _extract_query_clauses("where", "/api/v1/samples") == []
+    assert _extract_query_clauses("where", "/api/v1/samples/organization") == [
+        {"tax_ids": {"$containsall": ["543"]}}
+    ]
+
+
+def _mock_metadata_record(raw_api_data, **fields):
+    raw_api_data["GET::api/v1/metadata"] = [
+        {
+            "$uri": "/api/v1/metadata/4fe05e748b5a4f0e",
+            "sample": {"$ref": "/api/v1/samples/761bc54b97f64980"},
+            "custom": {},
+            **fields,
+        }
+    ]
+    return raw_api_data
+
+
+def test_where_clauses_with_tax_ids_and_metadata_field(ocx, raw_api_data, custom_mock_requests):
+    _mock_metadata_record(raw_api_data, starred=True)
+
+    with custom_mock_requests(raw_api_data):
+        samples = ocx.Samples.where(tax_ids=["543"], starred=True)
+
+        # the sample query keeps `tax_ids` and drops the metadata-only field
+        assert _extract_query_clauses("where") == [{"tax_ids": {"$containsall": ["543"]}}]
+        assert _extract_query_clauses("where", "/api/v1/metadata") == [{"starred": True}]
+
+    # results are the intersection of the two queries
+    assert [s.id for s in samples] == ["761bc54b97f64980"]
+
+
+def test_where_metadata_field_with_sample_field(ocx, raw_api_data, custom_mock_requests):
+    _mock_metadata_record(raw_api_data, starred=True)
+
+    with custom_mock_requests(raw_api_data):
+        samples = ocx.Samples.where(starred=True, visibility="private")
+
+        assert _extract_query_clauses("where") == [{"visibility": "private"}]
+        assert _extract_query_clauses("where", "/api/v1/metadata") == [{"starred": True}]
+
+    assert [s.id for s in samples] == ["761bc54b97f64980"]
+
+
+def test_where_metadata_field_only(ocx, raw_api_data, custom_mock_requests):
+    _mock_metadata_record(raw_api_data, starred=True)
+
+    with custom_mock_requests(raw_api_data):
+        samples = ocx.Samples.where(starred=True)
+
+        assert _extract_query_clauses("where") == []
+
+    assert [s.id for s in samples] == ["761bc54b97f64980"]
+
+
+def test_where_metadata_field_no_matches(ocx, raw_api_data, custom_mock_requests):
+    raw_api_data["GET::api/v1/metadata"] = []
+
+    with custom_mock_requests(raw_api_data):
+        samples = ocx.Samples.where(starred=True, visibility="private")
+
+        assert _extract_query_clauses("where") == []
+
+    assert list(samples) == []
+
+
+def test_where_metadata_field_with_local_filter(ocx, raw_api_data, custom_mock_requests):
+    _mock_metadata_record(raw_api_data, starred=True)
+
+    with custom_mock_requests(raw_api_data):
+        # Local filter is still applied after a Metadata search
+        kept = ocx.Samples.where(starred=True, filter=lambda s: s.filename.endswith(".fastq.gz"))
+        dropped = ocx.Samples.where(starred=True, filter=lambda s: s.filename == "nope.fastq.gz")
+
+    assert [s.id for s in kept] == ["761bc54b97f64980"]
+    assert list(dropped) == []
+
+
+def test_where_metadata_field_with_sort(ocx, raw_api_data, custom_mock_requests):
+    _mock_metadata_record(raw_api_data, starred=True)
+
+    with custom_mock_requests(raw_api_data):
+        # Filter is applied to Metadata but sort to Samples
+        samples = ocx.Samples.where(starred=True, sort="filename")
+
+        assert _extract_query_clauses("sort") == [{"filename": True}]
+
+    assert [s.id for s in samples] == ["761bc54b97f64980"]
+
+
+@pytest.mark.parametrize("scope", ["public", "organization"])
+def test_where_metadata_field_not_supported_for_public_and_org_samples(ocx, api_data, scope):
+    with pytest.raises(OneCodexException) as e:
+        ocx.Samples.where(starred=True, **{scope: True})
+
+    assert "Cannot filter {} samples by metadata field(s): starred".format(scope) in str(e.value)
+
+
 def test_where_filter(ocx, api_data):
     samples = ocx.Samples.where(filter=lambda s: s.filename.endswith("9.fastq.gz"))
     assert all([s.filename.endswith("9.fastq.gz") for s in samples])

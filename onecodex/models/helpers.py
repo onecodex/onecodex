@@ -48,7 +48,7 @@ def generate_potion_keyword_where(keyword_filters, where_schema, base_class):
         if keyword == "id":
             keyword = "$uri"
 
-        if keyword not in base_class.model_fields:
+        if keyword not in base_class.model_fields and keyword not in base_class._filter_only_fields:
             raise AttributeError("{} cannot be searched on {}".format(base_class.__name__, keyword))
 
         if isinstance(search_value, list):
