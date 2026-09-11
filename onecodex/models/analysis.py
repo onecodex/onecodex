@@ -691,7 +691,7 @@ class FunctionalProfiles(_AnalysesBase, FunctionalRunSchema):
         result_json = self._condensed_results()
 
         if result_json is None:
-            return empty_df
+            raise OneCodexException(f"Results are not available for functional profile {self.id}")
 
         result_json = _rehydrate_functional_results(
             result_json,

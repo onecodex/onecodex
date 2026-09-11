@@ -582,12 +582,14 @@ def test_condensed_results_dont_fall_back_to_api(
 
     request_count = len(api_data.calls)
 
-    result = profile.table(
-        annotation="go",
-        metric="rpk",
-        taxa_stratified=False,
-    )
-
-    assert result.empty
+    with pytest.raises(
+        OneCodexException,
+        match=f"Results are not available for functional profile {profile.id}",
+    ):
+        profile.table(
+            annotation="go",
+            metric="rpk",
+            taxa_stratified=False,
+        )
 
     assert len(api_data.calls) == request_count
