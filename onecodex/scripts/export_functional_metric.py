@@ -1,19 +1,21 @@
-import click
 import csv
-import re
 import os
+import re
 import shutil
 import tempfile
-
 from abc import ABC, abstractmethod
 from datetime import datetime
-from onecodex.exceptions import OneCodexException
-from onecodex.auth import login_required
-from onecodex.utils import pretty_errors
-from onecodex.lib.helpers import RateLimiter, hash_to_hex
-from onecodex.lib.download import get_project
-from onecodex.lib.enums import FunctionalAnnotationsMetric, FunctionalAnnotations
 from typing import TextIO
+
+import click
+
+from onecodex.auth import login_required
+from onecodex.exceptions import OneCodexException
+from onecodex.lib.download import get_project
+from onecodex.lib.enums import FunctionalAnnotations, FunctionalAnnotationsMetric
+from onecodex.lib.helpers import RateLimiter, hash_to_hex
+from onecodex.models.functional import _rehydrate_functional_results
+from onecodex.utils import pretty_errors
 
 API_BASE = "/api/v1/functional_profiles"
 SPECIES_RE = re.compile(r"s__(\w+)", re.IGNORECASE | re.UNICODE)
@@ -304,8 +306,16 @@ def cli(ctx, out, annotation, metric, not_taxa_stratified, project, sample_ids, 
         for fr in bar:
             limiter.acquire()
 
-            data = fr._filtered_results(
-                annotation=annotation, metric=metric, taxa_stratified=not not_taxa_stratified
+            data = fr._condensed_results()
+
+            if data is None:
+                raise OneCodexException(f"Results not available for functional profile {fr.id}")
+
+            data = _rehydrate_functional_results(
+                data,
+                annotation_filter=annotation,
+                metric_filter=metric,
+                taxa_stratified_filter=not not_taxa_stratified,
             )
             sample_name = fr.sample.metadata.name or fr.sample.filename
             exporter.consume_results(fr.sample.id, sample_name, fr.id, data)

@@ -1090,3 +1090,72 @@ def test_stats_to_dict_ancombc():
     taxon_a = next(r for r in global_records if r["Taxon"] == "Taxon A")
     assert taxon_a["W"] == 5.0
     assert taxon_a["Signif"] is True
+
+
+@pytest.mark.parametrize(
+    "metric, values",
+    [
+        (FunctionalAnnotationsMetric.Cpm, [1.5, 2.5]),
+        (FunctionalAnnotationsMetric.Rpk, [15.0, 25.0]),
+    ],
+)
+def test_to_functional_df_with_functional_results(metric, values):
+    sample_id = generate_id()
+    profile_id = generate_id()
+
+    sample = Samples(
+        {
+            "uuid": sample_id,
+            "metadata": {
+                "sample_id": sample_id,
+                "metadata_id": generate_id(),
+                "classification_id": generate_id(),
+                "created_at": "2026-01-01",
+                "filename": "sample.fastq",
+            },
+            "primary_classification": None,
+            "functional_profile": {
+                "uuid": profile_id,
+                "sample_uuid": sample_id,
+                "results": {
+                    "go-cpm": [
+                        {"id": "GO:1", "name": "one", "value": 1.5},
+                        {"id": "GO:2", "name": "two", "value": 2.5},
+                    ],
+                    "go-rpk": [
+                        {"id": "GO:1", "name": "one", "value": 15.0},
+                        {"id": "GO:2", "name": "two", "value": 25.0},
+                    ],
+                    "n_reads": 100,
+                    "n_mapped": 80,
+                },
+            },
+        }
+    )
+
+    collection = SampleCollection([sample])
+    result = collection.to_functional_df(
+        annotation=FunctionalAnnotations.Go,
+        metric=metric,
+        taxa_stratified=False,
+    )
+
+    assert result.loc[profile_id].to_dict() == {
+        "GO:1": values[0],
+        "GO:2": values[1],
+    }
+    assert result.ocx_feature_name_map == {
+        "GO:1": "one",
+        "GO:2": "two",
+    }
+
+    table = collection._functional_profiles[0].filtered_table(
+        annotation=FunctionalAnnotations.Go,
+        metric=metric,
+        taxa_stratified=False,
+    )
+    assert table.to_dict("list") == {
+        "id": ["GO:1", "GO:2"],
+        "name": ["one", "two"],
+        "value": values,
+    }

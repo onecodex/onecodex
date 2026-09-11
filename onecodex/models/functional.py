@@ -1,4 +1,5 @@
-from typing import Optional
+import math
+from typing import Any, Optional
 
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.enums import FunctionalAnnotations, FunctionalAnnotationsMetric
@@ -26,6 +27,12 @@ def _rehydrate_functional_results(
     table = []
     pathway_table = []
 
+    # do we only want things with complete (1.0) abundance?
+    complete_abundance_filter = metric_filter == FunctionalAnnotationsMetric.CompleteAbundance
+
+    if complete_abundance_filter:
+        metric_filter = FunctionalAnnotationsMetric.Abundance.value
+
     def add_row(
         group_name: str,
         feature_id: str,
@@ -37,10 +44,12 @@ def _rehydrate_functional_results(
         destination: Optional[list] = None,
     ) -> None:
         """Add a row formatted for results['table']."""
-        # no need to rehydrate rows we don't need
+        # no need to rehydrate rows we don't need, skip certain functional ids to maintain
+        # backwards compat. with data returned from /filtered_results.
         if (
             (annotation_filter is not None and group_name != annotation_filter)
             or (metric_filter is not None and metric != metric_filter)
+            or (metric_filter is not None and feature_id in _SKIP_FUNCTIONAL_IDS)
             or (taxa_stratified_filter is not None and taxa_stratified != taxa_stratified_filter)
         ):
             return
@@ -125,6 +134,9 @@ def _rehydrate_functional_results(
         community_cpm,
         contributions,
     ) in pathways:
+        if complete_abundance_filter and (community_coverage != 1.0):
+            continue
+
         # these are only added when not stratifying by taxa
         if taxa_stratified_filter is not True:
             add_row("metacyc", pathway_id, pathway_name, "cpm", community_cpm)
@@ -176,81 +188,154 @@ def _rehydrate_functional_results(
     }
 
 
-def _rehydrate_filtered_functional_results(
+# these are the indices to use when accessing condensed data, the first element in the tuple
+# is the index for the community value, second element is the index for the value in the
+# contributions list. e.g., for CPM, the community value is at index 2 and in the contribution
+# list the CPM value is at index 1
+_STANDARD_METRIC_INDEXES = {
+    FunctionalAnnotationsMetric.Cpm: (2, 1),
+    FunctionalAnnotationsMetric.Rpk: (3, 2),
+}
+_PATHWAY_METRIC_INDEXES = {
+    FunctionalAnnotationsMetric.Abundance: (2, 1),
+    FunctionalAnnotationsMetric.Coverage: (3, 2),
+}
+_METACYC_METRIC_INDEXES = {
+    # metacyc values are folded into pathways
+    FunctionalAnnotationsMetric.Cpm: (4, 3),
+    FunctionalAnnotationsMetric.Rpk: (2, 1),
+}
+
+
+def _normalize_taxon_id(value: Any) -> str:
+    """Coerce a taxon id to a string for use in a DataFrame index.
+
+    Required to consistently handle missing values, ints and floats (like 386414.0).
+    """
+
+    if value is None:
+        return ""
+
+    if isinstance(value, float):
+        if math.isnan(value):
+            return ""
+
+        if value.is_integer():
+            return str(int(value))
+
+    return str(value)
+
+
+def _select_condensed_functional_results(
     condensed_results: dict,
-    annotation: FunctionalAnnotations,
-    metric: FunctionalAnnotationsMetric,
+    annotation: FunctionalAnnotations | str,
+    metric: FunctionalAnnotationsMetric | str,
     taxa_stratified: bool,
 ) -> dict:
-    """Rehydrate condensed functional results into the public filtered API results format."""
+    """Select one metric directly from condensed functional results.
 
-    _SKIP_FUNCTIONAL_IDS = {"UNMAPPED", "UNGROUPED", "UNINTEGRATED"}
+    Standard functional-group rows have the form:
+
+        [id, name, community_cpm, total_rpk, contributions]
+
+    where each contribution is:
+
+        [taxon_id, cpm, rpk]
+
+    Pathway rows have the form:
+
+        [
+            id,
+            name,
+            community_abundance,
+            community_coverage,
+            metacyc_cpm,
+            contributions,
+        ]
+
+    where each contribution is:
+
+        [taxon_id, abundance, coverage, metacyc_cpm]
+    """
 
     annotation = FunctionalAnnotations.from_value(annotation)
     metric = FunctionalAnnotationsMetric.from_value(metric)
+    allowed_metrics = FunctionalAnnotationsMetric.metrics_for_annotation(annotation)
 
-    if metric not in FunctionalAnnotationsMetric.metrics_for_annotation(annotation):
+    if metric not in allowed_metrics:
         raise OneCodexException(
             f"metric {metric} cannot be retrieved for functional group {annotation}"
         )
 
-    effective_metric = metric
+    results_group = annotation.value
+    require_complete_pathway = metric == FunctionalAnnotationsMetric.CompleteAbundance
 
-    if annotation in (FunctionalAnnotations.Pathways, FunctionalAnnotations.MetaCyc):
-        selected = [
-            pathway
-            for pathway in condensed_results["results"].get("pathways", [])
-            if pathway[0] not in _SKIP_FUNCTIONAL_IDS
+    if annotation == FunctionalAnnotations.Pathways:
+        community_value_index, contribution_value_index = _PATHWAY_METRIC_INDEXES[
+            FunctionalAnnotationsMetric.Abundance if require_complete_pathway else metric
         ]
-
-        # complete abundance means annotations where the community level coverage is 1.0
-        if (
-            annotation == FunctionalAnnotations.Pathways
-            and metric == FunctionalAnnotationsMetric.CompleteAbundance
-        ):
-            # pathway[3] == community_coverage
-            selected = [pathway for pathway in selected if pathway[3] == 1.0]
-            effective_metric = FunctionalAnnotationsMetric.Abundance
-
-        selected_results = {"pathways": selected}
+    elif annotation == FunctionalAnnotations.MetaCyc:
+        results_group = FunctionalAnnotations.Pathways.value
+        community_value_index, contribution_value_index = _METACYC_METRIC_INDEXES[metric]
     else:
-        selected_results = {
-            annotation.value: [
-                feature
-                for feature in condensed_results["results"].get(annotation.value, [])
-                if feature[0] not in _SKIP_FUNCTIONAL_IDS
-            ]
-        }
+        community_value_index, contribution_value_index = _STANDARD_METRIC_INDEXES[metric]
 
-    filtered_condensed_results = {
-        **condensed_results,
-        "results": selected_results,
-    }
+    feature_ids: list[str] = []
+    values: list[float] = []
+    feature_name_map: dict[str, str | None] = {}
 
-    hydrated = _rehydrate_functional_results(
-        filtered_condensed_results,
-        annotation_filter=annotation.value,
-        metric_filter=effective_metric.value,
-        taxa_stratified_filter=taxa_stratified,
-    )
+    taxon_ids: list[str] | None = [] if taxa_stratified else None
 
-    table = []
+    features = condensed_results["results"].get(results_group, [])
 
-    for row in hydrated["table"]:
-        filtered_row = {
-            "id": row["id"],
-            "name": row["name"],
-            "value": row["value"],
-        }
+    for feature in features:
+        feature_id = str(feature[0])
+        encoded_name = feature[1]
 
-        if taxa_stratified:
-            filtered_row["taxon_id"] = row["taxon_id"]
-            filtered_row["taxon_name"] = row["taxon_name"]
+        if feature_id in _SKIP_FUNCTIONAL_IDS:
+            continue
 
-        table.append(filtered_row)
+        # complete_abundance includes only pathways whose community-level
+        # coverage is exactly 1.0. The reported value is still abundance.
+        if require_complete_pathway and feature[3] != 1.0:
+            continue
+
+        # Missing names for standard groups are encoded by repeating the ID.
+        # Pathway names are also used for the derived MetaCyc group.
+        if annotation in (
+            FunctionalAnnotations.Pathways,
+            FunctionalAnnotations.MetaCyc,
+        ):
+            feature_name = encoded_name
+        else:
+            feature_name = None if encoded_name == feature_id else encoded_name
+
+        if not taxa_stratified:
+            feature_ids.append(feature_id)
+            values.append(feature[community_value_index])
+            feature_name_map[feature_id] = feature_name
+            continue
+
+        assert taxon_ids is not None
+
+        # Contributions are always the final element of a condensed feature.
+        for contribution in feature[-1]:
+            taxon_id = _normalize_taxon_id(contribution[0])
+
+            feature_ids.append(feature_id)
+            taxon_ids.append(taxon_id)
+            values.append(contribution[contribution_value_index])
+
+            # Only add names for observations that were actually emitted. This
+            # keeps the feature-name map aligned with dataframe columns when a
+            # feature has no taxonomic contributions.
+            feature_name_map[feature_id] = feature_name
 
     return {
-        "table": table,
+        "feature_ids": feature_ids,
+        "values": values,
+        "feature_name_map": feature_name_map,
+        "taxon_ids": taxon_ids,
         "n_reads": condensed_results["n_reads"],
         "n_mapped": condensed_results["n_mapped"],
     }
