@@ -205,7 +205,7 @@ class Samples(OneCodexBase, _SampleSchema, ResourceDownloadMixin):
         public: bool = False,
         organization: bool = False,
         filter: Any = None,
-        tags: list[str] | None = None,
+        tags: list[str | Tags] | Tags | str | None = None,
         tax_ids: list[str] | None = None,
         created_at: datetime | DatetimeFilter = UNSET,
         updated_at: datetime | DatetimeFilter = UNSET,
@@ -240,7 +240,8 @@ class Samples(OneCodexBase, _SampleSchema, ResourceDownloadMixin):
 
             ocx.Samples.where(tags=["trimmed", "human-depleted"])
 
-        Filter by tax ids (returns samples containing *all* the listed taxa)::
+        Filter by tax ids (returns samples containing *all* the listed taxa - having
+        one or more cumulative reads as measured by Metric.ReadcountWChildren)::
 
             ocx.Samples.where(tax_ids=["543", "590"])
 
