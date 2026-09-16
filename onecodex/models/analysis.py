@@ -661,17 +661,15 @@ class FunctionalProfiles(_AnalysesBase, FunctionalRunSchema):
 
         from onecodex.models.functional import _rehydrate_functional_results
 
-        empty_df = pd.DataFrame(
-            {
-                "group_name": pd.Series(dtype="str"),
-                "id": pd.Series(dtype="str"),
-                "name": pd.Series(dtype="str"),
-                "metric": pd.Series(dtype="str"),
-                "value": pd.Series(dtype="float"),
-                "taxa_stratified": pd.Series(dtype="bool"),
-                "taxon_id": pd.Series(dtype="str"),
-            }
-        )
+        FUNCTIONAL_TABLE_SCHEMA = {
+            "group_name": "string",
+            "id": "string",
+            "name": "string",
+            "metric": "string",
+            "value": "float64",
+            "taxa_stratified": "boolean",
+            "taxon_id": "string",
+        }
 
         # validate functional annotation and metric
         if annotation is not None:
@@ -699,10 +697,9 @@ class FunctionalProfiles(_AnalysesBase, FunctionalRunSchema):
             taxa_stratified_filter=taxa_stratified,
         )
 
-        if not result_json["table"]:
-            return empty_df
-
-        return pd.DataFrame(result_json["table"], columns=empty_df.columns)
+        return pd.DataFrame(result_json["table"], columns=list(FUNCTIONAL_TABLE_SCHEMA)).astype(
+            FUNCTIONAL_TABLE_SCHEMA
+        )
 
     def filtered_table(
         self,
