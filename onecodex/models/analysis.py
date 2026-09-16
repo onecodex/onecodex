@@ -573,8 +573,21 @@ class FunctionalProfiles(_AnalysesBase, FunctionalRunSchema):
         try:
             results = _load_results_uri(self.results_uri)
         except requests.HTTPError:
-            # presigned URL may have expired
-            return None
+            # presigned URL may have expired, attempt to refresh it and retry results retrieval
+            resp = self._client.get(f"{self._api._base_url}{self.field_uri}")
+
+            if not resp.ok:
+                return None
+
+            self.results_uri = resp.json().get("results_uri")
+
+            if self.results_uri is None:
+                return None
+
+            try:
+                results = _load_results_uri(self.results_uri)
+            except requests.HTTPError:
+                return None
 
         # any updates to the condensed results may impact the positional arrays,
         # e.g., [id, name, cpm, rpk] and we should disallow version mismatches to
@@ -605,7 +618,6 @@ class FunctionalProfiles(_AnalysesBase, FunctionalRunSchema):
         condensed_results = self._condensed_results()
 
         if condensed_results is None:
-            # shouldn't get here
             raise OneCodexException(f"Results are not available for functional profile {self.id}")
 
         return _select_condensed_functional_results(

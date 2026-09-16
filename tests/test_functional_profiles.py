@@ -568,8 +568,6 @@ def test_condensed_results_dont_fall_back_to_api(
 
     assert profile._condensed_results() is None
 
-    request_count = len(api_data.calls)
-
     with pytest.raises(
         OneCodexException,
         match=f"Results are not available for functional profile {profile.id}",
@@ -580,4 +578,26 @@ def test_condensed_results_dont_fall_back_to_api(
             taxa_stratified=False,
         )
 
-    assert len(api_data.calls) == request_count
+    # an expired URL refetches the run for a fresh one, but results themselves must never
+    # come from the API
+    assert not [call for call in api_data.calls if call.request.url.endswith("/results")]
+
+
+def test_condensed_results_refreshes_expired_uri(ocx, api_data, monkeypatch):
+    from onecodex.models.analysis import _load_results_uri
+
+    profile = ocx.FunctionalProfiles.get("a888fdc70221befa")
+    loaded_uris = []
+
+    def load_results(uri):
+        loaded_uris.append(uri)
+
+        if len(loaded_uris) == 1:
+            raise requests.HTTPError("expired results URL")
+
+        return _load_results_uri(uri)
+
+    monkeypatch.setattr("onecodex.models.analysis._load_results_uri", load_results)
+
+    assert profile._condensed_results() is not None
+    assert len(loaded_uris) == 2
