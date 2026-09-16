@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `--nextflow-version` option to the `onecodex jobs create` and `onecodex jobs update` CLI
   commands. Defaults to the latest supported Nextflow version. `Jobs.details()` reports the
   version a workflow runs.
+- Added a `metric` argument to `FunctionalProfiles.table()` which filters results to a single
+  metric (e.g., `cpm`, `rpk`, etc.). To preserve backwards compatibility, this argument
+  defaults to `"all"` which returns all metrics available for an annotation.
 
 ### Changed
 
@@ -35,6 +38,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - In `plot_metadata(width="container", ...)`, boxplot width is now dynamically adjusted based on the
   number of boxes
 - Improved speed of `onecodex scripts subset_reads` by around 20%.
+- `FunctionalProfiles.table()` and `filtered_table()` raise a `OneCodexException` when
+  results are unavailable, instead of returning an empty DataFrame. They also raise when a
+  metric is not valid for the requested annotation.
+- Column dtypes on `FunctionalProfiles.table()` and `filtered_table()` are now fixed:
+  text columns use the nullable `string` dtype, `taxa_stratified` uses `boolean`,
+  and `value` is always `float64` (it could previously come back as `int64`).
+  Missing values are `pd.NA` and empty results now have these same dtypes.
+- `FunctionalProfiles.table()` now returns a fresh, ordered zero-based index. It previously returned a
+  filtered slice of the full results table, which kept original indices.
 
 ### Removed
 
