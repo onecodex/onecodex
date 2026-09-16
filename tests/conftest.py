@@ -7,7 +7,6 @@ import json
 import os
 import re
 from contextlib import contextmanager
-from urllib.parse import parse_qs, urlparse
 
 import pytest
 import responses
@@ -15,7 +14,6 @@ import zstandard
 from click.testing import CliRunner
 
 from onecodex import Api
-from onecodex.lib.enums import FunctionalAnnotations, FunctionalAnnotationsMetric
 from onecodex.models.collection import SampleCollection
 
 
@@ -128,19 +126,6 @@ def _load_functional_api_results():
     filepath = "tests/data/api/v1/functional_profiles/a888fdc70221befa/results/original_api_results.json.gz"
     with gzip.open(filepath, "rt") as results_file:
         return json.load(results_file)
-
-
-def functional_filtered_results_callback(request):
-    query = parse_qs(urlparse(request.url).query)
-
-    result = filtered_raw_results(
-        _load_functional_api_results(),
-        annotation=query["functional_group"][0],
-        metric=query["metric"][0],
-        taxa_stratified=query["taxa_stratified"][0].lower() == "true",
-    )
-
-    return _make_callback_resp(result)
 
 
 # All of the mocked API data. Scheme is METHOD:CONTENT_TYPE:URL (content-type is optional) and then
@@ -482,6 +467,9 @@ API_DATA = {
             "dependencies": [],
             "draft": False,
             "success": True,
+            "results_uri": os.path.abspath(
+                "tests/data/api/v1/functional_profiles/eec4ac90d9104d1e/results/results_api_data.v1.json.gz"
+            ),
         },
     ],
     "GET::api/v1/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%7B%22%24in%22%3A\\+%5B%2266c1531cb0b244f6%22%5D%7D.*": [
@@ -496,6 +484,9 @@ API_DATA = {
             "dependencies": [],
             "draft": False,
             "success": True,
+            "results_uri": os.path.abspath(
+                "tests/data/api/v1/functional_profiles/bde18eb9407d4c2f/results/results_api_data.v1.json.gz"
+            ),
         },
     ],
     "GET::api/v1/functional_profiles\\?.*where=%7B%22sample%22%3A\\+%7B%22%24in%22%3A\\+%5B%22543c9c046e3e4e09%22%5D%7D.*": [
@@ -510,26 +501,13 @@ API_DATA = {
             "dependencies": [],
             "draft": False,
             "success": True,
+            "results_uri": os.path.abspath(
+                "tests/data/api/v1/functional_profiles/31ddae978aff475f/results/results_api_data.v1.json.gz"
+            ),
         },
     ],
 }
-API_DATA["GET::api/v1/functional_profiles/a888fdc70221befa/filtered_results\\?.*"] = (
-    functional_filtered_results_callback
-)
 
-for functional_uuid in {"31ddae978aff475f", "bde18eb9407d4c2f", "eec4ac90d9104d1e"}:
-    raw_results = json.load(
-        open(f"tests/data/api/v1/functional_profiles/{functional_uuid}/results/index.json")
-    )
-    for annotation in FunctionalAnnotations:
-        for metric in FunctionalAnnotationsMetric.metrics_for_annotation(annotation):
-            # TODO: should this go in the JSONs with everything else?
-            API_DATA[
-                f"GET::api/v1/functional_profiles/{functional_uuid}/filtered_results\\?.*functional_group={annotation}.*&.*metric={metric}.*&.*taxa_stratified=True"
-            ] = filtered_raw_results(raw_results, annotation, metric, True)
-            API_DATA[
-                f"GET::api/v1/functional_profiles/{functional_uuid}/filtered_results\\?.*functional_group={annotation}.*&.*metric={metric}.*&.*taxa_stratified=False"
-            ] = filtered_raw_results(raw_results, annotation, metric, False)
 
 API_DATA_DIR = os.path.join("tests", "data", "api")
 
@@ -571,6 +549,19 @@ for api_version in os.listdir(API_DATA_DIR):
                             instance["results_uri"] = os.path.abspath(instance["results_uri"])
                         instance_uri = f"GET::{instance['$uri'].lstrip('/')}"
                         API_DATA[instance_uri] = instance
+
+API_DATA["GET::api/v1/functional_profiles"] = [
+    {
+        **profile,
+        "results_uri": os.path.abspath(
+            f"tests/data/api/v1/functional_profiles/{profile['$uri'].split('/')[-1]}/results/results_api_data.v1.json.gz"
+        ),
+    }
+    for profile in API_DATA["GET::api/v1/functional_profiles"]
+]
+for profile in API_DATA["GET::api/v1/functional_profiles"]:
+    instance_uri = f"GET::{profile['$uri'].lstrip('/')}"
+    API_DATA[instance_uri] = profile
 
 
 @pytest.fixture
