@@ -670,7 +670,6 @@ class FunctionalProfiles(_AnalysesBase, FunctionalRunSchema):
                 "value": pd.Series(dtype="float"),
                 "taxa_stratified": pd.Series(dtype="bool"),
                 "taxon_id": pd.Series(dtype="str"),
-                "taxon_name": pd.Series(dtype="str"),
             }
         )
 
@@ -703,7 +702,7 @@ class FunctionalProfiles(_AnalysesBase, FunctionalRunSchema):
         if not result_json["table"]:
             return empty_df
 
-        return pd.DataFrame(result_json["table"])
+        return pd.DataFrame(result_json["table"], columns=empty_df.columns)
 
     def filtered_table(
         self,
@@ -736,7 +735,7 @@ class FunctionalProfiles(_AnalysesBase, FunctionalRunSchema):
         columns = ["id", "name", "value"]
 
         if taxa_stratified:
-            columns.extend(["taxon_id", "taxon_name"])
+            columns.append("taxon_id")
 
         return results_df[columns]
 

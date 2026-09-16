@@ -51,10 +51,9 @@ def test_functional_profiles_table(ocx, api_data):
         "name",
         "taxa_stratified",
         "taxon_id",
-        "taxon_name",
         "value",
     }
-    assert len(df["taxon_name"].unique()) == 47
+    assert len(df["taxon_id"].unique()) == 47
 
     eggnog_df = func_profile.table(annotation="eggnog", taxa_stratified=False)
 
@@ -67,11 +66,9 @@ def test_functional_profiles_table(ocx, api_data):
     # no metric is passed to table then it should be all available metrics for that annotation
     assert set(eggnog_df["metric"]) == {"cpm", "rpk"}
     assert set(eggnog_df["group_name"]) == {"eggnog"}
-    assert eggnog_df["taxon_name"].isna().all()
 
     all_df = func_profile.table(taxa_stratified=False)
     assert len(all_df) == 128
-    assert all_df["taxon_name"].isna().all()
     assert list(all_df["group_name"].unique()) == [
         "eggnog",
         "go",
@@ -180,7 +177,7 @@ def test_filtered_table_includes_taxon_columns_when_stratified(ocx, api_data):
 
     stratified = func_profile.filtered_table(annotation="go", metric="rpk", taxa_stratified=True)
     assert not stratified.empty
-    assert {"taxon_id", "taxon_name"} <= set(stratified.columns)  # is subset
+    assert {"taxon_id"} <= set(stratified.columns)  # is subset
 
     unstratified = func_profile.filtered_table(annotation="go", metric="rpk", taxa_stratified=False)
     assert not unstratified.empty
@@ -193,15 +190,13 @@ def test_filtered_table_empty_result_includes_taxon_columns(ocx, api_data, monke
     monkeypatch.setattr(
         FunctionalProfiles,
         "table",
-        lambda self, **kwargs: pd.DataFrame(
-            columns=["id", "name", "value", "taxon_id", "taxon_name"]
-        ),
+        lambda self, **kwargs: pd.DataFrame(columns=["id", "name", "value", "taxon_id"]),
     )
 
     stratified = func_profile.filtered_table(annotation="go", metric="rpk", taxa_stratified=True)
     assert stratified.empty
-    # An empty table should still include "taxon_id" and "taxon_name" for downstream processing
-    assert {"id", "name", "value", "taxon_id", "taxon_name"} <= set(stratified.columns)
+    # An empty table should still include "taxon_id"  for downstream processing
+    assert {"id", "name", "value", "taxon_id"} <= set(stratified.columns)
 
     unstratified = func_profile.filtered_table(annotation="go", metric="rpk", taxa_stratified=False)
     assert unstratified.empty
@@ -477,11 +472,11 @@ def test_rehydrate_condensed_filtered_functional_results(
     comparison_keys = ("id", "name", "value")
 
     if taxa_stratified:
-        expected_keys |= {"taxon_id", "taxon_name"}
+        expected_keys |= {"taxon_id"}
         comparison_keys += ("taxon_id",)
 
     assert all(set(row) == expected_keys for row in actual_table)
-    assert all(set(row) == expected_keys for row in expected["table"])
+    assert all(set(row) - {"taxon_name"} == expected_keys for row in expected["table"])
 
     actual_rows = _normalize_functional_rows(actual_table, comparison_keys, annotation=annotation)
     expected_rows = _normalize_functional_rows(
@@ -489,13 +484,6 @@ def test_rehydrate_condensed_filtered_functional_results(
     )
 
     assert Counter(actual_rows) == Counter(expected_rows)
-
-    if taxa_stratified:
-        taxa_map = {node["id"]: node.get("name") for node in condensed["taxonomy"]["nodes"]}
-        taxa_map["0"] = "unclassified"
-
-        for row in actual_table:
-            assert row["taxon_name"] == taxa_map.get(row["taxon_id"])
 
     # Filtering must not alter the cached condensed payload.
     assert tuple(condensed["results"]) == original_groups
