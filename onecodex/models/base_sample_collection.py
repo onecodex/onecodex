@@ -3,13 +3,13 @@ from __future__ import annotations
 import json
 import warnings
 from collections import Counter, OrderedDict, defaultdict
-from collections.abc import MutableSequence
+from collections.abc import Callable, MutableSequence
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cached_property, lru_cache
 from typing import TYPE_CHECKING, Any, Literal, Optional, Type, overload
 
-from typing_extensions import Annotated, deprecated
+from typing_extensions import Annotated, Self, deprecated
 
 from onecodex.exceptions import NoTaxaException, OneCodexException, OneCodexUserWarning
 from onecodex.lib.enums import (
@@ -275,7 +275,7 @@ class BaseSampleCollection(
     def remove(self, x):
         del self._res_list[self.index(x)]
 
-    def filter(self, filter_func):
+    def filter(self, filter_func: Callable[[Samples | Classifications], object]) -> Self:
         """Return a new `SampleCollection` containing only samples meeting the filter criteria.
 
         Will pass any kwargs (e.g., `metric` or `skip_missing`) used when instantiating the current class
@@ -284,19 +284,53 @@ class BaseSampleCollection(
         Parameters
         ----------
         filter_func : callable
-            A function that will be evaluated on every object in the collection. The function must
-            return a `bool`. If True, the object will be kept. If False, it will be removed from the
-            SampleCollection that is returned.
+            A function that will be evaluated on every object in the collection. Objects are kept
+            when it returns a truthy value and dropped when it returns a falsy one, so it can
+            return a field directly (e.g. ``lambda s: s.tags``) rather than a `bool`.
 
         Returns
         -------
-        `onecodex.models.SampleCollection` containing only objects `filter_func` returned True on.
+        `onecodex.models.SampleCollection` containing only the objects `filter_func` returned a
+        truthy value for.
 
         Examples
         --------
-        Generate a new collection of Samples that have a specific filename extension:
+        Keep only the samples whose filename ends in ``.fastq.gz``::
 
-        >>> new_collection = samples.filter(lambda s: s.filename.endswith('.fastq.gz'))
+            samples = ocx.Samples.all(limit=10)
+            filtered = samples.filter(lambda s: s.filename.endswith('.fastq.gz'))
+
+        Note: For some fields including ``filename``, it's quicker and simpler to filter using
+        :meth:`Samples.where <onecodex.models.sample.Samples.where>` directly. See
+        :doc:`/querying` for more examples::
+
+            filtered = ocx.Samples.where(filename={'$endswith': '.fastq.gz'})
+
+        Custom metadata cannot be filtered using ``where``, so ``filter`` is necessary::
+
+            samples = ocx.Samples.where(project=project)
+            filtered = samples.filter(lambda s: s.metadata.custom.get('subject') == '123')
+
+        Keep only the samples that contain *Phocaeicola dorei* (tax id 357276)::
+
+            filtered = samples.filter(
+                lambda s: '357276' in {t['tax_id'] for t in s.primary_classification.results()['table']}
+            )
+
+        As with ``filename``, ``where`` can do this for you, and much faster — it avoids
+        downloading a results table for every sample::
+
+            filtered = ocx.Samples.where(tax_ids=['357276'])
+
+        ``where`` and ``filter`` can be chained, which is useful for narrowing down a large
+        collection on the server first, then filtering the smaller result on custom metadata::
+
+            from datetime import datetime, timedelta, timezone
+
+            last_month = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+            filtered = ocx.Samples.where(updated_at={'$gte': last_month}).filter(
+                lambda s: s.metadata.custom.get('subject_id') == '123'
+            )
         """
 
         if callable(filter_func):
