@@ -95,17 +95,15 @@ EqStrFilter = TypedDict(
     total=False,
 )
 
-# For string fields backed by an enum column. Equality, membership, and
-# ``$contains`` work; the prefix / suffix matchers (``$startswith`` etc.)
-# crash server-side on enum columns, so they're omitted.
+# For string fields backed by an enum column. Only whole values from the
+# column's allowed set are accepted, whatever the operator, so the matching
+# operators have no use here.
 EnumStrFilter = TypedDict(
     "EnumStrFilter",
     {
         "$eq": str | None,
         "$ne": str | None,
         "$in": Sequence[str],
-        "$contains": str,
-        "$icontains": str,
     },
     total=False,
 )

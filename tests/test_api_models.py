@@ -3,7 +3,8 @@ from __future__ import print_function
 import datetime
 import io
 import json
-from urllib.parse import parse_qs, unquote_plus, urlparse
+import re
+from urllib.parse import parse_qs, quote_plus, unquote_plus, urlparse
 
 import mock
 import pytest
@@ -542,6 +543,261 @@ def test_where_clauses_with_tags(ocx, api_data):
         query_in_urls.append(query in url)
 
     assert any(query_in_urls)
+
+
+CLINICAL_TAG_REF = {"$ref": "/api/v1/tags/5c1e9e41043e4435"}
+ISOLATE_TAG_REF = {"$ref": "/api/v1/tags/fb8e3b693c874f9e"}
+S_ENTERICA_TAG_REF = {"$ref": "/api/v1/tags/ff4e81909a4348d9"}
+
+
+@pytest.fixture
+def tag_name_lookup(raw_api_data, custom_mock_requests):
+    """Narrower name-filtered `Tags` mocked request."""
+
+    def _tag_name_lookup(name, matches):
+        quoted_where = quote_plus(json.dumps({"name": name}))
+        api_data = {
+            f"GET::api/v1/tags\\?.*where={re.escape(quoted_where)}.*": matches,
+            **raw_api_data,
+        }
+        return custom_mock_requests(api_data)
+
+    return _tag_name_lookup
+
+
+def test_where_clauses_with_single_tag_instance(ocx, api_data):
+    tag = ocx.Tags.get("5c1e9e41043e4435")
+    samples = ocx.Samples.where(tags=tag)
+
+    assert ocx.Samples.get("7428cca4a3a04a8e") in samples
+    assert _extract_query_clauses("where") == [{"tags": {"$containsall": [CLINICAL_TAG_REF]}}]
+
+
+def test_where_clauses_with_single_tag_id(ocx, api_data):
+    samples = ocx.Samples.where(tags="5c1e9e41043e4435")
+
+    assert ocx.Samples.get("7428cca4a3a04a8e") in samples
+    assert _extract_query_clauses("where") == [{"tags": {"$containsall": [CLINICAL_TAG_REF]}}]
+
+
+def test_where_clauses_with_single_tag_name(ocx, tag_name_lookup):
+    with tag_name_lookup(
+        "Clinical", [{"$uri": "/api/v1/tags/5c1e9e41043e4435", "name": "Clinical"}]
+    ):
+        samples = ocx.Samples.where(tags="Clinical")
+
+        assert ocx.Samples.get("7428cca4a3a04a8e") in samples
+        assert _extract_query_clauses("where") == [{"tags": {"$containsall": [CLINICAL_TAG_REF]}}]
+
+
+def test_where_clauses_with_mixed_tag_types(ocx, tag_name_lookup):
+    with tag_name_lookup(
+        "Clinical", [{"$uri": "/api/v1/tags/5c1e9e41043e4435", "name": "Clinical"}]
+    ):
+        tag = ocx.Tags.get("fb8e3b693c874f9e")
+        samples = ocx.Samples.where(tags=["Clinical", "ff4e81909a4348d9", tag])
+
+        assert ocx.Samples.get("7428cca4a3a04a8e") in samples
+        assert _extract_query_clauses("where") == [
+            {"tags": {"$containsall": [CLINICAL_TAG_REF, S_ENTERICA_TAG_REF, ISOLATE_TAG_REF]}}
+        ]
+
+
+@pytest.mark.parametrize("tags", [None, []])
+def test_where_clauses_with_empty_tags(ocx, api_data, tags):
+    ocx.Samples.where(tags=tags)
+
+    assert _extract_query_clauses("where") == [{}]
+
+
+def test_where_clauses_with_unknown_tag_name(ocx, tag_name_lookup):
+    with tag_name_lookup("nonexistent tag", []):
+        with pytest.raises(OneCodexException, match="Unknown tag specified: nonexistent tag"):
+            ocx.Samples.where(tags="nonexistent tag")
+
+
+def test_where_clauses_with_ambiguous_tag_name(ocx, tag_name_lookup):
+    matches = [
+        {"$uri": "/api/v1/tags/5c1e9e41043e4435", "name": "Clinical"},
+        {"$uri": "/api/v1/tags/fb8e3b693c874f9e", "name": "Clinical"},
+    ]
+    with tag_name_lookup("Clinical", matches):
+        with pytest.raises(OneCodexException, match="Multiple tags matched query: Clinical"):
+            ocx.Samples.where(tags="Clinical")
+
+
+def _extract_query_clauses(clause: str, path: str = "/api/v1/samples") -> list[dict]:
+    """Extract `clause` (e.g. "where" or "sort") query arg from each recorded request to `path`."""
+    clauses = []
+    for c in responses.calls:
+        parsed = urlparse(c.request.url)
+        if parsed.path != path:
+            continue
+        value = parse_qs(parsed.query).get(clause)
+        if value:
+            clauses.append(json.loads(value[0]))
+    return clauses
+
+
+def test_where_clauses_with_tax_ids(ocx, api_data):
+    sample = ocx.Samples.get("7428cca4a3a04a8e")
+    samples = ocx.Samples.where(tax_ids=["543", "590"])
+
+    assert sample in samples
+    assert _extract_query_clauses("where") == [{"tax_ids": {"$containsall": ["543", "590"]}}]
+
+
+@pytest.mark.parametrize("tax_ids", [None, []])
+def test_where_clauses_with_empty_tax_ids(ocx, api_data, tax_ids):
+    ocx.Samples.where(tax_ids=tax_ids)
+
+    assert _extract_query_clauses("where") == [{}]
+
+
+def test_where_clauses_with_tax_ids_and_tags(ocx, api_data):
+    tag = ocx.Tags.get("5c1e9e41043e4435")
+    ocx.Samples.where(tags=[tag], tax_ids=["543"])
+
+    assert _extract_query_clauses("where") == [
+        {
+            "tags": {"$containsall": [{"$ref": "/api/v1/tags/5c1e9e41043e4435"}]},
+            "tax_ids": {"$containsall": ["543"]},
+        }
+    ]
+
+
+def test_where_clauses_with_tax_ids_and_sample_field(ocx, api_data):
+    ocx.Samples.where(tax_ids=["543"], visibility="private")
+
+    assert _extract_query_clauses("where") == [
+        {"visibility": "private", "tax_ids": {"$containsall": ["543"]}}
+    ]
+
+
+def test_where_clauses_with_tax_ids_public_endpoint(ocx, api_data):
+    ocx.Samples.where(tax_ids=["543"], public=True)
+
+    assert _extract_query_clauses("where", "/api/v1/samples") == []
+    assert _extract_query_clauses("where", "/api/v1/samples/public") == [
+        {"tax_ids": {"$containsall": ["543"]}}
+    ]
+
+
+def test_where_clauses_with_tax_ids_org_endpoint(ocx, api_data):
+    ocx.Samples.where(tax_ids=["543"], organization=True)
+
+    assert _extract_query_clauses("where", "/api/v1/samples") == []
+    assert _extract_query_clauses("where", "/api/v1/samples/organization") == [
+        {"tax_ids": {"$containsall": ["543"]}}
+    ]
+
+
+def _mock_metadata_record(raw_api_data, **fields):
+    raw_api_data["GET::api/v1/metadata"] = [
+        {
+            "$uri": "/api/v1/metadata/4fe05e748b5a4f0e",
+            "sample": {"$ref": "/api/v1/samples/761bc54b97f64980"},
+            "custom": {},
+            **fields,
+        }
+    ]
+    return raw_api_data
+
+
+def test_where_clauses_with_tax_ids_and_metadata_field(ocx, raw_api_data, custom_mock_requests):
+    _mock_metadata_record(raw_api_data, starred=True)
+
+    with custom_mock_requests(raw_api_data):
+        samples = ocx.Samples.where(tax_ids=["543"], starred=True)
+
+        # the sample query keeps `tax_ids` and drops the metadata-only field
+        assert _extract_query_clauses("where") == [{"tax_ids": {"$containsall": ["543"]}}]
+        assert _extract_query_clauses("where", "/api/v1/metadata") == [{"starred": True}]
+
+    # results are the intersection of the two queries
+    assert [s.id for s in samples] == ["761bc54b97f64980"]
+
+
+def test_where_metadata_field_with_sample_field(ocx, raw_api_data, custom_mock_requests):
+    _mock_metadata_record(raw_api_data, starred=True)
+
+    with custom_mock_requests(raw_api_data):
+        samples = ocx.Samples.where(starred=True, visibility="private")
+
+        assert _extract_query_clauses("where") == [{"visibility": "private"}]
+        assert _extract_query_clauses("where", "/api/v1/metadata") == [{"starred": True}]
+
+    assert [s.id for s in samples] == ["761bc54b97f64980"]
+
+
+def test_where_metadata_field_only(ocx, raw_api_data, custom_mock_requests):
+    _mock_metadata_record(raw_api_data, starred=True)
+
+    with custom_mock_requests(raw_api_data):
+        samples = ocx.Samples.where(starred=True)
+
+        assert _extract_query_clauses("where") == []
+
+    assert [s.id for s in samples] == ["761bc54b97f64980"]
+
+
+def test_where_metadata_field_only_is_not_forwarded_to_samples(
+    ocx, raw_api_data, custom_mock_requests
+):
+    # Regression test: a metadata-only filter used to be forwarded to the Samples query as well,
+    # raising `AttributeError: Samples cannot be searched on platform`.
+    _mock_metadata_record(raw_api_data, platform="Other")
+
+    with custom_mock_requests(raw_api_data):
+        samples = ocx.Samples.where(platform="Other")
+
+        assert _extract_query_clauses("where") == []
+        assert _extract_query_clauses("where", "/api/v1/metadata") == [{"platform": "Other"}]
+
+    assert [s.id for s in samples] == ["761bc54b97f64980"]
+
+
+def test_where_metadata_field_no_matches(ocx, raw_api_data, custom_mock_requests):
+    raw_api_data["GET::api/v1/metadata"] = []
+
+    with custom_mock_requests(raw_api_data):
+        samples = ocx.Samples.where(starred=True, visibility="private")
+
+        assert _extract_query_clauses("where") == []
+
+    assert list(samples) == []
+
+
+def test_where_metadata_field_with_local_filter(ocx, raw_api_data, custom_mock_requests):
+    _mock_metadata_record(raw_api_data, starred=True)
+
+    with custom_mock_requests(raw_api_data):
+        # Local filter is still applied after a Metadata search
+        kept = ocx.Samples.where(starred=True, filter=lambda s: s.filename.endswith(".fastq.gz"))
+        dropped = ocx.Samples.where(starred=True, filter=lambda s: s.filename == "nope.fastq.gz")
+
+    assert [s.id for s in kept] == ["761bc54b97f64980"]
+    assert list(dropped) == []
+
+
+def test_where_metadata_field_with_sort(ocx, raw_api_data, custom_mock_requests):
+    _mock_metadata_record(raw_api_data, starred=True)
+
+    with custom_mock_requests(raw_api_data):
+        # Filter is applied to Metadata but sort to Samples
+        samples = ocx.Samples.where(starred=True, sort="filename")
+
+        assert _extract_query_clauses("sort") == [{"filename": True}]
+
+    assert [s.id for s in samples] == ["761bc54b97f64980"]
+
+
+@pytest.mark.parametrize("scope", ["public", "organization"])
+def test_where_metadata_field_not_supported_for_public_and_org_samples(ocx, api_data, scope):
+    with pytest.raises(OneCodexException) as e:
+        ocx.Samples.where(starred=True, **{scope: True})
+
+    assert "Cannot filter {} samples by metadata field(s): starred".format(scope) in str(e.value)
 
 
 def test_where_filter(ocx, api_data):
@@ -1233,6 +1489,75 @@ def test_analyses_await_completion_timeout(ocx, custom_mock_requests):
                 analysis = ocx.Analyses.get(analysis_id)
                 with pytest.raises(TimeoutError):
                     analysis.await_completion(timeout=10.0, initial_interval=5, backoff=1.0)
+
+
+def test_analyses_cancel(ocx, api_data, custom_mock_requests):
+    analysis_id = "593601a797914cbf"
+    captured = {}
+
+    def cancel_callback(request):
+        captured["url"] = request.url
+        return (
+            200,
+            {"Content-Type": "application/json"},
+            json.dumps(
+                {
+                    "$uri": f"/api/v1/analyses/{analysis_id}",
+                    "analysis_type": "classification",
+                    "complete": True,
+                    "created_at": "2015-09-25T17:27:30.622286-07:00",
+                    "error_msg": "Canceled by user",
+                    "job": {"$ref": "/api/v1/jobs/e4b1ab37ff554c53"},
+                    "sample": {"$ref": "/api/v1/samples/7428cca4a3a04a8e"},
+                    "success": False,
+                    "cost": None,
+                    "dependencies": [],
+                    "draft": False,
+                    "updated_at": "2015-09-25T17:27:30.622286-07:00",
+                }
+            ),
+        )
+
+    with custom_mock_requests({f"POST::api/v1/analyses/{analysis_id}/cancel": cancel_callback}):
+        analysis = ocx.Analyses.get(analysis_id)
+        out = analysis.cancel()
+
+    assert captured["url"].endswith(f"/api/v1/analyses/{analysis_id}/cancel")
+    assert out is analysis
+    assert analysis.success is False
+    assert analysis.error_msg == "Canceled by user"
+
+
+@pytest.mark.parametrize(
+    "status_code,body,expected_message",
+    [
+        (400, {"message": "Only Custom Workflow runs may be canceled."}, "Only Custom Workflow"),
+        (
+            400,
+            {"message": "Only runs that are currently processing may be canceled."},
+            "currently processing",
+        ),
+        (
+            403,
+            {"message": "You don't have the permission to access the requested resource."},
+            "not allowed to cancel",
+        ),
+        (404, {"message": "The requested URL was not found on the server."}, "not found"),
+        (500, {}, r"Analysis cancellation failed \(500\)"),
+    ],
+)
+def test_analyses_cancel_errors(
+    ocx, api_data, custom_mock_requests, status_code, body, expected_message
+):
+    analysis_id = "593601a797914cbf"
+
+    def cancel_callback(request):
+        return (status_code, {"Content-Type": "application/json"}, json.dumps(body))
+
+    with custom_mock_requests({f"POST::api/v1/analyses/{analysis_id}/cancel": cancel_callback}):
+        analysis = ocx.Analyses.get(analysis_id)
+        with pytest.raises(OneCodexException, match=expected_message):
+            analysis.cancel()
 
 
 def test_analyses_logs(ocx, api_data, custom_mock_requests):

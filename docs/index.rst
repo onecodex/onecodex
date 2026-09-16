@@ -26,6 +26,7 @@ client, see the :doc:`readme`. You can find the source code on `GitHub
    Statistics <statistics>
    Taxonomy <taxonomy>
    Models <models>
+   Querying <querying>
    Enums <enums>
    notebooks
 

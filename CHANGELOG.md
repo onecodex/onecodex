@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   filtering](https://docs.onecodex.com/en/articles/3761205-one-codex-database)
   and are consistent across samples with and without abundance estimates.
 - Added `Jobs.publish()` for publishing draft Workflows.
+- Added `onecodex analyses files` and `onecodex analyses download` CLI commands for listing
+  and downloading an analysis's output files.
 - Added `onecodex jobs publish` CLI command.
 - Added `description` argument to `Jobs.run()`.
 - Added `--description` option to `onecodex jobs run` CLI command.
@@ -27,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a `metric` argument to `FunctionalProfiles.table()` which filters results to a single
   metric (e.g., `cpm`, `rpk`, etc.). To preserve backwards compatibility, this argument
   defaults to `"all"` which returns all metrics available for an annotation.
+- Added `Analyses.cancel()` and `onecodex analyses cancel` CLI command for canceling an
+  in-progress Custom Workflow run.
 
 ### Changed
 
@@ -64,6 +68,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   never plotted anyway).
 - Plots no longer raise a `ValueError` when a metadata field name contains a colon character (`:`).
 - Passing non-existing `group_by` to `plot_bargraph` should not throw an error.
+- `Sample.{status,visiblity}` query type corrected to `EnumStrFilter`
+- `$icontains` and `$contains` removed from `EnumStrFilter` -- substring matching behavior requires
+  that the substring be a valid enum member which behaved unintuitively.
+- `onecodex analyses <subcommand> --help` (e.g. `onecodex analyses logs --help`) no longer
+  requires being logged in.
+- `SampleCollection.plot_distance` no longer incorrectly warns about
+  non-comparable metrics when plotting with comparable metrics.
 
 ## [v1.1.0] - 2026-06-18
 
