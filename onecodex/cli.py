@@ -483,6 +483,34 @@ def analyses_logs(ctx: click.Context, analysis_id: str, tail: int) -> None:
 analyses.add_command(analyses_logs, "logs")
 
 
+@click.command("cancel")
+@click.argument("analysis_id", nargs=1, required=True, type=OCX_ID)
+@click.pass_context
+@pretty_errors
+@telemetry
+@login_required
+def analyses_cancel(ctx, analysis_id):
+    """Cancel an in-progress analysis.
+
+    Only in-progress Custom Workflow runs may be canceled, and only by the user who
+    initiated the run or an admin in their org.
+    """
+    analysis = ctx.obj["API"].Analyses.get(analysis_id)
+    if not analysis:
+        raise click.ClickException(f"Could not find analysis {analysis_id} (404 status code)")
+
+    analysis.cancel()
+    click.echo(f"Cancellation requested for analysis {analysis.id}.")
+    if not analysis.complete:
+        click.echo(
+            f"Cancellation is asynchronous, await using `onecodex analyses await {analysis.id}`",
+            err=True,
+        )
+
+
+analyses.add_command(analyses_cancel, "cancel")
+
+
 @click.command("files")
 @click.argument("analysis_id", nargs=1, required=True, type=OCX_ID)
 @click.option(
