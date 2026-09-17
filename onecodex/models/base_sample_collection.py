@@ -300,9 +300,12 @@ class BaseSampleCollection(
             samples = ocx.Samples.all(limit=10)
             filtered = samples.filter(lambda s: s.filename.endswith('.fastq.gz'))
 
-        Note: For some fields including ``filename``, it's quicker and simpler to filter using
-        :meth:`Samples.where <onecodex.models.sample.Samples.where>` directly. See
-        :doc:`/querying` for more examples::
+        Note: Where fields support server-side filtering (such as ``filename``), use
+        :meth:`Samples.where <onecodex.models.sample.Samples.where>` directly. The
+        parameters of :meth:`Samples.where <onecodex.models.sample.Samples.where>` and
+        :meth:`Classifications.where <onecodex.models.analysis.Classifications.where>` list
+        every field that can be filtered server-side. See :doc:`/querying` for the query
+        syntax::
 
             filtered = ocx.Samples.where(filename={'$endswith': '.fastq.gz'})
 
@@ -310,12 +313,6 @@ class BaseSampleCollection(
 
             samples = ocx.Samples.where(project=project)
             filtered = samples.filter(lambda s: s.metadata.custom.get('subject') == '123')
-
-        Keep only the samples that contain *Phocaeicola dorei* (tax id 357276)::
-
-            filtered = samples.filter(
-                lambda s: '357276' in {t['tax_id'] for t in s.primary_classification.results()['table']}
-            )
 
         As with ``filename``, ``where`` can do this for you, and much faster — it avoids
         downloading a results table for every sample::
