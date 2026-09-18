@@ -7,8 +7,11 @@ ENV UV_LINK_MODE=copy \
 WORKDIR /app
 COPY . .
 
+# rm prevents copying over pip and breaking it in the release layer
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install --system ".[all]"
+    uv pip install --system ".[all]" \
+    && rm -rf /usr/local/lib/python3.13/site-packages/pip \
+    && rm -rf /usr/local/lib/python3.13/site-packages/pip-*.dist-info
 
 FROM python:3.13-slim-bookworm
 
