@@ -1057,35 +1057,42 @@ class BaseSampleCollection(
     ):
         """Generate a ClassificationsDataFrame, performing any specified transformations.
 
-        Takes the ClassificationsDataFrame associated with these samples, or SampleCollection,
-        does some filtering, and returns a ClassificationsDataFrame copy.
+        Collates the classification results of the samples in this collection into a single table
+        of `metric` values, applies the requested filtering, and returns a new
+        ClassificationsDataFrame.
 
         Parameters
         ----------
-        rank : :class:`~onecodex.lib.enums.Rank`, optional
-            Analysis will be restricted to abundances of taxa at the specified level.
-            See :class:`~onecodex.lib.enums.Rank` for details.
+        rank : {:class:`~onecodex.lib.enums.Rank`, `str`}, optional
+            Analysis will be restricted to abundances of taxa at the specified level. Defaults to
+            `auto`, which uses species for abundance metrics and for metagenomic (shotgun)
+            analyses, and genus otherwise. See :class:`~onecodex.lib.enums.Rank` for details.
         top_n : `integer`, optional
-            Return only the top N most abundant taxa.
-        metric : :class:`~onecodex.lib.enums.Metric`, optional
-            The taxonomic abundance metric to use. See :class:`~onecodex.lib.enums.Metric`
-            for definitions.
+            Return only the N taxa with the highest metric values, summed across all samples.
         threshold : `float`, optional
-            Return only taxa more abundant than this threshold in one or more samples.
+            Return only taxa whose metric value is at or above this threshold in one or more
+            samples.
         remove_zeros : `bool`, optional
-            Do not return taxa that have zero abundance in every sample.
+            Do not return taxa that have zero abundance in every sample. Defaults to `True`.
         include_host : `bool`, optional
-            Include host reads in the analysis.
-        table_format : {'long', 'wide'}, optional
-            If wide, rows are classifications, cols are taxa, elements are counts. If long, rows are
-            observations with three cols each: classification_id, tax_id, and count.
+            Include host reads in the analysis. Defaults to `False`.
+        table_format : {'wide', 'long'}, optional
+            If wide (the default), rows are classifications, cols are taxa, and elements are
+            `metric` values. If long, rows are observations with three cols each:
+            classification_id, tax_id, and a column named after the metric's display name (e.g.
+            "Relative Abundance") holding the value.
         include_taxa_missing_rank : `bool`, optional
             Whether or not to include taxa that do not have a designated parent at `rank` (will be
-            grouped into a "No <rank>" column).
+            grouped into a "No <rank>" column). Defaults to `False`.
         fill_missing : `bool`, optional
-            Fill np.nan values.
+            Fill np.nan values. Defaults to `True`.
         filler : float, optional
-            Value with which to fill np.nans.
+            Value with which to fill np.nans. Defaults to `0`.
+        metric : {:class:`~onecodex.lib.enums.Metric`, `str`}, optional
+            The taxonomic abundance metric to use. Defaults to `auto`, which uses
+            `abundance_w_children` when the samples have abundance estimates and
+            `normalized_readcount_w_children` otherwise. See :class:`~onecodex.lib.enums.Metric`
+            for definitions.
 
         Returns
         -------
