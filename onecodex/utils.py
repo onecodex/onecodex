@@ -63,8 +63,12 @@ OPTION_HELP = {
         "the files themselves."
     ),
     "prompt": (
-        "Manually prompt about automatic paired file interleaving. Setting --no-prompt "
-        "will allow running without any user intervention, e.g. in a script."
+        "Manually prompt about automatic paired file interleaving, ONT file merging, and "
+        "multi-lane file concatenation. When prompting, the mate of a paired end file may "
+        "be picked up from the same directory even if it was not passed on the command "
+        "line; it is marked with a * in the prompt. Setting --no-prompt will allow running "
+        "without any user intervention, e.g. in a script, and never uploads a file that "
+        "was not passed on the command line."
     ),
     "validate": (
         "Do not validate the FASTA/Q file before uploading. Incompatible with automatic "
