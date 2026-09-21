@@ -1210,6 +1210,40 @@ def test_paired_and_ont_files(
         assert "concatenate" in result.output
 
 
+def test_empty_files_are_rejected_before_anything_is_uploaded(
+    runner, generate_fastq, mock_file_upload, mock_sample_get, mocked_creds_path, upload_mocks
+):
+    """An empty file must not leave half the batch uploaded."""
+    files = [generate_fastq(x) for x in ["a.fq", "b.fq", "c.fq", "d.fq"]]
+    open(files[2], "w").close()
+
+    args = ["--api-key", "01234567890123456789012345678901", "upload"] + files
+    result = runner.invoke(Cli, args, input="\n")
+
+    assert result.exit_code == 1
+    assert "Empty files can not be uploaded" in result.output
+    assert "c.fq" in result.output
+    assert mock_file_upload.call_count == 0
+    assert mock_sample_get.call_count == 0
+
+
+def test_empty_files_are_rejected_after_assembly(
+    runner, generate_fastq, mock_file_upload, mock_sample_get, mocked_creds_path, upload_mocks
+):
+    """A sample assembled entirely from empty files is caught too."""
+    files = [generate_fastq(x) for x in ["s_0.fq", "s_1.fq"]]
+    for path in files:
+        open(path, "w").close()
+
+    args = ["--api-key", "01234567890123456789012345678901", "upload"] + files
+    result = runner.invoke(Cli, args, input="\n")
+
+    assert result.exit_code == 1
+    # the assembled file is reported by name, not by its path in the temporary directory
+    assert "Empty files can not be uploaded: s.fq" in result.output
+    assert mock_file_upload.call_count == 0
+
+
 def test_download_samples_without_prompt(runner, api_data, mocked_creds_file):
     with runner.isolated_filesystem():
         result = runner.invoke(Cli, ["download", "samples", "output", "--no-prompt"])
