@@ -907,14 +907,29 @@ def upload(
 
             files = materialize_plan(samples, tempdir)
 
-        total_size = sum(
-            [
-                (os.path.getsize(x[0]) + os.path.getsize(x[1]))
-                if isinstance(x, tuple)
-                else os.path.getsize(x)
-                for x in files
-            ]
-        )
+        # sizing everything up front means an empty file is caught before anything is
+        # uploaded, rather than failing its own thread while the others succeed
+        sizes = [
+            (path, os.path.getsize(path))
+            for upload in files
+            for path in (upload if isinstance(upload, tuple) else (upload,))
+        ]
+
+        empty = sorted({path for path, size in sizes if size == 0})
+        if empty:
+            click.echo(
+                "Empty files can not be uploaded: {}".format(
+                    ", ".join(
+                        # a file we assembled ourselves lives in a temporary directory
+                        os.path.basename(path) if path.startswith(tempdir) else path
+                        for path in empty
+                    )
+                ),
+                err=True,
+            )
+            ctx.exit(1)
+
+        total_size = sum(size for _, size in sizes)
 
         upload_kwargs = {
             "metadata": appendables["valid_metadata"],
