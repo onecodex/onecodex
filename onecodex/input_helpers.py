@@ -57,7 +57,7 @@ def prompt_user_for_concatenation(ont_groups: dict[str, set[str]], passed_files:
     n_files = sum([len(x) for x in ont_groups.values()])
     n_unspecified = sum(1 for files in ont_groups.values() for f in files if f not in passed_files)
 
-    message = f"It appears there are {len(ont_groups)} sample(s) split across {n_files} individual file(s). "
+    message = f"It appears there are {len(ont_groups)} sample(s) split across {n_files} individual file(s)."
     if n_unspecified:
         message += (
             f"\n{n_unspecified} of them were not specified on the command line; "
@@ -65,8 +65,8 @@ def prompt_user_for_concatenation(ont_groups: dict[str, set[str]], passed_files:
         )
 
     answer = click.prompt(
-        message + "\nWould you like to merge files by sample?"
-        "\n[Y]es; [n]o, upload the files I specified without merging;"
+        message + "\n\nWould you like to merge files by sample?"
+        "\n\n[Y]es; [n]o, upload the files I specified without merging;"
         " [d]isplay files; [c]ancel",
         type=click.Choice(["Y", "n", "d", "c"]),
         default="Y",
@@ -81,7 +81,7 @@ def prompt_user_for_concatenation(ont_groups: dict[str, set[str]], passed_files:
         sys.exit(0)
     elif answer[0] == "d":
 
-        def _ordinal(filename):
+        def _ordinal(filename: str) -> int:
             # sorting the filenames directly would put sample_10 before sample_2
             return int(re.search(ORDINAL_MULTI_REV_PATTERN, filename).group("ordinal"))
 
@@ -103,8 +103,6 @@ def prompt_user_for_concatenation(ont_groups: dict[str, set[str]], passed_files:
     else:
         click.echo(f"Unknown option: {answer}")
         return prompt_user_for_concatenation(ont_groups, passed_files)
-
-    return False
 
 
 def concatenate_ont_groups(
@@ -250,8 +248,8 @@ def auto_detect_illumina_pairs(files: Sequence[str], prompt: bool) -> list[str |
 
         answer = click.prompt(
             "It appears there are {n_paired_files} paired files (of {n_files} total):{pair_list}"
-            "\nInterleave them after upload?"
-            "\n[Y]es; [n]o, upload the files I specified without interleaving; [c]ancel".format(
+            "\n\nInterleave them after upload?"
+            "\n\n[Y]es; [n]o, upload the files I specified without interleaving; [c]ancel".format(
                 n_paired_files=len(pairs) * 2,
                 n_files=len(pairs) * 2 + len(single_files),
                 pair_list=pair_list,
