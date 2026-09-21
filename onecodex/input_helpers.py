@@ -45,7 +45,7 @@ def _ont_sequence_on_disk(filename: str) -> list[str]:
     idx = 0
     while True:
         sibling = _replace_filename_ordinal(filename, idx, multi_digit=True)
-        if not os.path.exists(sibling):
+        if not os.path.isfile(sibling):
             break
         sequence.append(sibling)
         idx += 1
@@ -134,7 +134,7 @@ def concatenate_ont_groups(
             continue
 
         ont_zero_filename = _replace_filename_ordinal(filename, "0", multi_digit=True)
-        if os.path.exists(ont_zero_filename):
+        if os.path.isfile(ont_zero_filename):
             # strip the ordinal and preceding . or _
             base_filename = re.sub(ORDINAL_MULTI_REV_PATTERN, r"\g<post>", filename)
             base_filename = os.path.join(tempdir, os.path.basename(base_filename))
@@ -220,8 +220,8 @@ def auto_detect_illumina_pairs(files: Sequence[str], prompt: bool) -> list[str |
             # a file with any other ordinal (e.g. `sample_3.fq`) substitutes down to the
             # same two names, but is not itself a mate
             and filename in (paired_r1_filename, paired_r2_filename)
-            and os.path.exists(paired_r1_filename)
-            and os.path.exists(paired_r2_filename)
+            and os.path.isfile(paired_r1_filename)
+            and os.path.isfile(paired_r2_filename)
         ):
             other_paired_file = (
                 paired_r2_filename if filename == paired_r1_filename else paired_r1_filename

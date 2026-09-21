@@ -214,6 +214,17 @@ def test_concatenate_ont_groups_ignores_sequence_it_is_not_part_of(generate_fast
         assert _get_basenames(remaining) == ["test_5.fq"]
 
 
+def test_concatenate_ont_groups_ignores_directories(generate_fastq, tmp_path, monkeypatch):
+    """A directory named like part of the sequence must not be picked up and read."""
+    monkeypatch.setattr(click, "prompt", lambda *args, **kwargs: "Y")
+    files = [generate_fastq(x) for x in ["test_1.fq", "test_2.fq"]]
+    os.mkdir(os.path.join(os.path.dirname(files[0]), "test_0.fq"))
+    with use_tempdir() as tempdir:
+        concatenated, remaining = concatenate_ont_groups(files, prompt=True, tempdir=tempdir)
+        assert concatenated == []
+        assert sorted(_get_basenames(remaining)) == ["test_1.fq", "test_2.fq"]
+
+
 def test_concatenate_ont_groups_does_not_find_files_on_disk_without_prompt(generate_fastq):
     """Files not on the command line must not be pulled in when there is no prompt."""
     generate_fastq("test_0.fq")
