@@ -1062,19 +1062,17 @@ def test_paired_and_multiline_files(
     assert mock_sample_get.call_count == n_samples_uploaded
     assert result.exit_code == 0
 
-    paired_files_prompt = "It appears there are {} paired files (of {} total)".format(
-        n_paired_files, len(files)
-    )
-    if n_paired_files > 0:
-        assert paired_files_prompt in result.output
+    # the plan is only shown when there is something to assemble
+    if n_paired_files > 0 or n_multiline_groups > 0:
+        assert "Planned uploads:" in result.output
+        assert f"{n_samples_uploaded} sample(s) from" in result.output
     else:
-        assert paired_files_prompt not in result.output
+        assert "Planned uploads:" not in result.output
 
-    multilane_prompt = "This data appears to have been split across multiple sequencing lanes.\nConcatenate lanes before upload?"
     if n_multiline_groups > 0:
-        assert multilane_prompt in result.output
-    else:
-        assert multilane_prompt not in result.output
+        assert "lanes" in result.output
+    if n_paired_files > 0:
+        assert "interleave" in result.output
 
 
 def test_paired_files_with_forward_and_reverse_args(
@@ -1199,19 +1197,17 @@ def test_paired_and_ont_files(
     assert mock_sample_get.call_count == n_samples_uploaded
     assert result.exit_code == 0
 
-    paired_files_prompt = "It appears there are {} paired files (of {} total)".format(
-        n_paired_files, len(files)
-    )
-    if n_paired_files > 0:
-        assert paired_files_prompt in result.output
+    # the plan is only shown when there is something to assemble
+    if n_paired_files > 0 or n_ont_files > 0:
+        assert "Planned uploads:" in result.output
+        assert f"{n_samples_uploaded} sample(s) from" in result.output
     else:
-        assert paired_files_prompt not in result.output
+        assert "Planned uploads:" not in result.output
 
-    ont_prompt = f"It appears there are {n_samples_uploaded} sample(s)"
+    if n_paired_files > 0:
+        assert "interleave" in result.output
     if n_ont_files > 0:
-        assert ont_prompt in result.output
-    else:
-        assert ont_prompt not in result.output
+        assert "concatenate" in result.output
 
 
 def test_download_samples_without_prompt(runner, api_data, mocked_creds_file):

@@ -19,9 +19,10 @@ from onecodex.auth import (
     login_required,
 )
 from onecodex.input_helpers import (
-    auto_detect_pairs,
-    concatenate_multilane_files,
-    concatenate_ont_groups,
+    PlannedSample,
+    confirm_plan,
+    materialize_plan,
+    plan_uploads,
 )
 from onecodex.lib.upload import DEFAULT_THREADS
 from onecodex.metadata_upload import validate_appendables
@@ -899,12 +900,12 @@ def upload(
                 )
                 ctx.exit(1)
 
-            # Detecting ONT groups comes first as otherwise part of ONT group could
-            # be mistaken for a paired file
-            files = concatenate_ont_groups(files, prompt, tempdir)
-            files = auto_detect_pairs(files, prompt)
+            samples = plan_uploads(files, prompt)
+            if prompt and any(s.is_paired or s.is_concatenated for s in samples):
+                if not confirm_plan(samples, set(files)):
+                    samples = [PlannedSample(forward=(filename,)) for filename in files]
 
-        files = concatenate_multilane_files(files, prompt, tempdir)
+            files = materialize_plan(samples, tempdir)
 
         total_size = sum(
             [
