@@ -1064,10 +1064,10 @@ def test_paired_and_multiline_files(
 
     # the plan is only shown when there is something to assemble
     if n_paired_files > 0 or n_multiline_groups > 0:
-        assert "Planned uploads:" in result.output
+        assert "Planned samples:" in result.output
         assert f"{n_samples_uploaded} sample(s) from" in result.output
     else:
-        assert "Planned uploads:" not in result.output
+        assert "Planned samples:" not in result.output
 
     if n_multiline_groups > 0:
         assert "lanes" in result.output
@@ -1199,10 +1199,10 @@ def test_paired_and_ont_files(
 
     # the plan is only shown when there is something to assemble
     if n_paired_files > 0 or n_ont_files > 0:
-        assert "Planned uploads:" in result.output
+        assert "Planned samples:" in result.output
         assert f"{n_samples_uploaded} sample(s) from" in result.output
     else:
-        assert "Planned uploads:" not in result.output
+        assert "Planned samples:" not in result.output
 
     if n_paired_files > 0:
         assert "interleave" in result.output
