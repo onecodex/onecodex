@@ -1062,19 +1062,17 @@ def test_paired_and_multiline_files(
     assert mock_sample_get.call_count == n_samples_uploaded
     assert result.exit_code == 0
 
-    paired_files_prompt = "It appears there are {} paired files (of {} total)".format(
-        n_paired_files, len(files)
-    )
-    if n_paired_files > 0:
-        assert paired_files_prompt in result.output
+    # the plan is only shown when there is something to assemble
+    if n_paired_files > 0 or n_multiline_groups > 0:
+        assert "Planned samples:" in result.output
+        assert f"{n_samples_uploaded} sample(s) from" in result.output
     else:
-        assert paired_files_prompt not in result.output
+        assert "Planned samples:" not in result.output
 
-    multilane_prompt = "This data appears to have been split across multiple sequencing lanes.\nConcatenate lanes before upload?"
     if n_multiline_groups > 0:
-        assert multilane_prompt in result.output
-    else:
-        assert multilane_prompt not in result.output
+        assert "lanes" in result.output
+    if n_paired_files > 0:
+        assert "interleave" in result.output
 
 
 def test_paired_files_with_forward_and_reverse_args(
@@ -1199,19 +1197,51 @@ def test_paired_and_ont_files(
     assert mock_sample_get.call_count == n_samples_uploaded
     assert result.exit_code == 0
 
-    paired_files_prompt = "It appears there are {} paired files (of {} total)".format(
-        n_paired_files, len(files)
-    )
-    if n_paired_files > 0:
-        assert paired_files_prompt in result.output
+    # the plan is only shown when there is something to assemble
+    if n_paired_files > 0 or n_ont_files > 0:
+        assert "Planned samples:" in result.output
+        assert f"{n_samples_uploaded} sample(s) from" in result.output
     else:
-        assert paired_files_prompt not in result.output
+        assert "Planned samples:" not in result.output
 
-    ont_prompt = f"It appears there are {n_samples_uploaded} sample(s)"
+    if n_paired_files > 0:
+        assert "interleave" in result.output
     if n_ont_files > 0:
-        assert ont_prompt in result.output
-    else:
-        assert ont_prompt not in result.output
+        assert "concatenate" in result.output
+
+
+def test_empty_files_are_rejected_before_anything_is_uploaded(
+    runner, generate_fastq, mock_file_upload, mock_sample_get, mocked_creds_path, upload_mocks
+):
+    """An empty file must not leave half the batch uploaded."""
+    files = [generate_fastq(x) for x in ["a.fq", "b.fq", "c.fq", "d.fq"]]
+    open(files[2], "w").close()
+
+    args = ["--api-key", "01234567890123456789012345678901", "upload"] + files
+    result = runner.invoke(Cli, args, input="\n")
+
+    assert result.exit_code == 1
+    assert "Empty files can not be uploaded" in result.output
+    assert "c.fq" in result.output
+    assert mock_file_upload.call_count == 0
+    assert mock_sample_get.call_count == 0
+
+
+def test_empty_files_are_rejected_after_assembly(
+    runner, generate_fastq, mock_file_upload, mock_sample_get, mocked_creds_path, upload_mocks
+):
+    """A sample assembled entirely from empty files is caught too."""
+    files = [generate_fastq(x) for x in ["s_0.fq", "s_1.fq"]]
+    for path in files:
+        open(path, "w").close()
+
+    args = ["--api-key", "01234567890123456789012345678901", "upload"] + files
+    result = runner.invoke(Cli, args, input="\n")
+
+    assert result.exit_code == 1
+    # the assembled file is reported by name, not by its path in the temporary directory
+    assert "Empty files can not be uploaded: s.fq" in result.output
+    assert mock_file_upload.call_count == 0
 
 
 def test_download_samples_without_prompt(runner, api_data, mocked_creds_file):

@@ -34,6 +34,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `onecodex upload` works out how all the files fit together into samples up front, shows the
+  plan, and asks once. Concatenation, interleaving and lane concatenation used to be three
+  prompts asked in sequence. Declining now uploads every file you named as its own sample.
+- `onecodex upload` picks up the rest of an ONT sequence from the same directory when you name
+  only part of it, matching what it already did for a paired end mate. Files found this way are
+  marked in the plan. `--no-prompt` still uploads only the files you named.
+
 - Nextflow Workflows no longer accept an image URI. Use `nextflow_version`
   (`--nextflow-version`) instead. `image_uri` (`--image-uri`) is still required for shell script
   Workflows.
@@ -61,6 +68,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   readcounts are computed *after*.
 
 ### Fixed
+
+- `onecodex upload` no longer groups files by filename alone, so samples that share a filename
+  in different directories stay separate. Previously ONT files refused to concatenate, and
+  multi-lane files from different directories could be concatenated into one sample.
+- `onecodex upload` no longer treats a file as a sample split across several files when its
+  name carries no chunk number, and no longer mistakes ONT chunks for paired end reads or
+  paired end reads for ONT chunks.
+- `onecodex upload` no longer offers, or uploads, the same read pair twice when a file with an
+  unrelated ordinal is passed alongside it.
+- `onecodex upload` rejects empty files before uploading anything, instead of failing partway
+  through and leaving the rest of the batch uploaded.
+- `onecodex upload` no longer reads a directory that happens to be named like a sequence file,
+  which raised an `IsADirectoryError`.
+- `onecodex upload` no longer renames a file it did not concatenate. A lone `t1_0.fq` was
+  uploaded as `t1.fq`, but only when another multi-file sample was in the same batch.
 
 - `plot_functional_heatmap()` no longer raises a `MergeError` when the sample
   collection contains more than one sample without functional profile results.
