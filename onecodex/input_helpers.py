@@ -228,14 +228,12 @@ def _describe(sample: PlannedSample) -> str:
     """Return a short phrase saying what will be done to a sample's files."""
     steps = []
     if sample.is_concatenated:
-        if _lane_number(sample.forward[0]) is None:
-            steps.append(f"concatenate {len(sample.forward)} files")
-        else:
-            steps.append(f"concatenate {len(sample.forward)} lanes")
+        unit = "files" if _lane_number(sample.forward[0]) is None else "lanes"
+        steps.append(f"concatenated from {len(sample.forward)} {unit}")
     if sample.is_paired:
-        steps.append("interleave")
+        steps.append("interleaved")
 
-    return ", then ".join(steps) if steps else "upload as-is"
+    return ", then ".join(steps) if steps else "uploaded as-is"
 
 
 def describe_plan(samples: Sequence[PlannedSample], named: set[str]) -> None:
@@ -255,10 +253,10 @@ def describe_plan(samples: Sequence[PlannedSample], named: set[str]) -> None:
         )
     )
     click.echo()
-    click.echo("Planned uploads:\n")
+    click.echo("Planned samples:\n")
 
     for position, sample in enumerate(samples, start=1):
-        click.echo(f"{position:>2}. {_describe(sample)}")
+        click.echo(f"sample {position}: {_describe(sample)}")
         if sample.is_paired:
             rows = [
                 " + ".join(_label(f) for f in sample.forward),
@@ -268,7 +266,7 @@ def describe_plan(samples: Sequence[PlannedSample], named: set[str]) -> None:
             rows = [_label(f) for f in sample.forward]
         for n, row in enumerate(rows, start=1):
             prefix = "└──" if n == len(rows) else "├──"
-            click.echo(f"    {prefix} {row}")
+            click.echo(f"{prefix} {row}")
         click.echo()
 
     n_files = sum(len(s.files) for s in samples)
