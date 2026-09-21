@@ -35,16 +35,22 @@ def _replace_paired_filename_ordinal(filename, replacement):
     return re.sub(PAIRED_ORDINAL_REV_PATTERN, replace_pattern, first_pass)
 
 
-def _ont_sequence_on_disk(filename):
-    """Return the run of ONT files on disk starting at ordinal 0, stopping at the first gap."""
+def _ont_sequence_on_disk(filename: str) -> list[str]:
+    """Return the run of ONT files on disk starting at ordinal 0, stopping at the first gap.
+
+    Returns an empty list if the run does not reach `filename`, which is then not part of a
+    complete sequence: the files before the gap belong to no sample we could assemble.
+    """
     sequence = []
     idx = 0
     while True:
         sibling = _replace_filename_ordinal(filename, idx, multi_digit=True)
         if not os.path.exists(sibling):
-            return sequence
+            break
         sequence.append(sibling)
         idx += 1
+
+    return sequence if filename in sequence else []
 
 
 def prompt_user_for_concatenation(ont_groups: dict[str, set[str]], passed_files: set[str]) -> bool:

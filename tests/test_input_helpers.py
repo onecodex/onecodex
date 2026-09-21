@@ -202,6 +202,18 @@ def test_concatenate_ont_groups_finds_rest_of_sequence_on_disk(generate_fastq, m
             assert fin.read() == 4 * FASTQ_SEQUENCE
 
 
+def test_concatenate_ont_groups_ignores_sequence_it_is_not_part_of(generate_fastq, monkeypatch):
+    """A file cut off from the start of the sequence must not pull in the files before the gap."""
+    monkeypatch.setattr(click, "prompt", lambda *args, **kwargs: "Y")
+    for filename in ["test_0.fq", "test_1.fq", "test_2.fq"]:
+        generate_fastq(filename)
+    files = [generate_fastq("test_5.fq")]
+    with use_tempdir() as tempdir:
+        concatenated, remaining = concatenate_ont_groups(files, prompt=True, tempdir=tempdir)
+        assert concatenated == []
+        assert _get_basenames(remaining) == ["test_5.fq"]
+
+
 def test_concatenate_ont_groups_does_not_find_files_on_disk_without_prompt(generate_fastq):
     """Files not on the command line must not be pulled in when there is no prompt."""
     generate_fastq("test_0.fq")
