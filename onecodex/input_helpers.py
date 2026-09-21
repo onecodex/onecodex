@@ -47,7 +47,7 @@ def _ont_sequence_on_disk(filename):
         idx += 1
 
 
-def prompt_user_for_concatenation(ont_groups: dict, passed_files: set) -> bool:
+def prompt_user_for_concatenation(ont_groups: dict[str, set[str]], passed_files: set[str]) -> bool:
     """Prompt user to determine whether ONT files should be concatenated.
 
     Files in `ont_groups` that are not in `passed_files` were found on disk rather than
