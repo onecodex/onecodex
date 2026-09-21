@@ -62,6 +62,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `onecodex upload` no longer asks whether to concatenate files by sample when none of the
+  files are split into numbered chunks. Files without an ordinal (e.g. `sample_R1.fq.gz`)
+  were each treated as a single-file ONT group.
+- `onecodex upload` no longer interleaves two separate ONT samples whose concatenated filenames
+  differ only by a trailing ordinal (e.g. `sample_1` and `sample_2`).
+- `onecodex upload` no longer groups files by filename alone, so samples that share a filename
+  but live in different directories are uploaded separately. Previously two ONT samples named
+  the same thing refused to concatenate, and multi-lane files could be concatenated across
+  directories into a single sample.
+- `onecodex upload` no longer reads a directory that happens to be named like part of a file
+  sequence, which raised `IsADirectoryError`.
+- `onecodex upload` no longer offers the same read pair twice, and no longer uploads it twice,
+  when a file with an unrelated ordinal is passed alongside it (e.g. `sample_3.fq` given with
+  `sample_1.fq` and `sample_2.fq`).
+- `onecodex upload` now finds the rest of an ONT sample's chunks in the same directory when
+  only some of them are named on the command line, instead of refusing to concatenate. Previously the
+  remaining chunks were uploaded as separate samples, and chunks named `sample_1` and `sample_2`
+  could be interleaved as a read pair.
+- `onecodex upload`'s interleaving prompt now counts pairs and leftover files rather than
+  reporting "N paired files (of M total)", where the total counted files found on disk.
+- `onecodex upload` now marks files that were found on disk but not passed on the command line
+  with a `*` in the confirmation prompts. Both prompts now spell out that declining uploads only
+  the files given on the command line, and the interleaving prompt offers a cancel option.
 - `plot_functional_heatmap()` no longer raises a `MergeError` when the sample
   collection contains more than one sample without functional profile results.
   Samples lacking functional results are now dropped from the plot (they were
