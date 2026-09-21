@@ -68,7 +68,7 @@ onecodex upload file1.fq.gz file2.fq.gz ...
 
 Files are grouped into samples based on their filenames. Paired end reads (`sample_R1.fq.gz`
 and `sample_R2.fq.gz`) are interleaved, ONT files split into numbered chunks (`sample_0.fq.gz`,
-`sample_1.fq.gz`, ...) are merged, and files split across sequencing lanes (`sample_L001.fq.gz`,
+`sample_1.fq.gz`, ...) are concatenated, and files split across sequencing lanes (`sample_L001.fq.gz`,
 `sample_L002.fq.gz`, ...) are concatenated. You are asked to confirm before any of this happens.
 
 If you pass only part of a sample -- one half of a paired end sample, or some of the chunks of

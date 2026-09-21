@@ -65,8 +65,8 @@ def prompt_user_for_concatenation(ont_groups: dict[str, set[str]], passed_files:
         )
 
     answer = click.prompt(
-        message + "\n\nWould you like to merge files by sample?"
-        "\n\n[Y]es; [n]o, upload the files I specified without merging;"
+        message + "\n\nWould you like to concatenate files by sample?"
+        "\n\n[Y]es; [n]o, upload the files I specified without concatenating;"
         " [d]isplay files; [c]ancel",
         type=click.Choice(["Y", "n", "d", "c"]),
         default="Y",
@@ -142,7 +142,7 @@ def concatenate_ont_groups(
     if not ont_groups:
         return concatenated, list(files)
 
-    # a lone file is a whole sample already; there is nothing to merge
+    # a lone file is a whole sample already; there is nothing to concatenate
     if len(ont_groups) == 1 and sum(len(x) for x in ont_groups.values()) == 1:
         auto_group = False
     elif prompt:
@@ -246,14 +246,16 @@ def auto_detect_illumina_pairs(files: Sequence[str], prompt: bool) -> list[str |
         if any(f not in passed_files for pair in pairs for f in pair):
             pair_list += "\n* not specified on the command line; found alongside its mate"
 
+        summary = "is 1 pair" if len(pairs) == 1 else f"are {len(pairs)} pairs"
+        if len(single_files) == 1:
+            summary += ", and 1 other file"
+        elif single_files:
+            summary += f", and {len(single_files)} other files"
+
         answer = click.prompt(
-            "It appears there are {n_paired_files} paired files (of {n_files} total):{pair_list}"
+            f"It appears there {summary}:{pair_list}"
             "\n\nInterleave them after upload?"
-            "\n\n[Y]es; [n]o, upload the files I specified without interleaving; [c]ancel".format(
-                n_paired_files=len(pairs) * 2,
-                n_files=len(pairs) * 2 + len(single_files),
-                pair_list=pair_list,
-            ),
+            "\n\n[Y]es; [n]o, upload the files I specified without interleaving; [c]ancel",
             type=click.Choice(["Y", "n", "c"], case_sensitive=False),
             default="Y",
         )

@@ -987,13 +987,14 @@ def test_paired_and_multiline_files(
     assert mock_sample_get.call_count == n_samples_uploaded
     assert result.exit_code == 0
 
-    paired_files_prompt = "It appears there are {} paired files (of {} total)".format(
-        n_paired_files, len(files)
+    n_pairs = n_paired_files // 2
+    paired_files_prompt = (
+        "It appears there is 1 pair" if n_pairs == 1 else f"It appears there are {n_pairs} pairs"
     )
     if n_paired_files > 0:
         assert paired_files_prompt in result.output
     else:
-        assert paired_files_prompt not in result.output
+        assert "Interleave them after upload?" not in result.output
 
     multilane_prompt = "This data appears to have been split across multiple sequencing lanes.\nConcatenate lanes before upload?"
     if n_multiline_groups > 0:
@@ -1050,7 +1051,7 @@ def test_paired_files_with_forward_and_reverse_args(
     result = runner.invoke(Cli, args, input="Y")
     assert mock_file_upload.call_count == 2
     assert mock_sample_get.call_count == 1
-    assert "It appears there are 2 paired files" not in result.output  # skips message
+    assert "Interleave them after upload?" not in result.output  # skips message
     assert result.exit_code == 0
 
     # Check with only --forward, should fail
@@ -1171,15 +1172,16 @@ def test_paired_and_ont_files(
     assert mock_sample_get.call_count == n_samples_uploaded
     assert result.exit_code == 0
 
-    paired_files_prompt = "It appears there are {} paired files (of {} total)".format(
-        n_paired_files, len(files)
+    n_pairs = n_paired_files // 2
+    paired_files_prompt = (
+        "It appears there is 1 pair" if n_pairs == 1 else f"It appears there are {n_pairs} pairs"
     )
     if n_paired_files > 0:
         assert paired_files_prompt in result.output
     else:
-        assert paired_files_prompt not in result.output
+        assert "Interleave them after upload?" not in result.output
 
-    ont_prompt = "Would you like to merge files by sample?"
+    ont_prompt = "Would you like to concatenate files by sample?"
     if n_ont_files > 0:
         assert ont_prompt in result.output
     else:

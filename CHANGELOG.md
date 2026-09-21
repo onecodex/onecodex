@@ -48,18 +48,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- `onecodex upload` no longer asks whether to merge files by sample when none of the
+- `onecodex upload` no longer asks whether to concatenate files by sample when none of the
   files are split into numbered chunks. Files without an ordinal (e.g. `sample_R1.fq.gz`)
   were each treated as a single-file ONT group.
-- `onecodex upload` no longer interleaves two separate ONT samples whose merged filenames
+- `onecodex upload` no longer interleaves two separate ONT samples whose concatenated filenames
   differ only by a trailing ordinal (e.g. `sample_1` and `sample_2`).
 - `onecodex upload` no longer offers the same read pair twice, and no longer uploads it twice,
   when a file with an unrelated ordinal is passed alongside it (e.g. `sample_3.fq` given with
   `sample_1.fq` and `sample_2.fq`).
 - `onecodex upload` now finds the rest of an ONT sample's chunks in the same directory when
-  only some of them are named on the command line, instead of refusing to merge. Previously the
+  only some of them are named on the command line, instead of refusing to concatenate. Previously the
   remaining chunks were uploaded as separate samples, and chunks named `sample_1` and `sample_2`
   could be interleaved as a read pair.
+- `onecodex upload`'s interleaving prompt now counts pairs and leftover files rather than
+  reporting "N paired files (of M total)", where the total counted files found on disk.
 - `onecodex upload` now marks files that were found on disk but not passed on the command line
   with a `*` in the confirmation prompts. Both prompts now spell out that declining uploads only
   the files given on the command line, and the interleaving prompt offers a cancel option.

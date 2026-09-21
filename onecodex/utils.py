@@ -63,7 +63,7 @@ OPTION_HELP = {
         "the files themselves."
     ),
     "prompt": (
-        "Manually prompt about automatic paired file interleaving, ONT file merging, and "
+        "Manually prompt about automatic paired file interleaving, ONT file concatenation, and "
         "multi-lane file concatenation. When prompting, the rest of a sample's files may "
         "be picked up from the same directory even if they were not passed on the command "
         "line; they are marked with a * in the prompt. Setting --no-prompt will allow running "

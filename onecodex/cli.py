@@ -832,7 +832,7 @@ def upload(
 
     Files are grouped into samples based on their filenames: paired end reads (e.g.
     `sample_R1.fq` and `sample_R2.fq`) are interleaved, ONT files split into numbered
-    chunks (e.g. `sample_0.fq`, `sample_1.fq`) are merged, and files split across
+    chunks (e.g. `sample_0.fq`, `sample_1.fq`) are concatenated, and files split across
     sequencing lanes (e.g. `sample_L001.fq`, `sample_L002.fq`) are concatenated.
 
     If only part of a sample is passed -- one half of a paired end sample, or some of the
