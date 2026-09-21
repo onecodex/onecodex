@@ -994,7 +994,7 @@ def test_paired_and_multiline_files(
     if n_paired_files > 0:
         assert paired_files_prompt in result.output
     else:
-        assert "Interleave them after upload?" not in result.output
+        assert "Would you like to interleave each pair?" not in result.output
 
     multilane_prompt = "This data appears to have been split across multiple sequencing lanes.\nConcatenate lanes before upload?"
     if n_multiline_groups > 0:
@@ -1051,7 +1051,7 @@ def test_paired_files_with_forward_and_reverse_args(
     result = runner.invoke(Cli, args, input="Y")
     assert mock_file_upload.call_count == 2
     assert mock_sample_get.call_count == 1
-    assert "Interleave them after upload?" not in result.output  # skips message
+    assert "Would you like to interleave each pair?" not in result.output  # skips message
     assert result.exit_code == 0
 
     # Check with only --forward, should fail
@@ -1179,7 +1179,7 @@ def test_paired_and_ont_files(
     if n_paired_files > 0:
         assert paired_files_prompt in result.output
     else:
-        assert "Interleave them after upload?" not in result.output
+        assert "Would you like to interleave each pair?" not in result.output
 
     ont_prompt = "Would you like to concatenate files by sample?"
     if n_ont_files > 0:
@@ -1211,7 +1211,7 @@ def test_ont_files_found_on_disk(
     assert "2 of them were not specified on the command line" in result.output
     assert "* not specified on the command line" in result.output
     # the files must not also be offered for interleaving
-    assert "Interleave them after upload?" not in result.output
+    assert "Would you like to interleave each pair?" not in result.output
 
 
 def test_download_samples_without_prompt(runner, api_data, mocked_creds_file):

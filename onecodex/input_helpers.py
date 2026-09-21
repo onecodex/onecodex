@@ -66,7 +66,7 @@ def prompt_user_for_concatenation(ont_groups: dict[str, set[str]], passed_files:
 
     answer = click.prompt(
         message + "\n\nWould you like to concatenate files by sample?"
-        "\n\n[Y]es; [n]o, upload the files I specified without concatenating;"
+        "\n\n[Y]es (recommended); [n]o, upload each file I specified as a separate sample;"
         " [d]isplay files; [c]ancel",
         type=click.Choice(["Y", "n", "d", "c"]),
         default="Y",
@@ -254,8 +254,9 @@ def auto_detect_illumina_pairs(files: Sequence[str], prompt: bool) -> list[str |
 
         answer = click.prompt(
             f"It appears there {summary}:{pair_list}"
-            "\n\nInterleave them after upload?"
-            "\n\n[Y]es; [n]o, upload the files I specified without interleaving; [c]ancel",
+            "\n\nWould you like to interleave each pair?"
+            "\n\n[Y]es (recommended); [n]o, upload each file I specified as a separate sample;"
+            " [c]ancel",
             type=click.Choice(["Y", "n", "c"], case_sensitive=False),
             default="Y",
         )
