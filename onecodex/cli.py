@@ -835,10 +835,10 @@ def upload(
     chunks (e.g. `sample_0.fq`, `sample_1.fq`) are merged, and files split across
     sequencing lanes (e.g. `sample_L001.fq`, `sample_L002.fq`) are concatenated.
 
-    If one half of a paired end sample is passed, its mate is picked up from the same
-    directory; it is marked with a * when you are asked to confirm. Pass --no-prompt to
-    upload only the files given on the command line, or --forward/--reverse to pair two
-    files explicitly.
+    If only part of a sample is passed -- one half of a paired end sample, or some of the
+    chunks of an ONT sample -- the rest is picked up from the same directory; those files
+    are marked with a * when you are asked to confirm. Pass --no-prompt to upload only the
+    files given on the command line, or --forward/--reverse to pair two files explicitly.
     """
     appendables = {}
     if tags:

@@ -71,9 +71,10 @@ and `sample_R2.fq.gz`) are interleaved, ONT files split into numbered chunks (`s
 `sample_1.fq.gz`, ...) are merged, and files split across sequencing lanes (`sample_L001.fq.gz`,
 `sample_L002.fq.gz`, ...) are concatenated. You are asked to confirm before any of this happens.
 
-If you pass only one half of a paired end sample, its mate is picked up from the same directory
-and marked with a `*` in the confirmation prompt. Pass `--no-prompt` to upload only the files
-named on the command line, or `--forward`/`--reverse` to pair two files explicitly.
+If you pass only part of a sample -- one half of a paired end sample, or some of the chunks of
+an ONT sample -- the rest is picked up from the same directory and marked with a `*` in the
+confirmation prompt. Pass `--no-prompt` to upload only the files named on the command line, or
+`--forward`/`--reverse` to pair two files explicitly.
 
 You can also upload files using the Python client library:
 

@@ -1,5 +1,6 @@
 import os
 import gzip
+import click
 import pytest
 from onecodex.input_helpers import (
     _find_multilane_groups,
@@ -185,3 +186,27 @@ def test_concatenate_ont_group_inform_about_missing_file(generate_fastq, caplog)
             "Detected a gap in the ONT file sequence for test.fq, missing file: test_2.fq"
             in caplog.text
         )
+
+
+def test_concatenate_ont_groups_finds_rest_of_sequence_on_disk(generate_fastq, monkeypatch):
+    """The rest of the sequence is picked up from disk, below and above the files passed in."""
+    monkeypatch.setattr(click, "prompt", lambda *args, **kwargs: "Y")
+    for filename in ["test_0.fq", "test_3.fq"]:
+        generate_fastq(filename)
+    files = [generate_fastq(x) for x in ["test_1.fq", "test_2.fq"]]
+    with use_tempdir() as tempdir:
+        concatenated, remaining = concatenate_ont_groups(files, prompt=True, tempdir=tempdir)
+        assert _get_basenames(concatenated) == ["test.fq"]
+        assert remaining == []
+        with open(concatenated[0]) as fin:
+            assert fin.read() == 4 * FASTQ_SEQUENCE
+
+
+def test_concatenate_ont_groups_does_not_find_files_on_disk_without_prompt(generate_fastq):
+    """Files not on the command line must not be pulled in when there is no prompt."""
+    generate_fastq("test_0.fq")
+    files = [generate_fastq(x) for x in ["test_1.fq", "test_2.fq"]]
+    with use_tempdir() as tempdir:
+        concatenated, remaining = concatenate_ont_groups(files, prompt=False, tempdir=tempdir)
+        assert concatenated == []
+        assert sorted(_get_basenames(remaining)) == ["test_1.fq", "test_2.fq"]

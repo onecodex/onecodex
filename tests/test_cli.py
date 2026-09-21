@@ -1186,6 +1186,32 @@ def test_paired_and_ont_files(
         assert ont_prompt not in result.output
 
 
+def test_ont_files_found_on_disk(
+    runner,
+    generate_fastq,
+    mock_file_upload,
+    mock_sample_get,
+    mocked_creds_path,
+    upload_mocks,
+):
+    """The rest of an ONT sequence is picked up from disk and the user is told about it."""
+    for filename in ["test_0.fq", "test_3.fq"]:
+        generate_fastq(filename)
+    files = [generate_fastq(x) for x in ["test_1.fq", "test_2.fq"]]
+
+    args = ["--api-key", "01234567890123456789012345678901", "upload"] + files
+    result = runner.invoke(Cli, args, catch_exceptions=False, input="d\n\n")
+
+    assert result.exit_code == 0
+    assert mock_file_upload.call_count == 1
+    assert mock_sample_get.call_count == 1
+    assert "It appears there are 1 sample(s) split across 4 individual file(s)" in result.output
+    assert "2 of them were not specified on the command line" in result.output
+    assert "* not specified on the command line" in result.output
+    # the files must not also be offered for interleaving
+    assert "Interleave them after upload?" not in result.output
+
+
 def test_download_samples_without_prompt(runner, api_data, mocked_creds_file):
     with runner.isolated_filesystem():
         result = runner.invoke(Cli, ["download", "samples", "output", "--no-prompt"])
