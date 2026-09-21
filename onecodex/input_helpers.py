@@ -35,6 +35,17 @@ def _replace_paired_filename_ordinal(filename, replacement):
     return re.sub(PAIRED_ORDINAL_REV_PATTERN, replace_pattern, first_pass)
 
 
+def _concatenation_target(tempdir: str, source_path: str, group_index: int) -> str:
+    """Return the path to concatenate a group into, keeping its filename.
+
+    Each group gets its own subdirectory so that samples that share a filename but live in
+    different directories do not overwrite one another.
+    """
+    group_dir = os.path.join(tempdir, str(group_index))
+    os.makedirs(group_dir, exist_ok=True)
+    return os.path.join(group_dir, os.path.basename(source_path))
+
+
 def _ont_sequence_on_disk(filename: str) -> list[str]:
     """Return the run of ONT files on disk starting at ordinal 0, stopping at the first gap.
 
@@ -72,7 +83,7 @@ def prompt_user_for_concatenation(ont_groups: dict[str, set[str]], passed_files:
 
     answer = click.prompt(
         message + "\n\nWould you like to concatenate files by sample?"
-        "\n\n[Y]es (recommended); [n]o, upload each file I specified as a separate sample;"
+        "\n\n[Y]es; [n]o, upload each file I specified as a separate sample;"
         " [d]isplay files; [c]ancel",
         type=click.Choice(["Y", "n", "d", "c"]),
         default="Y",
@@ -137,7 +148,6 @@ def concatenate_ont_groups(
         if os.path.isfile(ont_zero_filename):
             # strip the ordinal and preceding . or _
             base_filename = re.sub(ORDINAL_MULTI_REV_PATTERN, r"\g<post>", filename)
-            base_filename = os.path.join(tempdir, os.path.basename(base_filename))
 
             ont_groups[base_filename].add(filename)
             if prompt:
@@ -160,7 +170,7 @@ def concatenate_ont_groups(
         return concatenated, list(files)
 
     # Ensure there is no gap in the file sequences
-    for base_ont_filename, group_files in ont_groups.items():
+    for group_index, (base_ont_filename, group_files) in enumerate(ont_groups.items()):
         ont_file = next(iter(group_files))
         expected_sequence = [
             _replace_filename_ordinal(ont_file, idx, multi_digit=True)
@@ -180,13 +190,14 @@ def concatenate_ont_groups(
         if not full_sequence:
             continue
 
-        log.info(f"Concatenating to {base_ont_filename}")
-        with open(base_ont_filename, "wb") as outf:
+        target = _concatenation_target(tempdir, base_ont_filename, group_index)
+        log.info(f"Concatenating to {target}")
+        with open(target, "wb") as outf:
             for ont_filename in expected_sequence:
                 with open(ont_filename, "rb") as inf:
                     shutil.copyfileobj(inf, outf)
                 single_files.discard(ont_filename)
-        concatenated.append(base_ont_filename)
+        concatenated.append(target)
     return concatenated, list(single_files)
 
 
@@ -261,7 +272,7 @@ def auto_detect_illumina_pairs(files: Sequence[str], prompt: bool) -> list[str |
         answer = click.prompt(
             f"It appears there {summary}:{pair_list}"
             "\n\nWould you like to interleave each pair?"
-            "\n\n[Y]es (recommended); [n]o, upload each file I specified as a separate sample;"
+            "\n\n[Y]es; [n]o, upload each file I specified as a separate sample;"
             " [c]ancel",
             type=click.Choice(["Y", "n", "c"], case_sensitive=False),
             default="Y",
@@ -299,8 +310,12 @@ def _find_multilane_groups(files):
     pattern_pair_lane_combo = re.compile(r"([._][rR][12])?[._]L\d+[._]([rR][12])?")
 
     def _group_for(file_path):
-        """Create group names by removing Lx and Rx elements from the filename."""
-        return re.sub(pattern_pair_lane_combo, "", os.path.basename(file_path))
+        """Create group names by removing Lx and Rx elements from the path.
+
+        The directory is part of the name so that samples that share a filename but live in
+        different directories are not grouped together.
+        """
+        return re.sub(pattern_pair_lane_combo, "", file_path)
 
     def _create_group_map(elem_list, paired):
         """Create multilane file groups with elements in proper order based on file list."""
@@ -378,10 +393,10 @@ def concatenate_multilane_files(files, prompt, tempdir):
     concatenated file.
     """
 
-    def _concatenate_group(group, first_elem):
+    def _concatenate_group(group, first_elem, group_index):
         """Concatenate all the files on the list and return the target file path."""
-        target_file_name = re.sub(pattern_lane_num, r"\1", os.path.basename(first_elem))
-        target_path = os.path.join(tempdir, os.path.basename(target_file_name))
+        target_file_name = re.sub(pattern_lane_num, r"\1", first_elem)
+        target_path = _concatenation_target(tempdir, target_file_name, group_index)
 
         # Overwriting all files by default
         with open(target_path, "wb") as outf:
@@ -411,15 +426,15 @@ def concatenate_multilane_files(files, prompt, tempdir):
     files = files[:]
     pattern_lane_num = re.compile(r"[._]L\d+([._])")
 
-    for group in groups:
+    for group_index, group in enumerate(groups):
         # The groups considered here will already have more than 1 element
         first_elem = group[0]
         if isinstance(first_elem, tuple):
-            concat_fwd = _concatenate_group([fwd for fwd, _ in group], first_elem[0])
-            concat_rev = _concatenate_group([rev for _, rev in group], first_elem[1])
+            concat_fwd = _concatenate_group([fwd for fwd, _ in group], first_elem[0], group_index)
+            concat_rev = _concatenate_group([rev for _, rev in group], first_elem[1], group_index)
             files.append((concat_fwd, concat_rev))
         elif isinstance(first_elem, str):
-            concat = _concatenate_group(group, first_elem)
+            concat = _concatenate_group(group, first_elem, group_index)
             files.append(concat)
 
         for elem in group:

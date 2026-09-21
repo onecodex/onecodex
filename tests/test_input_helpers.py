@@ -257,3 +257,32 @@ def test_auto_detect_illumina_pairs_canceled(generate_fastq, monkeypatch):
     with pytest.raises(SystemExit) as excinfo:
         auto_detect_illumina_pairs(files, prompt=True)
     assert excinfo.value.code == 0
+
+
+def test_concatenate_ont_groups_separates_directories(generate_fastq):
+    """Samples that share a filename but live in different directories are separate."""
+    files = [
+        generate_fastq(x)
+        for x in ["dirA/test_0.fq", "dirA/test_1.fq", "dirB/test_0.fq", "dirB/test_1.fq"]
+    ]
+    with use_tempdir() as tempdir:
+        concatenated, remaining = concatenate_ont_groups(files, prompt=False, tempdir=tempdir)
+        assert _get_basenames(concatenated) == ["test.fq", "test.fq"]
+        assert remaining == []
+        for path in concatenated:
+            with open(path) as fin:
+                assert fin.read() == 2 * FASTQ_SEQUENCE
+
+
+def test_concatenate_multilane_files_separates_directories(generate_fastq):
+    """Lanes of samples in different directories must not be concatenated together."""
+    files = [
+        generate_fastq(x)
+        for x in ["dirA/S_L001.fq", "dirA/S_L002.fq", "dirB/S_L001.fq", "dirB/S_L002.fq"]
+    ]
+    with use_tempdir() as tempdir:
+        concatenated = concatenate_multilane_files(files, prompt=False, tempdir=tempdir)
+        assert _get_basenames(concatenated) == ["S.fq", "S.fq"]
+        for path in concatenated:
+            with open(path) as fin:
+                assert fin.read() == 2 * FASTQ_SEQUENCE

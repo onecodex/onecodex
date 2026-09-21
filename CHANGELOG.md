@@ -53,6 +53,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   were each treated as a single-file ONT group.
 - `onecodex upload` no longer interleaves two separate ONT samples whose concatenated filenames
   differ only by a trailing ordinal (e.g. `sample_1` and `sample_2`).
+- `onecodex upload` no longer groups files by filename alone, so samples that share a filename
+  but live in different directories are uploaded separately. Previously two ONT samples named
+  the same thing refused to concatenate, and multi-lane files could be concatenated across
+  directories into a single sample.
+- `onecodex upload` no longer reads a directory that happens to be named like part of a file
+  sequence, which raised `IsADirectoryError`.
 - `onecodex upload` no longer offers the same read pair twice, and no longer uploads it twice,
   when a file with an unrelated ordinal is passed alongside it (e.g. `sample_3.fq` given with
   `sample_1.fq` and `sample_2.fq`).
