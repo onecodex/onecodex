@@ -244,6 +244,17 @@ def describe_plan(samples: Sequence[PlannedSample], named: set[str]) -> None:
     def _label(path):
         return f"{path}" if path in named else f"{path} *"
 
+    click.echo(
+        click.wrap_text(
+            "One Codex stores each sample as a single file, so files belonging to the same "
+            "sample are joined together before they are uploaded: paired end reads are "
+            "interleaved, and files split into numbered chunks or across sequencing lanes "
+            "are concatenated. Which files belong together is worked out from their names, "
+            "so please check this over before continuing.",
+            width=min(shutil.get_terminal_size().columns, 88),
+        )
+    )
+    click.echo()
     click.echo("Planned uploads:\n")
 
     for position, sample in enumerate(samples, start=1):
