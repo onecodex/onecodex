@@ -66,7 +66,8 @@ def prompt_user_for_concatenation(ont_groups: dict, passed_files: set) -> bool:
 
     answer = click.prompt(
         message + "\nWould you like to merge files by sample?"
-        "\n[Y]es; [n]o; [d]isplay files; [c]ancel",
+        "\n[Y]es; [n]o, upload the files I specified without merging;"
+        " [d]isplay files; [c]ancel",
         type=click.Choice(["Y", "n", "d", "c"]),
         default="Y",
     )
@@ -212,6 +213,9 @@ def auto_detect_illumina_pairs(files: Sequence[str], prompt: bool) -> list[str |
 
         if (
             paired_r1_filename != paired_r2_filename
+            # a file with any other ordinal (e.g. `sample_3.fq`) substitutes down to the
+            # same two names, but is not itself a mate
+            and filename in (paired_r1_filename, paired_r2_filename)
             and os.path.exists(paired_r1_filename)
             and os.path.exists(paired_r2_filename)
         ):
@@ -244,16 +248,22 @@ def auto_detect_illumina_pairs(files: Sequence[str], prompt: bool) -> list[str |
         if any(f not in passed_files for pair in pairs for f in pair):
             pair_list += "\n* not specified on the command line; found alongside its mate"
 
-        answer = click.confirm(
-            "It appears there are {n_paired_files} paired files (of {n_files} total):{pair_list}\nInterleave them after upload?".format(
+        answer = click.prompt(
+            "It appears there are {n_paired_files} paired files (of {n_files} total):{pair_list}"
+            "\nInterleave them after upload?"
+            "\n[Y]es; [n]o, upload the files I specified without interleaving; [c]ancel".format(
                 n_paired_files=len(pairs) * 2,
                 n_files=len(pairs) * 2 + len(single_files),
                 pair_list=pair_list,
             ),
+            type=click.Choice(["Y", "n", "c"], case_sensitive=False),
             default="Y",
         )
 
-        if not answer:
+        if answer[0].lower() == "c":
+            click.echo("Upload canceled")
+            sys.exit(0)
+        elif answer[0].lower() == "n":
             auto_pair = False
 
     if auto_pair:

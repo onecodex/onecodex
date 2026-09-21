@@ -210,3 +210,27 @@ def test_concatenate_ont_groups_does_not_find_files_on_disk_without_prompt(gener
         concatenated, remaining = concatenate_ont_groups(files, prompt=False, tempdir=tempdir)
         assert concatenated == []
         assert sorted(_get_basenames(remaining)) == ["test_1.fq", "test_2.fq"]
+
+
+def test_auto_detect_illumina_pairs_ignores_other_ordinals(generate_fastq, monkeypatch):
+    """A file with an unrelated ordinal must not produce a pair it is not part of."""
+    monkeypatch.setattr(click, "prompt", lambda *args, **kwargs: "Y")
+    files = [generate_fastq(x) for x in ["test_1.fq", "test_2.fq", "test_3.fq"]]
+    pairs = auto_detect_illumina_pairs(files, prompt=True)
+    assert _get_basenames(pairs) == [("test_1.fq", "test_2.fq"), "test_3.fq"]
+
+
+def test_auto_detect_illumina_pairs_declined(generate_fastq, monkeypatch):
+    """Declining the prompt uploads only the files given on the command line."""
+    monkeypatch.setattr(click, "prompt", lambda *args, **kwargs: "n")
+    generate_fastq("test_R2.fq")
+    files = [generate_fastq("test_R1.fq")]
+    assert auto_detect_illumina_pairs(files, prompt=True) == files
+
+
+def test_auto_detect_illumina_pairs_canceled(generate_fastq, monkeypatch):
+    monkeypatch.setattr(click, "prompt", lambda *args, **kwargs: "c")
+    files = [generate_fastq(x) for x in ["test_R1.fq", "test_R2.fq"]]
+    with pytest.raises(SystemExit) as excinfo:
+        auto_detect_illumina_pairs(files, prompt=True)
+    assert excinfo.value.code == 0
