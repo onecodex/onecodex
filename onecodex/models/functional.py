@@ -1,5 +1,5 @@
 import math
-from typing import Any, Optional
+from typing import Any, NamedTuple, Optional
 
 from onecodex.exceptions import OneCodexException
 from onecodex.lib.enums import FunctionalAnnotations, FunctionalAnnotationsMetric
@@ -188,22 +188,48 @@ def _rehydrate_functional_results(
     }
 
 
-# these are the indices to use when accessing condensed data, the first element in the tuple
-# is the index for the community value, second element is the index for the value in the
-# contributions list. e.g., for CPM, the community value is at index 2 and in the contribution
-# list the CPM value is at index 1
-_STANDARD_METRIC_INDEXES = {
-    FunctionalAnnotationsMetric.Cpm: (2, 1),
-    FunctionalAnnotationsMetric.Rpk: (3, 2),
+class _StandardContribution(NamedTuple):
+    taxon_id: Any
+    cpm: float
+    rpk: float
+
+
+class _StandardFeature(NamedTuple):
+    id: str
+    name: str
+    cpm: float
+    rpk: float
+    contributions: list
+
+
+class _PathwayContribution(NamedTuple):
+    taxon_id: Any
+    abundance: float
+    coverage: float
+    metacyc_cpm: float
+
+
+class _PathwayFeature(NamedTuple):
+    id: str
+    name: str
+    abundance: float
+    coverage: float
+    metacyc_cpm: float
+    contributions: list
+
+
+_STANDARD_METRIC_FIELDS = {
+    FunctionalAnnotationsMetric.Cpm: "cpm",
+    FunctionalAnnotationsMetric.Rpk: "rpk",
 }
-_PATHWAY_METRIC_INDEXES = {
-    FunctionalAnnotationsMetric.Abundance: (2, 1),
-    FunctionalAnnotationsMetric.Coverage: (3, 2),
+_PATHWAY_METRIC_FIELDS = {
+    FunctionalAnnotationsMetric.Abundance: "abundance",
+    FunctionalAnnotationsMetric.Coverage: "coverage",
 }
-_METACYC_METRIC_INDEXES = {
+_METACYC_METRIC_FIELDS = {
     # metacyc values are folded into pathways
-    FunctionalAnnotationsMetric.Cpm: (4, 3),
-    FunctionalAnnotationsMetric.Rpk: (2, 1),
+    FunctionalAnnotationsMetric.Cpm: "metacyc_cpm",
+    FunctionalAnnotationsMetric.Rpk: "abundance",
 }
 
 
@@ -271,14 +297,17 @@ def _select_condensed_functional_results(
     require_complete_pathway = metric == FunctionalAnnotationsMetric.CompleteAbundance
 
     if annotation == FunctionalAnnotations.Pathways:
-        community_value_index, contribution_value_index = _PATHWAY_METRIC_INDEXES[
+        feature_type, contribution_type = _PathwayFeature, _PathwayContribution
+        value_field = _PATHWAY_METRIC_FIELDS[
             FunctionalAnnotationsMetric.Abundance if require_complete_pathway else metric
         ]
     elif annotation == FunctionalAnnotations.MetaCyc:
         results_group = FunctionalAnnotations.Pathways.value
-        community_value_index, contribution_value_index = _METACYC_METRIC_INDEXES[metric]
+        feature_type, contribution_type = _PathwayFeature, _PathwayContribution
+        value_field = _METACYC_METRIC_FIELDS[metric]
     else:
-        community_value_index, contribution_value_index = _STANDARD_METRIC_INDEXES[metric]
+        feature_type, contribution_type = _StandardFeature, _StandardContribution
+        value_field = _STANDARD_METRIC_FIELDS[metric]
 
     feature_ids: list[str] = []
     values: list[float] = []
@@ -288,16 +317,17 @@ def _select_condensed_functional_results(
 
     features = condensed_results["results"].get(results_group, [])
 
-    for feature in features:
-        feature_id = str(feature[0])
-        encoded_name = feature[1]
+    for row in features:
+        feature = feature_type._make(row)
+        feature_id = str(feature.id)
+        encoded_name = feature.name
 
         if feature_id in _SKIP_FUNCTIONAL_IDS:
             continue
 
         # complete_abundance includes only pathways whose community-level
         # coverage is exactly 1.0. The reported value is still abundance.
-        if require_complete_pathway and feature[3] != 1.0:
+        if require_complete_pathway and feature.coverage != 1.0:
             continue
 
         # Missing names for standard groups are encoded by repeating the ID.
@@ -312,19 +342,19 @@ def _select_condensed_functional_results(
 
         if not taxa_stratified:
             feature_ids.append(feature_id)
-            values.append(feature[community_value_index])
+            values.append(getattr(feature, value_field))
             feature_name_map[feature_id] = feature_name
             continue
 
         assert taxon_ids is not None
 
-        # Contributions are always the final element of a condensed feature.
-        for contribution in feature[-1]:
-            taxon_id = _normalize_taxon_id(contribution[0])
+        for raw_contribution in feature.contributions:
+            contribution = contribution_type._make(raw_contribution)
+            taxon_id = _normalize_taxon_id(contribution.taxon_id)
 
             feature_ids.append(feature_id)
             taxon_ids.append(taxon_id)
-            values.append(contribution[contribution_value_index])
+            values.append(getattr(contribution, value_field))
 
             # Only add names for observations that were actually emitted. This
             # keeps the feature-name map aligned with dataframe columns when a
