@@ -113,6 +113,7 @@ class AnnotationSets(OneCodexBase, _AnnotationSetSchema, ResourceDownloadMixin):
 
 class Assemblies(OneCodexBase, _AssemblySchema, ResourceDownloadMixin):
     _resource_path = "/api/v1/assemblies"
+    _use_cursor_pagination = True
 
     def download(self, path=None, file_obj=None, progressbar=False):
         """Download an Assembly in FASTA format.
@@ -150,6 +151,7 @@ class Assemblies(OneCodexBase, _AssemblySchema, ResourceDownloadMixin):
 
 class Genomes(OneCodexBase, _GenomeSchema):
     _resource_path = "/api/v1/genomes"
+    _use_cursor_pagination = True
 
     def __repr__(self):
         return f"<Genome {self.id} {self.taxon.name} ({self.name})>"
