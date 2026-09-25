@@ -1722,6 +1722,53 @@ def test_limit_truncates_results_assemblies(ocx, custom_mock_requests):
         assert len(ocx.Assemblies.all()) == 5
 
 
+def test_assembly_pagination(ocx, custom_mock_requests):
+    all_assemblies = [
+        {
+            "$uri": f"/api/v1/assemblies/asm{i:016d}",
+            "created_at": "2025-10-02T00:00:00+00:00",
+            "filename": f"assembly_{i}.fasta",
+            "genome": None,
+            "input_samples": [],
+            "job": None,
+            "owner": {"$ref": "/api/v1/users/user123456789abc"},
+            "primary_annotation_set": None,
+            "size": 100,
+            "visibility": "private",
+        }
+        for i in range(10)
+    ]
+
+    def paginated_assemblies_callback(request):
+        params = parse_qs(urlparse(request.url).query)
+
+        # Assemblies pagination should use cursor pagination
+        assert request.headers.get("X-Pagination-Style") == "cursor"
+        assert "page" not in params
+
+        cursor = int(params.get("cursor", ["0"])[0])
+        per_page = int(params["per_page"][0])
+
+        # Naive cursor pagination
+        page = all_assemblies[cursor * per_page : (cursor + 1) * per_page]
+
+        headers = {"Content-Type": "application/json"}
+        if len(page) == per_page:
+            headers["X-Next-Cursor"] = str(cursor + 1)
+        return (200, headers, json.dumps(page))
+
+    mock_data = {
+        "GET::api/v1/assemblies": paginated_assemblies_callback,
+    }
+
+    with custom_mock_requests(mock_data):
+        with mock.patch("onecodex.models.base.DEFAULT_PAGE_SIZE", 3):
+            assemblies = ocx.Assemblies.all()
+            assert len(assemblies) == 10
+            assert [a.id for a in assemblies] == [f"asm{i:016d}" for i in range(10)]
+            assert len(responses.calls) == 4
+
+
 def test_limit_truncates_results_genomes(ocx, custom_mock_requests):
     genomes = [
         {
@@ -1744,6 +1791,51 @@ def test_limit_truncates_results_genomes(ocx, custom_mock_requests):
     with custom_mock_requests(mock_data):
         assert len(ocx.Genomes.all(limit=2)) == 2
         assert len(ocx.Genomes.all()) == 5
+
+
+def test_genome_pagination(ocx, custom_mock_requests):
+    all_genomes = [
+        {
+            "$uri": f"/api/v1/genomes/gen{i:016d}",
+            "created_at": "2025-10-02T00:00:00+00:00",
+            "assemblies": [],
+            "description": f"Genome {i}",
+            "name": f"genome_{i}",
+            "primary_assembly": None,
+            "tags": [],
+            "taxon": {"$ref": "/api/v1/taxa/tax123456789abcd"},
+        }
+        for i in range(10)
+    ]
+
+    def paginated_genomes_callback(request):
+        params = parse_qs(urlparse(request.url).query)
+
+        # Genomes pagination should use cursor pagination
+        assert request.headers.get("X-Pagination-Style") == "cursor"
+        assert "page" not in params
+
+        cursor = int(params.get("cursor", ["0"])[0])
+        per_page = int(params["per_page"][0])
+
+        # Naive cursor pagination
+        page = all_genomes[cursor * per_page : (cursor + 1) * per_page]
+
+        headers = {"Content-Type": "application/json"}
+        if len(page) == per_page:
+            headers["X-Next-Cursor"] = str(cursor + 1)
+        return (200, headers, json.dumps(page))
+
+    mock_data = {
+        "GET::api/v1/genomes": paginated_genomes_callback,
+    }
+
+    with custom_mock_requests(mock_data):
+        with mock.patch("onecodex.models.base.DEFAULT_PAGE_SIZE", 3):
+            genomes = ocx.Genomes.all()
+            assert len(genomes) == 10
+            assert [g.id for g in genomes] == [f"gen{i:016d}" for i in range(10)]
+            assert len(responses.calls) == 4
 
 
 def test_sample_updates(ocx, api_data):
