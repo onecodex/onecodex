@@ -28,6 +28,7 @@ async function main() {
         "coverage",
         "pytest-cov",
         "pdfplumber",
+        "pre-commit",
         "ruff",
         "scikit-bio",
     }
