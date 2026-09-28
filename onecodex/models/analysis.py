@@ -402,11 +402,11 @@ class _AnalysesBase(OneCodexBase):
             if progressbar:
                 progress_label = os.path.basename(out_path) if out_path else filepath.filename
                 with click.progressbar(length=filepath.size, label=progress_label) as bar:
-                    for data in resp.iter_content(chunk_size=1024):
+                    for data in resp.raw.stream(1024, decode_content=False):
                         bar.update(len(data))
                         f_out.write(data)
             else:
-                for data in resp.iter_content(chunk_size=1024):
+                for data in resp.raw.stream(1024, decode_content=False):
                     f_out.write(data)
 
             # do not close the handle if file_obj is used
