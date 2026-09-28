@@ -188,22 +188,53 @@ def _rehydrate_functional_results(
     }
 
 
+# index positions in condensed rows
+_ID_INDEX = 0
+_NAME_INDEX = 1
+_CONTRIBUTIONS_INDEX = -1
+_TAXON_ID_INDEX = 0
+
+_STANDARD_CPM_INDEX = 2
+_STANDARD_RPK_INDEX = 3
+_STANDARD_CONTRIBUTION_CPM_INDEX = 1
+_STANDARD_CONTRIBUTION_RPK_INDEX = 2
+
+_PATHWAY_ABUNDANCE_INDEX = 2
+_PATHWAY_COVERAGE_INDEX = 3
+_PATHWAY_METACYC_CPM_INDEX = 4
+_PATHWAY_CONTRIBUTION_ABUNDANCE_INDEX = 1
+_PATHWAY_CONTRIBUTION_COVERAGE_INDEX = 2
+_PATHWAY_CONTRIBUTION_METACYC_CPM_INDEX = 3
+
+
 # these are the indices to use when accessing condensed data, the first element in the tuple
 # is the index for the community value, second element is the index for the value in the
 # contributions list. e.g., for CPM, the community value is at index 2 and in the contribution
 # list the CPM value is at index 1
 _STANDARD_METRIC_INDEXES = {
-    FunctionalAnnotationsMetric.Cpm: (2, 1),
-    FunctionalAnnotationsMetric.Rpk: (3, 2),
+    FunctionalAnnotationsMetric.Cpm: (_STANDARD_CPM_INDEX, _STANDARD_CONTRIBUTION_CPM_INDEX),
+    FunctionalAnnotationsMetric.Rpk: (_STANDARD_RPK_INDEX, _STANDARD_CONTRIBUTION_RPK_INDEX),
 }
 _PATHWAY_METRIC_INDEXES = {
-    FunctionalAnnotationsMetric.Abundance: (2, 1),
-    FunctionalAnnotationsMetric.Coverage: (3, 2),
+    FunctionalAnnotationsMetric.Abundance: (
+        _PATHWAY_ABUNDANCE_INDEX,
+        _PATHWAY_CONTRIBUTION_ABUNDANCE_INDEX,
+    ),
+    FunctionalAnnotationsMetric.Coverage: (
+        _PATHWAY_COVERAGE_INDEX,
+        _PATHWAY_CONTRIBUTION_COVERAGE_INDEX,
+    ),
 }
 _METACYC_METRIC_INDEXES = {
     # metacyc values are folded into pathways
-    FunctionalAnnotationsMetric.Cpm: (4, 3),
-    FunctionalAnnotationsMetric.Rpk: (2, 1),
+    FunctionalAnnotationsMetric.Cpm: (
+        _PATHWAY_METACYC_CPM_INDEX,
+        _PATHWAY_CONTRIBUTION_METACYC_CPM_INDEX,
+    ),
+    FunctionalAnnotationsMetric.Rpk: (
+        _PATHWAY_ABUNDANCE_INDEX,
+        _PATHWAY_CONTRIBUTION_ABUNDANCE_INDEX,
+    ),
 }
 
 
@@ -289,15 +320,15 @@ def _select_condensed_functional_results(
     features = condensed_results["results"].get(results_group, [])
 
     for feature in features:
-        feature_id = str(feature[0])
-        encoded_name = feature[1]
+        feature_id = str(feature[_ID_INDEX])
+        encoded_name = feature[_NAME_INDEX]
 
         if feature_id in _SKIP_FUNCTIONAL_IDS:
             continue
 
         # complete_abundance includes only pathways whose community-level
         # coverage is exactly 1.0. The reported value is still abundance.
-        if require_complete_pathway and feature[3] != 1.0:
+        if require_complete_pathway and feature[_PATHWAY_COVERAGE_INDEX] != 1.0:
             continue
 
         # Missing names for standard groups are encoded by repeating the ID.
@@ -319,8 +350,8 @@ def _select_condensed_functional_results(
         assert taxon_ids is not None
 
         # Contributions are always the final element of a condensed feature.
-        for contribution in feature[-1]:
-            taxon_id = _normalize_taxon_id(contribution[0])
+        for contribution in feature[_CONTRIBUTIONS_INDEX]:
+            taxon_id = _normalize_taxon_id(contribution[_TAXON_ID_INDEX])
 
             feature_ids.append(feature_id)
             taxon_ids.append(taxon_id)
