@@ -51,6 +51,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Missing values are `pd.NA` and empty results now have these same dtypes.
 - `FunctionalProfiles.table()` now returns a fresh, ordered zero-based index. It previously returned a
   filtered slice of the full results table, which kept original indices.
+- `ocx.Assemblies` and `ocx.Genomes` now use the more performant, cursor-based pagination method
+  (like `ocx.Samples` and `ocx.Metadata`).
 
 ### Removed
 
