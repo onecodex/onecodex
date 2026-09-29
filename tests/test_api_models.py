@@ -232,6 +232,24 @@ def test_download_file_obj(ocx, api_data):
     assert data == b'"1234567890"'
 
 
+def test_download_file_keeps_gzip_encoding(ocx, api_data):
+    import gzip
+
+    from onecodex.models.schemas.misc import FileDetailSchema
+
+    data = gzip.compress(b"report")
+    url = "http://s3/report.json.gz"
+    api_data.add("GET", url, body=data, headers={"Content-Encoding": "gzip"})
+
+    file_obj = io.BytesIO()
+    file = FileDetailSchema(
+        filename="report.json.gz", filepath="report.json.gz", size=len(data), url=url
+    )
+    ocx.Analyses.get("935c2a3611944e39").download_file(file, out_file_obj=file_obj)
+
+    assert file_obj.getvalue() == data
+
+
 def test_samplecollection(ocx, api_data):
     all_samples = ocx.Samples.where()
     samples = all_samples[:3]
