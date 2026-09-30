@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [v1.2.0] - 2026-09-30
 
 ### Added
 
@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   defaults to `"all"` which returns all metrics available for an annotation.
 - Added `Analyses.cancel()` and `onecodex analyses cancel` CLI command for canceling an
   in-progress Custom Workflow run.
+- Added `tax_ids` argument to `Samples.where()` for filtering samples by taxa. Only samples
+  containing *all* the listed taxa are returned.
 
 ### Changed
 
@@ -53,6 +55,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   filtered slice of the full results table, which kept original indices.
 - `ocx.Assemblies` and `ocx.Genomes` now use the more performant, cursor-based pagination method
   (like `ocx.Samples` and `ocx.Metadata`).
+- `plot_heatmap()` legend title now defaults to the metric's display name (e.g.,
+  "Readcount With Children") instead of its field name.
+- `to_functional_df(taxa_stratified=True)` columns are now a MultiIndex of
+  `(feature_id, taxon_id)`, matching the layout of `to_classification_df()`.
 
 ### Removed
 
@@ -77,6 +83,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   requires being logged in.
 - `SampleCollection.plot_distance` no longer incorrectly warns about
   non-comparable metrics when plotting with comparable metrics.
+- `Samples.where()` no longer raises an `AttributeError` when combining sample and metadata filters.
+- `to_functional_df(taxa_stratified=True)` now gives each contributing taxon its own column.
+  Previously only one taxon's value was kept per feature.
+- `Analyses.download_file()` no longer decompresses files served with `Content-Encoding: gzip`,
+  which previously resulted in `.gz` files containing uncompressed data.
 
 ## [v1.1.0] - 2026-06-18
 
