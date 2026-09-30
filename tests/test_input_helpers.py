@@ -1,10 +1,11 @@
 import os
 import gzip
+import click
 import pytest
 from onecodex.input_helpers import (
     _find_multilane_groups,
     concatenate_multilane_files,
-    auto_detect_pairs,
+    auto_detect_illumina_pairs,
     concatenate_ont_groups,
 )
 from onecodex.utils import use_tempdir
@@ -35,9 +36,9 @@ def _get_basenames(elems):
         (["test_R1.fq", "test_R2.fq", "other.fq"], [("test_R1.fq", "test_R2.fq"), "other.fq"]),
     ],
 )
-def test_auto_detect_pairs(generate_fastq, files, expected_pairing):
+def test_auto_detect_illumina_pairs(generate_fastq, files, expected_pairing):
     files = [generate_fastq(x) for x in files]
-    pairs = auto_detect_pairs(files, prompt=False)
+    pairs = auto_detect_illumina_pairs(files, prompt=False)
     basenames = _get_basenames(pairs)
     assert basenames == expected_pairing
 
@@ -158,18 +159,130 @@ def test_concatenate_gzipped_multilane_files(generate_fastq_gz):
 def test_concatenate_ont_groups(generate_fastq, files, expected_grouping):
     files = [generate_fastq(x) for x in files]
     with use_tempdir() as tempdir:
-        pairs = concatenate_ont_groups(files, prompt=False, tempdir=tempdir)
-        basenames = _get_basenames(pairs)
+        concatenated, remaining = concatenate_ont_groups(files, prompt=False, tempdir=tempdir)
+        basenames = _get_basenames(concatenated + remaining)
         assert sorted(basenames) == sorted(expected_grouping)
+
+
+def test_concatenate_ont_groups_leaves_paired_files_alone(generate_fastq):
+    """Files without an ONT ordinal must not be grouped."""
+    files = [generate_fastq(x) for x in ["test_R1.fq", "test_R2.fq"]]
+    with use_tempdir() as tempdir:
+        concatenated, remaining = concatenate_ont_groups(files, prompt=False, tempdir=tempdir)
+        assert concatenated == []
+        assert sorted(os.path.realpath(x) for x in remaining) == sorted(
+            os.path.realpath(x) for x in files
+        )
 
 
 def test_concatenate_ont_group_inform_about_missing_file(generate_fastq, caplog):
     filenames = ["test_0.fq", "test_1.fq", "test_3.fq"]
     files = [generate_fastq(x) for x in filenames]
     with use_tempdir() as tempdir:
-        pairs = concatenate_ont_groups(files, prompt=False, tempdir=tempdir)
-        assert len(pairs) == len(filenames)
+        concatenated, remaining = concatenate_ont_groups(files, prompt=False, tempdir=tempdir)
+        assert concatenated == []
+        assert len(remaining) == len(filenames)
         assert (
             "Detected a gap in the ONT file sequence for test.fq, missing file: test_2.fq"
             in caplog.text
         )
+
+
+def test_concatenate_ont_groups_finds_rest_of_sequence_on_disk(generate_fastq, monkeypatch):
+    """The rest of the sequence is picked up from disk, below and above the files passed in."""
+    monkeypatch.setattr(click, "prompt", lambda *args, **kwargs: "Y")
+    for filename in ["test_0.fq", "test_3.fq"]:
+        generate_fastq(filename)
+    files = [generate_fastq(x) for x in ["test_1.fq", "test_2.fq"]]
+    with use_tempdir() as tempdir:
+        concatenated, remaining = concatenate_ont_groups(files, prompt=True, tempdir=tempdir)
+        assert _get_basenames(concatenated) == ["test.fq"]
+        assert remaining == []
+        with open(concatenated[0]) as fin:
+            assert fin.read() == 4 * FASTQ_SEQUENCE
+
+
+def test_concatenate_ont_groups_ignores_sequence_it_is_not_part_of(generate_fastq, monkeypatch):
+    """A file cut off from the start of the sequence must not pull in the files before the gap."""
+    monkeypatch.setattr(click, "prompt", lambda *args, **kwargs: "Y")
+    for filename in ["test_0.fq", "test_1.fq", "test_2.fq"]:
+        generate_fastq(filename)
+    files = [generate_fastq("test_5.fq")]
+    with use_tempdir() as tempdir:
+        concatenated, remaining = concatenate_ont_groups(files, prompt=True, tempdir=tempdir)
+        assert concatenated == []
+        assert _get_basenames(remaining) == ["test_5.fq"]
+
+
+def test_concatenate_ont_groups_ignores_directories(generate_fastq, tmp_path, monkeypatch):
+    """A directory named like part of the sequence must not be picked up and read."""
+    monkeypatch.setattr(click, "prompt", lambda *args, **kwargs: "Y")
+    files = [generate_fastq(x) for x in ["test_1.fq", "test_2.fq"]]
+    os.mkdir(os.path.join(os.path.dirname(files[0]), "test_0.fq"))
+    with use_tempdir() as tempdir:
+        concatenated, remaining = concatenate_ont_groups(files, prompt=True, tempdir=tempdir)
+        assert concatenated == []
+        assert sorted(_get_basenames(remaining)) == ["test_1.fq", "test_2.fq"]
+
+
+def test_concatenate_ont_groups_does_not_find_files_on_disk_without_prompt(generate_fastq):
+    """Files not on the command line must not be pulled in when there is no prompt."""
+    generate_fastq("test_0.fq")
+    files = [generate_fastq(x) for x in ["test_1.fq", "test_2.fq"]]
+    with use_tempdir() as tempdir:
+        concatenated, remaining = concatenate_ont_groups(files, prompt=False, tempdir=tempdir)
+        assert concatenated == []
+        assert sorted(_get_basenames(remaining)) == ["test_1.fq", "test_2.fq"]
+
+
+def test_auto_detect_illumina_pairs_ignores_other_ordinals(generate_fastq, monkeypatch):
+    """A file with an unrelated ordinal must not produce a pair it is not part of."""
+    monkeypatch.setattr(click, "prompt", lambda *args, **kwargs: "Y")
+    files = [generate_fastq(x) for x in ["test_1.fq", "test_2.fq", "test_3.fq"]]
+    pairs = auto_detect_illumina_pairs(files, prompt=True)
+    assert _get_basenames(pairs) == [("test_1.fq", "test_2.fq"), "test_3.fq"]
+
+
+def test_auto_detect_illumina_pairs_declined(generate_fastq, monkeypatch):
+    """Declining the prompt uploads only the files given on the command line."""
+    monkeypatch.setattr(click, "prompt", lambda *args, **kwargs: "n")
+    generate_fastq("test_R2.fq")
+    files = [generate_fastq("test_R1.fq")]
+    assert auto_detect_illumina_pairs(files, prompt=True) == files
+
+
+def test_auto_detect_illumina_pairs_canceled(generate_fastq, monkeypatch):
+    monkeypatch.setattr(click, "prompt", lambda *args, **kwargs: "c")
+    files = [generate_fastq(x) for x in ["test_R1.fq", "test_R2.fq"]]
+    with pytest.raises(SystemExit) as excinfo:
+        auto_detect_illumina_pairs(files, prompt=True)
+    assert excinfo.value.code == 0
+
+
+def test_concatenate_ont_groups_separates_directories(generate_fastq):
+    """Samples that share a filename but live in different directories are separate."""
+    files = [
+        generate_fastq(x)
+        for x in ["dirA/test_0.fq", "dirA/test_1.fq", "dirB/test_0.fq", "dirB/test_1.fq"]
+    ]
+    with use_tempdir() as tempdir:
+        concatenated, remaining = concatenate_ont_groups(files, prompt=False, tempdir=tempdir)
+        assert _get_basenames(concatenated) == ["test.fq", "test.fq"]
+        assert remaining == []
+        for path in concatenated:
+            with open(path) as fin:
+                assert fin.read() == 2 * FASTQ_SEQUENCE
+
+
+def test_concatenate_multilane_files_separates_directories(generate_fastq):
+    """Lanes of samples in different directories must not be concatenated together."""
+    files = [
+        generate_fastq(x)
+        for x in ["dirA/S_L001.fq", "dirA/S_L002.fq", "dirB/S_L001.fq", "dirB/S_L002.fq"]
+    ]
+    with use_tempdir() as tempdir:
+        concatenated = concatenate_multilane_files(files, prompt=False, tempdir=tempdir)
+        assert _get_basenames(concatenated) == ["S.fq", "S.fq"]
+        for path in concatenated:
+            with open(path) as fin:
+                assert fin.read() == 2 * FASTQ_SEQUENCE
