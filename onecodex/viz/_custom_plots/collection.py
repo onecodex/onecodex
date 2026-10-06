@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import warnings
 from functools import cached_property
-from typing import Any, Callable, Literal
+from typing import Any, Callable
 
-import pandas as pd
+from pydantic import PrivateAttr
 
 from onecodex.exceptions import (
     NoTaxaException,
@@ -16,10 +16,12 @@ from onecodex.exceptions import (
 )
 from onecodex.lib.enums import (
     FunctionalAnnotations,
-    FunctionalAnnotationsMetric,
     Link,
     Metric,
 )
+from onecodex.models import Classifications as BaseClassifications
+from onecodex.models import FunctionalProfiles as BaseFunctionalProfiles
+from onecodex.models import Jobs, Metadata, Samples
 from onecodex.models import SampleCollection as BaseSampleCollection
 
 from .enums import PlotRepr, PlotType, StatsType
@@ -46,213 +48,103 @@ METADATA_FIELD_STATS_PARAMS = [
 
 
 ###
-# SampleCollection shims to support data fetched via the internal frontend API instead of the v1
-# API. The frontend API has an endpoint that provides all the necessary/minimal sample data, and
-# is more efficient than fetching the data via the v1 API.
+# Custom Plots runs in Pyodide. Samples and analyses models are built from the frontend API endpoint
+# response (`/api/frontend/custom-plots/sample-data`), and results are downloaded asynchronously
+# before plotting.
 ###
 
 
-class Samples:
-    """Mock the Samples model."""
+class Classifications(BaseClassifications):
+    _loaded_results: dict | None = PrivateAttr(default=None)
 
-    def __init__(self, sample_datum: dict):
-        self._sample_datum = sample_datum
-
-    @property
-    def id(self) -> str:
-        return self._sample_datum["uuid"]
-
-    @property
-    def _metadata(self) -> dict:
-        return self._sample_datum["metadata"]
-
-    @property
-    def _classification(self) -> dict | None:
-        return self._sample_datum["primary_classification"]
-
-    @property
-    def _functional_profile(self) -> dict | None:
-        return self._sample_datum["functional_profile"]
+    def _results(self) -> dict:
+        if self._loaded_results is None:
+            raise OneCodexException(f"Results have not been loaded for classification {self.id}")
+        return self._loaded_results
 
 
-class Jobs:
-    def __init__(self, *, id: str, name: str):
-        self.id = id
-        self.name = name
+class FunctionalProfiles(BaseFunctionalProfiles):
+    _loaded_results: dict | None = PrivateAttr(default=None)
+
+    def _condensed_results(self) -> dict | None:
+        results = self._loaded_results
+        if results is None or results.get("version") != self._FUNCTIONAL_RESULTS_VERSION:
+            return None
+        return results
 
 
-class Classifications(dict):
-    """Mock the Classifications + results model."""
+def samples_from_sample_data(
+    sample_data: list[dict],
+) -> tuple[list[Samples], dict[str, FunctionalProfiles]]:
+    """Build models from `/api/frontend/custom-plots/sample-data` response.
 
-    id: str | None = None
-    sample: Samples | None = None
-    # all should be successful at this point if retrieved from the frontend API
-    success: Literal[True] = True
-    job: Jobs
+    In order to skip model validation, `model_construct` is used (not all model fields
+    are returned from the endpoint). References are set to model objects as `ApiRef`
+    cannot be resolved. All metadata is set as `custom`.
 
-    def results(self) -> "Classifications":
-        """Mirrors onecodex.models.analysis.Classifications."""
-        return self
+    Returns the samples and their functional profiles keyed by sample ID.
+    """
+    samples = []
+    functional_profiles = {}
 
-
-class FunctionalProfiles:
-    """Mock the FunctionalProfiles model."""
-
-    def __init__(self, functional_run_uuid: str, sample_uuid: str, results: dict):
-        self._uuid = functional_run_uuid
-        self._results = results
-        self._sample_uuid = sample_uuid
-
-    @property
-    def id(self) -> str:
-        return self._uuid
-
-    @property
-    def sample(self) -> Samples:
-        return Samples({"uuid": self._sample_uuid})
-
-    def _filtered_results(
-        self,
-        annotation: FunctionalAnnotations,
-        metric: FunctionalAnnotationsMetric,
-        taxa_stratified: bool,
-    ):
-        if taxa_stratified:
-            raise OneCodexException("Taxa stratified results are not currently supported")
-
-        rows = self._results.get(f"{annotation}-{metric}", [])
-
-        return {
-            "feature_ids": [row["id"] for row in rows],
-            "values": [row["value"] for row in rows],
-            "feature_name_map": {row["id"]: row["name"] for row in rows},
-            "taxon_ids": None,
-            "n_reads": self._results["n_reads"],
-            "n_mapped": self._results["n_mapped"],
-        }
-
-    def filtered_table(
-        self,
-        annotation: FunctionalAnnotations,
-        metric: FunctionalAnnotationsMetric,
-        taxa_stratified: bool = True,
-    ) -> pd.DataFrame:
-        results = self._filtered_results(
-            annotation=annotation,
-            metric=metric,
-            taxa_stratified=taxa_stratified,
+    for datum in sample_data:
+        metadata = datum["metadata"]
+        sample = Samples.model_construct(
+            field_uri=Samples._convert_id_to_uri(datum["uuid"]),
+            created_at=metadata.get("created_at"),
+            metadata=Metadata.model_construct(
+                field_uri=Metadata._convert_id_to_uri(metadata["metadata_id"]),
+                custom=metadata,
+            ),
         )
 
-        return pd.DataFrame(
-            {
-                "id": results["feature_ids"],
-                "name": [
-                    results["feature_name_map"][feature_id] for feature_id in results["feature_ids"]
-                ],
-                "value": results["values"],
-            }
-        )
+        summary = datum.get("primary_classification")
+        if summary:
+            sample.primary_classification = Classifications.model_construct(
+                field_uri=Classifications._convert_id_to_uri(summary["uuid"]),
+                job=Jobs.model_construct(
+                    field_uri=Jobs._convert_id_to_uri(summary["job_uuid"]),
+                    name=summary["job_name"],
+                ),
+                sample=sample,
+                # the endpoint only returns successful analyses
+                complete=True,
+                success=True,
+                results_uri=summary["results_uri"],
+            )
+
+        profile = datum.get("functional_profile")
+        if profile:
+            functional_profiles[sample.id] = FunctionalProfiles.model_construct(
+                field_uri=FunctionalProfiles._convert_id_to_uri(profile["uuid"]),
+                sample=sample,
+                complete=True,
+                success=True,
+                results_uri=profile["results_uri"],
+            )
+
+        samples.append(sample)
+
+    return samples, functional_profiles
 
 
 class SampleCollection(BaseSampleCollection):
-    def __init__(self, samples: list[Samples], **kwargs):
-        """Overridden for shims."""
-        # For some reason, it would try to collate_results in loop because that value is not set.
-        # Strangely, that value should be set in collate_results so it shouldn't recurse.
-        # Not sure what's happening but setting it initially fixes it.
-
-        self._kwargs = {
-            "skip_missing": True,
-            "include_host": False,
-            "job": None,
-        }
-        self._kwargs.update(kwargs)
-        self.samples = samples
-
-        # for reverse-compatibility, should always be None in this case
-        # see onecodex.models.collection.BaseSampleCollection.__init__
-        self._metric = None
-
-        # only collections of "Samples" are used in Custom Plots
-        self._oc_model = Samples
-
-        # this will set self._res_list
-        self._classification_fetch()
+    def __init__(
+        self,
+        objects: list[Samples],
+        *,
+        functional_profiles: dict[str, FunctionalProfiles] | None = None,
+        **kwargs,
+    ):
+        super().__init__(objects, **kwargs)
+        # Cache functional profiles for `self._functional_profiles`
+        self._kwargs["functional_profiles"] = functional_profiles or {}
 
     @cached_property
-    def metadata(self):
-        """Overridden for shims."""
-        import pandas as pd
-
-        metadata = [sample._metadata for sample in self.samples]
-
-        if metadata:
-            df = pd.DataFrame(metadata)
-            index = "classification_id" if df["classification_id"].is_unique else "sample_id"
-            metadata = df.set_index(index)
-        else:
-            metadata = pd.DataFrame(
-                columns=["classification_id", "sample_id", "metadata_id", "created_at"]
-            )
-
-        return metadata
-
-    @property
-    def _classifications_from_res_list(self) -> list[Classifications]:
-        classifications = []
-        for obj in self._res_list:
-            if isinstance(obj, Samples):
-                if hasattr(obj, "primary_classification"):
-                    classification = obj.primary_classification
-                else:
-                    # functional results case: there is no classification data
-                    classification = None
-            elif isinstance(obj, Classifications):
-                classification = obj
-            else:
-                raise OneCodexException(
-                    f"Objects in SampleCollection must be one of: Classifications, Samples, got {obj} {type(obj)}"
-                )
-
-            if classification is not None:
-                classifications.append(classification)
-        return classifications
-
-    def _classification_fetch(self):
-        """Overridden for shims."""
-        classifications = []
-        for sample in self.samples:
-            summary = sample._classification
-            if not summary:
-                continue
-
-            results = Classifications()
-            results.update(summary.get("api_results", {}))
-            results["id"] = summary["uuid"]
-            results.id = summary["uuid"]
-            results.sample = sample
-            results.job = Jobs(id=summary["job_uuid"], name=summary["job_name"])
-
-            sample.primary_classification = results
-
-            classifications.append(results)
-
-        self._res_list = self.samples
-
-    @cached_property
-    def _functional_profiles(self):
-        """Overridden for shims."""
-
-        functional_results = []
-        for sample in self.samples:
-            profile = sample._functional_profile
-            if not profile:
-                continue
-            functional_results.append(
-                FunctionalProfiles(profile["uuid"], profile["sample_uuid"], profile["results"])
-            )
-
-        return functional_results
+    def _functional_profiles(self) -> list[FunctionalProfiles]:
+        # The base implementation queries the API, using local cache instead
+        profiles = self._kwargs["functional_profiles"]
+        return [profiles[sample.id] for sample in self._res_list if sample.id in profiles]
 
     def plot(self, params: PlotParams) -> PlotResults:
         result = self._run_with_plot_error_handling(lambda: self._plot(params))
