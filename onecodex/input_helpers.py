@@ -5,11 +5,12 @@ import os
 import shutil
 import logging
 from collections import defaultdict
+from collections.abc import Sequence
 
-# Captures parts before and after ordinal
+# Captures the ordinal and the parts before and after it
 # (. or _ followed by num followed by . or _ and non-digits)
-ORDINAL_REV_PATTERN = r"([._])\d([._][\D._]+)$"
-ORDINAL_MULTI_REV_PATTERN = r"([._])\d+([._][\D._]+)$"
+ORDINAL_REV_PATTERN = r"(?P<pre>[._])(?P<ordinal>\d)(?P<post>[._][\D._]+)$"
+ORDINAL_MULTI_REV_PATTERN = r"(?P<pre>[._])(?P<ordinal>\d+)(?P<post>[._][\D._]+)$"
 
 # Captures parts before and after paired ordinal (as above, but includes R1, r1, R2, r2)
 PAIRED_ORDINAL_REV_PATTERN = r"([._][Rr])\d([._][\w.]+)$"
@@ -22,7 +23,7 @@ def _replace_filename_ordinal(filename, replacement, multi_digit=False):
 
     If `multi_digit` is set to True, num may be a multi digit number
     """
-    replace_pattern = rf"\g<1>{replacement}\g<2>"
+    replace_pattern = rf"\g<pre>{replacement}\g<post>"
     regex = ORDINAL_MULTI_REV_PATTERN if multi_digit else ORDINAL_REV_PATTERN
     return re.sub(regex, replace_pattern, filename)
 
@@ -34,15 +35,56 @@ def _replace_paired_filename_ordinal(filename, replacement):
     return re.sub(PAIRED_ORDINAL_REV_PATTERN, replace_pattern, first_pass)
 
 
-def prompt_user_for_concatenation(ont_groups: dict) -> bool:
-    """Prompt user to determine whether ONT files should be concatenated."""
+def _concatenation_target(tempdir: str, source_path: str, group_index: int) -> str:
+    """Return the path to concatenate a group into, keeping its filename.
+
+    Each group gets its own subdirectory so that samples that share a filename but live in
+    different directories do not overwrite one another.
+    """
+    group_dir = os.path.join(tempdir, str(group_index))
+    os.makedirs(group_dir, exist_ok=True)
+    return os.path.join(group_dir, os.path.basename(source_path))
+
+
+def _ont_sequence_on_disk(filename: str) -> list[str]:
+    """Return the run of ONT files on disk starting at ordinal 0, stopping at the first gap.
+
+    Returns an empty list if the run does not reach `filename`, which is then not part of a
+    complete sequence: the files before the gap belong to no sample we could assemble.
+    """
+    sequence = []
+    idx = 0
+    while True:
+        sibling = _replace_filename_ordinal(filename, idx, multi_digit=True)
+        if not os.path.isfile(sibling):
+            break
+        sequence.append(sibling)
+        idx += 1
+
+    return sequence if filename in sequence else []
+
+
+def prompt_user_for_concatenation(ont_groups: dict[str, set[str]], passed_files: set[str]) -> bool:
+    """Prompt user to determine whether ONT files should be concatenated.
+
+    Files in `ont_groups` that are not in `passed_files` were found on disk rather than
+    given on the command line, and are marked as such.
+    """
 
     n_files = sum([len(x) for x in ont_groups.values()])
+    n_unspecified = sum(1 for files in ont_groups.values() for f in files if f not in passed_files)
+
+    message = f"It appears there are {len(ont_groups)} sample(s) split across {n_files} individual file(s)."
+    if n_unspecified:
+        message += (
+            f"\n{n_unspecified} of them were not specified on the command line; "
+            "they were found alongside the files that were."
+        )
 
     answer = click.prompt(
-        f"It appears there are {len(ont_groups)} sample(s) split across {n_files} individual file(s). "
-        "\nWould you like to merge files by sample?"
-        "\n[Y]es; [n]o; [d]isplay files; [c]ancel",
+        message + "\n\nWould you like to concatenate files by sample?"
+        "\n\n[Y]es; [n]o, upload each file I specified as a separate sample;"
+        " [d]isplay files; [c]ancel",
         type=click.Choice(["Y", "n", "d", "c"]),
         default="Y",
     )
@@ -55,61 +97,88 @@ def prompt_user_for_concatenation(ont_groups: dict) -> bool:
         click.echo("Upload canceled")
         sys.exit(0)
     elif answer[0] == "d":
+
+        def _ordinal(filename: str) -> int:
+            # sorting the filenames directly would put sample_10 before sample_2
+            return int(re.search(ORDINAL_MULTI_REV_PATTERN, filename).group("ordinal"))
+
         for group_name, group_files in ont_groups.items():
             click.echo(f"{os.path.basename(group_name)}")
-            for n, group_file in enumerate(group_files, start=1):
-                if n == len(group_files):
+            ordered = sorted(group_files, key=_ordinal)
+            for n, group_file in enumerate(ordered, start=1):
+                if n == len(ordered):
                     prefix = "└──"
                 else:
                     prefix = "├──"
-                click.echo(f"{prefix} {group_file}")
+                marker = "" if group_file in passed_files else " *"
+                click.echo(f"{prefix} {group_file}{marker}")
             click.echo()
-        return prompt_user_for_concatenation(ont_groups)
+        if n_unspecified:
+            click.echo("* not specified on the command line; found alongside the other files")
+            click.echo()
+        return prompt_user_for_concatenation(ont_groups, passed_files)
     else:
         click.echo(f"Unknown option: {answer}")
-        return prompt_user_for_concatenation(ont_groups)
-
-    return False
+        return prompt_user_for_concatenation(ont_groups, passed_files)
 
 
-def concatenate_ont_groups(files, prompt, tempdir):
-    """Concatenate ONT split files and return the group as a single entry on the files list."""
+def concatenate_ont_groups(
+    files: Sequence[str], prompt: bool, tempdir: str
+) -> tuple[list[str], list[str]]:
+    """Concatenate ONT split files.
+
+    Returns `(concatenated, remaining)`.
+
+    If `prompt` is set to True, the rest of a sample's file sequence may be picked up from
+    disk even if it was not passed in. Such files are marked as not specified in the prompt.
+    """
+    passed_files = set(files)
     single_files = set(files)
+    concatenated = []
     ont_groups = defaultdict(set)
     auto_group = True
 
     for filename in files:
+        # without an ordinal, the substitution below is a no-op and the file
+        # would be matched against itself
+        if not re.search(ORDINAL_MULTI_REV_PATTERN, filename):
+            continue
+
         ont_zero_filename = _replace_filename_ordinal(filename, "0", multi_digit=True)
-        if os.path.exists(ont_zero_filename):
+        if os.path.isfile(ont_zero_filename):
             # strip the ordinal and preceding . or _
-            base_filename = re.sub(r"[._]\d+([._][\D._]+)$", r"\1", filename)
-            base_filename = os.path.join(tempdir, os.path.basename(base_filename))
+            base_filename = re.sub(ORDINAL_MULTI_REV_PATTERN, r"\g<post>", filename)
 
             ont_groups[base_filename].add(filename)
+            if prompt:
+                # if we're not prompting, don't automatically pull in files
+                # not in the list the user passed in
+                ont_groups[base_filename].update(_ont_sequence_on_disk(filename))
 
-    # filter to groups of at least 1 files
-    ont_groups = {k: v for k, v in ont_groups.items()}
+    if not ont_groups:
+        return concatenated, list(files)
 
-    # if there is only one group; do not prompt for concatenation
-    if len(files) == 1 and len(ont_groups) == 1:
+    # a lone file is a whole sample already; there is nothing to concatenate
+    if len(ont_groups) == 1 and sum(len(x) for x in ont_groups.values()) == 1:
         auto_group = False
     elif prompt:
-        auto_group = prompt_user_for_concatenation(ont_groups)
+        auto_group = prompt_user_for_concatenation(ont_groups, passed_files)
     else:
         auto_group = True
 
     if not auto_group:
-        return files
+        return concatenated, list(files)
 
     # Ensure there is no gap in the file sequences
-    for base_ont_filename, files in ont_groups.items():
-        ont_file = next(iter(files))
+    for group_index, (base_ont_filename, group_files) in enumerate(ont_groups.items()):
+        ont_file = next(iter(group_files))
         expected_sequence = [
-            _replace_filename_ordinal(ont_file, idx, multi_digit=True) for idx in range(len(files))
+            _replace_filename_ordinal(ont_file, idx, multi_digit=True)
+            for idx in range(len(group_files))
         ]
         full_sequence = True
         for expected_file in expected_sequence:
-            if expected_file not in files:
+            if expected_file not in group_files:
                 log.warning(
                     "Detected a gap in the ONT file sequence for "
                     f"{os.path.basename(base_ont_filename)}, missing file:"
@@ -121,22 +190,27 @@ def concatenate_ont_groups(files, prompt, tempdir):
         if not full_sequence:
             continue
 
-        log.info(f"Concatenating to {base_ont_filename}")
-        with open(base_ont_filename, "wb") as outf:
+        target = _concatenation_target(tempdir, base_ont_filename, group_index)
+        log.info(f"Concatenating to {target}")
+        with open(target, "wb") as outf:
             for ont_filename in expected_sequence:
                 with open(ont_filename, "rb") as inf:
                     shutil.copyfileobj(inf, outf)
-                single_files.remove(ont_filename)
-        single_files.add(base_ont_filename)
-    return list(single_files)
+                single_files.discard(ont_filename)
+        concatenated.append(target)
+    return concatenated, list(single_files)
 
 
-def auto_detect_pairs(files, prompt):
+def auto_detect_illumina_pairs(files: Sequence[str], prompt: bool) -> list[str | tuple[str, str]]:
     """Group paired-end files in the files list.
 
     Returns the files list with paired-end files represented as tuples on that list.
-    If `prompt` is set to True, the user is asked whether this should happen first.
+    If `prompt` is set to True, the user is asked whether this should happen first, and
+    the mate of a paired file may be picked up from disk even if it was not passed in.
+    Such files are marked as not specified in the prompt.
     """
+
+    passed_files = set(files)
 
     # files left ungrouped
     single_files = set(files)
@@ -154,8 +228,11 @@ def auto_detect_pairs(files, prompt):
 
         if (
             paired_r1_filename != paired_r2_filename
-            and os.path.exists(paired_r1_filename)
-            and os.path.exists(paired_r2_filename)
+            # a file with any other ordinal (e.g. `sample_3.fq`) substitutes down to the
+            # same two names, but is not itself a mate
+            and filename in (paired_r1_filename, paired_r2_filename)
+            and os.path.isfile(paired_r1_filename)
+            and os.path.isfile(paired_r2_filename)
         ):
             other_paired_file = (
                 paired_r2_filename if filename == paired_r1_filename else paired_r1_filename
@@ -174,25 +251,43 @@ def auto_detect_pairs(files, prompt):
 
     auto_pair = True
     if prompt and pairs:
+
+        def _label(filename):
+            # mark files we found on disk but that were not passed on the command line
+            marker = "" if filename in passed_files else " *"
+            return f"{os.path.basename(filename)}{marker}"
+
         pair_list = ""
         for pair in pairs:
-            pair_list += f"\n  {os.path.basename(pair[0])}  &  {os.path.basename(pair[1])}"
-        answer = click.confirm(
-            "It appears there are {n_paired_files} paired files (of {n_files} total):{pair_list}\nInterleave them after upload?".format(
-                n_paired_files=len(pairs) * 2,
-                n_files=len(pairs) * 2 + len(single_files),
-                pair_list=pair_list,
-            ),
+            pair_list += f"\n  {_label(pair[0])}  &  {_label(pair[1])}"
+        if any(f not in passed_files for pair in pairs for f in pair):
+            pair_list += "\n* not specified on the command line; found alongside its mate"
+
+        summary = "is 1 pair" if len(pairs) == 1 else f"are {len(pairs)} pairs"
+        if len(single_files) == 1:
+            summary += ", and 1 other file"
+        elif single_files:
+            summary += f", and {len(single_files)} other files"
+
+        answer = click.prompt(
+            f"It appears there {summary}:{pair_list}"
+            "\n\nWould you like to interleave each pair?"
+            "\n\n[Y]es; [n]o, upload each file I specified as a separate sample;"
+            " [c]ancel",
+            type=click.Choice(["Y", "n", "c"], case_sensitive=False),
             default="Y",
         )
 
-        if not answer:
+        if answer[0].lower() == "c":
+            click.echo("Upload canceled")
+            sys.exit(0)
+        elif answer[0].lower() == "n":
             auto_pair = False
 
     if auto_pair:
         return pairs + list(single_files)
     else:
-        return files
+        return list(files)
 
 
 def _find_multilane_groups(files):
@@ -215,8 +310,12 @@ def _find_multilane_groups(files):
     pattern_pair_lane_combo = re.compile(r"([._][rR][12])?[._]L\d+[._]([rR][12])?")
 
     def _group_for(file_path):
-        """Create group names by removing Lx and Rx elements from the filename."""
-        return re.sub(pattern_pair_lane_combo, "", os.path.basename(file_path))
+        """Create group names by removing Lx and Rx elements from the path.
+
+        The directory is part of the name so that samples that share a filename but live in
+        different directories are not grouped together.
+        """
+        return re.sub(pattern_pair_lane_combo, "", file_path)
 
     def _create_group_map(elem_list, paired):
         """Create multilane file groups with elements in proper order based on file list."""
@@ -294,10 +393,10 @@ def concatenate_multilane_files(files, prompt, tempdir):
     concatenated file.
     """
 
-    def _concatenate_group(group, first_elem):
+    def _concatenate_group(group, first_elem, group_index):
         """Concatenate all the files on the list and return the target file path."""
-        target_file_name = re.sub(pattern_lane_num, r"\1", os.path.basename(first_elem))
-        target_path = os.path.join(tempdir, os.path.basename(target_file_name))
+        target_file_name = re.sub(pattern_lane_num, r"\1", first_elem)
+        target_path = _concatenation_target(tempdir, target_file_name, group_index)
 
         # Overwriting all files by default
         with open(target_path, "wb") as outf:
@@ -327,15 +426,15 @@ def concatenate_multilane_files(files, prompt, tempdir):
     files = files[:]
     pattern_lane_num = re.compile(r"[._]L\d+([._])")
 
-    for group in groups:
+    for group_index, group in enumerate(groups):
         # The groups considered here will already have more than 1 element
         first_elem = group[0]
         if isinstance(first_elem, tuple):
-            concat_fwd = _concatenate_group([fwd for fwd, _ in group], first_elem[0])
-            concat_rev = _concatenate_group([rev for _, rev in group], first_elem[1])
+            concat_fwd = _concatenate_group([fwd for fwd, _ in group], first_elem[0], group_index)
+            concat_rev = _concatenate_group([rev for _, rev in group], first_elem[1], group_index)
             files.append((concat_fwd, concat_rev))
         elif isinstance(first_elem, str):
-            concat = _concatenate_group(group, first_elem)
+            concat = _concatenate_group(group, first_elem, group_index)
             files.append(concat)
 
         for elem in group:
