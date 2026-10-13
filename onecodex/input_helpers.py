@@ -5,16 +5,46 @@ import os
 import shutil
 import logging
 from collections import defaultdict
+from collections.abc import Sequence
+from dataclasses import dataclass
 
-# Captures parts before and after ordinal
+# Captures the ordinal and the parts before and after it
 # (. or _ followed by num followed by . or _ and non-digits)
-ORDINAL_REV_PATTERN = r"([._])\d([._][\D._]+)$"
-ORDINAL_MULTI_REV_PATTERN = r"([._])\d+([._][\D._]+)$"
+ORDINAL_REV_PATTERN = r"(?P<pre>[._])(?P<ordinal>\d)(?P<post>[._][\D._]+)$"
+ORDINAL_MULTI_REV_PATTERN = r"(?P<pre>[._])(?P<ordinal>\d+)(?P<post>[._][\D._]+)$"
 
 # Captures parts before and after paired ordinal (as above, but includes R1, r1, R2, r2)
-PAIRED_ORDINAL_REV_PATTERN = r"([._][Rr])\d([._][\w.]+)$"
+PAIRED_ORDINAL_REV_PATTERN = r"(?P<pre>[._][Rr])(?P<ordinal>\d)(?P<post>[._][\w.]+)$"
+
+# Captures the sequencing lane number
+LANE_PATTERN = re.compile(r"[._]L(?P<lane>\d+)(?=[._])")
 
 log = logging.getLogger("onecodex")
+
+
+@dataclass(frozen=True)
+class PlannedSample:
+    """One sample to upload, and the files it will be assembled from.
+
+    `forward` holds the files that make up the sample, in order; more than one means they
+    are concatenated. `reverse` holds the corresponding files for the second read of a
+    paired end sample, and is None for a single ended one.
+    """
+
+    forward: tuple[str, ...]
+    reverse: tuple[str, ...] | None = None
+
+    @property
+    def files(self) -> tuple[str, ...]:
+        return self.forward + (self.reverse or ())
+
+    @property
+    def is_paired(self) -> bool:
+        return self.reverse is not None
+
+    @property
+    def is_concatenated(self) -> bool:
+        return len(self.forward) > 1
 
 
 def _replace_filename_ordinal(filename, replacement, multi_digit=False):
@@ -22,7 +52,7 @@ def _replace_filename_ordinal(filename, replacement, multi_digit=False):
 
     If `multi_digit` is set to True, num may be a multi digit number
     """
-    replace_pattern = rf"\g<1>{replacement}\g<2>"
+    replace_pattern = rf"\g<pre>{replacement}\g<post>"
     regex = ORDINAL_MULTI_REV_PATTERN if multi_digit else ORDINAL_REV_PATTERN
     return re.sub(regex, replace_pattern, filename)
 
@@ -30,315 +60,272 @@ def _replace_filename_ordinal(filename, replacement, multi_digit=False):
 def _replace_paired_filename_ordinal(filename, replacement):
     """Replace file[_.][Rr]?num[._] with file[_.][Rr]?replacement[._]."""
     first_pass = _replace_filename_ordinal(filename, replacement)
-    replace_pattern = rf"\g<1>{replacement}\g<2>"
+    replace_pattern = rf"\g<pre>{replacement}\g<post>"
     return re.sub(PAIRED_ORDINAL_REV_PATTERN, replace_pattern, first_pass)
 
 
-def prompt_user_for_concatenation(ont_groups: dict) -> bool:
-    """Prompt user to determine whether ONT files should be concatenated."""
+def _lane_number(path: str) -> int | None:
+    """Return the sequencing lane a file belongs to, if its name carries one."""
+    match = LANE_PATTERN.search(path)
+    return int(match.group("lane")) if match else None
 
-    n_files = sum([len(x) for x in ont_groups.values()])
+
+def _assembled_name(path: str) -> str:
+    """Return the filename a sample gets once its parts have been joined together."""
+    name = LANE_PATTERN.sub("", path)
+    return re.sub(ORDINAL_MULTI_REV_PATTERN, r"\g<post>", name)
+
+
+def _ont_run_on_disk(filename: str) -> list[str]:
+    """Return the run of ONT files on disk starting at ordinal 0, stopping at the first gap."""
+    run = []
+    idx = 0
+    while True:
+        sibling = _replace_filename_ordinal(filename, idx, multi_digit=True)
+        if not os.path.isfile(sibling):
+            return run
+        run.append(sibling)
+        idx += 1
+
+
+def _ont_sequence(group: set[str], prompt: bool) -> list[str] | None:
+    """Return a group's chunks in order, or None if they are not a whole sample.
+
+    A sample's chunks are a contiguous run starting at ordinal 0. When prompting, the run
+    may be completed from disk; otherwise it has to be complete among the files passed in.
+    """
+    any_file = next(iter(group))
+    if prompt:
+        sequence = _ont_run_on_disk(any_file)
+    else:
+        sequence = [
+            _replace_filename_ordinal(any_file, idx, multi_digit=True) for idx in range(len(group))
+        ]
+
+    # a single chunk is a whole file already, so there is nothing to assemble
+    if len(sequence) < 2 or not group <= set(sequence):
+        return None
+    return sequence
+
+
+def _plan_ont_samples(files: Sequence[str], prompt: bool) -> tuple[list[PlannedSample], list[str]]:
+    """Claim the files that make up ONT samples split across numbered chunks.
+
+    A sample's chunks are a contiguous run starting at ordinal 0. The whole run has to be
+    accounted for: files that cannot be part of one are left for the other planners, so
+    that a pair of Illumina reads is never mistaken for a partial run.
+    """
+    candidates = defaultdict(set)
+    for filename in files:
+        # without an ordinal the substitution is a no-op and the file matches itself
+        if not re.search(ORDINAL_MULTI_REV_PATTERN, filename):
+            continue
+
+        # the directory is part of the key: two samples may share a filename
+        base = re.sub(ORDINAL_MULTI_REV_PATTERN, r"\g<post>", filename)
+        candidates[base].add(filename)
+        if prompt:
+            # only pull in files the user did not name if we can ask them about it
+            run = _ont_run_on_disk(filename)
+            if filename in run:
+                candidates[base].update(run)
+
+    samples, claimed = [], set()
+    for group in candidates.values():
+        sequence = _ont_sequence(group, prompt)
+        if sequence is None:
+            continue
+        samples.append(PlannedSample(forward=tuple(sequence)))
+        claimed.update(group)
+
+    return samples, [f for f in files if f not in claimed]
+
+
+def _plan_paired_samples(
+    files: Sequence[str], prompt: bool
+) -> tuple[list[PlannedSample], list[str]]:
+    """Claim the files that make up paired end samples.
+
+    The mate of a file is found by substituting the read number into its name, so the two
+    always live in the same directory. When prompting, a mate that was not passed in may
+    still be picked up from disk.
+    """
+    named = set(files)
+    samples, claimed = [], set()
+
+    for filename in files:
+        if filename in claimed:
+            continue
+
+        r1 = _replace_paired_filename_ordinal(filename, "1")
+        r2 = _replace_paired_filename_ordinal(filename, "2")
+
+        # a file with any other ordinal substitutes down to the same two names without
+        # being either of them
+        if r1 == r2 or filename not in (r1, r2):
+            continue
+        if not (os.path.isfile(r1) and os.path.isfile(r2)):
+            continue
+
+        mate = r2 if filename == r1 else r1
+        if not prompt and mate not in named:
+            continue
+
+        samples.append(PlannedSample(forward=(r1,), reverse=(r2,)))
+        claimed.update((r1, r2))
+
+    return samples, [f for f in files if f not in claimed]
+
+
+def _merge_lanes(samples: list[PlannedSample]) -> list[PlannedSample]:
+    """Combine samples that are the same library sequenced across several lanes.
+
+    The lanes have to run from 1 without a gap, and every lane has to agree about whether
+    the sample is paired end, otherwise the group is left alone.
+    """
+    groups = defaultdict(list)
+    for sample in samples:
+        if _lane_number(sample.forward[0]) is None:
+            continue
+        groups[LANE_PATTERN.sub("", sample.forward[0])].append(sample)
+
+    merged, consumed = [], set()
+    for group in groups.values():
+        if len(group) < 2:
+            continue
+
+        group.sort(key=lambda s: _lane_number(s.forward[0]))
+        lanes = [_lane_number(s.forward[0]) for s in group]
+        if lanes != list(range(1, len(group) + 1)):
+            continue
+        if len({s.is_paired for s in group}) > 1:
+            continue
+
+        forward = tuple(f for s in group for f in s.forward)
+        reverse = tuple(f for s in group for f in s.reverse) if group[0].is_paired else None
+        merged.append(PlannedSample(forward=forward, reverse=reverse))
+        consumed.update(group)
+
+    return merged + [s for s in samples if s not in consumed]
+
+
+def plan_uploads(files: Sequence[str], prompt: bool) -> list[PlannedSample]:
+    """Work out which samples the given files make up.
+
+    Each file belongs to exactly one sample. ONT chunks are claimed first, so that two
+    chunks of one sample are never mistaken for a pair of Illumina reads; what is left is
+    paired up, and anything still unclaimed is a sample on its own. Finally, samples that
+    are the same library across several lanes are combined.
+    """
+    ont_samples, rest = _plan_ont_samples(files, prompt)
+    paired_samples, rest = _plan_paired_samples(rest, prompt)
+    singles = [PlannedSample(forward=(filename,)) for filename in rest]
+
+    return _merge_lanes(ont_samples + paired_samples + singles)
+
+
+def _describe(sample: PlannedSample) -> str:
+    """Return a short phrase saying what will be done to a sample's files."""
+    steps = []
+    if sample.is_concatenated:
+        unit = "files" if _lane_number(sample.forward[0]) is None else "lanes"
+        steps.append(f"concatenated from {len(sample.forward)} {unit}")
+    if sample.is_paired:
+        steps.append("interleaved")
+
+    return ", then ".join(steps) if steps else "uploaded as-is"
+
+
+def describe_plan(samples: Sequence[PlannedSample], named: set[str]) -> None:
+    """Print what each sample will be built from, marking files found on disk."""
+
+    def _label(path):
+        return f"{path}" if path in named else f"{path} *"
+
+    click.echo(
+        click.wrap_text(
+            "One Codex stores each sample as a single file, so files belonging to the same "
+            "sample are joined together before they are uploaded: paired end reads are "
+            "interleaved, and files split into numbered chunks or across sequencing lanes "
+            "are concatenated. Which files belong together is worked out from their names, "
+            "so please check this over before continuing.",
+            width=min(shutil.get_terminal_size().columns, 88),
+        )
+    )
+    click.echo()
+    click.echo("Planned samples:\n")
+
+    for position, sample in enumerate(samples, start=1):
+        click.echo(f"sample {position}: {_describe(sample)}")
+        if sample.is_paired:
+            rows = [
+                " + ".join(_label(f) for f in sample.forward),
+                " + ".join(_label(f) for f in sample.reverse),
+            ]
+        else:
+            rows = [_label(f) for f in sample.forward]
+        for n, row in enumerate(rows, start=1):
+            prefix = "└──" if n == len(rows) else "├──"
+            click.echo(f"{prefix} {row}")
+        click.echo()
+
+    n_files = sum(len(s.files) for s in samples)
+    if any(f not in named for s in samples for f in s.files):
+        click.echo("* not specified on the command line; found alongside the files that were\n")
+    click.echo(f"{len(samples)} sample(s) from {n_files} file(s).\n")
+
+
+def confirm_plan(samples: Sequence[PlannedSample], named: set[str]) -> bool:
+    """Show the plan and ask whether to go ahead with it.
+
+    Returns False if the files should be uploaded exactly as they were given instead.
+    """
+    describe_plan(samples, named)
 
     answer = click.prompt(
-        f"It appears there are {len(ont_groups)} sample(s) split across {n_files} individual file(s). "
-        "\nWould you like to merge files by sample?"
-        "\n[Y]es; [n]o; [d]isplay files; [c]ancel",
-        type=click.Choice(["Y", "n", "d", "c"]),
+        "[Y]es, upload as planned; [n]o, upload each file I specified as a separate sample;"
+        " [c]ancel",
+        type=click.Choice(["Y", "n", "c"], case_sensitive=False),
         default="Y",
     )
 
-    if answer[0] == "Y":
-        return True
-    elif answer[0] == "n":
-        return False
-    elif answer[0] == "c":
+    if answer.lower() == "c":
         click.echo("Upload canceled")
         sys.exit(0)
-    elif answer[0] == "d":
-        for group_name, group_files in ont_groups.items():
-            click.echo(f"{os.path.basename(group_name)}")
-            for n, group_file in enumerate(group_files, start=1):
-                if n == len(group_files):
-                    prefix = "└──"
-                else:
-                    prefix = "├──"
-                click.echo(f"{prefix} {group_file}")
-            click.echo()
-        return prompt_user_for_concatenation(ont_groups)
-    else:
-        click.echo(f"Unknown option: {answer}")
-        return prompt_user_for_concatenation(ont_groups)
 
-    return False
+    return answer.lower() == "y"
 
 
-def concatenate_ont_groups(files, prompt, tempdir):
-    """Concatenate ONT split files and return the group as a single entry on the files list."""
-    single_files = set(files)
-    ont_groups = defaultdict(set)
-    auto_group = True
+def _concatenate(paths: Sequence[str], tempdir: str, position: int, suffix: str) -> str:
+    """Join files together into `tempdir`, keeping the name the sample will upload under.
 
-    for filename in files:
-        ont_zero_filename = _replace_filename_ordinal(filename, "0", multi_digit=True)
-        if os.path.exists(ont_zero_filename):
-            # strip the ordinal and preceding . or _
-            base_filename = re.sub(r"[._]\d+([._][\D._]+)$", r"\1", filename)
-            base_filename = os.path.join(tempdir, os.path.basename(base_filename))
-
-            ont_groups[base_filename].add(filename)
-
-    # filter to groups of at least 1 files
-    ont_groups = {k: v for k, v in ont_groups.items()}
-
-    # if there is only one group; do not prompt for concatenation
-    if len(files) == 1 and len(ont_groups) == 1:
-        auto_group = False
-    elif prompt:
-        auto_group = prompt_user_for_concatenation(ont_groups)
-    else:
-        auto_group = True
-
-    if not auto_group:
-        return files
-
-    # Ensure there is no gap in the file sequences
-    for base_ont_filename, files in ont_groups.items():
-        ont_file = next(iter(files))
-        expected_sequence = [
-            _replace_filename_ordinal(ont_file, idx, multi_digit=True) for idx in range(len(files))
-        ]
-        full_sequence = True
-        for expected_file in expected_sequence:
-            if expected_file not in files:
-                log.warning(
-                    "Detected a gap in the ONT file sequence for "
-                    f"{os.path.basename(base_ont_filename)}, missing file:"
-                    f" {os.path.basename(expected_file)}. Skipping concatenation"
-                )
-                full_sequence = False
-                break
-
-        if not full_sequence:
-            continue
-
-        log.info(f"Concatenating to {base_ont_filename}")
-        with open(base_ont_filename, "wb") as outf:
-            for ont_filename in expected_sequence:
-                with open(ont_filename, "rb") as inf:
-                    shutil.copyfileobj(inf, outf)
-                single_files.remove(ont_filename)
-        single_files.add(base_ont_filename)
-    return list(single_files)
-
-
-def auto_detect_pairs(files, prompt):
-    """Group paired-end files in the files list.
-
-    Returns the files list with paired-end files represented as tuples on that list.
-    If `prompt` is set to True, the user is asked whether this should happen first.
+    Each sample writes into its own subdirectory, so two samples whose files share a name
+    but live in different directories do not overwrite one another.
     """
+    sample_dir = os.path.join(tempdir, f"{position}{suffix}")
+    os.makedirs(sample_dir, exist_ok=True)
+    target = os.path.join(sample_dir, os.path.basename(_assembled_name(paths[0])))
 
-    # files left ungrouped
-    single_files = set(files)
+    log.info(f"Concatenating to {target}")
+    with open(target, "wb") as outf:
+        for path in paths:
+            with open(path, "rb") as inf:
+                shutil.copyfileobj(inf, outf)
+    return target
 
-    # "intelligently" grouped paired-end files
-    pairs = []
 
-    for filename in files:
-        if filename not in single_files:
-            # filename may have been already removed as a pair
-            continue
-
-        paired_r1_filename = _replace_paired_filename_ordinal(filename, "1")
-        paired_r2_filename = _replace_paired_filename_ordinal(filename, "2")
-
-        if (
-            paired_r1_filename != paired_r2_filename
-            and os.path.exists(paired_r1_filename)
-            and os.path.exists(paired_r2_filename)
-        ):
-            other_paired_file = (
-                paired_r2_filename if filename == paired_r1_filename else paired_r1_filename
+def materialize_plan(samples: Sequence[PlannedSample], tempdir: str) -> list[str | tuple[str, str]]:
+    """Build the files the plan describes, and return them ready to upload."""
+    uploads = []
+    for position, sample in enumerate(samples, start=1):
+        if sample.is_concatenated:
+            forward = _concatenate(sample.forward, tempdir, position, "")
+            reverse = (
+                _concatenate(sample.reverse, tempdir, position, "r") if sample.is_paired else None
             )
-            # we don't necessary need the other paired to have been passed in; we infer it anyways
-            if not prompt and other_paired_file not in single_files:
-                # if we're not prompting, don't automatically pull in files
-                # not in the list the user passed in
-                continue
+        else:
+            forward = sample.forward[0]
+            reverse = sample.reverse[0] if sample.is_paired else None
 
-            pairs.append((paired_r1_filename, paired_r2_filename))
-            if paired_r1_filename in single_files:
-                single_files.remove(paired_r1_filename)
-            if paired_r2_filename in single_files:
-                single_files.remove(paired_r2_filename)
-
-    auto_pair = True
-    if prompt and pairs:
-        pair_list = ""
-        for pair in pairs:
-            pair_list += f"\n  {os.path.basename(pair[0])}  &  {os.path.basename(pair[1])}"
-        answer = click.confirm(
-            "It appears there are {n_paired_files} paired files (of {n_files} total):{pair_list}\nInterleave them after upload?".format(
-                n_paired_files=len(pairs) * 2,
-                n_files=len(pairs) * 2 + len(single_files),
-                pair_list=pair_list,
-            ),
-            default="Y",
-        )
-
-        if not answer:
-            auto_pair = False
-
-    if auto_pair:
-        return pairs + list(single_files)
-    else:
-        return files
-
-
-def _find_multilane_groups(files):
-    """Find a list of multilane file groups eligible for concatenation.
-
-    The files are grouped based on filename (e.g. `Sample_R1_L001.fq`, `Sample_R1_L002.fq`).
-    If there is a gap in the sequence (e.g. [`Sample_R1_L001.fq`, `Sample_R1_L003.fq`]), the group
-    is skipped. If there is a mismatch in forward and reverse file sequence (e.g.
-    [(`Sample_R1_L001.fq`, `Sample_R2_L001.fq`), `Sample_R2_L002.fq`]), the group is skipped.
-    If the sequence doesn't begin with `L001`, the group is skipped.
-
-    This function assumes that the paired-end file tuples on the list are properly matched.
-
-    The result is a list of lists, with each nested list representing a single multilane
-    file group consisting of either string filenames (for single read files) or tuples
-    (for paired-end reads). The files are in proper order, concatenation-ready.
-    """
-
-    pattern_multilane = re.compile(r"[._]L(\d+)[._]")
-    pattern_pair_lane_combo = re.compile(r"([._][rR][12])?[._]L\d+[._]([rR][12])?")
-
-    def _group_for(file_path):
-        """Create group names by removing Lx and Rx elements from the filename."""
-        return re.sub(pattern_pair_lane_combo, "", os.path.basename(file_path))
-
-    def _create_group_map(elem_list, paired):
-        """Create multilane file groups with elements in proper order based on file list."""
-        # Create groups for the multilane files
-        group_map = defaultdict(list)
-        for elem in elem_list:
-            search_elem = elem if not paired else elem[0]
-            if pattern_multilane.search(search_elem):
-                group = _group_for(search_elem)
-                group_map[group].append(elem)
-
-        # Only multifile groups are returned
-        return {
-            group: sorted(elems, key=lambda x: x[0] if paired else x)
-            for group, elems in group_map.items()
-            if len(elems) > 1
-        }
-
-    def _with_gaps_removed(group_map, paired):
-        """Return a new map having groups with gaps in elements removed."""
-        gapped_groups = set()
-        for group, elems in group_map.items():
-            # Verify we're getting 1, 2, 3, ...
-            expected_sequence = list(range(1, len(elems) + 1))
-            if paired:
-                fwd_nums = [
-                    int(pattern_multilane.search(se).group(1)) for se in [fwd for fwd, _ in elems]
-                ]
-                rev_nums = [
-                    int(pattern_multilane.search(se).group(1)) for se in [rev for _, rev in elems]
-                ]
-                if fwd_nums != expected_sequence or rev_nums != expected_sequence:
-                    gapped_groups.add(group)
-            else:
-                nums = [int(pattern_multilane.search(se).group(1)) for se in elems]
-                if nums != expected_sequence:
-                    gapped_groups.add(group)
-
-        return {group: elems for group, elems in group_map.items() if group not in gapped_groups}
-
-    single_files = [f for f in files if isinstance(f, str)]
-    paired_files = [f for f in files if isinstance(f, tuple)]
-
-    multilane_pairs = _create_group_map(paired_files, paired=True)
-    multilane_singles = _create_group_map(single_files, paired=False)
-
-    # Search for unmatched files for paired end multilane files and remove offending groups,
-    # e.g. [(Sample_R1_L001.fq, Sample_R2_L001.fq), Sample_R2_L002.fq]
-    for filename in single_files:
-        if pattern_multilane.search(filename):
-            group = _group_for(filename)
-            if group in multilane_pairs:
-                del multilane_pairs[group]
-
-    # Remove groups with gaps, e.g. [`Sample_R1_L001.fq`, `Sample_R1_L003.fq`]
-    multilane_pairs = _with_gaps_removed(multilane_pairs, paired=True)
-    multilane_singles = _with_gaps_removed(multilane_singles, paired=False)
-
-    multilane_groups = list(multilane_singles.values())
-    multilane_groups.extend(list(multilane_pairs.values()))
-
-    return multilane_groups
-
-
-def concatenate_multilane_files(files, prompt, tempdir):
-    """Concatenate multilane files before uploading.
-
-    The files are grouped based on filename. If `prompt` is set to True, the user
-    is asked whether this should happen first.
-
-    The concatenated files replace the matched sequence files. They're put in a temporary
-    directory and overwrite any existing files.
-
-    Returns a new list with multilane groups replaced with a path to the single
-    concatenated file.
-    """
-
-    def _concatenate_group(group, first_elem):
-        """Concatenate all the files on the list and return the target file path."""
-        target_file_name = re.sub(pattern_lane_num, r"\1", os.path.basename(first_elem))
-        target_path = os.path.join(tempdir, os.path.basename(target_file_name))
-
-        # Overwriting all files by default
-        with open(target_path, "wb") as outf:
-            for fname in group:
-                with open(fname, "rb") as inf:
-                    # TODO: check for newline at the end of file first?
-                    shutil.copyfileobj(inf, outf)
-        return target_path
-
-    groups = _find_multilane_groups(files)
-
-    if not groups:
-        return files
-
-    perform_concat = True
-    if prompt:
-        answer = click.confirm(
-            "This data appears to have been split across multiple sequencing lanes.\nConcatenate lanes before upload?",
-            default="Y",
-        )
-        if not answer:
-            perform_concat = False
-
-    if not perform_concat:
-        return files
-
-    files = files[:]
-    pattern_lane_num = re.compile(r"[._]L\d+([._])")
-
-    for group in groups:
-        # The groups considered here will already have more than 1 element
-        first_elem = group[0]
-        if isinstance(first_elem, tuple):
-            concat_fwd = _concatenate_group([fwd for fwd, _ in group], first_elem[0])
-            concat_rev = _concatenate_group([rev for _, rev in group], first_elem[1])
-            files.append((concat_fwd, concat_rev))
-        elif isinstance(first_elem, str):
-            concat = _concatenate_group(group, first_elem)
-            files.append(concat)
-
-        for elem in group:
-            files.remove(elem)
-
-    return files
+        uploads.append((forward, reverse) if reverse else forward)
+    return uploads
