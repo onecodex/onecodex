@@ -481,6 +481,50 @@ def test_validate_plot_params_no_functional_profiles(
         sample_collection._validate_plot_params(params)
 
 
+def test_plot_functional_without_classifications(default_plot_params_payload):
+    sample_data = []
+    for i in range(2):
+        sample_id = generate_id()
+        sample_data.append(
+            {
+                "uuid": sample_id,
+                "metadata": {
+                    "sample_id": sample_id,
+                    "metadata_id": generate_id(),
+                    "classification_id": generate_id(),
+                    "sample_name": f"Sample {i}",
+                },
+                # No classification data
+                "primary_classification": None,
+                "functional_profile": {
+                    "uuid": generate_id(),
+                    "sample_uuid": sample_id,
+                    "results_uri": None,
+                },
+            }
+        )
+    samples, functional_profiles = samples_from_sample_data(sample_data)
+    for profile in functional_profiles.values():
+        profile._loaded_results = {
+            "version": 1,
+            "n_reads": 100,
+            "n_mapped": 80,
+            "results": {"go": [["GO:1", "one", 1.5, 15.0, []]]},
+            "taxonomy": {"nodes": []},
+        }
+
+    collection = SampleCollection(samples, functional_profiles=functional_profiles)
+    params = PlotParams.model_validate(
+        default_plot_params_payload
+        | {"plot_type": PlotType.Functional, "functional_annotation": FunctionalAnnotations.Go}
+    )
+
+    result = collection.plot(params)
+
+    # Functional plots for samples with no classification data should work without issues
+    assert result.error is None
+
+
 @pytest.mark.parametrize(
     "params",
     [
@@ -794,7 +838,6 @@ def test_validate_stats_params_invalid_metadata_field(stats_sample_collection, a
         stats_sample_collection._validate_stats_params(params)
 
 
-@pytest.mark.filterwarnings("ignore:Classification not found")
 def test_validate_stats_params_no_classifications():
     samples, _ = samples_from_sample_data(
         [

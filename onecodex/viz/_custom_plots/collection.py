@@ -146,6 +146,15 @@ class SampleCollection(BaseSampleCollection):
         profiles = self._kwargs["functional_profiles"]
         return [profiles[sample.id] for sample in self._res_list if sample.id in profiles]
 
+    @property
+    def _classifications_from_res_list(self) -> list[Classifications]:
+        # Skip samples with no primary classification (e.g. functional profile only)
+        return [
+            sample.primary_classification
+            for sample in self._res_list
+            if sample.primary_classification
+        ]
+
     def plot(self, params: PlotParams) -> PlotResults:
         result = self._run_with_plot_error_handling(lambda: self._plot(params))
         if result.params is None:
