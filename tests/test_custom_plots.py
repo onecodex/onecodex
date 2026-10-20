@@ -29,7 +29,8 @@ from onecodex.stats import (
     BetaDiversityStatsResults,
     PosthocResults,
 )
-from onecodex.viz._custom_plots.collection import SampleCollection, Samples
+from onecodex.models import Samples
+from onecodex.viz._custom_plots.collection import SampleCollection, samples_from_sample_data
 from onecodex.viz._custom_plots.enums import ExportFormat, PlotRepr, PlotType, StatsType
 from onecodex.viz._custom_plots.metadata import _get_metadata_field_value
 from onecodex.viz._custom_plots.models import PlotParams, PlotResults, StatsParams, StatsResults
@@ -69,29 +70,34 @@ def make_sample(
     classification_uuid: str,
     job_uuid: str = JOB_UUID,
     job_name: str = "OCX DB",
-    functional_profile: dict | None = None,
     **extra_metadata,
 ) -> Samples:
     sample_uuid = generate_id()
     classification_id = generate_id()
-    return Samples(
-        {
-            "uuid": sample_uuid,
-            "metadata": {
-                "sample_id": sample_uuid,
-                "metadata_id": generate_id(),
-                "classification_id": classification_id,
-                **extra_metadata,
-            },
-            "primary_classification": {
-                "uuid": classification_id,
-                "job_uuid": job_uuid,
-                "job_name": job_name,
-                "api_results": load_classification_results_json(classification_uuid),
-            },
-            "functional_profile": functional_profile,
-        }
+    [sample], _ = samples_from_sample_data(
+        [
+            {
+                "uuid": sample_uuid,
+                "metadata": {
+                    "sample_id": sample_uuid,
+                    "metadata_id": generate_id(),
+                    "classification_id": classification_id,
+                    **extra_metadata,
+                },
+                "primary_classification": {
+                    "uuid": classification_id,
+                    "job_uuid": job_uuid,
+                    "job_name": job_name,
+                    "results_uri": None,
+                },
+                "functional_profile": None,
+            }
+        ]
     )
+    sample.primary_classification._loaded_results = load_classification_results_json(
+        classification_uuid
+    )
+    return sample
 
 
 @pytest.fixture
@@ -144,7 +150,7 @@ def sample_collection_mixed_abundances(sample_collection) -> SampleCollection:
         sample_name="No Abundances",
         cohort="C1",
     )
-    return SampleCollection([*sample_collection.samples, no_abundance_sample])
+    return SampleCollection([*sample_collection, no_abundance_sample])
 
 
 @pytest.fixture
@@ -475,6 +481,50 @@ def test_validate_plot_params_no_functional_profiles(
         sample_collection._validate_plot_params(params)
 
 
+def test_plot_functional_without_classifications(default_plot_params_payload):
+    sample_data = []
+    for i in range(2):
+        sample_id = generate_id()
+        sample_data.append(
+            {
+                "uuid": sample_id,
+                "metadata": {
+                    "sample_id": sample_id,
+                    "metadata_id": generate_id(),
+                    "classification_id": generate_id(),
+                    "sample_name": f"Sample {i}",
+                },
+                # No classification data
+                "primary_classification": None,
+                "functional_profile": {
+                    "uuid": generate_id(),
+                    "sample_uuid": sample_id,
+                    "results_uri": None,
+                },
+            }
+        )
+    samples, functional_profiles = samples_from_sample_data(sample_data)
+    for profile in functional_profiles.values():
+        profile._loaded_results = {
+            "version": 1,
+            "n_reads": 100,
+            "n_mapped": 80,
+            "results": {"go": [["GO:1", "one", 1.5, 15.0, []]]},
+            "taxonomy": {"nodes": []},
+        }
+
+    collection = SampleCollection(samples, functional_profiles=functional_profiles)
+    params = PlotParams.model_validate(
+        default_plot_params_payload
+        | {"plot_type": PlotType.Functional, "functional_annotation": FunctionalAnnotations.Go}
+    )
+
+    result = collection.plot(params)
+
+    # Functional plots for samples with no classification data should work without issues
+    assert result.error is None
+
+
 @pytest.mark.parametrize(
     "params",
     [
@@ -789,8 +839,8 @@ def test_validate_stats_params_invalid_metadata_field(stats_sample_collection, a
 
 
 def test_validate_stats_params_no_classifications():
-    samples = [
-        Samples(
+    samples, _ = samples_from_sample_data(
+        [
             {
                 "uuid": generate_id(),
                 "metadata": {
@@ -801,8 +851,8 @@ def test_validate_stats_params_no_classifications():
                 "primary_classification": None,
                 "functional_profile": None,
             }
-        )
-    ]
+        ]
+    )
     collection = SampleCollection(samples)
     params = StatsParams(group_by="cohort", stats_type=StatsType.AlphaDiversity)
 
@@ -1103,37 +1153,41 @@ def test_to_functional_df_with_functional_results(metric, values):
     sample_id = generate_id()
     profile_id = generate_id()
 
-    sample = Samples(
-        {
-            "uuid": sample_id,
-            "metadata": {
-                "sample_id": sample_id,
-                "metadata_id": generate_id(),
-                "classification_id": generate_id(),
-                "created_at": "2026-01-01",
-                "filename": "sample.fastq",
-            },
-            "primary_classification": None,
-            "functional_profile": {
-                "uuid": profile_id,
-                "sample_uuid": sample_id,
-                "results": {
-                    "go-cpm": [
-                        {"id": "GO:1", "name": "one", "value": 1.5},
-                        {"id": "GO:2", "name": "two", "value": 2.5},
-                    ],
-                    "go-rpk": [
-                        {"id": "GO:1", "name": "one", "value": 15.0},
-                        {"id": "GO:2", "name": "two", "value": 25.0},
-                    ],
-                    "n_reads": 100,
-                    "n_mapped": 80,
+    samples, functional_profiles = samples_from_sample_data(
+        [
+            {
+                "uuid": sample_id,
+                "metadata": {
+                    "sample_id": sample_id,
+                    "metadata_id": generate_id(),
+                    "classification_id": generate_id(),
+                    "created_at": "2026-01-01",
+                    "filename": "sample.fastq",
                 },
-            },
-        }
+                "primary_classification": None,
+                "functional_profile": {
+                    "uuid": profile_id,
+                    "sample_uuid": sample_id,
+                    "results_uri": None,
+                },
+            }
+        ]
     )
+    # condensed results: [id, name, cpm, rpk, taxa contributions]
+    functional_profiles[sample_id]._loaded_results = {
+        "version": 1,
+        "n_reads": 100,
+        "n_mapped": 80,
+        "results": {
+            "go": [
+                ["GO:1", "one", 1.5, 15.0, []],
+                ["GO:2", "two", 2.5, 25.0, []],
+            ],
+        },
+        "taxonomy": {"nodes": []},
+    }
 
-    collection = SampleCollection([sample])
+    collection = SampleCollection(samples, functional_profiles=functional_profiles)
     result = collection.to_functional_df(
         annotation=FunctionalAnnotations.Go,
         metric=metric,

@@ -1,22 +1,31 @@
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING, Any, Callable, Tuple
 from urllib.parse import urlencode
 import orjson
 
 from onecodex.viz import configure_onecodex_theme
 from onecodex.exceptions import ConnectivityError, OneCodexException
-from .collection import SampleCollection, Samples
+from .collection import (
+    Classifications,
+    FunctionalProfiles,
+    SampleCollection,
+    samples_from_sample_data,
+)
 from .enums import PlotType, SamplesFilter, SuggestionType
 from .models import BaseParams, PlotParams, StatsParams
-from .utils import AsyncRateLimiter
 
 if TYPE_CHECKING:
     from pyodide.ffi import JsProxy
     from pyodide.http import FetchResponse
 
 CUSTOM_PLOTS_CACHE = {}
-RESULTS_BATCH_SIZE = 15
+
+# Keys in the browser's Cache Storage for analysis results downloads
+RESULTS_CACHE_PREFIX = "onecodex-custom-plots-results"
+RESULTS_CACHE_NAME = f"{RESULTS_CACHE_PREFIX}-v1"
+RESULTS_CONCURRENCY = 8
 
 
 def init():
@@ -45,14 +54,13 @@ async def _get_collection(
     if key in CUSTOM_PLOTS_CACHE:
         return CUSTOM_PLOTS_CACHE[key]
 
-    samples = await _fetch_samples(
+    collection = await _fetch_collection(
         type_=type_,
         uuid=uuid,
         filter_=filter_,
         csrf_token=csrf_token,
         progress_callback=progress_callback,
     )
-    collection = SampleCollection(samples)
     CUSTOM_PLOTS_CACHE[key] = collection
     return collection
 
@@ -105,88 +113,14 @@ def _convert_jsnull_to_none(obj: Any) -> Any:
     return obj
 
 
-async def _fetch_ndjson(url: str, headers: dict | None = None) -> list[dict[str, Any]]:
-    from pyodide.http import HttpStatusError
-
-    resp = await _fetch_with_retries(
-        url=url, headers=headers, retries=5, status_forcelist=(202, 429, 502, 503)
-    )
-
-    if resp.status == 202:
-        # Means data is not ready
-        raise HttpStatusError(status=202, status_text="Analysis results not ready", url=url)
-    resp.raise_for_status()
-
-    try:
-        text = (
-            await resp.string()
-        )  # NDJSON (already decompressed if gzip since browsers do that automatically)
-        return [orjson.loads(line) for line in text.splitlines() if line.strip()]
-    except AttributeError:
-        # Converting pyfetch exceptions to Python exceptions sometimes fails with AttributeError
-        # Raising a ConnectivityError that will get handled gracefully
-        raise ConnectivityError("Cannot load samples, please try again later")
-
-
-async def _fetch_batch_sample_results(base_url: str, data: list[dict], headers: dict | None = None):
-    """
-    Download a batch of analysis results.
-
-    Downloads either classification or functional results for a batch of samples depending on
-    which field is populated.
-    """
-    classification_uuids = []
-    functional_uuids = []
-    # Mapping analysis uuids to position in data list
-    uuid_pos = {}
-
-    for idx, sample_data in enumerate(data):
-        if sample_data.get("primary_classification"):
-            uuid = sample_data["primary_classification"].get("uuid")
-            classification_uuids.append(uuid)
-            uuid_pos[uuid] = idx
-        elif sample_data.get("functional_profile"):
-            uuid = sample_data["functional_profile"].get("uuid")
-            functional_uuids.append(uuid)
-            uuid_pos[uuid] = idx
-
-    if classification_uuids:
-        from .utils import format_classification_results
-
-        url = f"{base_url}/api/frontend/custom-plots/classification-results?uuids={','.join(classification_uuids)}"
-        # Results are ordered according to order in the uuid list
-        results = await _fetch_ndjson(url, headers=headers)
-        for uuid, result in zip(classification_uuids, results):
-            data[uuid_pos[uuid]]["primary_classification"]["api_results"] = (
-                format_classification_results(result)
-            )
-
-    if functional_uuids:
-        url = f"{base_url}/api/frontend/custom-plots/functional-results?uuids={','.join(functional_uuids)}"
-        results = await _fetch_ndjson(url, headers=headers)
-        for uuid, result in zip(functional_uuids, results):
-            data[uuid_pos[uuid]]["functional_profile"]["results"] = result
-
-
-async def _fetch_results_for_samples(base_url: str, data: list[dict], headers: dict | None = None):
-    # 5 batch actions per second
-    limiter = AsyncRateLimiter(max_actions=5, period=1.0)
-
-    # Rate limited batch streaming sample results
-    for i in range(0, len(data), RESULTS_BATCH_SIZE):
-        batch = data[i : i + RESULTS_BATCH_SIZE]
-        await limiter.acquire()
-        await _fetch_batch_sample_results(base_url, batch, headers)
-
-
-async def _fetch_samples(
+async def _fetch_collection(
     *,
     type_: SuggestionType,
     uuid: str,
     filter_: SamplesFilter,
     csrf_token: str,
     progress_callback: Callable[[str, float], None] = lambda msg, pct: None,
-) -> list[Samples]:
+) -> SampleCollection:
     import js  # available from pyodide
 
     base_url = js.self.location.origin
@@ -195,8 +129,10 @@ async def _fetch_samples(
         "X-CSRFToken": csrf_token,
         "Accept": "application/json",
     }
+    results_cache = await _open_results_cache()
 
     samples = []
+    functional_profiles = {}
     next_page = 1
     progress_callback("Loading samples", 0.0)
     while next_page:
@@ -213,20 +149,96 @@ async def _fetch_samples(
         # Fetch sample metadata
         resp = await _fetch_with_retries(url=full_url, headers=headers)
         resp.raise_for_status()
-        sample_data = await resp.json()
+        page_samples, page_functional_profiles = samples_from_sample_data(await resp.json())
 
         # Fetch results data
-        await _fetch_results_for_samples(base_url=base_url, data=sample_data, headers=headers)
+        analyses = [s.primary_classification for s in page_samples if s.primary_classification]
+        analyses += page_functional_profiles.values()
+        await _load_results(analyses, results_cache=results_cache, base_url=base_url)
 
-        # Convert to ocx sample collection
-        samples.extend(Samples(sample) for sample in sample_data)
+        samples.extend(page_samples)
+        functional_profiles.update(page_functional_profiles)
 
         pagination = orjson.loads(resp.headers.get("x-pagination", "{}"))
         total = int(pagination.get("total", 0))
         next_page = int(pagination.get("next_page", 0))
         progress_callback("Loading samples", len(samples) / (total or 1))
 
-    return samples
+    return SampleCollection(samples, functional_profiles=functional_profiles)
+
+
+async def _open_results_cache() -> JsProxy | None:
+    try:
+        from js import caches
+
+        # Clean up any stale versions
+        for name in await caches.keys():
+            if name.startswith(RESULTS_CACHE_PREFIX) and name != RESULTS_CACHE_NAME:
+                await caches.delete(name)
+        return await caches.open(RESULTS_CACHE_NAME)
+    except Exception:
+        # Cache unavailable, ignoring
+        return None
+
+
+async def _load_results(
+    analyses: list[Classifications | FunctionalProfiles],
+    *,
+    results_cache: JsProxy | None,
+    base_url: str,
+):
+    semaphore = asyncio.Semaphore(RESULTS_CONCURRENCY)
+
+    async def load(analysis: Classifications | FunctionalProfiles):
+        async with semaphore:
+            body = await _read_results_file(
+                analysis, results_cache=results_cache, base_url=base_url
+            )
+            analysis._loaded_results = orjson.loads(body)
+
+    # Download in parallel with a cap (semaphore)
+    await asyncio.gather(*(load(analysis) for analysis in analyses))
+
+
+async def _read_results_file(
+    analysis: Classifications | FunctionalProfiles,
+    *,
+    results_cache: JsProxy | None,
+    base_url: str,
+) -> str | bytes:
+    """Return the JSON of an analysis' results file, from the results cache if possible."""
+    cache_key = f"{base_url}/custom-plots/results/{analysis.id}"
+
+    if results_cache is not None:
+        try:
+            cached = await results_cache.match(cache_key)
+            if cached is not None:
+                return await cached.text()
+        except Exception:
+            # Ignore, just fall back to downloading
+            pass
+
+    try:
+        resp = await _fetch_with_retries(url=analysis.results_uri)
+        resp.raise_for_status()
+        # Results should be transparently decompressed
+        body = await resp.bytes()
+    except AttributeError:
+        # Converting pyfetch exceptions to Python exceptions sometimes fails with AttributeError
+        # Raising a ConnectivityError that will get handled gracefully
+        raise ConnectivityError("Cannot load samples, please try again later")
+
+    if results_cache is not None:
+        try:
+            from js import Response
+            from pyodide.ffi import to_js
+
+            await results_cache.put(cache_key, Response.new(to_js(body)))
+        except Exception:
+            # Cache isn't critical, ignoring all errors
+            pass
+
+    return body
 
 
 async def _fetch_with_retries(
