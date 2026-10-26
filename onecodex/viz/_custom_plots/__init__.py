@@ -134,6 +134,16 @@ async def _fetch_collection(
     samples = []
     functional_profiles = {}
     next_page = 1
+    total = 0
+    loaded = 0
+
+    def on_loaded():
+        nonlocal loaded
+        loaded += 1
+        # Each sample has either classification or a functional profile, we can
+        # count samples instead of results
+        progress_callback("Loading samples", min(loaded / (total or 1), 1.0))
+
     progress_callback("Loading samples", 0.0)
     while next_page:
         params = urlencode(
@@ -151,18 +161,19 @@ async def _fetch_collection(
         resp.raise_for_status()
         page_samples, page_functional_profiles = samples_from_sample_data(await resp.json())
 
-        # Fetch results data
-        analyses = [s.primary_classification for s in page_samples if s.primary_classification]
-        analyses += page_functional_profiles.values()
-        await _load_results(analyses, results_cache=results_cache, base_url=base_url)
-
-        samples.extend(page_samples)
-        functional_profiles.update(page_functional_profiles)
-
         pagination = orjson.loads(resp.headers.get("x-pagination", "{}"))
         total = int(pagination.get("total", 0))
         next_page = int(pagination.get("next_page", 0))
-        progress_callback("Loading samples", len(samples) / (total or 1))
+
+        # Fetch results data
+        analyses = [s.primary_classification for s in page_samples if s.primary_classification]
+        analyses += page_functional_profiles.values()
+        await _load_results(
+            analyses, results_cache=results_cache, base_url=base_url, on_loaded=on_loaded
+        )
+
+        samples.extend(page_samples)
+        functional_profiles.update(page_functional_profiles)
 
     return SampleCollection(samples, functional_profiles=functional_profiles)
 
@@ -186,6 +197,7 @@ async def _load_results(
     *,
     results_cache: JsProxy | None,
     base_url: str,
+    on_loaded: Callable[[], None] = lambda: None,
 ):
     semaphore = asyncio.Semaphore(RESULTS_CONCURRENCY)
 
@@ -195,9 +207,18 @@ async def _load_results(
                 analysis, results_cache=results_cache, base_url=base_url
             )
             analysis._loaded_results = orjson.loads(body)
+            on_loaded()
 
     # Download in parallel with a cap (semaphore)
-    await asyncio.gather(*(load(analysis) for analysis in analyses))
+    tasks = [asyncio.ensure_future(load(analysis)) for analysis in analyses]
+    try:
+        await asyncio.gather(*tasks)
+    except BaseException:
+        # `gather` doesn't cancel other tasks on failure, we do it manually
+        # so that `on_loaded` callbacks stop coming after an error
+        for task in tasks:
+            task.cancel()
+        raise
 
 
 async def _read_results_file(
