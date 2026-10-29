@@ -103,7 +103,7 @@ class JobSchema(URIModel):
             "`Jobs.job_type` was never set by the One Codex API and is always None. It will be "
             "removed in 1.3.0. Use `Jobs.details().job_type` instead.",
             DeprecationWarning,
-            stacklevel=2,
+            stacklevel=3,
         )
         return None
 
