@@ -88,7 +88,6 @@ class JobSchema(URIModel):
     public: bool = Field(
         description="Whether the job is publicly available. For most jobs this will be `true`. Custom, private jobs are also available, and will only be visible to users whose samples (or samples shared with them) have been analyzed using that job."
     )
-    job_type: Optional[str] = None
     draft: bool = Field(
         description="Whether the job is an unpublished draft. Draft jobs are only visible to their creator."
     )
