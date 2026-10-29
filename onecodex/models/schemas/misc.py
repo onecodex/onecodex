@@ -1,4 +1,5 @@
 import re
+import warnings
 from typing import Any, List, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -95,6 +96,16 @@ class JobSchema(URIModel):
     @property
     def published(self) -> bool:
         return not self.draft
+
+    @property
+    def job_type(self) -> None:
+        warnings.warn(
+            "`Jobs.job_type` was never set by the One Codex API and is always None. It will be "
+            "removed in 1.3.0. Use `Jobs.details().job_type` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return None
 
 
 class JobDetails(BaseModel):
