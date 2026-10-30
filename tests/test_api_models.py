@@ -1058,6 +1058,12 @@ def test_jobs_details(ocx, api_data, custom_mock_requests):
     assert details.autorun_on_org_sample_upload is False
 
 
+def test_jobs_job_type_deprecated(ocx, api_data):
+    job = ocx.Jobs.all()[0]
+    with pytest.warns(DeprecationWarning, match="will be removed in 1.3.0"):
+        assert job.job_type is None
+
+
 def test_jobs_details_nextflow(ocx, api_data, custom_mock_requests):
     job_id = "47c4fe23588640a9"
 
