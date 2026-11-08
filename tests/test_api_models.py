@@ -1060,8 +1060,10 @@ def test_jobs_details(ocx, api_data, custom_mock_requests):
 
 def test_jobs_job_type_deprecated(ocx, api_data):
     job = ocx.Jobs.all()[0]
-    with pytest.warns(DeprecationWarning, match="will be removed in 1.3.0"):
+    with pytest.warns(FutureWarning, match="will be removed in 1.3.0") as record:
         assert job.job_type is None
+    # The warning must point at the caller, or Python's default filters can hide it
+    assert record[0].filename == __file__
 
 
 def test_jobs_details_nextflow(ocx, api_data, custom_mock_requests):

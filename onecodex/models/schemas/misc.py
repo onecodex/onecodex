@@ -99,10 +99,14 @@ class JobSchema(URIModel):
 
     @property
     def job_type(self) -> None:
+        """Always None: the One Codex API never sends this field.
+
+        Deprecated: use `job.details().job_type` instead.
+        """
         warnings.warn(
             "`Jobs.job_type` was never set by the One Codex API and is always None. It will be "
             "removed in 1.3.0. Use `Jobs.details().job_type` instead.",
-            DeprecationWarning,
+            FutureWarning,
             stacklevel=3,
         )
         return None
