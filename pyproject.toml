@@ -33,6 +33,7 @@ dependencies = [
     "unidecode>=1.0.23",
     "filelock>=3.0.12,<5",
     "pydantic>=2.10.6",
+    "typing-extensions>=4.14.0",
     "orjson>=3.10.16",
     "zstandard>=0.23.0",
 ]
