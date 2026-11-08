@@ -1062,7 +1062,7 @@ def test_jobs_job_type_deprecated(ocx, api_data):
     job = ocx.Jobs.all()[0]
     with pytest.warns(FutureWarning, match="will be removed in 1.3.0") as record:
         assert job.job_type is None
-    # The warning must point at the caller, or Python's default filters can hide it
+    # The warning must point to the current __file__ so it's visible in end-user scripts and notebooks
     assert record[0].filename == __file__
 
 
