@@ -1062,19 +1062,50 @@ def test_paired_and_multiline_files(
     assert mock_sample_get.call_count == n_samples_uploaded
     assert result.exit_code == 0
 
-    paired_files_prompt = "It appears there are {} paired files (of {} total)".format(
-        n_paired_files, len(files)
+    n_pairs = n_paired_files // 2
+    paired_files_prompt = (
+        "It appears there is 1 pair" if n_pairs == 1 else f"It appears there are {n_pairs} pairs"
     )
     if n_paired_files > 0:
         assert paired_files_prompt in result.output
     else:
-        assert paired_files_prompt not in result.output
+        assert "Would you like to interleave each pair?" not in result.output
 
     multilane_prompt = "This data appears to have been split across multiple sequencing lanes.\nConcatenate lanes before upload?"
     if n_multiline_groups > 0:
         assert multilane_prompt in result.output
     else:
         assert multilane_prompt not in result.output
+
+
+def test_paired_file_found_on_disk_is_marked(
+    runner, generate_fastq, mock_file_upload, mock_sample_get, mocked_creds_path, upload_mocks
+):
+    """The mate is inferred from disk; the user must be told which file that is."""
+    forward = generate_fastq("test_R1.fq")
+    generate_fastq("test_R2.fq")
+
+    args = ["--api-key", "01234567890123456789012345678901", "upload", forward]
+    result = runner.invoke(Cli, args, catch_exceptions=False, input="\n")
+
+    assert result.exit_code == 0
+    assert "test_R1.fq  &  test_R2.fq *" in result.output
+    assert "* not specified on the command line" in result.output
+    assert mock_file_upload.call_count == 2
+    assert mock_sample_get.call_count == 1
+
+
+def test_paired_files_passed_explicitly_are_not_marked(
+    runner, generate_fastq, mock_file_upload, mock_sample_get, mocked_creds_path, upload_mocks
+):
+    files = [generate_fastq(x) for x in ["test_R1.fq", "test_R2.fq"]]
+
+    args = ["--api-key", "01234567890123456789012345678901", "upload"] + files
+    result = runner.invoke(Cli, args, catch_exceptions=False, input="\n")
+
+    assert result.exit_code == 0
+    assert "test_R1.fq  &  test_R2.fq" in result.output
+    assert "*" not in result.output
 
 
 def test_paired_files_with_forward_and_reverse_args(
@@ -1095,7 +1126,7 @@ def test_paired_files_with_forward_and_reverse_args(
     result = runner.invoke(Cli, args, input="Y")
     assert mock_file_upload.call_count == 2
     assert mock_sample_get.call_count == 1
-    assert "It appears there are 2 paired files" not in result.output  # skips message
+    assert "Would you like to interleave each pair?" not in result.output  # skips message
     assert result.exit_code == 0
 
     # Check with only --forward, should fail
@@ -1176,6 +1207,23 @@ def test_paired_files_with_forward_and_reverse_args(
         (["dir_r1_test/test_0.fq", "dir_r1_test/test_1.fq"], 1, 1, 0, 2),
         # 3 files, 2 samples
         (["test_0.fq", "other.fq", "test_1.fq"], 2, 2, 0, 2),
+        # 2 paired files, no ONT parts
+        (["test_R1.fq", "test_R2.fq"], 1, 2, 2, 0),
+        # 6 files, 2 ONT samples whose merged names look like a read pair
+        (
+            [
+                "test_1_0.fq",
+                "test_1_1.fq",
+                "test_1_2.fq",
+                "test_2_0.fq",
+                "test_2_1.fq",
+                "test_2_2.fq",
+            ],
+            2,
+            2,
+            0,
+            6,
+        ),
     ],
 )
 def test_paired_and_ont_files(
@@ -1199,19 +1247,46 @@ def test_paired_and_ont_files(
     assert mock_sample_get.call_count == n_samples_uploaded
     assert result.exit_code == 0
 
-    paired_files_prompt = "It appears there are {} paired files (of {} total)".format(
-        n_paired_files, len(files)
+    n_pairs = n_paired_files // 2
+    paired_files_prompt = (
+        "It appears there is 1 pair" if n_pairs == 1 else f"It appears there are {n_pairs} pairs"
     )
     if n_paired_files > 0:
         assert paired_files_prompt in result.output
     else:
-        assert paired_files_prompt not in result.output
+        assert "Would you like to interleave each pair?" not in result.output
 
-    ont_prompt = f"It appears there are {n_samples_uploaded} sample(s)"
+    ont_prompt = "Would you like to concatenate files by sample?"
     if n_ont_files > 0:
         assert ont_prompt in result.output
     else:
         assert ont_prompt not in result.output
+
+
+def test_ont_files_found_on_disk(
+    runner,
+    generate_fastq,
+    mock_file_upload,
+    mock_sample_get,
+    mocked_creds_path,
+    upload_mocks,
+):
+    """The rest of an ONT sequence is picked up from disk and the user is told about it."""
+    for filename in ["test_0.fq", "test_3.fq"]:
+        generate_fastq(filename)
+    files = [generate_fastq(x) for x in ["test_1.fq", "test_2.fq"]]
+
+    args = ["--api-key", "01234567890123456789012345678901", "upload"] + files
+    result = runner.invoke(Cli, args, catch_exceptions=False, input="d\n\n")
+
+    assert result.exit_code == 0
+    assert mock_file_upload.call_count == 1
+    assert mock_sample_get.call_count == 1
+    assert "It appears there are 1 sample(s) split across 4 individual file(s)" in result.output
+    assert "2 of them were not specified on the command line" in result.output
+    assert "* not specified on the command line" in result.output
+    # the files must not also be offered for interleaving
+    assert "Would you like to interleave each pair?" not in result.output
 
 
 def test_download_samples_without_prompt(runner, api_data, mocked_creds_file):
