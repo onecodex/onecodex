@@ -126,19 +126,24 @@ def _browser_login(server: str, open_browser: bool = True) -> dict[str, Any]:
         click.echo("Could not start login with One Codex: {}".format(e), err=True)
         sys.exit(1)
 
-    click.echo(
-        "\nTo log in, open this page in your browser and confirm the code {}:\n\n    {}\n".format(
-            authorization.user_code, authorization.verification_uri_complete
-        ),
-        err=True,
-    )
+    user_code = click.style(authorization.user_code, fg="green", bold=True)
+    verification_uri = click.style(authorization.verification_uri_complete, fg="cyan")
     if open_browser and _can_open_browser():
         try:
             webbrowser.open(authorization.verification_uri_complete)
+            click.echo(
+                f"Opening your browser to authorize the login...\n\nIf it doesn't open, visit:\n    {verification_uri}\n",
+                err=True,
+            )
         except webbrowser.Error:
             pass
+    else:
+        click.echo(f"Please open: {verification_uri}\n", err=True)
 
-    click.echo("Waiting for you to log in in your browser...", err=True)
+    click.echo(
+        f"Confirm that the browser shows: {user_code}\n\nWaiting for you to authorize this login in your browser...",
+        err=True,
+    )
     try:
         token = poll_device_token(server, authorization)
     except DeviceLoginError as e:

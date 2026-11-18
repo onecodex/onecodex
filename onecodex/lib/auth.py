@@ -6,7 +6,7 @@ from typing import Any
 import requests
 from pydantic import BaseModel
 
-# Trigger a warning if the JWT expires in less than the following
+# Trigger a warning if the token expires in less than the following
 TOKEN_RENEWAL_WINDOW = datetime.timedelta(hours=24)
 
 DEVICE_NAME_HEADER = "X-OneCodex-Device-Name"
