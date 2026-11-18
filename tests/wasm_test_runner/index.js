@@ -11,8 +11,8 @@ async function main() {
   //
   // Some are just DQL libs (like ruff) and are not needed for running tests.
   //
-  // There is a special hack for scikit-bio. It has an int overflow bug and the fix
-  // is not released yet.
+  // scikit-bio isn't part of the Pyodide distribution, so a hand-built wheel is installed
+  // from our static assets instead of from PyPI.
   await pyodide.runPythonAsync(`
     import tomllib
     from pathlib import Path
@@ -41,7 +41,7 @@ async function main() {
 
     await micropip.install(
         "https://static.onecodex.com/app/pyodide/v0.29.0/"
-        "scikit_bio-0.7.1.post7-cp313-cp313-pyodide_2025_0_wasm32.whl",
+        "scikit_bio-0.7.4-cp313-cp313-pyodide_2025_0_wasm32.whl",
         deps=False,
     )
     await micropip.install("array_api_compat")  # required scikit-bio dependency

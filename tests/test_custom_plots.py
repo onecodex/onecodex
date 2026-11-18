@@ -996,7 +996,7 @@ def _make_ancombc_main_results():
                 "Intercept",
                 "cohort: B vs A (reference)",
             ],
-            "Log2(FC)": [0.0, 1.5, 0.0, -2.0],
+            "Log(FC)": [0.0, 1.5, 0.0, -2.0],
             "SE": [0.1, 0.2, 0.1, 0.3],
             "W": [0.0, 7.5, 0.0, -6.7],
             "pvalue": [1.0, 0.001, 1.0, 0.002],
@@ -1039,6 +1039,27 @@ def test_stats_ancombc(stats_sample_collection):
     assert result.ancombc_results.sample_size == 4
     assert result.ancombc_results.reference_group == "A"
     assert result.ancombc_results.group_by_variable == "cohort"
+
+
+def test_stats_numeric_group_by():
+    collection = SampleCollection(
+        [
+            make_sample(classification_uuid=cls_uuid, age=age)
+            for cls_uuid, age in zip(CLASSIFICATION_UUIDS, [10, 20, 30])
+        ]
+    )
+    params = StatsParams(
+        group_by="age",
+        stats_type=StatsType.Ancombc,
+        metric=Metric.ReadcountWChildren,
+        rank=Rank.Genus,
+    )
+
+    result = collection.stats(params)
+
+    assert result.error is not None
+    assert "has numeric values" in result.error
+    assert result.ancombc_results is None
 
 
 def test_stats_ancombc_reference_group(stats_sample_collection):
@@ -1121,14 +1142,24 @@ def test_stats_to_dict_ancombc():
     assert isinstance(records, list)
     assert len(records) == 4
     assert all(
-        {"Taxon", "Covariate", "Comparison", "Log2(FC)", "SE", "W", "pvalue", "qvalue", "Signif"}
+        {
+            "Taxon",
+            "Covariate",
+            "Comparison",
+            "Log(FC)",
+            "SE",
+            "W",
+            "pvalue",
+            "qvalue",
+            "Signif",
+        }
         == set(r.keys())
         for r in records
     )
     sig_record = next(
         r for r in records if r["Taxon"] == "Taxon A" and r["Covariate"] == "cohort[T.B]"
     )
-    assert sig_record["Log2(FC)"] == 1.5
+    assert sig_record["Log(FC)"] == 1.5
     assert sig_record["Signif"] is True
 
     global_records = ancombc["global_results"]

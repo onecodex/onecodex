@@ -1,5 +1,6 @@
 from __future__ import annotations
 import itertools
+import math
 import re
 import warnings
 from dataclasses import dataclass
@@ -18,6 +19,7 @@ from onecodex.lib.enums import (
     PosthocStatsTest,
 )
 from onecodex.models.base_sample_collection import BaseSampleCollection
+from onecodex.utils import is_categorical_metadata
 from onecodex.viz import OCX_DARK_BLUE, OCX_RED
 from onecodex.viz._primitives import prepare_props
 
@@ -111,12 +113,12 @@ class AncombcResults(StatsResults):
     """A dataclass for storing the results of an ANCOM-BC differential abundance test.
 
     - `main_results`: `pd.DataFrame` containing ANCOM-BC test results for each taxon, including
-    log2-fold change (with standard error), W-statistic, p-value, adjusted p-value (i.e. q-value),
-    and whether or not the result is statistically significant. See
+    natural log-fold change (with standard error), W-statistic, p-value, adjusted p-value (i.e.
+    q-value), and whether or not the result is statistically significant (`Signif`). See
     `skbio.stats.composition.ancombc` for details.
     - `global_results`: `pd.DataFrame` containing global ANCOM-BC test results for each taxon,
     including W-statistic, p-value, adjusted p-value (i.e. q-value), and whether or not the result
-    is statistically significant. See `skbio.stats.composition.ancombc` for details.
+    is statistically significant (`Signif`). See `skbio.stats.composition.ancombc` for details.
     - `reference_group`: Group name used as the reference. All other groups are compared to this
     reference group.
     - `adjustment_method`: method used to adjust p-values to control the false discovery rate
@@ -144,8 +146,8 @@ class AncombcResults(StatsResults):
     ) -> alt.FacetChart | None:
         """Plot ANCOM-BC results as bargraphs faceted by group.
 
-        A bargraph of log2-fold change is generated for each significantly different taxon, faceted
-        by group.
+        A bargraph of natural log-fold change is generated for each significant taxon, faceted by
+        group.
 
         Parameters
         ----------
@@ -187,27 +189,28 @@ class AncombcResults(StatsResults):
         df["Taxon"] = taxon_parts[0].fillna(df["Taxon"])
 
         df["Difference from reference"] = "No change"
-        df.loc[(df["Log2(FC)"] < 0), "Difference from reference"] = "Decreased"
-        df.loc[(df["Log2(FC)"] > 0), "Difference from reference"] = "Increased"
+        df.loc[(df["Log(FC)"] < 0), "Difference from reference"] = "Decreased"
+        df.loc[(df["Log(FC)"] > 0), "Difference from reference"] = "Increased"
 
         color_domain = ["Decreased", "Increased"]
         color_range = [OCX_RED, OCX_DARK_BLUE]
 
-        # Symmetric x-axis domain around zero, with a minimum extent of ±0.5. Log2(FC) of 0.5 is
-        # sometimes considered "biologically relevant", which is why we use this minimum threshold.
-        x_extent = max(df["Log2(FC)"].abs().max(), 0.5)
+        # Symmetric x-axis domain around zero, with a minimum extent equivalent to a Log2(FC) of ±0.5.
+        # Log2(FC) of 0.5 is sometimes considered "biologically relevant", which is why we use this
+        # minimum threshold.
+        x_extent = max(df["Log(FC)"].abs().max(), 0.5 * math.log(2))
 
         base = alt.Chart(df)
 
         bars = base.mark_bar().encode(
-            x=alt.X("Log2(FC):Q", title="Log2(FC)", scale=alt.Scale(domain=[-x_extent, x_extent])),
+            x=alt.X("Log(FC):Q", title="Log(FC)", scale=alt.Scale(domain=[-x_extent, x_extent])),
             y=alt.Y("Taxon:O", title="Taxon"),
             color=alt.Color(
                 "Difference from reference:N",
                 title="Difference from reference",
                 scale=alt.Scale(domain=color_domain, range=color_range),
             ),
-            tooltip=["Taxon", "Taxon ID", "Comparison", "Log2(FC)", "pvalue", "qvalue"],
+            tooltip=["Taxon", "Taxon ID", "Comparison", "Log(FC)", "pvalue", "qvalue"],
         )
 
         # Dashed vertical reference line at x=0
@@ -309,9 +312,11 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
         metric, rank = self._parse_classification_config_args(metric=metric, rank=rank)
 
         group_by = self._tuplize(group_by)
+        self._assert_categorical_metadata(group_by, "group_by")
         metadata_fields = [group_by]
         if paired_by is not None:
             paired_by = self._tuplize(paired_by)
+            self._assert_categorical_metadata(paired_by, "paired_by")
             metadata_fields.append(paired_by)
 
         # Munge the metadata first in case there's any errors
@@ -391,6 +396,14 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
     def _assert_valid_alpha(self, alpha: float):
         if not (0.0 < alpha < 1.0):
             raise StatsException("`alpha` must be between 0 and 1 (exclusive).")
+
+    def _assert_categorical_metadata(self, fields: tuple, param_name: str):
+        for field in fields:
+            if field in self.metadata and not is_categorical_metadata(self.metadata[field]):
+                raise StatsException(
+                    f"The `{param_name}` variable ({field!r}) has numeric values, which is not "
+                    f"currently supported. Please select a categorical variable."
+                )
 
     def _tuplize(self, value) -> tuple:
         if not isinstance(value, tuple):
@@ -667,6 +680,7 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
 
         # Munge the metadata first in case there's any errors
         group_by = self._tuplize(group_by)
+        self._assert_categorical_metadata(group_by, "group_by")
         metadata_results = self._metadata_fetch(
             [group_by],
             results_df=self.to_classification_df(rank=rank, metric=metric),
@@ -810,12 +824,12 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
     ) -> AncombcResults:
         """Perform a test for differentially abundant taxa using ANCOM-BC.
 
-        Zeros are replaced using multiplicative replacement if `metric` is normalized
-        (i.e. proportionalized) data, otherwise a pseudocount of 1 is added if `metric` is
-        unnormalized (i.e. count) data.
+        ANCOM-BC models read counts, so normalized (i.e. proportionalized) `metric` data are
+        converted to pseudo-counts by multiplying by each sample's number of microbial reads. A
+        pseudocount of 1 is then added to all values so that zeros can be log-transformed.
 
         Results indicate taxa that are significantly different in abundance across the grouping
-        variable of interest, as well as each taxon's log2-fold change (with standard error),
+        variable of interest, as well as each taxon's natural log-fold change (with standard error),
         W-statistic, p-value, and adjusted p-value (i.e. q-value).
 
         This method is **experimental** and breaking API changes may occur.
@@ -858,17 +872,17 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
         See Also
         --------
         skbio.stats.composition.ancombc
-        skbio.stats.composition.multi_replace
 
         """
         import pandas as pd
-        from skbio.stats.composition import ancombc, multi_replace
+        from skbio.stats.composition import ancombc
 
         self._assert_valid_alpha(alpha)
         metric, rank = self._parse_classification_config_args(metric=metric, rank=rank)
 
         # Munge the metadata first in case there's any errors
         group_by = self._tuplize(group_by)
+        self._assert_categorical_metadata(group_by, "group_by")
         metadata_results = self._metadata_fetch(
             [group_by],
             results_df=self.to_classification_df(rank=rank, metric=metric),
@@ -887,9 +901,6 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
         taxa_df = self.to_classification_df(rank=rank, metric=metric)
         taxa_df = self._rename_tax_ids(taxa_df)
 
-        # `multi_replace()` will error on rows that are all zeros
-        metadata_df = self._drop_samples_with_all_zeros(metadata_df, taxa_df, metric)
-
         # Drop groups of size < 2
         # NOTE: it's important to do this filtering *after* the other filters in case those filters
         # change the group sizes
@@ -899,8 +910,6 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
 
         if require_classification_version_match:
             self._assert_single_database_version(metadata_df)
-
-        self._assert_categorical_group_by(metadata_df, group_by_column_name)
 
         group_names = sorted(metadata_df[group_by_column_name].unique())
         if reference_group:
@@ -925,15 +934,20 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
 
         # Filter the taxa dataframe to match the remaining IDs in the metadata dataframe
         taxa_df = taxa_df.loc[metadata_df.index]
+        taxa_df = taxa_df.loc[:, (taxa_df != 0).any()]
 
-        # ANCOM-BC can't handle zeros. Use multiplicative replacement for normalized
-        # (i.e. proportionalized) data, or a pseudocount for unnormalized (i.e. count) data.
+        # ANCOM-BC models read counts and can't handle zeros. Convert normalized (i.e.
+        # proportionalized) data to pseudo-counts using each sample's number of microbial reads,
+        # then add a pseudocount of 1.
         if metric.is_normalized:
-            zero_replaced_df = pd.DataFrame(
-                multi_replace(taxa_df), columns=taxa_df.columns, index=taxa_df.index
+            n_microbial_reads = pd.Series(
+                {
+                    c.id: c._classification_stats["n_mapped_microbial_reads"]
+                    for c in self._classifications
+                }
             )
-        else:
-            zero_replaced_df = taxa_df + 1
+            taxa_df = taxa_df.mul(n_microbial_reads.loc[taxa_df.index], axis=0)
+        taxa_df = taxa_df + 1
 
         # Use a safe internal column name for the patsy formula so that it works as both a
         # valid formula term and a metadata column lookup (skbio's `grouping` parameter is
@@ -945,27 +959,24 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
         ancombc_metadata = metadata_df.rename(columns={group_by_column_name: ancombc_col})
 
         try:
-            ancombc_results = ancombc(
-                zero_replaced_df,
+            fit = ancombc(
+                taxa_df,
                 ancombc_metadata,
                 formula=ancombc_col,
                 grouping=ancombc_col if include_global_test else None,
                 alpha=alpha,
                 p_adjust="holm-bonferroni",
             )
+            global_results = fit.global_test() if include_global_test else None
         except ValueError as e:
             raise StatsException(
                 f"ANCOM-BC failed — this can happen when sample sizes are too small or data "
                 f"lack sufficient variation: {e}"
             )
 
-        main_results = ancombc_results
-        global_results = None
-        if include_global_test:
-            main_results, global_results = ancombc_results
+        main_results = fit.result.rename_axis(index={"FeatureID": "Taxon"})
+        if global_results is not None:
             global_results = global_results.rename_axis(index={"FeatureID": "Taxon"})
-
-        main_results = main_results.rename_axis(index={"FeatureID": "Taxon"})
 
         # Add a Comparison column with human-readable descriptions (e.g.
         # "group: b vs a (reference)"), and rename __ancombc_variable__ back to the group-by
@@ -999,31 +1010,6 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
             columns=lambda tax_id: f"{self.taxonomy['name'][tax_id]} ({tax_id})"
             if tax_id in self.taxonomy["name"]
             else tax_id
-        )
-
-    def _drop_samples_with_all_zeros(
-        self, metadata_df: pd.DataFrame, taxa_df: pd.DataFrame, metric: Metric
-    ) -> pd.DataFrame:
-        prev_count = len(metadata_df)
-        metadata_df = metadata_df.loc[(taxa_df != 0).any(axis=1)]
-        num_dropped = prev_count - len(metadata_df)
-        if num_dropped > 0:
-            warnings.warn(
-                f"{num_dropped} sample{'s were' if num_dropped > 1 else ' was'} excluded from the "
-                f"test as {'they' if num_dropped > 1 else 'it'} had zero {metric} values across "
-                f"all taxa.",
-                StatsWarning,
-            )
-        return metadata_df
-
-    def _assert_categorical_group_by(self, df: pd.DataFrame, group_by_column_name: str):
-        try:
-            df[group_by_column_name].astype("float64")
-        except (ValueError, TypeError):
-            return
-        raise StatsException(
-            f"The `group_by` variable ({group_by_column_name!r}) has all numeric values after "
-            f"filtering, which is not currently supported. Please select a categorical variable."
         )
 
     def _assert_min_num_groups_for_global_test(

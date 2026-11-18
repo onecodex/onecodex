@@ -7,6 +7,7 @@ import altair as alt
 import numpy as np
 import pandas as pd
 import skbio
+from skbio.stats.composition import ancombc
 
 from onecodex.exceptions import OneCodexException, PlottingException, StatsException, StatsWarning
 from onecodex.lib.enums import (
@@ -24,7 +25,15 @@ from onecodex.stats import (
     BetaDiversityStatsResults,
 )
 
-ANCOMBC_MAIN_RESULTS_COLUMNS = {"Comparison", "Log2(FC)", "SE", "W", "pvalue", "qvalue", "Signif"}
+ANCOMBC_MAIN_RESULTS_COLUMNS = {
+    "Comparison",
+    "Log(FC)",
+    "SE",
+    "W",
+    "pvalue",
+    "qvalue",
+    "Signif",
+}
 ANCOMBC_MAIN_RESULTS_INDEX_NAMES = ["Taxon", "Covariate"]
 ANCOMBC_GLOBAL_RESULTS_INDEX_NAME = "Taxon"
 ANCOMBC_GLOBAL_RESULTS_COLUMNS = {"W", "pvalue", "qvalue", "Signif"}
@@ -42,6 +51,30 @@ def test_invalid_alpha(samples, method, alpha):
 def test_invalid_metadata_fields(samples, method, fields):
     with pytest.raises(OneCodexException, match="type str"):
         getattr(samples, method)(group_by=fields)
+
+
+@pytest.mark.parametrize("method", ["alpha_diversity_stats", "beta_diversity_stats", "_ancombc"])
+@pytest.mark.parametrize("group_by", ["col1", ("col2", "col1"), ["col2", "col1"]])
+def test_numeric_group_by_raises(samples, method, group_by):
+    for sample, col1, col2 in zip(samples, [1, 2, 1], ["a", "b", "a"]):
+        sample.metadata.custom["col1"] = col1
+        sample.metadata.custom["col2"] = col2
+
+    with pytest.raises(
+        StatsException, match=r"`group_by` variable \('col1'\) has numeric values.*categorical"
+    ):
+        getattr(samples, method)(group_by=group_by)
+
+
+def test_numeric_paired_by_raises(samples):
+    for sample, group, subject in zip(samples, ["a", "b", "a"], [1, 1, 2]):
+        sample.metadata.custom["group"] = group
+        sample.metadata.custom["subject"] = subject
+
+    with pytest.raises(
+        StatsException, match=r"`paired_by` variable \('subject'\) has numeric values"
+    ):
+        samples.alpha_diversity_stats(group_by="group", paired_by="subject")
 
 
 @pytest.mark.parametrize("method", ["alpha_diversity_stats", "beta_diversity_stats", "_ancombc"])
@@ -512,25 +545,6 @@ def test_rename_tax_ids(samples):
     assert result.values.tolist() == taxa_df.values.tolist()
 
 
-def test_drop_samples_with_all_zeros(samples):
-    metadata_df = pd.DataFrame({"group": ["a", "b", "c"]}, index=["s1", "s2", "s3"])
-    taxa_df = pd.DataFrame({"t1": [1, 0, 3], "t2": [4, 0, 6]}, index=["s1", "s2", "s3"])
-
-    with pytest.warns(StatsWarning, match="1 sample was excluded.*zero abundance"):
-        result = samples._drop_samples_with_all_zeros(metadata_df, taxa_df, Metric.Abundance)
-
-    assert list(result.index) == ["s1", "s3"]
-
-
-def test_drop_samples_with_all_zeros_none_dropped(samples):
-    metadata_df = pd.DataFrame({"group": ["a", "b"]}, index=["s1", "s2"])
-    taxa_df = pd.DataFrame({"t1": [1, 2], "t2": [3, 4]}, index=["s1", "s2"])
-
-    result = samples._drop_samples_with_all_zeros(metadata_df, taxa_df, Metric.Abundance)
-
-    assert list(result.index) == ["s1", "s2"]
-
-
 def test_assert_min_num_groups_for_global_test(samples):
     df = pd.DataFrame({"group": ["a", "b", "a", "b"]})
 
@@ -701,24 +715,177 @@ def test_ancombc_three_groups(ocx, api_data, samples):
     _assert_ancombc_covariates(results.main_results, "group", "a", ["b", "c"])
 
 
-def test_ancombc_numeric_group_by_raises(ocx, api_data, samples):
+def test_ancombc_numeric_group_by(ocx, api_data, samples):
     samples.extend([ocx.Samples.get("cc18208d98ad48b3"), ocx.Samples.get("5445740666134eee")])
 
-    for sample, group in zip(samples, ["1", "2", "1", "2", "1"]):
+    for sample, group in zip(samples, ["10", "9", "10", "9", "10"]):
         sample.metadata.custom["group"] = group
 
-    with pytest.raises(StatsException, match="numeric values.*categorical variable"):
-        samples._ancombc(group_by="group", metric="readcount_w_children", rank="genus")
+    results = samples._ancombc(group_by="group", metric="readcount_w_children", rank="genus")
+
+    assert results.reference_group == "10"
+    assert results.group_sizes == {"10": 3, "9": 2}
+    assert set(results.main_results.columns) == ANCOMBC_MAIN_RESULTS_COLUMNS
+    _assert_ancombc_covariates(results.main_results, "group", "10", ["9"])
+
+
+@pytest.mark.filterwarnings("ignore:invalid value encountered in divide:RuntimeWarning")
+def test_ancombc_natural_log_fold_change(ocx, api_data, samples):
+    samples.extend([ocx.Samples.get("cc18208d98ad48b3"), ocx.Samples.get("5445740666134eee")])
+
+    for sample, group in zip(samples, ["a", "a", "a", "b", "b"]):
+        sample.metadata.custom["group"] = group
+
+    rng = np.random.default_rng(42)
+    counts = rng.uniform(900, 1100, size=(5, 20))
+    counts[3:, 0] *= 8
+    counts[3:, 1] /= 4
+    taxa_df = pd.DataFrame(
+        counts,
+        columns=[f"t{i}" for i in range(20)],
+        index=[sample.primary_classification.id for sample in samples],
+    )
+
+    with mock.patch.object(SampleCollection, "to_classification_df", return_value=taxa_df):
+        results = samples._ancombc(group_by="group", metric=Metric.ReadcountWChildren, rank="genus")
+
+    lfc = results.main_results.xs("group[T.b]", level="Covariate")["Log(FC)"]
+    assert lfc["t0"] == pytest.approx(np.log(8), abs=0.1)
+    assert lfc["t1"] == pytest.approx(np.log(1 / 4), abs=0.1)
+
+
+def test_ancombc_mostly_zero_taxon_decreased(ocx, api_data, samples):
+    samples.extend([ocx.Samples.get("cc18208d98ad48b3"), ocx.Samples.get("5445740666134eee")])
+
+    for sample, group in zip(samples, ["a", "a", "a", "b", "b"]):
+        sample.metadata.custom["group"] = group
+
+    taxa_df = pd.DataFrame(
+        [
+            [0.60, 0.30, 0.05, 0.02, 0.020, 0.010],
+            [0.55, 0.33, 0.06, 0.03, 0.018, 0.012],
+            [0.58, 0.31, 0.04, 0.04, 0.021, 0.009],
+            [0.57, 0.32, 0.05, 0.04, 0.020, 0.002],
+            [0.60, 0.29, 0.06, 0.03, 0.020, 0.0],
+        ],
+        columns=["t1", "t2", "t3", "t4", "t5", "rare"],
+        index=[sample.primary_classification.id for sample in samples],
+    )
+
+    with mock.patch.object(SampleCollection, "to_classification_df", return_value=taxa_df):
+        results = samples._ancombc(
+            group_by="group", metric=Metric.AbundanceWChildren, rank="phylum"
+        )
+
+    assert results.main_results.loc[("rare", "group[T.b]"), "Log(FC)"] < 0
+
+
+@pytest.mark.parametrize(
+    "metric,taxa_rows,expected_rows",
+    [
+        (
+            Metric.AbundanceWChildren,
+            [
+                [0.5, 0.25, 0.25, 0.0],
+                [0.25, 0.5, 0.125, 0.125],
+                [0.0, 0.5, 0.5, 0.0],
+                [0.75, 0.125, 0.125, 0.0],
+                [0.5, 0.0, 0.25, 0.25],
+            ],
+            [
+                [12263514.5, 6131757.75, 6131757.75, 1.0],
+                [3716155.25, 7432309.5, 1858078.125, 1858078.125],
+                [1.0, 13295133.0, 13295133.0, 1.0],
+                [530587.75, 88432.125, 88432.125, 1.0],
+                [1694398.5, 1.0, 847199.75, 847199.75],
+            ],
+        ),
+        (
+            Metric.ReadcountWChildren,
+            [
+                [50, 25, 25, 0],
+                [25, 50, 12, 13],
+                [0, 50, 50, 0],
+                [75, 12, 13, 0],
+                [50, 0, 25, 25],
+            ],
+            [
+                [51, 26, 26, 1],
+                [26, 51, 13, 14],
+                [1, 51, 51, 1],
+                [76, 13, 14, 1],
+                [51, 1, 26, 26],
+            ],
+        ),
+    ],
+)
+def test_ancombc_pseudocounts(ocx, api_data, samples, metric, taxa_rows, expected_rows):
+    samples.extend([ocx.Samples.get("cc18208d98ad48b3"), ocx.Samples.get("5445740666134eee")])
+
+    for sample, group in zip(samples, ["a", "a", "a", "b", "b"]):
+        sample.metadata.custom["group"] = group
+
+    classification_ids = [
+        "6579e99943f84ad2",
+        "b50c176668234fe7",
+        "e0422602de41479f",
+        "1198c7ce565643f9",
+        "4eed25415f6945dd",
+    ]
+    columns = ["t1", "t2", "t3", "t4"]
+    taxa_df = pd.DataFrame(taxa_rows, index=classification_ids, columns=columns)
+    expected_table = pd.DataFrame(expected_rows, index=classification_ids, columns=columns)
+
+    with (
+        mock.patch.object(SampleCollection, "to_classification_df", return_value=taxa_df),
+        mock.patch("skbio.stats.composition.ancombc", wraps=ancombc) as mock_ancombc,
+    ):
+        samples._ancombc(group_by="group", metric=metric, rank="phylum")
+
+    mock_ancombc.assert_called_once()
+    pd.testing.assert_frame_equal(
+        mock_ancombc.call_args.args[0].loc[classification_ids], expected_table, check_names=False
+    )
+
+
+@pytest.mark.parametrize("metric", [Metric.AbundanceWChildren, Metric.ReadcountWChildren])
+def test_ancombc_drops_taxa_absent_from_all_samples(ocx, api_data, samples, metric):
+    samples.extend([ocx.Samples.get("cc18208d98ad48b3"), ocx.Samples.get("5445740666134eee")])
+
+    for sample, group in zip(samples, ["a", "a", "a", "b", "b"]):
+        sample.metadata.custom["group"] = group
+
+    rng = np.random.default_rng(42)
+    taxa_df = pd.DataFrame(
+        rng.integers(1, 100, size=(5, 6)),
+        columns=["t1", "t2", "t3", "t4", "t5", "t6"],
+        index=[sample.primary_classification.id for sample in samples],
+    )
+    taxa_df["absent"] = 0
+    if metric.is_normalized:
+        taxa_df = taxa_df.div(taxa_df.sum(axis=1), axis=0)
+
+    with mock.patch.object(SampleCollection, "to_classification_df", return_value=taxa_df):
+        results = samples._ancombc(group_by="group", metric=metric, rank="phylum")
+
+    assert set(results.main_results.index.get_level_values("Taxon")) == {
+        "t1",
+        "t2",
+        "t3",
+        "t4",
+        "t5",
+        "t6",
+    }
 
 
 def _make_ancombc_results(rows):
-    """Build an AncombcResults from (Taxon, Covariate, Comparison, Log2FC, Signif) tuples."""
+    """Build an AncombcResults from (Taxon, Covariate, Comparison, LogFC, Signif) tuples."""
     index = pd.MultiIndex.from_tuples([(r[0], r[1]) for r in rows], names=["Taxon", "Covariate"])
     main_results = pd.DataFrame(
         [
             {
                 "Comparison": r[2],
-                "Log2(FC)": r[3],
+                "Log(FC)": r[3],
                 "SE": 0.3,
                 "W": 2.0,
                 "pvalue": 0.01,

@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- ANCOM-BC now supports `group_by` variables with numeric-looking values (e.g. `"1"`, `"2"`). They
+  are compared as categorical groups.
+
+### Changed
+
+- ANCOM-BC no longer uses multiplicative replacement for zeros in normalized metrics (e.g.
+  `abundance_w_children`). Instead, normalized metrics are converted to pseudo-counts by
+  multiplying by each sample's number of microbial reads, and a pseudocount of 1 is added to all
+  metrics.
+- ANCOM-BC no longer excludes samples whose values are all zeros at the selected rank. They are
+  kept and receive the pseudocount like every other sample.
+
+### Fixed
+
+- Upgraded scikit-bio from 0.7.1.post1 to 0.7.4. As a result, the ANCOM-BC `Log2(FC)` results
+  column and plot axis are now named `Log(FC)`. The values have always been natural log-fold
+  changes, not log2.
+- ANCOM-BC no longer reports spurious increases for taxa that are mostly zero in a group when using
+  a normalized metric. Multiplicative replacement replaced zeros with `1 / N**2`, where `N` is the
+  number of taxa, which could exceed observed values at coarse ranks such as phylum and flip the
+  sign of the log-fold change.
+- ANCOM-BC now excludes taxa that are absent from every sample in the test.
+- Statistical tests now raise a clear error when `group_by` or `paired_by` is a numeric metadata
+  field, instead of an error about specifying multiple metadata fields.
+- ANCOM-BC global test results (`include_global_test=True`) are now accurate (fixed in
+  scikit-bio 0.7.4).
+
 ## [v1.2.0] - 2026-09-30
 
 ### Added
