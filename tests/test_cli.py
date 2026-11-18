@@ -1,3 +1,4 @@
+import datetime
 import json
 import os
 import os.path
@@ -8,7 +9,8 @@ from click.testing import CliRunner
 from testfixtures import Replace
 
 from onecodex import Cli
-from tests.conftest import API_DATA
+from onecodex.lib.auth import DeviceAuthorization, DeviceLoginError, DeviceToken
+from tests.conftest import API_DATA, DEVICE_AUTHORIZATION, DEVICE_TOKEN
 
 DATE_FORMAT = "%Y-%m-%d %H:%M"
 
@@ -874,17 +876,129 @@ def test_samples(runner, api_data, mocked_creds_file):
 
 
 # Login tests
-def mock_fetch_api_key(username, password, server_url):
-    return "123yuixha87yd87q3123uiqhsd8q2738"
+@pytest.fixture
+def browser_env(monkeypatch):
+    """A local session with a display, where the CLI may open a browser."""
+    monkeypatch.delenv("SSH_CONNECTION", raising=False)
+    monkeypatch.delenv("SSH_TTY", raising=False)
+    monkeypatch.setenv("DISPLAY", ":0")
 
 
-def test_api_login(runner, mocked_creds_path):
-    login_input = "user@example.com" + "\n" + "userpassword" + "\n"
-    successful_login_msg = "Your ~/.onecodex credentials file was successfully created."
-    with Replace("onecodex.auth.fetch_api_key_from_uname", mock_fetch_api_key):
-        result = runner.invoke(Cli, ["login"], input=login_input)
-        assert result.exit_code == 0
-        assert successful_login_msg in result.output
+def _approve(server, authorization):
+    return DeviceToken(**DEVICE_TOKEN)
+
+
+def _mock_browser_login(poll=_approve):
+    return (
+        Replace(
+            "onecodex.auth.start_device_login",
+            lambda server: DeviceAuthorization(**DEVICE_AUTHORIZATION),
+        ),
+        Replace("onecodex.auth.poll_device_token", poll),
+        mock.patch("onecodex.auth.webbrowser.open"),
+    )
+
+
+def test_browser_login(runner, mocked_creds_path, browser_env):
+    start_device_login, poll_device_token, open_browser = _mock_browser_login()
+    with start_device_login, poll_device_token, open_browser as mock_open:
+        result = runner.invoke(Cli, ["login"])
+
+    assert result.exit_code == 0
+    assert "WDJB-MJHT" in result.output
+    assert DEVICE_AUTHORIZATION["verification_uri_complete"] in result.output
+    assert "Your ~/.onecodex credentials file was successfully created." in result.output
+    mock_open.assert_called_once_with(DEVICE_AUTHORIZATION["verification_uri_complete"])
+
+    path = os.path.expanduser("~/.onecodex")
+    # Ensure proper fs permissions
+    assert os.stat(path).st_mode & 0o777 == 0o600
+    with open(path) as f:
+        creds = json.load(f)
+    assert creds["access_token"] == DEVICE_TOKEN["access_token"]
+    assert creds["email"] == DEVICE_TOKEN["email"]
+    assert "api_key" not in creds
+    expires_at = datetime.datetime.fromisoformat(creds["expires_at"])
+    time_left = expires_at - datetime.datetime.now(datetime.timezone.utc)
+    assert datetime.timedelta(days=6, hours=23) < time_left <= datetime.timedelta(days=7)
+
+
+@pytest.mark.parametrize(
+    "args,env",
+    [(["login", "--no-browser"], {}), (["login"], {"SSH_CONNECTION": "1.2.3.4 22 5.6.7.8 22"})],
+)
+def test_browser_login_prints_url_only(runner, mocked_creds_path, browser_env, args, env):
+    start_device_login, poll_device_token, open_browser = _mock_browser_login()
+    with start_device_login, poll_device_token, open_browser as mock_open:
+        result = runner.invoke(Cli, args, env=env)
+
+    assert result.exit_code == 0
+    assert DEVICE_AUTHORIZATION["verification_uri_complete"] in result.output
+    mock_open.assert_not_called()
+
+
+def test_browser_login_denied(runner, mocked_creds_path, browser_env):
+    def deny(server, authorization):
+        raise DeviceLoginError("The login request was denied.")
+
+    start_device_login, poll_device_token, open_browser = _mock_browser_login(poll=deny)
+    with start_device_login, poll_device_token, open_browser:
+        result = runner.invoke(Cli, ["login"])
+
+    assert result.exit_code == 1
+    assert "denied" in result.output
+    assert not os.path.exists(os.path.expanduser("~/.onecodex"))
+
+
+@pytest.mark.parametrize(
+    "expires_in,replaced",
+    [
+        (datetime.timedelta(days=5), False),
+        (datetime.timedelta(hours=3), True),
+        (datetime.timedelta(hours=-1), True),
+    ],
+)
+def test_login_renews_expiring_token(
+    runner, mocked_token_creds_file, browser_env, expires_in, replaced
+):
+    mocked_token_creds_file(expires_in)
+
+    start_device_login, poll_device_token, open_browser = _mock_browser_login()
+    with start_device_login, poll_device_token, open_browser:
+        result = runner.invoke(Cli, ["login"])
+
+    assert result.exit_code == 0
+    assert ("Credentials file already exists" in result.output) is not replaced
+    with open(os.path.expanduser("~/.onecodex")) as f:
+        assert (json.load(f)["email"] == DEVICE_TOKEN["email"]) is replaced
+
+
+def test_token_login_is_used(runner, api_data, mocked_token_creds_file):
+    mocked_token_creds_file(datetime.timedelta(days=5))
+
+    result = runner.invoke(Cli, ["samples"])
+
+    assert result.exit_code == 0
+    assert "expires in" not in result.output
+    assert api_data.calls[-1].request.headers["Authorization"] == "Bearer header.payload.signature"
+
+
+def test_expiring_token_warns(runner, api_data, mocked_token_creds_file):
+    mocked_token_creds_file(datetime.timedelta(hours=2, minutes=30))
+
+    result = runner.invoke(Cli, ["samples"])
+
+    assert result.exit_code == 0
+    assert "Your One Codex login expires in 2 hours" in result.output
+
+
+def test_expired_token_requires_login(runner, mocked_token_creds_file):
+    mocked_token_creds_file(datetime.timedelta(minutes=-1))
+
+    result = runner.invoke(Cli, ["samples"])
+
+    assert result.exit_code == 1
+    assert "Your One Codex login has expired" in result.output
 
 
 @pytest.mark.parametrize(

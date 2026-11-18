@@ -942,13 +942,21 @@ def upload(
 
 
 @onecodex.command("login")
+@click.option(
+    "--no-browser",
+    is_flag=True,
+    help="Print the login URL instead of opening it in a browser.",
+)
 @click.pass_context
 @telemetry
-def login(ctx):
-    """Add an API key (saved in ~/.onecodex)."""
+def login(ctx, no_browser):
+    """Log in through your browser.
+
+    Token is saved in ~/.onecodex. With --api-key, save that API key instead.
+    """
     base_url = os.environ.get("ONE_CODEX_API_BASE", "https://app.onecodex.com")
     if not ctx.obj["API_KEY"]:
-        _login(base_url)
+        _login(base_url, open_browser=not no_browser)
     else:
         email = _login(base_url, api_key=ctx.obj["API_KEY"])
         ocx = Api(api_key=ctx.obj["API_KEY"], telemetry=ctx.obj["TELEMETRY"])

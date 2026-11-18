@@ -1,4 +1,5 @@
 from __future__ import print_function
+import datetime
 import filelock
 import json
 import logging
@@ -9,7 +10,7 @@ import sys
 from requests.auth import HTTPBasicAuth
 import warnings
 
-from onecodex.lib.auth import BearerTokenAuth
+from onecodex.lib.auth import TOKEN_RENEWAL_WINDOW, BearerTokenAuth, token_time_left
 from onecodex.utils import collapse_user, init_sentry, get_requests_session
 from onecodex.version import __version__
 
@@ -120,7 +121,7 @@ class Api(object):
         self._base_url = base_url
         self._schema_path = schema_path
 
-        # Attempt to automatically fetch API key from
+        # Attempt to automatically fetch a login token or API key from
         # ~/.onecodex file, API key, or bearer token environment vars
         # *if and only if* no auth is explicitly passed to Api
         #
@@ -128,6 +129,7 @@ class Api(object):
         #       'ONE_CODEX_AUTO_LOGIN' or similar is set.
         if api_key is None and bearer_token is None:
             creds_file = os.path.expanduser("~/.onecodex")
+            creds = {}
 
             if not os.path.exists(creds_file):
                 pass
@@ -136,20 +138,34 @@ class Api(object):
             else:
                 try:
                     with filelock.FileLock("{}.lock".format(creds_file)):
-                        api_key = json.load(open(creds_file, "r"))["api_key"]
-                except KeyError:
-                    # lacking an api_key doesn't mean the file is corrupt--it can just be that the
-                    # schema was cached after logging in anonymously
-                    pass
+                        with open(creds_file, "r") as fp:
+                            creds = json.load(fp)
                 except ValueError:
                     warnings.warn(
                         "Credentials file ({}) is corrupt".format(collapse_user(creds_file))
                     )
 
+            # Try JWT first, fall back to api key.
+            creds_token = None
+            if creds.get("access_token"):
+                time_left = token_time_left(creds)
+                if time_left <= datetime.timedelta(0):
+                    warnings.warn(
+                        "Your One Codex login has expired. Run `onecodex login` to log in again."
+                    )
+                else:
+                    if time_left < TOKEN_RENEWAL_WINDOW:
+                        warnings.warn(
+                            "Your One Codex login expires soon. Run `onecodex login` to renew it."
+                        )
+                    creds_token = creds["access_token"]
+            else:
+                api_key = creds.get("api_key")
+
             if api_key is None:
                 api_key = os.environ.get("ONE_CODEX_API_KEY")
             if bearer_token is None:
-                bearer_token = os.environ.get("ONE_CODEX_BEARER_TOKEN")
+                bearer_token = os.environ.get("ONE_CODEX_BEARER_TOKEN") or creds_token
 
         auth = None
         if bearer_token:  # prefer bearer token where available

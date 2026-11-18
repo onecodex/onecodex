@@ -1,5 +1,19 @@
-import re
+import datetime
+import socket
+import time
+from typing import Any
+
 import requests
+from pydantic import BaseModel
+
+# Trigger a warning if the JWT expires in less than the following
+TOKEN_RENEWAL_WINDOW = datetime.timedelta(hours=24)
+
+DEVICE_NAME_HEADER = "X-OneCodex-Device-Name"
+
+
+class DeviceLoginError(Exception):
+    """Browser-based login was denied, expired, or failed."""
 
 
 class BearerTokenAuth(requests.auth.AuthBase):
@@ -13,37 +27,103 @@ class BearerTokenAuth(requests.auth.AuthBase):
         return request
 
 
-def fetch_api_key_from_uname(username, password, server_url):
-    """Retrieve an API key from the One Codex webpage given the username and password."""
-    # TODO: Hit programmatic endpoint to fetch JWT key, not API key
-    # TODO: Open browser for a login and redirect to the client.
-    #       This would enable a workflow with SSO.
-    with requests.Session() as session:
-        # get the login page normally
-        text = session.get(server_url + "login").text
+class DeviceAuthorization(BaseModel):
+    """A pending browser-based login, returned by `start_device_login`."""
 
-        # retrieve the CSRF token out of it
-        csrf = re.search('type="hidden" value="([^"]+)"', text).group(1)
+    device_code: str
+    user_code: str
+    verification_uri: str
+    verification_uri_complete: str
+    expires_in: int
+    interval: int
 
-        # and resubmit using the username/password *and* the CSRF
-        login_data = {
-            "email": username,
-            "password": password,
-            "csrf_token": csrf,
-            "next": "/api/get_token",
-        }
-        page = session.post(
-            server_url + "login",
-            data=login_data,
-            headers={
-                "Referer": server_url + "login",
-            },
-        )
+
+class DeviceToken(BaseModel):
+    """An approved browser-based login, returned by `poll_device_token`."""
+
+    access_token: str
+    token_type: str
+    expires_in: int
+    email: str
+
+
+def token_expires_at(creds: dict[str, Any]) -> datetime.datetime | None:
+    """Return the timestamp of expiry of access token in `creds`, or None for no token."""
+    if not creds.get("access_token"):
+        return None
+    try:
+        expires_at = datetime.datetime.fromisoformat(creds["expires_at"])
+    except (KeyError, TypeError, ValueError):
+        # Treat a missing or unreadable expiry as expired, requires logging in again
+        return datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=datetime.timezone.utc)
+    return expires_at
+
+
+def token_time_left(creds: dict[str, Any]) -> datetime.timedelta | None:
+    """Return the time left until the expiry of access token in `creds`, or None for no token."""
+    expires_at = token_expires_at(creds)
+    if expires_at is None:
+        return None
+    return expires_at - datetime.datetime.now(datetime.timezone.utc)
+
+
+def _device_name() -> str:
+    """Return this machine's hostname, e.g. "MacBook-Pro-2", or "" if it has none."""
+    # Strip ".local" added by macOS
+    return socket.gethostname().removesuffix(".local").encode("ascii", "ignore").decode()
+
+
+def start_device_login(server_url: str) -> DeviceAuthorization:
+    """Start a browser-based login (OAuth 2.0 device auth grant)."""
+    device_name = _device_name()
+    headers = {DEVICE_NAME_HEADER: device_name} if device_name else {}
+    resp = requests.post(server_url + "api/cli/device/code", headers=headers, timeout=30)
+    resp.raise_for_status()
+    return DeviceAuthorization.model_validate(resp.json())
+
+
+def poll_device_token(server_url: str, authorization: DeviceAuthorization) -> DeviceToken:
+    """Wait for the user to approve a browser-based login in their browser.
+
+    Raises DeviceLoginError if the user denies the request, it expires, or the server returns an error.
+    """
+    interval = authorization.interval
+    deadline = time.monotonic() + authorization.expires_in
+    while time.monotonic() < deadline:
+        time.sleep(interval)
         try:
-            key = page.json()["key"]
-        except (ValueError, KeyError):  # ValueError includes simplejson.decoder.JSONDecodeError
-            key = None
-    return key
+            resp = requests.post(
+                server_url + "api/cli/device/token",
+                json={"device_code": authorization.device_code},
+                timeout=15,
+            )
+        except requests.exceptions.ConnectionError:
+            continue  # keep waiting through network hiccups
+
+        if resp.status_code == 200:
+            return DeviceToken.model_validate(resp.json())
+
+        try:
+            error = resp.json().get("error")
+        except ValueError:
+            error = None
+
+        if error == "authorization_pending":
+            continue
+        if error == "slow_down" or resp.status_code == 429:
+            interval += 5
+            continue
+        if error == "access_denied":
+            raise DeviceLoginError("The login request was denied.")
+        if error == "expired_token":
+            break
+        raise DeviceLoginError(
+            "Unexpected response from One Codex ({}): {}".format(resp.status_code, error)
+        )
+
+    raise DeviceLoginError("The login request expired. Please run `onecodex login` again.")
 
 
 def check_version(version, server):
