@@ -169,7 +169,7 @@ class Api(object):
                         warnings.warn(
                             "Your One Codex login expires soon. Run `onecodex login` to renew it."
                         )
-                    bearer_token = creds.access_token
+                    bearer_token = creds.bearer_token
 
         auth = None
         if bearer_token:  # prefer bearer token where available

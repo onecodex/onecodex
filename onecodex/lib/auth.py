@@ -65,7 +65,7 @@ class OneCodexCredentials(BaseModel):
 
     email: str | None = None
     api_key: str | None = None
-    access_token: str | None = None
+    bearer_token: str | None = None
     expires_at: datetime.datetime | None = None
     # Local time
     saved_at: datetime.datetime | None = None
@@ -80,7 +80,7 @@ class OneCodexCredentials(BaseModel):
 
     @model_validator(mode="after")
     def require_token_expiry(self) -> "OneCodexCredentials":
-        if self.access_token and self.expires_at is None:
+        if self.bearer_token and self.expires_at is None:
             raise ValueError("expires_at is required with bearer token")
         return self
 
@@ -95,7 +95,7 @@ class OneCodexCredentials(BaseModel):
     @property
     def time_left(self) -> datetime.timedelta | None:
         """Return the time left until the login token expires, or None for no token."""
-        if not self.access_token or self.expires_at is None:
+        if not self.bearer_token or self.expires_at is None:
             return None
         return self.expires_at - datetime.datetime.now(datetime.timezone.utc)
 

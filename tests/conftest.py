@@ -763,7 +763,7 @@ def mocked_token_creds_file(mocked_creds_path):
             json.dump(
                 {
                     "email": "test@onecodex.com",
-                    "access_token": "header.payload.signature",
+                    "bearer_token": "header.payload.signature",
                     "expires_at": expires_at.isoformat(timespec="seconds"),
                     "saved_at": now,
                     "updated_at": now,

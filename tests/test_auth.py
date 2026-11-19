@@ -97,7 +97,7 @@ def test_api_key_auth_from_creds_file(api_data, mocked_creds_file):
     assert ocx._client.session.auth.username == "123yuixha87yd87q3123uiqhsd8q2738"
 
 
-@pytest.mark.parametrize("content", ["not json", "[]", '{"access_token": "t"}'])
+@pytest.mark.parametrize("content", ["not json", "[]", '{"bearer_token": "t"}'])
 def test_invalid_creds_file_warns(api_data, mocked_creds_path, content):
     with open(os.path.expanduser("~/.onecodex"), mode="w") as f:
         f.write(content)
@@ -137,12 +137,12 @@ def test_env_takes_priority_over_creds_file(
     [
         ({"api_key": "mysecretkey"}, None),
         (
-            {"access_token": "t", "expires_at": "2026-11-23T15:00:00+00:00"},
+            {"bearer_token": "t", "expires_at": "2026-11-23T15:00:00+00:00"},
             datetime.datetime(2026, 11, 23, 15, tzinfo=datetime.timezone.utc),
         ),
         # A timestamp without a timezone is UTC
         (
-            {"access_token": "t", "expires_at": "2026-11-23T15:00:00"},
+            {"bearer_token": "t", "expires_at": "2026-11-23T15:00:00"},
             datetime.datetime(2026, 11, 23, 15, tzinfo=datetime.timezone.utc),
         ),
     ],
@@ -153,7 +153,7 @@ def test_credentials_expires_at(creds, expected):
 
 def test_credentials_time_left():
     expires_at = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=2)
-    time_left = OneCodexCredentials(access_token="t", expires_at=expires_at).time_left
+    time_left = OneCodexCredentials(bearer_token="t", expires_at=expires_at).time_left
     assert datetime.timedelta(hours=1, minutes=59) < time_left <= datetime.timedelta(hours=2)
     assert OneCodexCredentials(api_key="mysecretkey").time_left is None
 
@@ -164,7 +164,7 @@ def test_credentials_save_and_load(tmp_path):
 
     creds = OneCodexCredentials(
         email="test@onecodex.com",
-        access_token="t",
+        bearer_token="t",
         expires_at=datetime.datetime(2026, 11, 23, 15, tzinfo=datetime.timezone.utc),
         saved_at=datetime.datetime(2026, 11, 16, 15, 30),
     )
@@ -174,7 +174,7 @@ def test_credentials_save_and_load(tmp_path):
     with open(path) as f:
         assert json.load(f) == {
             "email": "test@onecodex.com",
-            "access_token": "t",
+            "bearer_token": "t",
             "expires_at": "2026-11-23T15:00:00+00:00",
             "saved_at": "2026-11-16 15:30",
         }
@@ -188,9 +188,9 @@ def test_credentials_save_and_load(tmp_path):
         "not json",
         "[]",
         # A login token requires a valid expiry
-        '{"access_token": "t"}',
-        '{"access_token": "t", "expires_at": ""}',
-        '{"access_token": "t", "expires_at": "next tuesday"}',
+        '{"bearer_token": "t"}',
+        '{"bearer_token": "t", "expires_at": ""}',
+        '{"bearer_token": "t", "expires_at": "next tuesday"}',
         '{"api_key": 123}',
     ],
 )

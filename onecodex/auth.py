@@ -149,7 +149,7 @@ def _browser_login(server: str, open_browser: bool = True) -> OneCodexCredential
         seconds=token.expires_in
     )
     return OneCodexCredentials(
-        access_token=token.access_token,
+        bearer_token=token.access_token,
         expires_at=expires_at,
         email=token.email,
         saved_at=datetime.datetime.now(),
@@ -264,7 +264,7 @@ def login_required_with_args(experimental_api=False):
                 api_kwargs["bearer_token"] = bearer_token_env
             elif api_key_env is not None:
                 api_kwargs["api_key"] = api_key_env
-            elif creds.access_token:
+            elif creds.bearer_token:
                 time_left = creds.time_left
                 if time_left <= datetime.timedelta(0):
                     click.echo(
@@ -278,7 +278,7 @@ def login_required_with_args(experimental_api=False):
                         "it.".format(_format_time_left(time_left)),
                         err=True,
                     )
-                api_kwargs["bearer_token"] = creds.access_token
+                api_kwargs["bearer_token"] = creds.bearer_token
             elif creds.api_key:
                 api_kwargs["api_key"] = creds.api_key
             else:

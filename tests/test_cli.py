@@ -915,7 +915,7 @@ def test_browser_login(runner, mocked_creds_path, browser_env):
     assert os.stat(path).st_mode & 0o777 == 0o600
     with open(path) as f:
         creds = json.load(f)
-    assert creds["access_token"] == DEVICE_TOKEN["access_token"]
+    assert creds["bearer_token"] == DEVICE_TOKEN["access_token"]
     assert creds["email"] == DEVICE_TOKEN["email"]
     assert "api_key" not in creds
     expires_at = datetime.datetime.fromisoformat(creds["expires_at"])
@@ -1029,7 +1029,7 @@ def test_silent_login(runner, mocked_creds_file, api_data):
     [
         "aslkdjaslkd\nkasjdlkas\nasdkjaslkd908&S&&^",
         # Valid JSON, but invalid credentials
-        '{"access_token": "header.payload.signature"}',
+        '{"bearer_token": "header.payload.signature"}',
     ],
 )
 @pytest.mark.parametrize("command", ["login", "samples"])
