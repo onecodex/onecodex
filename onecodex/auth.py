@@ -3,12 +3,9 @@ import click
 import datetime
 import errno
 from functools import wraps
-import json
 import logging
-import filelock
 import os
 import sys
-from typing import Any
 import webbrowser
 
 import requests
@@ -17,17 +14,17 @@ from onecodex.api import Api
 from onecodex.lib.auth import (
     TOKEN_RENEWAL_WINDOW,
     DeviceLoginError,
+    InvalidCredentialsError,
+    OneCodexCredentials,
     check_version,
     poll_device_token,
     start_device_login,
-    token_time_left,
 )
 from onecodex.utils import collapse_user
 from onecodex.version import __version__
 
 
 log = logging.getLogger("onecodex")
-DATE_FORMAT = "%Y-%m-%d %H:%M"
 API_KEY_LEN = 32
 
 
@@ -48,11 +45,9 @@ def _format_time_left(time_left: datetime.timedelta) -> str:
     return "{} minute{}".format(minutes, "" if minutes == 1 else "s")
 
 
-def _store_creds(creds_file: str, creds: dict[str, Any]) -> None:
+def _store_creds(creds_file: str, creds: OneCodexCredentials) -> None:
     try:
-        fd = os.open(creds_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-        with os.fdopen(fd, "w") as fp:
-            json.dump(creds, fp)
+        creds.save(creds_file)
     except Exception as e:
         if getattr(e, "errno", None) == errno.EACCES:
             click.echo(
@@ -62,7 +57,7 @@ def _store_creds(creds_file: str, creds: dict[str, Any]) -> None:
         raise
 
 
-def _read_creds(server: str, creds_file: str | None = None) -> dict[str, Any] | None:
+def _read_creds(server: str, creds_file: str | None = None) -> OneCodexCredentials | None:
     """Read the credentials file, or return None if there isn't one.
 
     Also checks once a day whether this client version needs an upgrade.
@@ -78,31 +73,31 @@ def _read_creds(server: str, creds_file: str | None = None) -> dict[str, Any] | 
         click.echo("Please check the permissions on {}".format(collapse_user(creds_file)), err=True)
         sys.exit(1)
 
-    with filelock.FileLock("{}.lock".format(creds_file)):
-        with open(creds_file, "r") as fp:
-            try:
-                creds = json.load(fp)
-            except ValueError:
-                click.echo(
-                    "Your ~/.onecodex credentials file appears to be corrupted. "  # noqa
-                    "Please delete it and re-authorize.",
-                    err=True,
-                )
-                sys.exit(1)
+    try:
+        creds = OneCodexCredentials.load(creds_file)
+    except InvalidCredentialsError:
+        click.echo(
+            "Your ~/.onecodex credentials file appears to be corrupted. "  # noqa
+            "Please delete it and re-authorize.",
+            err=True,
+        )
+        sys.exit(1)
 
-        # check for updates if logged in more than one day ago
-        last_update = creds.get("updated_at") or creds.get("saved_at")
-        last_update = last_update if last_update else datetime.datetime.now().strftime(DATE_FORMAT)
-        diff = datetime.datetime.now() - datetime.datetime.strptime(last_update, DATE_FORMAT)
+    if creds is None:
+        return None
 
-        if diff.days >= 1:
-            # if creds_file is old, check for updates
-            upgrade_required, msg = check_version(__version__, server)
-            creds["updated_at"] = datetime.datetime.now().strftime(DATE_FORMAT)
-            _store_creds(creds_file, creds)
+    # check for updates if logged in more than one day ago
+    now = datetime.datetime.now()
+    last_update = creds.updated_at or creds.saved_at or now
 
-            if upgrade_required:
-                click.echo("\nWARNING: {}\n".format(msg), err=True)
+    if (now - last_update).days >= 1:
+        # if creds_file is old, check for updates
+        upgrade_required, msg = check_version(__version__, server)
+        creds.updated_at = now
+        _store_creds(creds_file, creds)
+
+        if upgrade_required:
+            click.echo("\nWARNING: {}\n".format(msg), err=True)
 
     return creds
 
@@ -118,7 +113,7 @@ def _can_open_browser() -> bool:
     return True
 
 
-def _browser_login(server: str, open_browser: bool = True) -> dict[str, Any]:
+def _browser_login(server: str, open_browser: bool = True) -> OneCodexCredentials:
     """Log in by approving this CLI in a browser. Returns the new credentials."""
     try:
         authorization = start_device_login(server)
@@ -153,11 +148,12 @@ def _browser_login(server: str, open_browser: bool = True) -> dict[str, Any]:
     expires_at = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(
         seconds=token.expires_in
     )
-    return {
-        "access_token": token.access_token,
-        "expires_at": expires_at.isoformat(timespec="seconds"),
-        "email": token.email,
-    }
+    return OneCodexCredentials(
+        access_token=token.access_token,
+        expires_at=expires_at,
+        email=token.email,
+        saved_at=datetime.datetime.now(),
+    )
 
 
 def _login(
@@ -175,7 +171,7 @@ def _login(
     if creds is not None:
         # A login token that has expired, or soon will, can be replaced without logging out.
         # Otherwise, the user needs to log out first
-        time_left = token_time_left(creds)
+        time_left = creds.time_left
         if time_left is None or time_left > TOKEN_RENEWAL_WINDOW:
             click.echo(
                 "Credentials file already exists ({}). Logout first.".format(
@@ -183,27 +179,21 @@ def _login(
                 ),
                 err=True,
             )
-            return creds.get("email", None)
+            return creds.email
 
     if api_key is not None:
         email = click.prompt("Please enter your One Codex email")
-        new_creds = {"api_key": api_key, "email": email}
+        new_creds = OneCodexCredentials(
+            api_key=api_key, email=email, saved_at=datetime.datetime.now()
+        )
     else:
         new_creds = _browser_login(server, open_browser=open_browser)
 
-    new_creds.update(
-        {
-            "saved_at": datetime.datetime.now().strftime(DATE_FORMAT),
-            "updated_at": None,
-        }
-    )
-
-    with filelock.FileLock("{}.lock".format(creds_file)):
-        _store_creds(creds_file, new_creds)
+    _store_creds(creds_file, new_creds)
 
     click.echo("Your ~/.onecodex credentials file was successfully created.", err=True)
 
-    return new_creds["email"]
+    return new_creds.email
 
 
 def _remove_creds(creds_file=None):
@@ -266,7 +256,7 @@ def login_required_with_args(experimental_api=False):
             api_key_prior_login = ctx.obj.get("API_KEY")
             bearer_token_env = os.environ.get("ONE_CODEX_BEARER_TOKEN")
             api_key_env = os.environ.get("ONE_CODEX_API_KEY")
-            creds = _read_creds(base_url) or {}
+            creds = _read_creds(base_url) or OneCodexCredentials()
 
             if api_key_prior_login is not None:
                 api_kwargs["api_key"] = api_key_prior_login
@@ -274,8 +264,8 @@ def login_required_with_args(experimental_api=False):
                 api_kwargs["bearer_token"] = bearer_token_env
             elif api_key_env is not None:
                 api_kwargs["api_key"] = api_key_env
-            elif creds.get("access_token"):
-                time_left = token_time_left(creds)
+            elif creds.access_token:
+                time_left = creds.time_left
                 if time_left <= datetime.timedelta(0):
                     click.echo(
                         "Your One Codex login has expired. Please run `onecodex login` again.",
@@ -288,9 +278,9 @@ def login_required_with_args(experimental_api=False):
                         "it.".format(_format_time_left(time_left)),
                         err=True,
                     )
-                api_kwargs["bearer_token"] = creds["access_token"]
-            elif creds.get("api_key"):
-                api_kwargs["api_key"] = creds["api_key"]
+                api_kwargs["bearer_token"] = creds.access_token
+            elif creds.api_key:
+                api_kwargs["api_key"] = creds.api_key
             else:
                 click.echo(
                     "The command you specified requires authentication. Please login first.\n",

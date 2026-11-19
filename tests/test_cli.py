@@ -1024,13 +1024,22 @@ def test_silent_login(runner, mocked_creds_file, api_data):
     assert result.exit_code == 0
 
 
-def test_creds_file_corrupted(runner, mocked_creds_file):
+@pytest.mark.parametrize(
+    "content",
+    [
+        "aslkdjaslkd\nkasjdlkas\nasdkjaslkd908&S&&^",
+        # Valid JSON, but invalid credentials
+        '{"access_token": "header.payload.signature"}',
+    ],
+)
+@pytest.mark.parametrize("command", ["login", "samples"])
+def test_creds_file_corrupted(runner, mocked_creds_file, content, command):
     path = os.path.expanduser("~/.onecodex")
     with open(path, mode="w") as f:
-        f.write("aslkdjaslkd\nkasjdlkas\nasdkjaslkd908&S&&^")
+        f.write(content)
     expected_message = "Your ~/.onecodex credentials file appears to be corrupted."
 
-    result = runner.invoke(Cli, ["login"])
+    result = runner.invoke(Cli, [command])
     assert result.exit_code == 1
     assert expected_message in result.output
 

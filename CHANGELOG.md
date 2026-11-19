@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   renew it. Use `--no-browser` to print the login URL instead of opening it. The `--api-key`
   option and the `ONE_CODEX_API_KEY` environment variable are unchanged.
 - `~/.onecodex` is now created readable only by your user.
+- `Api()` prefers the `ONE_CODEX_BEARER_TOKEN` and `ONE_CODEX_API_KEY` environment variables
+  over the `~/.onecodex` credentials file, like the CLI does.
 
 ### Removed
 

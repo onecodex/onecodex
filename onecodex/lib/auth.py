@@ -1,19 +1,29 @@
 import datetime
+import os
 import socket
 import time
-from typing import Any
 
+import filelock
 import requests
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError, field_serializer, field_validator, model_validator
 
 # Trigger a warning if the token expires in less than the following
 TOKEN_RENEWAL_WINDOW = datetime.timedelta(hours=24)
 
 DEVICE_NAME_HEADER = "X-OneCodex-Device-Name"
 
+MAX_POLL_INTERVAL_SECONDS = 60
+
+# Format of the timestamps in the credentials file
+DATE_FORMAT = "%Y-%m-%d %H:%M"
+
 
 class DeviceLoginError(Exception):
     """Browser-based login was denied, expired, or failed."""
+
+
+class InvalidCredentialsError(Exception):
+    """The credentials file is not valid JSON, or its contents are not valid credentials."""
 
 
 class BearerTokenAuth(requests.auth.AuthBase):
@@ -47,26 +57,72 @@ class DeviceToken(BaseModel):
     email: str
 
 
-def token_expires_at(creds: dict[str, Any]) -> datetime.datetime | None:
-    """Return the timestamp of expiry of access token in `creds`, or None for no token."""
-    if not creds.get("access_token"):
-        return None
-    try:
-        expires_at = datetime.datetime.fromisoformat(creds["expires_at"])
-    except (KeyError, TypeError, ValueError):
-        # Treat a missing or unreadable expiry as expired, requires logging in again
-        return datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
-    if expires_at.tzinfo is None:
-        expires_at = expires_at.replace(tzinfo=datetime.timezone.utc)
-    return expires_at
+class OneCodexCredentials(BaseModel):
+    """The contents of the credentials file (~/.onecodex).
 
+    Holds either a bearer token from browser-based login or an `api_key`.
+    """
 
-def token_time_left(creds: dict[str, Any]) -> datetime.timedelta | None:
-    """Return the time left until the expiry of access token in `creds`, or None for no token."""
-    expires_at = token_expires_at(creds)
-    if expires_at is None:
-        return None
-    return expires_at - datetime.datetime.now(datetime.timezone.utc)
+    email: str | None = None
+    api_key: str | None = None
+    access_token: str | None = None
+    expires_at: datetime.datetime | None = None
+    # Local time
+    saved_at: datetime.datetime | None = None
+    updated_at: datetime.datetime | None = None
+
+    @field_validator("expires_at")
+    @classmethod
+    def assume_utc(cls, value: datetime.datetime | None) -> datetime.datetime | None:
+        if value is not None and value.tzinfo is None:
+            return value.replace(tzinfo=datetime.timezone.utc)
+        return value
+
+    @model_validator(mode="after")
+    def require_token_expiry(self) -> "OneCodexCredentials":
+        if self.access_token and self.expires_at is None:
+            raise ValueError("expires_at is required with bearer token")
+        return self
+
+    @field_serializer("expires_at")
+    def serialize_expires_at(self, value: datetime.datetime | None) -> str | None:
+        return None if value is None else value.isoformat(timespec="seconds")
+
+    @field_serializer("saved_at", "updated_at")
+    def serialize_timestamp(self, value: datetime.datetime | None) -> str | None:
+        return None if value is None else value.strftime(DATE_FORMAT)
+
+    @property
+    def time_left(self) -> datetime.timedelta | None:
+        """Return the time left until the login token expires, or None for no token."""
+        if not self.access_token or self.expires_at is None:
+            return None
+        return self.expires_at - datetime.datetime.now(datetime.timezone.utc)
+
+    @classmethod
+    def load(cls, path: str) -> "OneCodexCredentials | None":
+        """Read the credentials file at `path`, or return None if there isn't one.
+
+        Raises InvalidCredentialsError if the file doesn't hold valid credentials.
+        """
+        if not os.path.exists(path):
+            return None
+
+        with filelock.FileLock("{}.lock".format(path)):
+            with open(path, "r") as fp:
+                content = fp.read()
+
+        try:
+            return cls.model_validate_json(content)
+        except ValidationError as e:
+            raise InvalidCredentialsError("Invalid credentials file: {}".format(path)) from e
+
+    def save(self, path: str) -> None:
+        """Write the credentials file at `path`, readable only by the current user."""
+        with filelock.FileLock("{}.lock".format(path)):
+            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(fd, "w") as fp:
+                fp.write(self.model_dump_json(exclude_none=True))
 
 
 def _device_name() -> str:
@@ -99,6 +155,10 @@ def poll_device_token(server_url: str, authorization: DeviceAuthorization) -> De
                 json={"device_code": authorization.device_code},
                 timeout=15,
             )
+        except requests.exceptions.Timeout:
+            # Back off exponentially
+            interval = min(interval * 2, MAX_POLL_INTERVAL_SECONDS)
+            continue
         except requests.exceptions.ConnectionError:
             continue  # keep waiting through network hiccups
 

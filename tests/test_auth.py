@@ -1,8 +1,10 @@
 import datetime
 import json
+import os
 
 import mock
 import pytest
+import requests
 import responses
 from requests.auth import HTTPBasicAuth
 
@@ -12,11 +14,11 @@ from onecodex.lib.auth import (
     BearerTokenAuth,
     DeviceAuthorization,
     DeviceLoginError,
+    InvalidCredentialsError,
+    OneCodexCredentials,
     check_version,
     poll_device_token,
     start_device_login,
-    token_expires_at,
-    token_time_left,
 )
 from tests.conftest import DEVICE_AUTHORIZATION, DEVICE_TOKEN
 
@@ -82,12 +84,52 @@ def test_expiring_token_from_creds_file_warns(api_data, mocked_token_creds_file)
     assert isinstance(ocx._client.session.auth, BearerTokenAuth)
 
 
-def test_expired_token_from_creds_file_is_ignored(api_data, mocked_token_creds_file, monkeypatch):
+def test_expired_token_from_creds_file_is_ignored(api_data, mocked_token_creds_file):
     mocked_token_creds_file(datetime.timedelta(minutes=-1))
-    monkeypatch.setenv("ONE_CODEX_API_KEY", "mysecretkey")
     with pytest.warns(UserWarning, match="has expired"):
         ocx = Api(base_url="http://localhost:3000")
+    assert ocx._client.session.auth is None
+
+
+def test_api_key_auth_from_creds_file(api_data, mocked_creds_file):
+    ocx = Api(base_url="http://localhost:3000")
     assert isinstance(ocx._client.session.auth, HTTPBasicAuth)
+    assert ocx._client.session.auth.username == "123yuixha87yd87q3123uiqhsd8q2738"
+
+
+@pytest.mark.parametrize("content", ["not json", "[]", '{"access_token": "t"}'])
+def test_invalid_creds_file_warns(api_data, mocked_creds_path, content):
+    with open(os.path.expanduser("~/.onecodex"), mode="w") as f:
+        f.write(content)
+    with pytest.warns(UserWarning, match="is corrupt"):
+        ocx = Api(base_url="http://localhost:3000")
+    assert ocx._client.session.auth is None
+
+
+@pytest.mark.parametrize(
+    "env,auth_type,secret",
+    [
+        ("ONE_CODEX_API_KEY", HTTPBasicAuth, "username"),
+        ("ONE_CODEX_BEARER_TOKEN", BearerTokenAuth, "token"),
+    ],
+)
+@pytest.mark.parametrize("token_creds", [True, False])
+def test_env_takes_priority_over_creds_file(
+    api_data,
+    mocked_creds_file,
+    mocked_token_creds_file,
+    monkeypatch,
+    env,
+    auth_type,
+    secret,
+    token_creds,
+):
+    if token_creds:
+        mocked_token_creds_file(datetime.timedelta(days=5))
+    monkeypatch.setenv(env, "fromenv")
+    ocx = Api(base_url="http://localhost:3000")
+    assert isinstance(ocx._client.session.auth, auth_type)
+    assert getattr(ocx._client.session.auth, secret) == "fromenv"
 
 
 @pytest.mark.parametrize(
@@ -105,16 +147,58 @@ def test_expired_token_from_creds_file_is_ignored(api_data, mocked_token_creds_f
         ),
     ],
 )
-def test_token_expires_at(creds, expected):
-    assert token_expires_at(creds) == expected
+def test_credentials_expires_at(creds, expected):
+    assert OneCodexCredentials(**creds).expires_at == expected
 
 
-@pytest.mark.parametrize("expires_at", [None, "", "next tuesday"])
-def test_token_without_valid_expiry_is_expired(expires_at):
-    creds = {"access_token": "t"}
-    if expires_at is not None:
-        creds["expires_at"] = expires_at
-    assert token_time_left(creds) < datetime.timedelta(0)
+def test_credentials_time_left():
+    expires_at = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=2)
+    time_left = OneCodexCredentials(access_token="t", expires_at=expires_at).time_left
+    assert datetime.timedelta(hours=1, minutes=59) < time_left <= datetime.timedelta(hours=2)
+    assert OneCodexCredentials(api_key="mysecretkey").time_left is None
+
+
+def test_credentials_save_and_load(tmp_path):
+    path = str(tmp_path / ".onecodex")
+    assert OneCodexCredentials.load(path) is None
+
+    creds = OneCodexCredentials(
+        email="test@onecodex.com",
+        access_token="t",
+        expires_at=datetime.datetime(2026, 11, 23, 15, tzinfo=datetime.timezone.utc),
+        saved_at=datetime.datetime(2026, 11, 16, 15, 30),
+    )
+    creds.save(path)
+
+    assert os.stat(path).st_mode & 0o777 == 0o600
+    with open(path) as f:
+        assert json.load(f) == {
+            "email": "test@onecodex.com",
+            "access_token": "t",
+            "expires_at": "2026-11-23T15:00:00+00:00",
+            "saved_at": "2026-11-16 15:30",
+        }
+    assert OneCodexCredentials.load(path) == creds
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        "",
+        "not json",
+        "[]",
+        # A login token requires a valid expiry
+        '{"access_token": "t"}',
+        '{"access_token": "t", "expires_at": ""}',
+        '{"access_token": "t", "expires_at": "next tuesday"}',
+        '{"api_key": 123}',
+    ],
+)
+def test_credentials_load_invalid_file(tmp_path, content):
+    path = tmp_path / ".onecodex"
+    path.write_text(content)
+    with pytest.raises(InvalidCredentialsError):
+        OneCodexCredentials.load(str(path))
 
 
 @pytest.mark.parametrize(
@@ -157,6 +241,22 @@ def test_poll_device_token(mock_sleep):
         json.loads(call.request.body) == {"device_code": "secret-device-code"}
         for call in responses.calls
     )
+
+
+@pytest.mark.parametrize(
+    "timeout", [requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout]
+)
+@responses.activate
+def test_poll_device_token_retries_after_timeout(mock_sleep, timeout):
+    url = SERVER + "api/cli/device/token"
+    responses.post(url, body=timeout("No response in 15 seconds"))
+    responses.post(url, json=DEVICE_TOKEN)
+
+    token = poll_device_token(SERVER, DeviceAuthorization(**DEVICE_AUTHORIZATION))
+
+    assert token.access_token == DEVICE_TOKEN["access_token"]
+    # The wait doubles after the timeout
+    assert mock_sleep.call_args_list == [mock.call(5), mock.call(10)]
 
 
 @pytest.mark.parametrize(
