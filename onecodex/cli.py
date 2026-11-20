@@ -19,9 +19,10 @@ from onecodex.auth import (
     login_required,
 )
 from onecodex.input_helpers import (
-    auto_detect_pairs,
-    concatenate_multilane_files,
-    concatenate_ont_groups,
+    PlannedSample,
+    confirm_plan,
+    materialize_plan,
+    plan_uploads,
 )
 from onecodex.lib.upload import DEFAULT_THREADS
 from onecodex.metadata_upload import validate_appendables
@@ -899,21 +900,36 @@ def upload(
                 )
                 ctx.exit(1)
 
-            # Detecting ONT groups comes first as otherwise part of ONT group could
-            # be mistaken for a paired file
-            files = concatenate_ont_groups(files, prompt, tempdir)
-            files = auto_detect_pairs(files, prompt)
+            samples = plan_uploads(files, prompt)
+            if prompt and any(s.is_paired or s.is_concatenated for s in samples):
+                if not confirm_plan(samples, set(files)):
+                    samples = [PlannedSample(forward=(filename,)) for filename in files]
 
-        files = concatenate_multilane_files(files, prompt, tempdir)
+            files = materialize_plan(samples, tempdir)
 
-        total_size = sum(
-            [
-                (os.path.getsize(x[0]) + os.path.getsize(x[1]))
-                if isinstance(x, tuple)
-                else os.path.getsize(x)
-                for x in files
-            ]
-        )
+        # sizing everything up front means an empty file is caught before anything is
+        # uploaded, rather than failing its own thread while the others succeed
+        sizes = [
+            (path, os.path.getsize(path))
+            for upload in files
+            for path in (upload if isinstance(upload, tuple) else (upload,))
+        ]
+
+        empty = sorted({path for path, size in sizes if size == 0})
+        if empty:
+            click.echo(
+                "Empty files can not be uploaded: {}".format(
+                    ", ".join(
+                        # a file we assembled ourselves lives in a temporary directory
+                        os.path.basename(path) if path.startswith(tempdir) else path
+                        for path in empty
+                    )
+                ),
+                err=True,
+            )
+            ctx.exit(1)
+
+        total_size = sum(size for _, size in sizes)
 
         upload_kwargs = {
             "metadata": appendables["valid_metadata"],
