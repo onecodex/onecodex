@@ -752,6 +752,45 @@ def mocked_creds_file(mocked_creds_path):
         )
 
 
+@pytest.fixture(scope="function")
+def mocked_token_creds_file(mocked_creds_path):
+    """Returns a function that writes ~/.onecodex with a login token expiring in `expires_in`."""
+
+    def write(expires_in: datetime.timedelta) -> None:
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+        expires_at = datetime.datetime.now(datetime.timezone.utc) + expires_in
+        with open(os.path.expanduser("~/.onecodex"), mode="w") as f:
+            json.dump(
+                {
+                    "email": "test@onecodex.com",
+                    "bearer_token": "header.payload.signature",
+                    "expires_at": expires_at.isoformat(timespec="seconds"),
+                    "saved_at": now,
+                    "updated_at": now,
+                },
+                f,
+            )
+
+    return write
+
+
+# Browser-based login (`onecodex login`) responses from the One Codex server
+DEVICE_AUTHORIZATION = {
+    "device_code": "secret-device-code",
+    "user_code": "WDJB-MJHT",
+    "verification_uri": "http://localhost:3000/cli/authorize",
+    "verification_uri_complete": "http://localhost:3000/cli/authorize?code=WDJB-MJHT",
+    "expires_in": 600,
+    "interval": 5,
+}
+DEVICE_TOKEN = {
+    "access_token": "header.payload.signature",
+    "token_type": "Bearer",
+    "expires_in": 7 * 24 * 60 * 60,
+    "email": "user@example.com",
+}
+
+
 # Upload mock helpers
 FASTQ_SEQUENCE = """
 @cluster_2:UMI_ATTCCG
