@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   It saves a login token that lasts 7 days instead of an API key; run `onecodex login` again to
   renew it. Use `--no-browser` to print the login URL instead of opening it. The `--api-key`
   option and the `ONE_CODEX_API_KEY` environment variable are unchanged.
+- `onecodex logout` now also revokes your login token on the One Codex server.
 - `~/.onecodex` is now created readable only by your user.
 - `Api()` prefers the `ONE_CODEX_BEARER_TOKEN` and `ONE_CODEX_API_KEY` environment variables
   over the `~/.onecodex` credentials file, like the CLI does.

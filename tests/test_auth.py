@@ -11,6 +11,7 @@ from requests.auth import HTTPBasicAuth
 from onecodex import Api
 from onecodex.lib.auth import (
     DEVICE_NAME_HEADER,
+    LOGOUT_TIMEOUT_SECONDS,
     BearerTokenAuth,
     DeviceAuthorization,
     DeviceLoginError,
@@ -18,6 +19,7 @@ from onecodex.lib.auth import (
     OneCodexCredentials,
     check_version,
     poll_device_token,
+    revoke_token,
     start_device_login,
 )
 from tests.conftest import DEVICE_AUTHORIZATION, DEVICE_TOKEN
@@ -281,3 +283,31 @@ def test_poll_device_token_gives_up_after_expiry(mock_sleep, monkeypatch):
     with pytest.raises(DeviceLoginError, match="expired"):
         poll_device_token(SERVER, DeviceAuthorization(**DEVICE_AUTHORIZATION))
     assert len(responses.calls) == 2
+
+
+@responses.activate
+def test_revoke_token():
+    responses.post(SERVER + "api/cli/logout", status=204)
+
+    assert revoke_token(SERVER, "header.payload.signature") is True
+
+    request = responses.calls[0].request
+    assert request.headers["Authorization"] == "Bearer header.payload.signature"
+    assert request.req_kwargs["timeout"] == LOGOUT_TIMEOUT_SECONDS
+
+
+@pytest.mark.parametrize(
+    "response",
+    [
+        {"body": requests.exceptions.ConnectionError("Connection refused")},
+        {"body": requests.exceptions.ReadTimeout("No response")},
+        {"status": 401},
+        {"status": 500},
+    ],
+)
+@responses.activate
+def test_revoke_token_failures(response):
+    responses.post(SERVER + "api/cli/logout", **response)
+
+    assert revoke_token(SERVER, "header.payload.signature") is False
+    assert len(responses.calls) == 1

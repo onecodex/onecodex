@@ -975,8 +975,9 @@ def login(ctx, no_browser):
 @click.pass_context
 @telemetry
 def logout(ctx):
-    """Delete an API key (saved in ~/.onecodex)."""
-    _logout()
+    """Log out and delete saved credentials (~/.onecodex)."""
+    base_url = os.environ.get("ONE_CODEX_API_BASE", "https://app.onecodex.com")
+    _logout(base_url)
 
 
 # jobs

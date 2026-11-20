@@ -5,6 +5,8 @@ import os.path
 
 import mock
 import pytest
+import requests
+import responses
 from click.testing import CliRunner
 from testfixtures import Replace
 
@@ -1058,6 +1060,64 @@ def test_logout_creds_dne(runner, mocked_creds_path):
     result = runner.invoke(Cli, ["logout"])
     assert result.exit_code == 1
     assert expected_message in result.output
+
+
+@pytest.mark.parametrize(
+    "logout_response,revoked",
+    [
+        ({"status": 204}, True),
+        ({"status": 500}, False),
+        ({"body": requests.exceptions.ConnectionError()}, False),
+        ({"body": requests.exceptions.ReadTimeout()}, False),
+    ],
+)
+@responses.activate
+def test_logout_revokes_token(runner, mocked_token_creds_file, logout_response, revoked):
+    mocked_token_creds_file(datetime.timedelta(days=5))
+    responses.post("http://localhost:3000/api/cli/logout", **logout_response)
+
+    result = runner.invoke(Cli, ["logout"])
+
+    # Credentials are removed even if the server can't be reached
+    assert result.exit_code == 0
+    assert ("Your login token was not revoked" in result.output) is not revoked
+    assert "Successfully removed One Codex credentials." in result.output
+    assert not os.path.exists(os.path.expanduser("~/.onecodex"))
+    assert len(responses.calls) == 1
+    assert responses.calls[0].request.headers["Authorization"] == "Bearer header.payload.signature"
+
+
+@responses.activate
+def test_logout_skips_revoking_expired_token(runner, mocked_token_creds_file):
+    mocked_token_creds_file(datetime.timedelta(hours=-1))
+
+    result = runner.invoke(Cli, ["logout"])
+
+    assert result.exit_code == 0
+    assert not os.path.exists(os.path.expanduser("~/.onecodex"))
+    assert len(responses.calls) == 0
+
+
+@responses.activate
+def test_logout_api_key_does_not_call_server(runner, mocked_creds_file):
+    result = runner.invoke(Cli, ["logout"])
+
+    assert result.exit_code == 0
+    assert not os.path.exists(os.path.expanduser("~/.onecodex"))
+    assert len(responses.calls) == 0
+
+
+@responses.activate
+def test_logout_removes_corrupted_creds_file(runner, mocked_creds_path):
+    path = os.path.expanduser("~/.onecodex")
+    with open(path, mode="w") as f:
+        f.write('{"bearer_token": "header.payload.signature"}')
+
+    result = runner.invoke(Cli, ["logout"])
+
+    assert result.exit_code == 0
+    assert not os.path.exists(path)
+    assert len(responses.calls) == 0
 
 
 def test_auth_from_env(runner, api_data, mocked_creds_path):

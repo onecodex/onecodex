@@ -18,6 +18,7 @@ from onecodex.lib.auth import (
     OneCodexCredentials,
     check_version,
     poll_device_token,
+    revoke_token,
     start_device_login,
 )
 from onecodex.utils import collapse_user
@@ -222,8 +223,27 @@ def _remove_creds(creds_file=None):
     return True
 
 
-def _logout(creds_file=None):
-    """Logout main function, just rm ~/.onecodex more or less."""
+def _logout(server: str, creds_file: str | None = None) -> None:
+    """Logout main function: revoke the bearer token and rm ~/.onecodex."""
+    server = _server_url(server)
+    if creds_file is None:
+        creds_file = _default_creds_file()
+
+    try:
+        creds = OneCodexCredentials.load(creds_file)
+    except (InvalidCredentialsError, OSError):
+        creds = None  # a corrupted or unreadable file is still removed below
+
+    if creds is not None and creds.bearer_token and creds.time_left > datetime.timedelta(0):
+        # Skip revoking expired tokens
+        if not revoke_token(server, creds.bearer_token):
+            expires_at = creds.expires_at.astimezone(datetime.timezone.utc)
+            click.echo(
+                "Your login token was not revoked on the One Codex server. It remains valid "
+                "until {}.".format(expires_at.strftime("%Y-%m-%d %H:%M UTC")),
+                err=True,
+            )
+
     if _remove_creds(creds_file=creds_file):
         click.echo("Successfully removed One Codex credentials.", err=True)
         sys.exit(0)

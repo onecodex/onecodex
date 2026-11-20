@@ -14,6 +14,9 @@ DEVICE_NAME_HEADER = "X-OneCodex-Device-Name"
 
 MAX_POLL_INTERVAL_SECONDS = 60
 
+# Logging out shouldn't hang on an unreachable server
+LOGOUT_TIMEOUT_SECONDS = 5
+
 # Format of the timestamps in the credentials file
 DATE_FORMAT = "%Y-%m-%d %H:%M"
 
@@ -184,6 +187,22 @@ def poll_device_token(server_url: str, authorization: DeviceAuthorization) -> De
         )
 
     raise DeviceLoginError("The login request expired. Please run `onecodex login` again.")
+
+
+def revoke_token(server_url: str, bearer_token: str) -> bool:
+    """Ask One Codex to revoke the bearer token.
+
+    Returns False if the server can't be reached or returns an error.
+    """
+    try:
+        resp = requests.post(
+            server_url + "api/cli/logout",
+            auth=BearerTokenAuth(bearer_token),
+            timeout=LOGOUT_TIMEOUT_SECONDS,
+        )
+    except requests.exceptions.RequestException:
+        return False
+    return resp.ok
 
 
 def check_version(version, server):
