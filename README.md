@@ -66,6 +66,37 @@ Multiple files can be uploaded in a single command as well:
 onecodex upload file1.fq.gz file2.fq.gz ...
 ```
 
+One Codex stores each sample as a single file, so the CLI works out from the filenames which files belong to the same sample and joins them together before uploading:
+
+- Paired end reads (e.g. `sample_R1.fq.gz` and `sample_R2.fq.gz`) are interleaved.
+- Files split into numbered chunks, such as Oxford Nanopore output (e.g. `barcode01_0.fq.gz`, `barcode01_1.fq.gz`, ...), are concatenated. Numbering has to start at `0` with no gaps.
+- Files sequenced across several lanes (e.g. `sample_L001_R1.fq.gz`, `sample_L002_R1.fq.gz`, ...) are concatenated.
+
+If you name only some of a sample's files, such as just the `R1` read or just the first chunk, the CLI picks up the rest from the same directory. Before uploading, it shows the samples it will create and asks you to confirm:
+
+```text
+$ onecodex upload *
+Please confirm your upload, which will create 3 samples from 7 files (1 concatenated and
+2 interleaved):
+
+sample 1: concatenated from 3 files
+├── barcode01_0.fq.gz
+├── barcode01_1.fq.gz
+└── barcode01_2.fq.gz
+
+sample 2: interleaved
+├── sampleA_R1.fq.gz
+└── sampleA_R2.fq.gz
+
+sample 3: interleaved
+├── sampleB_R1.fq.gz
+└── sampleB_R2.fq.gz
+
+[Y]es, upload as planned; [n]o, upload each file I specified as a separate sample; [c]ancel (Y, n, c) [Y]:
+```
+
+Pass `--no-prompt` to skip the confirmation, e.g. in a script. Files are still grouped, but only from the files you named.
+
 You can also upload files using the Python client library:
 
 ```python
