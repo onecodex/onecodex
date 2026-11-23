@@ -14,8 +14,6 @@ from onecodex import Cli
 from onecodex.lib.auth import DeviceAuthorization, DeviceLoginError, DeviceToken
 from tests.conftest import API_DATA, DEVICE_AUTHORIZATION, DEVICE_TOKEN
 
-DATE_FORMAT = "%Y-%m-%d %H:%M"
-
 
 @pytest.fixture
 def mock_file_upload():
