@@ -35,16 +35,18 @@ pip install 'onecodex[all]'
 
 ### Logging in
 
-The CLI supports authentication using either your One Codex API key or your One Codex username and password.
-To log in using your username and password:
+The CLI supports authentication by logging in through your browser or with your One Codex API key.
+To log in through your browser:
 
 ```bash
 onecodex login
 ```
 
-This command will save a credentials file at `~/.onecodex`, which will then automatically be used for authentication the next time the CLI or Python client library are used (OS X/Linux only). You can clear this file and remove your API key from your machine with `onecodex logout`.
+This opens a One Codex page in your browser, where you sign in as usual (including with single sign-on) and confirm the code shown in your terminal. On a remote machine, or with `onecodex login --no-browser`, the CLI prints the page's URL instead, which you can open on any device.
 
-In a shared environment, we recommend directly using your One Codex API key, rather than logging in and storing it in a credentials file. To use API key authentication, simply pass your key as an argument to the `onecodex` command:
+The CLI then saves a credentials file at `~/.onecodex`, which will automatically be used for authentication the next time the CLI or Python client library are used. Your login lasts 7 days. Run `onecodex login` again to renew it. You can clear this file and remove your credentials from your machine with `onecodex logout`.
+
+In a shared environment, or for scripts and pipelines that run unattended, we recommend directly using your One Codex API key, rather than logging in and storing credentials in a file. To use API key authentication, simply pass your key as an argument to the `onecodex` command:
 
 ```bash
 onecodex --api-key=YOUR_API_KEY samples

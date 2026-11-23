@@ -1,5 +1,5 @@
 from __future__ import print_function
-import filelock
+import datetime
 import json
 import logging
 import os
@@ -9,7 +9,12 @@ import sys
 from requests.auth import HTTPBasicAuth
 import warnings
 
-from onecodex.lib.auth import BearerTokenAuth
+from onecodex.lib.auth import (
+    TOKEN_RENEWAL_WINDOW,
+    BearerTokenAuth,
+    InvalidCredentialsError,
+    OneCodexCredentials,
+)
 from onecodex.utils import collapse_user, init_sentry, get_requests_session
 from onecodex.version import __version__
 
@@ -17,6 +22,24 @@ from typing import TYPE_CHECKING, Type
 
 
 log = logging.getLogger("onecodex")
+
+
+def _read_creds_file() -> OneCodexCredentials | None:
+    """Read the ~/.onecodex credentials file, returns None if it's unusable."""
+    creds_file = os.path.expanduser("~/.onecodex")
+
+    if not os.path.exists(creds_file):
+        return None
+
+    if not os.access(creds_file, os.R_OK):
+        warnings.warn("Check permissions on {}".format(collapse_user(creds_file)))
+        return None
+
+    try:
+        return OneCodexCredentials.load(creds_file)
+    except InvalidCredentialsError:
+        warnings.warn("Credentials file ({}) is corrupt".format(collapse_user(creds_file)))
+        return None
 
 
 class HTTPClient:
@@ -120,36 +143,33 @@ class Api(object):
         self._base_url = base_url
         self._schema_path = schema_path
 
-        # Attempt to automatically fetch API key from
-        # ~/.onecodex file, API key, or bearer token environment vars
-        # *if and only if* no auth is explicitly passed to Api
+        # Attempt to automatically fetch auth from the bearer token or API key
+        # environment vars, falling back to the login token or API key in the
+        # ~/.onecodex file, *if and only if* no auth is explicitly passed to Api
         #
         # TODO: Consider only doing this if an add'l env var like
         #       'ONE_CODEX_AUTO_LOGIN' or similar is set.
         if api_key is None and bearer_token is None:
-            creds_file = os.path.expanduser("~/.onecodex")
+            bearer_token = os.environ.get("ONE_CODEX_BEARER_TOKEN")
+            api_key = os.environ.get("ONE_CODEX_API_KEY")
 
-            if not os.path.exists(creds_file):
-                pass
-            elif not os.access(creds_file, os.R_OK):
-                warnings.warn("Check permissions on {}".format(collapse_user(creds_file)))
-            else:
-                try:
-                    with filelock.FileLock("{}.lock".format(creds_file)):
-                        api_key = json.load(open(creds_file, "r"))["api_key"]
-                except KeyError:
-                    # lacking an api_key doesn't mean the file is corrupt--it can just be that the
-                    # schema was cached after logging in anonymously
-                    pass
-                except ValueError:
+            # The credentials file is used only without auth in the environment
+            creds = None if bearer_token or api_key else _read_creds_file()
+            if creds is not None:
+                # Try bearer token from creds file first, fall back to api key.
+                time_left = creds.time_left
+                if time_left is None:
+                    api_key = creds.api_key
+                elif time_left <= datetime.timedelta(0):
                     warnings.warn(
-                        "Credentials file ({}) is corrupt".format(collapse_user(creds_file))
+                        "Your One Codex login has expired. Run `onecodex login` to log in again."
                     )
-
-            if api_key is None:
-                api_key = os.environ.get("ONE_CODEX_API_KEY")
-            if bearer_token is None:
-                bearer_token = os.environ.get("ONE_CODEX_BEARER_TOKEN")
+                else:
+                    if time_left < TOKEN_RENEWAL_WINDOW:
+                        warnings.warn(
+                            "Your One Codex login expires soon. Run `onecodex login` to renew it."
+                        )
+                    bearer_token = creds.bearer_token
 
         auth = None
         if bearer_token:  # prefer bearer token where available
@@ -198,19 +218,9 @@ class Api(object):
             self._telemetry = False
 
     def _fetch_account_email(self):
-        creds_file = os.path.expanduser("~/.onecodex")
-
-        if not os.path.exists(creds_file):
-            pass
-        elif not os.access(creds_file, os.R_OK):
-            warnings.warn("Check permissions on {}".format(collapse_user(creds_file)))
-        else:
-            try:
-                return json.load(open(creds_file, "r"))["email"]
-            except KeyError:
-                pass
-            except ValueError:
-                warnings.warn("Credentials file ({}) is corrupt".format(collapse_user(creds_file)))
+        creds = _read_creds_file()
+        if creds is not None and creds.email:
+            return creds.email
 
         return os.environ.get("ONE_CODEX_USER_EMAIL", os.environ.get("ONE_CODEX_USER_UUID"))
 

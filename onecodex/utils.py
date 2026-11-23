@@ -202,7 +202,7 @@ def cli_resource_fetcher(ctx, resource, uris, print_results=True):
             return objs_to_return
     except requests.exceptions.HTTPError:
         click.echo(
-            "Failed to authenticate. Please check your API key "
+            "Failed to authenticate. Please check your API credentials "
             "or trying logging out and back in with `onecodex logout` "
             "and `onecodex login`."
         )
