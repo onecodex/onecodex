@@ -5,6 +5,56 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- ANCOM-BC now supports `group_by` variables with numeric-looking values (e.g. `"1"`, `"2"`). They
+  are compared as categorical groups.
+
+### Changed
+
+- `onecodex upload` works out how all the files fit together into samples up front, shows the
+  plan, and asks once. Concatenation, interleaving and lane concatenation used to be three
+  prompts asked in sequence. Declining now uploads every file you named as its own sample.
+- `onecodex upload` picks up the rest of an ONT sequence from the same directory when you name
+  only part of it, matching what it already did for a paired end mate. Files found this way are
+  marked in the plan. `--no-prompt` still uploads only the files you named.
+- ANCOM-BC no longer uses multiplicative replacement for zeros in normalized metrics (e.g.
+  `abundance_w_children`). Instead, normalized metrics are converted to pseudo-counts by
+  multiplying by each sample's number of microbial reads, and a pseudocount of 1 is added to all
+  metrics.
+- ANCOM-BC no longer excludes samples whose values are all zeros at the selected rank. They are
+  kept and receive the pseudocount like every other sample.
+
+### Fixed
+
+- `onecodex upload` no longer groups files by filename alone, so samples that share a filename
+  in different directories stay separate. Previously ONT files refused to concatenate, and
+  multi-lane files from different directories could be concatenated into one sample.
+- `onecodex upload` no longer treats a file as a sample split across several files when its
+  name carries no chunk number, and no longer mistakes ONT chunks for paired end reads or
+  paired end reads for ONT chunks.
+- `onecodex upload` no longer offers, or uploads, the same read pair twice when a file with an
+  unrelated ordinal is passed alongside it.
+- `onecodex upload` rejects empty files before uploading anything, instead of failing partway
+  through and leaving the rest of the batch uploaded.
+- `onecodex upload` no longer reads a directory that happens to be named like a sequence file,
+  which raised an `IsADirectoryError`.
+- `onecodex upload` no longer renames a file it did not concatenate. A lone `t1_0.fq` was
+  uploaded as `t1.fq`, but only when another multi-file sample was in the same batch.
+- Upgraded scikit-bio from 0.7.1.post1 to 0.7.4. The ANCOM-BC `Log2(FC)` results column and plot
+  axis are now named `Ln(FC)`, as the values have always been natural log-fold changes, not log2.
+- ANCOM-BC no longer reports spurious increases for taxa that are mostly zero in a group when using
+  a normalized metric. Multiplicative replacement replaced zeros with `1 / N**2`, where `N` is the
+  number of taxa, which could exceed observed values at coarse ranks such as phylum and flip the
+  sign of the log-fold change.
+- ANCOM-BC now excludes taxa that are absent from every sample in the test.
+- Statistical tests now raise a clear error when `group_by` or `paired_by` is a numeric metadata
+  field, instead of an error about specifying multiple metadata fields.
+- ANCOM-BC global test results (`include_global_test=True`) are now accurate (fixed in
+  scikit-bio 0.7.4).
+
 ## [v1.2.0] - 2026-09-30
 
 ### Added
@@ -35,13 +85,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   containing *all* the listed taxa are returned.
 
 ### Changed
-
-- `onecodex upload` works out how all the files fit together into samples up front, shows the
-  plan, and asks once. Concatenation, interleaving and lane concatenation used to be three
-  prompts asked in sequence. Declining now uploads every file you named as its own sample.
-- `onecodex upload` picks up the rest of an ONT sequence from the same directory when you name
-  only part of it, matching what it already did for a paired end mate. Files found this way are
-  marked in the plan. `--no-prompt` still uploads only the files you named.
 
 - Nextflow Workflows no longer accept an image URI. Use `nextflow_version`
   (`--nextflow-version`) instead. `image_uri` (`--image-uri`) is still required for shell script
@@ -76,21 +119,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   readcounts are computed *after*.
 
 ### Fixed
-
-- `onecodex upload` no longer groups files by filename alone, so samples that share a filename
-  in different directories stay separate. Previously ONT files refused to concatenate, and
-  multi-lane files from different directories could be concatenated into one sample.
-- `onecodex upload` no longer treats a file as a sample split across several files when its
-  name carries no chunk number, and no longer mistakes ONT chunks for paired end reads or
-  paired end reads for ONT chunks.
-- `onecodex upload` no longer offers, or uploads, the same read pair twice when a file with an
-  unrelated ordinal is passed alongside it.
-- `onecodex upload` rejects empty files before uploading anything, instead of failing partway
-  through and leaving the rest of the batch uploaded.
-- `onecodex upload` no longer reads a directory that happens to be named like a sequence file,
-  which raised an `IsADirectoryError`.
-- `onecodex upload` no longer renames a file it did not concatenate. A lone `t1_0.fq` was
-  uploaded as `t1.fq`, but only when another multi-file sample was in the same batch.
 
 - `plot_functional_heatmap()` no longer raises a `MergeError` when the sample
   collection contains more than one sample without functional profile results.
