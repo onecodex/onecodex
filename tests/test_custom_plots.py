@@ -996,7 +996,7 @@ def _make_ancombc_main_results():
                 "Intercept",
                 "cohort: B vs A (reference)",
             ],
-            "Log(FC)": [0.0, 1.5, 0.0, -2.0],
+            "Ln(FC)": [0.0, 1.5, 0.0, -2.0],
             "SE": [0.1, 0.2, 0.1, 0.3],
             "W": [0.0, 7.5, 0.0, -6.7],
             "pvalue": [1.0, 0.001, 1.0, 0.002],
@@ -1146,7 +1146,7 @@ def test_stats_to_dict_ancombc():
             "Taxon",
             "Covariate",
             "Comparison",
-            "Log(FC)",
+            "Ln(FC)",
             "SE",
             "W",
             "pvalue",
@@ -1159,7 +1159,7 @@ def test_stats_to_dict_ancombc():
     sig_record = next(
         r for r in records if r["Taxon"] == "Taxon A" and r["Covariate"] == "cohort[T.B]"
     )
-    assert sig_record["Log(FC)"] == 1.5
+    assert sig_record["Ln(FC)"] == 1.5
     assert sig_record["Signif"] is True
 
     global_records = ancombc["global_results"]

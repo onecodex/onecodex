@@ -27,7 +27,7 @@ from onecodex.stats import (
 
 ANCOMBC_MAIN_RESULTS_COLUMNS = {
     "Comparison",
-    "Log(FC)",
+    "Ln(FC)",
     "SE",
     "W",
     "pvalue",
@@ -749,7 +749,7 @@ def test_ancombc_natural_log_fold_change(ocx, api_data, samples):
     with mock.patch.object(SampleCollection, "to_classification_df", return_value=taxa_df):
         results = samples._ancombc(group_by="group", metric=Metric.ReadcountWChildren, rank="genus")
 
-    lfc = results.main_results.xs("group[T.b]", level="Covariate")["Log(FC)"]
+    lfc = results.main_results.xs("group[T.b]", level="Covariate")["Ln(FC)"]
     assert lfc["t0"] == pytest.approx(np.log(8), abs=0.1)
     assert lfc["t1"] == pytest.approx(np.log(1 / 4), abs=0.1)
 
@@ -777,7 +777,7 @@ def test_ancombc_mostly_zero_taxon_decreased(ocx, api_data, samples):
             group_by="group", metric=Metric.AbundanceWChildren, rank="phylum"
         )
 
-    assert results.main_results.loc[("rare", "group[T.b]"), "Log(FC)"] < 0
+    assert results.main_results.loc[("rare", "group[T.b]"), "Ln(FC)"] < 0
 
 
 @pytest.mark.parametrize(
@@ -885,7 +885,7 @@ def _make_ancombc_results(rows):
         [
             {
                 "Comparison": r[2],
-                "Log(FC)": r[3],
+                "Ln(FC)": r[3],
                 "SE": 0.3,
                 "W": 2.0,
                 "pvalue": 0.01,

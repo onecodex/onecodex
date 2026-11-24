@@ -189,8 +189,8 @@ class AncombcResults(StatsResults):
         df["Taxon"] = taxon_parts[0].fillna(df["Taxon"])
 
         df["Difference from reference"] = "No change"
-        df.loc[(df["Log(FC)"] < 0), "Difference from reference"] = "Decreased"
-        df.loc[(df["Log(FC)"] > 0), "Difference from reference"] = "Increased"
+        df.loc[(df["Ln(FC)"] < 0), "Difference from reference"] = "Decreased"
+        df.loc[(df["Ln(FC)"] > 0), "Difference from reference"] = "Increased"
 
         color_domain = ["Decreased", "Increased"]
         color_range = [OCX_RED, OCX_DARK_BLUE]
@@ -198,19 +198,19 @@ class AncombcResults(StatsResults):
         # Symmetric x-axis domain around zero, with a minimum extent equivalent to a Log2(FC) of ±0.5.
         # Log2(FC) of 0.5 is sometimes considered "biologically relevant", which is why we use this
         # minimum threshold.
-        x_extent = max(df["Log(FC)"].abs().max(), 0.5 * math.log(2))
+        x_extent = max(df["Ln(FC)"].abs().max(), 0.5 * math.log(2))
 
         base = alt.Chart(df)
 
         bars = base.mark_bar().encode(
-            x=alt.X("Log(FC):Q", title="Log(FC)", scale=alt.Scale(domain=[-x_extent, x_extent])),
+            x=alt.X("Ln(FC):Q", title="Ln(FC)", scale=alt.Scale(domain=[-x_extent, x_extent])),
             y=alt.Y("Taxon:O", title="Taxon"),
             color=alt.Color(
                 "Difference from reference:N",
                 title="Difference from reference",
                 scale=alt.Scale(domain=color_domain, range=color_range),
             ),
-            tooltip=["Taxon", "Taxon ID", "Comparison", "Log(FC)", "pvalue", "qvalue"],
+            tooltip=["Taxon", "Taxon ID", "Comparison", "Ln(FC)", "pvalue", "qvalue"],
         )
 
         # Dashed vertical reference line at x=0
@@ -974,7 +974,9 @@ class StatsMixin(DistanceMixin, BaseSampleCollection):
                 f"lack sufficient variation: {e}"
             )
 
-        main_results = fit.result.rename_axis(index={"FeatureID": "Taxon"})
+        main_results = fit.result.rename(columns={"Log(FC)": "Ln(FC)"}).rename_axis(
+            index={"FeatureID": "Taxon"}
+        )
         if global_results is not None:
             global_results = global_results.rename_axis(index={"FeatureID": "Taxon"})
 

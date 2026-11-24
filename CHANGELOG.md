@@ -23,9 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Upgraded scikit-bio from 0.7.1.post1 to 0.7.4. As a result, the ANCOM-BC `Log2(FC)` results
-  column and plot axis are now named `Log(FC)`. The values have always been natural log-fold
-  changes, not log2.
+- Upgraded scikit-bio from 0.7.1.post1 to 0.7.4. The ANCOM-BC `Log2(FC)` results column and plot
+  axis are now named `Ln(FC)`, as the values have always been natural log-fold changes, not log2.
 - ANCOM-BC no longer reports spurious increases for taxa that are mostly zero in a group when using
   a normalized metric. Multiplicative replacement replaced zeros with `1 / N**2`, where `N` is the
   number of taxa, which could exceed observed values at coarse ranks such as phylum and flip the
